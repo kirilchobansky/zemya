@@ -1,0 +1,10 @@
+# Canonical line endings: LF in the repository, native in the working tree.
+* text=auto
+
+# Binary / generated assets git must not touch.
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ico binary
