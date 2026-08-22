@@ -1,0 +1,19 @@
+# United States (USA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: USA
+slug: united-states
+name: United States
+religion: Protestantism
+flag: Thirteen red and white stripes with fifty white stars on blue.
+outline: A wide block with Alaska and Hawaii detached to the northwest.
+hook: The current 50-star flag was designed by a 17-year-old for a school project — he got a B minus.
+population: 341814420

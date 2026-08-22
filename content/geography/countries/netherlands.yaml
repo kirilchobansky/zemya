@@ -1,0 +1,19 @@
+# Netherlands (NLD)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: NLD
+slug: netherlands
+name: Netherlands
+religion: Atheism / no religion
+flag: "Three horizontal bands: red, white, blue."
+outline: A crouching lion, with a fringe of reclaimed polder along the sea.
+hook: A third of the country sits below sea level — the Dutch literally built their own land.
+population: 18228742

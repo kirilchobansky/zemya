@@ -1,0 +1,19 @@
+# Gabon (GAB)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: GAB
+slug: gabon
+name: Gabon
+religion: Roman Catholicism
+flag: "Three horizontal bands: green, yellow, blue."
+outline: A small square on the equator, almost entirely rainforest.
+hook: Over 11% of the country is national park — one of Africa's greenest nations.
+population: 2538952

@@ -1,0 +1,19 @@
+# Micronesia (FSM)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: FSM
+slug: micronesia
+name: Micronesia
+religion: Roman Catholicism
+flag: Light blue field with four white stars in a diamond.
+outline: Four island groups strung 2,700 km across the Pacific.
+hook: Its 607 islands spread across an ocean area larger than Western Europe.
+population: 526849

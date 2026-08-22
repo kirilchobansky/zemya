@@ -1,0 +1,19 @@
+# Libya (LBY)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: LBY
+slug: libya
+name: Libya
+religion: Sunni Islam
+flag: Red, black and green bands with a white crescent and star.
+outline: A large block with a Mediterranean coast curving around the Gulf of Sidra.
+hook: "From 1977 to 2011 it had the world's only solid-colour flag: plain green."
+population: 7361263

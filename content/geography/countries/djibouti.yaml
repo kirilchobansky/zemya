@@ -1,0 +1,19 @@
+# Djibouti (DJI)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: DJI
+slug: djibouti
+name: Djibouti
+religion: Sunni Islam
+flag: Light blue over green with a white hoist triangle and red star.
+outline: A tiny wedge at the mouth of the Red Sea.
+hook: Lake Assal is the saltiest body of water outside Antarctica and Africa's lowest point.
+population: 1168722

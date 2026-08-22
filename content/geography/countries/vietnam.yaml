@@ -1,0 +1,19 @@
+# Vietnam (VNM)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: VNM
+slug: vietnam
+name: Vietnam
+religion: Folk religion / Buddhism
+flag: Red field with a large yellow five-pointed star.
+outline: A long S-shaped dragon hugging the coast, narrow in the middle.
+hook: At its narrowest the country is under 50 km wide — you can cross it in an hour.
+population: 100987686

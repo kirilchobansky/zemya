@@ -1,0 +1,19 @@
+# Armenia (ARM)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ARM
+slug: armenia
+name: Armenia
+religion: Christianity (Armenian Apostolic)
+flag: "Three horizontal bands: red, blue, orange."
+outline: A small landlocked shape cradled beneath the Caucasus.
+hook: The first country in the world to adopt Christianity as a state religion, in 301 AD.
+population: 2973840

@@ -1,0 +1,19 @@
+# Kenya (KEN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: KEN
+slug: kenya
+name: Kenya
+religion: Christianity
+flag: Black, red and green bands with a Maasai shield and spears.
+outline: A rough square with Lake Victoria biting into its west.
+hook: The Great Rift Valley splits the country, and human fossils here are 3 million years old.
+population: 56432944

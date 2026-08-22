@@ -1,0 +1,19 @@
+# Argentina (ARG)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ARG
+slug: argentina
+name: Argentina
+religion: Roman Catholicism
+flag: Light blue, white and light blue bands with the golden Sun of May.
+outline: A long tapering wedge running down to Tierra del Fuego.
+hook: Stretches so far south that its tip is closer to Antarctica than to its own tropics.
+population: 45696159

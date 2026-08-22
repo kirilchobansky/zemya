@@ -1,0 +1,19 @@
+# Taiwan (TWN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: TWN
+slug: taiwan
+name: Taiwan
+religion: Buddhism / folk religion
+flag: Red field with a blue canton bearing a white twelve-rayed sun.
+outline: A sweet-potato-shaped island off China's coast.
+hook: Taiwanese affectionately call their island "the sweet potato" for its shape.
+population: 23400220

@@ -1,0 +1,19 @@
+# Thailand (THA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: THA
+slug: thailand
+name: Thailand
+religion: Buddhism (Theravada)
+flag: Red, white, blue, white, red horizontal bands, the blue twice as tall.
+outline: An elephant's head with the trunk stretching down the Malay peninsula.
+hook: The only Southeast Asian country never colonised by a European power.
+population: 71668011

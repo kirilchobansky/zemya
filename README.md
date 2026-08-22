@@ -9,36 +9,61 @@ share the same data model rather than sit beside it as a separate app.
 
 ## Status
 
-Pre-alpha. The repository currently holds a working single-file prototype under
-[`prototype/`](./prototype) — 196 sovereign states with real Natural Earth polygons,
-hand-written memory hooks, and nine study modes. It runs offline from one HTML file.
+Pre-alpha, and buildable.
 
-The production app (React + Vite + TypeScript, deployed as a static site) is being built
-alongside it. The prototype stays in the repo, frozen, as the reference implementation
-until every one of its modes has an equivalent.
+The production app is React 19 + Vite + TypeScript on React Router v8, prerendered to 197
+static pages. It currently does the atlas half: the map, country dossiers, neighbour
+highlighting, five choropleth overlays, search, and true-size comparison. The nine study
+modes still live only in the frozen [`prototype/`](./prototype) and are being ported.
 
 ## Repository layout
 
 | Path | What it is |
 | --- | --- |
+| `content/geography/countries/` | Hand-authored source of truth — one YAML file per country holding its memory hook, flag description, outline description and religion. Editable without touching code. |
+| `scripts/` | Build pipeline turning `content/` plus two upstream datasets into shipped JSON. |
+| `public/data/geography/` | Generated data, committed deliberately so deploys can't break from an upstream dataset shifting. |
+| `app/lib/map/` | The map engine — projection, topology, camera, canvas renderer, interaction. No React in it. |
+| `app/routes/` | `atlas.tsx` owns the canvas; the child routes render only the right-hand panel. |
 | `prototype/` | The frozen single-file reference build. Self-contained, own `package.json`. |
-| `content/` | Hand-authored source of truth — the memory hooks, flag and outline descriptions. Plain text, editable without touching code. |
-| `src/` | The production app. |
-| `scripts/` | Build pipeline turning `content/` into shipped data assets. |
-| `static/data/` | Generated data, committed deliberately so deploys can't break from an upstream dataset shifting. |
 
 `content/` is the part of this project with actual value. The canvas renderer can be
 rewritten in a weekend; 196 hand-written memory hooks cannot.
 
-## Running the prototype
+## Running it
 
 ```bash
-cd prototype
 npm install
-npm run build      # fetches map data, generates dist/zemya-prototype.html
+npm run dev        # http://localhost:5173
 ```
 
-Open `prototype/dist/zemya-prototype.html` in any browser. No server, no network.
+To build the static site exactly as it deploys:
+
+```bash
+npm run build      # regenerates public/data, then prerenders 197 pages
+npm test           # serves build/client and drives a real browser over it
+```
+
+Output lands in `build/client/` — plain files, no server required.
+
+### Editing content
+
+Change a memory hook in `content/geography/countries/<slug>.yaml`, then:
+
+```bash
+npm run build:content
+```
+
+Commit both the YAML and the regenerated `public/data/geography/*.json`. CI fails if they
+drift apart.
+
+### The prototype
+
+```bash
+cd prototype && npm install && npm run build
+```
+
+Open `prototype/dist/zemya-prototype.html`. No server, no network.
 
 ## Data provenance
 

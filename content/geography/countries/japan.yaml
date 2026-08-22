@@ -1,0 +1,19 @@
+# Japan (JPN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: JPN
+slug: japan
+name: Japan
+religion: Shinto / Buddhism
+flag: White field with a centred crimson disc.
+outline: A seahorse arching down the Pacific rim.
+hook: "\"Land of the rising sun\" — the flag is literally the sun, and the country's name says the same."
+population: 123753041

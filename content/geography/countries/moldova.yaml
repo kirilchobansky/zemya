@@ -1,0 +1,19 @@
+# Moldova (MDA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: MDA
+slug: moldova
+name: Moldova
+religion: Eastern Orthodoxy
+flag: Blue-yellow-red vertical bands with an eagle-and-aurochs crest.
+outline: A long bunch of grapes hanging between Romania and Ukraine.
+hook: Moldova has the highest density of vineyards on Earth — its wine cellars run for 200 km underground.
+population: 3435931

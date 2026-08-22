@@ -1,0 +1,19 @@
+# Guinea-Bissau (GNB)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: GNB
+slug: guinea-bissau
+name: Guinea-Bissau
+religion: Sunni Islam
+flag: Red hoist band with yellow over green and a black star.
+outline: A small coastal shape frayed into mangrove islands.
+hook: The Bijagós archipelago is a UNESCO biosphere of 88 islands, most uninhabited.
+population: 2201352

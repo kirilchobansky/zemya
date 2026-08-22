@@ -1,0 +1,19 @@
+# Oman (OMN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: OMN
+slug: oman
+name: Oman
+religion: Ibadi Islam
+flag: White, red and green with a red hoist band bearing crossed swords and a dagger.
+outline: An angled shape on the Arabian corner, plus an exclave at Musandam.
+hook: Oman guards the Strait of Hormuz, through which a fifth of the world's oil sails.
+population: 5281538

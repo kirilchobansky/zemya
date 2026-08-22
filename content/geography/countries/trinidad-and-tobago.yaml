@@ -1,0 +1,19 @@
+# Trinidad and Tobago (TTO)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: TTO
+slug: trinidad-and-tobago
+name: Trinidad and Tobago
+religion: Roman Catholicism
+flag: Red field with a black diagonal edged in white.
+outline: Two islands just off the Venezuelan coast.
+hook: The birthplace of the steelpan, the only acoustic instrument invented in the 20th century.
+population: 1408966

@@ -1,0 +1,19 @@
+# Morocco (MAR)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: MAR
+slug: morocco
+name: Morocco
+religion: Sunni Islam
+flag: Red field with a green interlaced pentagram.
+outline: A shape on Africa's northwest shoulder, facing Spain across the strait.
+hook: Fez has the world's oldest continuously operating university, founded in 859.
+population: 37840044

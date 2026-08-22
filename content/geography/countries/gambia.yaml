@@ -1,0 +1,19 @@
+# Gambia (GMB)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: GMB
+slug: gambia
+name: Gambia
+religion: Sunni Islam
+flag: Red, blue and green bands separated by thin white stripes.
+outline: A thin sliver of land hugging both banks of one river.
+hook: The smallest mainland African country — it is essentially one river with borders.
+population: 2759988

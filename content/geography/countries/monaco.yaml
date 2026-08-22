@@ -1,0 +1,19 @@
+# Monaco (MCO)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: MCO
+slug: monaco
+name: Monaco
+religion: Roman Catholicism
+flag: "Two horizontal bands: red over white."
+outline: A speck on the French Riviera, barely two square kilometres.
+hook: Monaco is smaller than New York's Central Park and has the world's densest population of millionaires.
+population: 38631

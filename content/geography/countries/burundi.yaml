@@ -1,0 +1,19 @@
+# Burundi (BDI)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: BDI
+slug: burundi
+name: Burundi
+religion: Roman Catholicism
+flag: Red and green quarters split by a white saltire, with three stars.
+outline: A tiny landlocked shape east of Lake Tanganyika.
+hook: One of the most densely populated countries in Africa, and among the smallest.
+population: 14395011

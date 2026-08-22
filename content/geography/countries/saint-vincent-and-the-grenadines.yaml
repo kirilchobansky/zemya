@@ -1,0 +1,19 @@
+# Saint Vincent and the Grenadines (VCT)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: VCT
+slug: saint-vincent-and-the-grenadines
+name: Saint Vincent and the Grenadines
+religion: Protestantism (Anglican)
+flag: Blue, gold and green bands with three green diamonds in a V.
+outline: A main island with a chain of small Grenadines trailing south.
+hook: The three diamonds form a V for Vincent — and the Grenadines are 32 islands and cays.
+population: 100616

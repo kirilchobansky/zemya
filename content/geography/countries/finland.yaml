@@ -1,0 +1,19 @@
+# Finland (FIN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: FIN
+slug: finland
+name: Finland
+religion: Protestantism (Lutheran)
+flag: White field with a blue Nordic cross.
+outline: A long maiden facing west, arm raised — Finns call it "the Finnish Maiden".
+hook: "188,000 lakes: more lakes per person than any country in the world."
+population: 5617310

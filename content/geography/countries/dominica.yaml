@@ -1,0 +1,19 @@
+# Dominica (DMA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: DMA
+slug: dominica
+name: Dominica
+religion: Roman Catholicism
+flag: Green with a cross of stripes and a red disc bearing a sisserou parrot.
+outline: A small rugged island between the two French departments.
+hook: The only flag with a purple element — the sisserou parrot's plumage.
+population: 66205

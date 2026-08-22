@@ -1,0 +1,58 @@
+/* ============================================================================
+   Zemya design tokens — a chart room, not a dashboard.
+
+   One committed dark theme. See CLAUDE.md before changing any of these: the map
+   renderer reads --land and --micro-pin as literals, so a token change here must
+   be mirrored in app/lib/map/renderer.ts.
+   ============================================================================ */
+
+:root {
+  /* ground and surfaces — a blue-green bias, never neutral grey */
+  --abyss: #080d13;
+  --chart: #0e1720;
+  --chart-2: #14212c;
+  --chart-3: #1b2c39;
+  --rule: #243543;
+  --rule-soft: #1a2833;
+
+  /* text */
+  --ink: #e6eef3;
+  --ink-2: #9fb3c0;
+  --ink-3: #67808f;
+
+  /* accents — brass is the instrument, sea is the chart */
+  --brass: #e8a33d;
+  --brass-2: #f5ce86;
+  --brass-dim: #8a6425;
+  --sea: #4ea9c9;
+  --sea-dim: #2a5f75;
+
+  /* semantic: mastery state. separate from the accent hue on purpose */
+  --new: #e2544f;
+  --learn: #e8a33d;
+  --master: #3dd68c;
+
+  /* map */
+  --land: #31485a;
+  --land-edge: #405a6d;
+
+  --shadow: 0 18px 44px -20px rgb(0 0 0 / 85%);
+  --radius: 10px;
+  --radius-sm: 7px;
+
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Archivo', 'Helvetica Neue', Helvetica, system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --rail-width: 286px;
+  --panel-width: 372px;
+
+  color-scheme: dark;
+}
+
+@media (max-width: 1180px) {
+  :root {
+    --rail-width: 238px;
+    --panel-width: 330px;
+  }
+}

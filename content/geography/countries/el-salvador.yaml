@@ -1,0 +1,19 @@
+# El Salvador (SLV)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: SLV
+slug: el-salvador
+name: El Salvador
+religion: Roman Catholicism
+flag: Blue, white and blue bands with the coat of arms.
+outline: A small rectangle, the only Central American country with no Caribbean coast.
+hook: The smallest country in Central America, and the only one facing only the Pacific.
+population: 6338193

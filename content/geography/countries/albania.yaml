@@ -1,0 +1,19 @@
+# Albania (ALB)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ALB
+slug: albania
+name: Albania
+religion: Sunni Islam
+flag: Solid red field with a black double-headed eagle in the centre.
+outline: A small vertical wedge on the Adriatic, notched by the Bay of Vlorë.
+hook: Albanians call it Shqipëri, "land of the eagles" — the flag is literally its name.
+population: 2791765

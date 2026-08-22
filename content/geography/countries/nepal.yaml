@@ -1,0 +1,19 @@
+# Nepal (NPL)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: NPL
+slug: nepal
+name: Nepal
+religion: Hinduism
+flag: "The only non-rectangular flag: two stacked crimson pennants with moon and sun."
+outline: A rectangle tilted along the Himalaya, wide but shallow.
+hook: The only country without a rectangular flag — and home to eight of the world's ten highest peaks.
+population: 29651054

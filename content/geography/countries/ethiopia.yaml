@@ -1,0 +1,19 @@
+# Ethiopia (ETH)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ETH
+slug: ethiopia
+name: Ethiopia
+religion: Ethiopian Orthodoxy
+flag: Green, yellow and red bands with a blue disc and gold star.
+outline: A rough triangle in the Horn's highlands, landlocked since 1993.
+hook: Uses its own calendar seven years behind ours, and its own 13-month year.
+population: 132059767

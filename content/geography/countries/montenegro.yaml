@@ -1,0 +1,19 @@
+# Montenegro (MNE)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: MNE
+slug: montenegro
+name: Montenegro
+religion: Eastern Orthodoxy
+flag: Red field with gold border and the double-headed eagle crest.
+outline: A small triangle of black mountains on the Adriatic.
+hook: Its name means "black mountain" in Venetian — the locals call it Crna Gora, which means the same.
+population: 638479

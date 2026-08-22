@@ -1,0 +1,13 @@
+{
+  "name": "Zemya — Cognitive Geography",
+  "short_name": "Zemya",
+  "description": "An interactive atlas built for learning geography.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080D13",
+  "theme_color": "#080D13",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,19 @@
+# Jordan (JOR)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: JOR
+slug: jordan
+name: Jordan
+religion: Sunni Islam
+flag: Black, white and green bands with a red hoist triangle and white star.
+outline: A wedge with a straight-lined "Winston's hiccup" in the eastern desert.
+hook: Its eastern border zigzags because a British official allegedly drew it after lunch.
+population: 11552876

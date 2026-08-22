@@ -1,0 +1,19 @@
+# Brazil (BRA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: BRA
+slug: brazil
+name: Brazil
+religion: Roman Catholicism
+flag: Green field with a yellow rhombus and a blue globe reading "Ordem e Progresso".
+outline: A huge rounded mass filling half of South America.
+hook: Borders every South American country except Chile and Ecuador.
+population: 211998573

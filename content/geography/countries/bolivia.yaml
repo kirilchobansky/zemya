@@ -1,0 +1,19 @@
+# Bolivia (BOL)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: BOL
+slug: bolivia
+name: Bolivia
+religion: Roman Catholicism
+flag: Red, yellow and green bands with the coat of arms.
+outline: A landlocked block with the Andes down its western edge.
+hook: Has two capitals, lost its coastline in 1884, and still maintains a navy on Lake Titicaca.
+population: 12413315

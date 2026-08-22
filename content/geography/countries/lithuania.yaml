@@ -1,0 +1,19 @@
+# Lithuania (LTU)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: LTU
+slug: lithuania
+name: Lithuania
+religion: Roman Catholicism
+flag: "Three horizontal bands: yellow, green, red."
+outline: A rounded shape like a heart lying on its side.
+hook: Lithuania was once the largest country in Europe, stretching from the Baltic to the Black Sea.
+population: 2859110

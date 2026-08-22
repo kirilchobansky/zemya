@@ -1,0 +1,19 @@
+# Ukraine (UKR)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: UKR
+slug: ukraine
+name: Ukraine
+religion: Eastern Orthodoxy
+flag: "Two horizontal bands: blue over yellow."
+outline: A broad shape with the Crimean diamond hanging into the Black Sea.
+hook: Blue sky over yellow wheat — the flag is a picture of the steppe that fed Europe.
+population: 37860221

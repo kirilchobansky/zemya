@@ -1,0 +1,72 @@
+import {
+  isRouteErrorResponse,
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration
+} from 'react-router';
+
+import './styles/app.css';
+
+export function links() {
+  return [
+    { rel: 'icon', href: '/icon.svg', type: 'image/svg+xml' },
+    { rel: 'manifest', href: '/manifest.webmanifest' },
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
+    {
+      rel: 'stylesheet',
+      href:
+        'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700' +
+        '&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700' +
+        '&family=IBM+Plex+Mono:wght@400;500;600&display=swap'
+    }
+  ];
+}
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+        <meta name="color-scheme" content="dark" />
+        <meta name="theme-color" content="#080D13" />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        {children}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+export default function App() {
+  return <Outlet />;
+}
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  const is404 = isRouteErrorResponse(error) && error.status === 404;
+  return (
+    <main className="empty" style={{ paddingTop: '18vh' }}>
+      <div className="empty__icon">{is404 ? '🧭' : '⚠'}</div>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 24, margin: '0 0 8px' }}>
+        {is404 ? 'No such place' : 'Something went wrong'}
+      </h1>
+      <p>
+        {is404
+          ? 'That country is not in the atlas.'
+          : 'The atlas failed to load. Reloading usually fixes it.'}
+      </p>
+      <p style={{ marginTop: 18 }}>
+        <a className="action action--primary" href="/">
+          Back to the map
+        </a>
+      </p>
+    </main>
+  );
+}

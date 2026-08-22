@@ -1,0 +1,19 @@
+# Austria (AUT)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: AUT
+slug: austria
+name: Austria
+religion: Roman Catholicism
+flag: "Three horizontal bands: red, white, red."
+outline: A long frying pan whose handle points west into the Alps.
+hook: Vienna has been the world's most liveable city so often that the phrase is basically a tourism slogan.
+population: 9120813

@@ -1,0 +1,19 @@
+# Kyrgyzstan (KGZ)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: KGZ
+slug: kyrgyzstan
+name: Kyrgyzstan
+religion: Sunni Islam
+flag: Red field with a yellow sun whose centre shows a yurt roof.
+outline: A small mountainous shape above China's western edge.
+hook: The flag's centre is the view looking up through the roof of a nomad's yurt.
+population: 7186009

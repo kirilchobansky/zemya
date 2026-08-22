@@ -1,0 +1,19 @@
+# Slovenia (SVN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: SVN
+slug: slovenia
+name: Slovenia
+religion: Roman Catholicism
+flag: White-blue-red bands with a shield showing Mount Triglav.
+outline: A hen facing west, with a tiny beak of coastline.
+hook: Over half the country is forest, and the only country with "love" hidden in its name.
+population: 2118697

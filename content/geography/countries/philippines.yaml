@@ -1,0 +1,19 @@
+# Philippines (PHL)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: PHL
+slug: philippines
+name: Philippines
+religion: Roman Catholicism
+flag: Blue over red with a white hoist triangle, sun and three stars.
+outline: A scatter of 7,600 islands shaped like a ragged Y.
+hook: "The only flag that flips: red goes on top when the country is at war."
+population: 115843670

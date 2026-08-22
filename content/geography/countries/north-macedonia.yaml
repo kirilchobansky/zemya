@@ -1,0 +1,19 @@
+# North Macedonia (MKD)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: MKD
+slug: north-macedonia
+name: North Macedonia
+religion: Eastern Orthodoxy
+flag: Red field with a golden sun radiating eight broadening rays.
+outline: A small landlocked blob just north of Greece.
+hook: Had to add "North" to its name in 2019 to settle a 27-year argument with Greece.
+population: 2085679

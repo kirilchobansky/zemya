@@ -1,0 +1,19 @@
+# South Africa (ZAF)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ZAF
+slug: south-africa
+name: South Africa
+religion: Christianity
+flag: Six colours in a horizontal Y-shape — green, gold, white, red, blue, black.
+outline: A block with Lesotho as a hole and Eswatini notched into its east.
+hook: "The only country with three capital cities: Pretoria, Cape Town and Bloemfontein."
+population: 64007187

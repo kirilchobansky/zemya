@@ -1,0 +1,19 @@
+# Tunisia (TUN)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: TUN
+slug: tunisia
+name: Tunisia
+religion: Sunni Islam
+flag: Red field with a white disc containing a red crescent and star.
+outline: A small shape at Africa's northern tip, closest point to Europe.
+hook: The Arab Spring started here in 2010 — and Star Wars' Tatooine was filmed in its desert.
+population: 12277109

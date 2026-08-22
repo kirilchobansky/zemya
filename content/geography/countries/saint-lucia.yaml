@@ -1,0 +1,19 @@
+# Saint Lucia (LCA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: LCA
+slug: saint-lucia
+name: Saint Lucia
+religion: Roman Catholicism
+flag: Blue with a yellow and black-and-white triangular arrowhead.
+outline: A small teardrop island with the twin Pitons on its coast.
+hook: The only country named after a woman, and it has more Nobel laureates per person than anywhere.
+population: 179744

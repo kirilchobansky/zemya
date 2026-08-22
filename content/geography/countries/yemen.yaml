@@ -1,0 +1,19 @@
+# Yemen (YEM)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: YEM
+slug: yemen
+name: Yemen
+religion: Sunni Islam
+flag: "Three horizontal bands: red, white, black."
+outline: A wedge at Arabia's southwest corner, guarding the Red Sea gate.
+hook: Socotra island is so isolated that a third of its plants grow nowhere else on Earth.
+population: 40583164

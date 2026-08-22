@@ -1,0 +1,19 @@
+# Afghanistan (AFG)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: AFG
+slug: afghanistan
+name: Afghanistan
+religion: Sunni Islam
+flag: Currently a white field bearing the Shahada in black script.
+outline: A landlocked leaf with a long thin panhandle reaching toward China.
+hook: The Wakhan Corridor was drawn purely so Russia and British India would never touch.
+population: 42647492

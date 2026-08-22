@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Zemya">
+  <defs>
+    <radialGradient id="globe" cx="32%" cy="28%" r="78%">
+      <stop offset="0" stop-color="#2D4658"/>
+      <stop offset="0.7" stop-color="#101C25"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#080D13"/>
+  <circle cx="32" cy="32" r="21" fill="url(#globe)" stroke="#8A6425" stroke-width="1.5"/>
+  <g stroke="#E8A33D" stroke-width="1.6" opacity="0.8" stroke-linecap="round">
+    <path d="M32 9 V55"/>
+    <path d="M9 32 H55"/>
+  </g>
+  <ellipse cx="32" cy="32" rx="21" ry="9" fill="none" stroke="#4EA9C9" stroke-width="1.1" opacity="0.45"/>
+</svg>

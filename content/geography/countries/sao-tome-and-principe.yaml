@@ -1,0 +1,19 @@
+# São Tomé and Príncipe (STP)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: STP
+slug: sao-tome-and-principe
+name: São Tomé and Príncipe
+religion: Roman Catholicism
+flag: Green, yellow and green bands with a red triangle and two black stars.
+outline: Two tiny volcanic islands sitting on the equator.
+hook: The second-smallest African country, and the equator runs through its islet of Rolas.
+population: 235536

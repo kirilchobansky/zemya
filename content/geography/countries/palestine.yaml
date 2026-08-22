@@ -1,0 +1,19 @@
+# Palestine (PSE)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: PSE
+slug: palestine
+name: Palestine
+religion: Sunni Islam
+flag: Black, white and green bands with a red triangle at the hoist.
+outline: "Two separated pieces: the West Bank and the Gaza Strip."
+hook: Recognised by most of the world's countries but not by all — a state in fragments.
+population: 5495443

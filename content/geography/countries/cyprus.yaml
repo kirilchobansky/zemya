@@ -1,0 +1,19 @@
+# Cyprus (CYP)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: CYP
+slug: cyprus
+name: Cyprus
+religion: Eastern Orthodoxy
+flag: White field with a copper-coloured map of the island above two olive branches.
+outline: A flat pan with a long handle jutting northeast toward Syria.
+hook: 'The only flag showing its own map — and the copper colour is a pun: "Cyprus" gave copper its name.'
+population: 1358282

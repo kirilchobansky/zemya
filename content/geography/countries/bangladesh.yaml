@@ -1,0 +1,19 @@
+# Bangladesh (BGD)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: BGD
+slug: bangladesh
+name: Bangladesh
+religion: Sunni Islam
+flag: Bottle-green field with an off-centre red disc.
+outline: A river delta shaped like a funnel emptying into the Bay of Bengal.
+hook: Almost the entire country is one giant river delta — and it is packed with people denser than anywhere else of its size.
+population: 173562364

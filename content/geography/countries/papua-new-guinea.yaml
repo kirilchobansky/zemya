@@ -1,0 +1,19 @@
+# Papua New Guinea (PNG)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: PNG
+slug: papua-new-guinea
+name: Papua New Guinea
+religion: Christianity
+flag: "Diagonal split: black with the Southern Cross, red with a bird-of-paradise."
+outline: The eastern half of New Guinea plus a fan of islands.
+hook: Over 840 languages are spoken here — more than in any other country on Earth.
+population: 10576502

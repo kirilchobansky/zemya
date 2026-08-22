@@ -1,0 +1,19 @@
+# Seychelles (SYC)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: SYC
+slug: seychelles
+name: Seychelles
+religion: Roman Catholicism
+flag: Five rays of blue, yellow, red, white and green fanning from the hoist.
+outline: A scatter of 115 granite and coral islands in the Indian Ocean.
+hook: The smallest African country by population — fewer people than a mid-sized town.
+population: 130418

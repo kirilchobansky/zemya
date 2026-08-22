@@ -1,0 +1,19 @@
+# Eritrea (ERI)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ERI
+slug: eritrea
+name: Eritrea
+religion: Sunni Islam / Christianity
+flag: Red triangle on green and blue with a gold olive wreath.
+outline: A long thin arc along the Red Sea coast.
+hook: Fought a 30-year war for independence, the longest in modern African history.
+population: 3535603

@@ -1,0 +1,19 @@
+# Vatican City (VAT)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: VAT
+slug: vatican-city
+name: Vatican City
+religion: Roman Catholicism
+flag: Yellow and white vertical halves with the crossed keys and tiara.
+outline: A walled speck inside Rome, 0.49 km².
+hook: The smallest country on Earth, with more popes than square kilometres.
+population: 764

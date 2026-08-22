@@ -1,0 +1,19 @@
+# Peru (PER)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: PER
+slug: peru
+name: Peru
+religion: Roman Catholicism
+flag: Red, white and red vertical bands with the coat of arms.
+outline: A block on the Pacific with the Andes and Amazon behind it.
+hook: Machu Picchu was never found by the Spanish — it stayed hidden until 1911.
+population: 34217848

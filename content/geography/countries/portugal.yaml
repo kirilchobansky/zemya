@@ -1,0 +1,19 @@
+# Portugal (PRT)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: PRT
+slug: portugal
+name: Portugal
+religion: Roman Catholicism
+flag: Green and red vertical bands with an armillary sphere and shield.
+outline: A tall narrow rectangle facing the Atlantic.
+hook: The oldest fixed borders in Europe — essentially unchanged since 1297.
+population: 10425292

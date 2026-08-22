@@ -1,0 +1,19 @@
+# Ecuador (ECU)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ECU
+slug: ecuador
+name: Ecuador
+religion: Roman Catholicism
+flag: Yellow, blue and red bands with the condor coat of arms.
+outline: A small block on the equator, plus the Galápagos far offshore.
+hook: Named after the equator itself — and its Galápagos finches gave Darwin his theory.
+population: 18135478

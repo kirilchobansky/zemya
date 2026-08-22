@@ -1,0 +1,19 @@
+# Algeria (DZA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: DZA
+slug: algeria
+name: Algeria
+religion: Sunni Islam
+flag: Green and white halves with a red crescent and star.
+outline: A huge block, nine-tenths Sahara, with a thin habitable coastal strip.
+hook: The largest country in Africa — and 90% of it is desert nobody lives in.
+population: 46814308

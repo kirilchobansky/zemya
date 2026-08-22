@@ -1,0 +1,19 @@
+# Barbados (BRB)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: BRB
+slug: barbados
+name: Barbados
+religion: Protestantism (Anglican)
+flag: Blue, gold and blue bands with a black trident head.
+outline: A small pear-shaped island at the Caribbean's eastern edge.
+hook: The broken trident means a clean break from colonial rule — it became a republic in 2021.
+population: 282467

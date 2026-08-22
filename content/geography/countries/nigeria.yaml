@@ -1,0 +1,19 @@
+# Nigeria (NGA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: NGA
+slug: nigeria
+name: Nigeria
+religion: Christianity / Sunni Islam
+flag: "Three vertical bands: green, white, green."
+outline: A broad block with the Niger delta fanning into the Gulf.
+hook: Africa's most populous country, split almost evenly between Muslim north and Christian south.
+population: 232679478

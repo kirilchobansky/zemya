@@ -1,0 +1,19 @@
+# Botswana (BWA)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: BWA
+slug: botswana
+name: Botswana
+religion: Christianity
+flag: Light blue with a black stripe bordered in white across the middle.
+outline: A rounded landlocked block with the Okavango delta in its north.
+hook: The flag's blue means rain — in the Kalahari, "pula", the currency, also means rain.
+population: 2521139

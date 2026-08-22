@@ -1,0 +1,19 @@
+# Honduras (HND)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: HND
+slug: honduras
+name: Honduras
+religion: Roman Catholicism
+flag: Blue, white and blue bands with five blue stars in the centre.
+outline: A rough triangle with a long Caribbean coast.
+hook: The five stars are the five countries of the old Central American federation.
+population: 10825703

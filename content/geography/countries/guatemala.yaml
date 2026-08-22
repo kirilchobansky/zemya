@@ -1,0 +1,19 @@
+# Guatemala (GTM)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: GTM
+slug: guatemala
+name: Guatemala
+religion: Roman Catholicism
+flag: Light blue, white and light blue vertical bands with the quetzal crest.
+outline: A rough square with a jagged Caribbean corner.
+hook: "Its currency and its national bird are the same word: quetzal."
+population: 18406359

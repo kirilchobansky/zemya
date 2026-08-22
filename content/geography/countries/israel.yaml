@@ -1,0 +1,19 @@
+# Israel (ISR)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: ISR
+slug: israel
+name: Israel
+religion: Judaism
+flag: White field with two blue stripes and the blue Star of David.
+outline: A narrow dagger pointing south to the Red Sea.
+hook: The Dead Sea shore is the lowest dry land on Earth, 430 m below sea level.
+population: 9387021

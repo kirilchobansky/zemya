@@ -1,0 +1,19 @@
+# Norway (NOR)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: NOR
+slug: norway
+name: Norway
+religion: Protestantism (Lutheran)
+flag: Red field with a blue Nordic cross outlined in white.
+outline: A long spine, like a tiger stretching down the Scandinavian coast.
+hook: Norway's fjord-cut coastline is over 25,000 km — long enough to circle half the planet.
+population: 5576660

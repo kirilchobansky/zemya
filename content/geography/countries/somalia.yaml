@@ -1,0 +1,19 @@
+# Somalia (SOM)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: SOM
+slug: somalia
+name: Somalia
+religion: Sunni Islam
+flag: Light blue field with a white five-pointed star.
+outline: The Horn itself — a long hook curving around Ethiopia.
+hook: Has Africa's longest mainland coastline, over 3,000 km.
+population: 19009151

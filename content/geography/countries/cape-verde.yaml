@@ -1,0 +1,19 @@
+# Cape Verde (CPV)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  optional override; omit to use the dataset value
+
+iso3: CPV
+slug: cape-verde
+name: Cape Verde
+religion: Roman Catholicism
+flag: Blue with white and red stripes and a ring of ten yellow stars.
+outline: A scatter of ten islands far out in the Atlantic.
+hook: The ten stars are the ten islands, arranged as they actually sit in the ocean.
+population: 524877
