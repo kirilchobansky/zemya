@@ -1,0 +1,22 @@
+{
+  "name": "zemya-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frozen single-file reference build of Zemya's geography atlas",
+  "type": "commonjs",
+  "scripts": {
+    "build:data": "node build-data.js",
+    "build:html": "node assemble.js",
+    "build": "npm run build:data && npm run build:html",
+    "test": "node test/smoke.mjs"
+  },
+  "dependencies": {
+    "country-json": "^2.3.0",
+    "topojson-simplify": "^3.0.3",
+    "world-atlas": "^2.0.2",
+    "world-countries": "^5.1.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
