@@ -167,21 +167,42 @@ check(
 
 /* --- 9. grading a facet updates the rail and repaints the mastery overlay --------- */
 const DEV_PORT = Number(process.env.DEV_PORT || 4319);
+const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
 let devServer = null;
 let devOutput = '';
 
-async function waitForDevServer(url, timeoutMs) {
+/**
+ * Vite/React Router print exactly one "Local:" line once the server is actually up, e.g.
+ * "  ➜  Local:   http://localhost:4319/". Used only to discover the address to poll —
+ * never as the readiness signal by itself. `react-router dev` relaunches its own process
+ * (see the "[restart] Relaunching with NODE_OPTIONS" line in its output), and on a CI
+ * runner the address it ends up actually listening on is not safe to assume in advance —
+ * "localhost" can resolve to the IPv6 loopback there where a hardcoded 127.0.0.1 would
+ * hang forever even though the server printed its address and is genuinely ready.
+ */
+const LOCAL_URL = /Local:\s+(http:\/\/\S+)/;
+
+/** Poll the server's own advertised URL with real HTTP requests until it answers. Parsing
+ *  stdout only finds the address; readiness is only ever a successful fetch to it. */
+async function waitForDevServer(timeoutMs) {
   const deadline = Date.now() + timeoutMs;
+  let url = null;
   while (Date.now() < deadline) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return;
-    } catch {
-      /* not listening yet */
+    url ??= LOCAL_URL.exec(devOutput)?.[1] ?? null;
+    if (url) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) return url;
+      } catch {
+        /* printed its address but isn't accepting requests yet */
+      }
     }
     await new Promise(r => setTimeout(r, 250));
   }
-  throw new Error(`dev server did not come up within ${timeoutMs}ms\n${devOutput}`);
+  const reason = url
+    ? `found its address (${url}) but it never answered a request`
+    : 'never printed its "Local:" address';
+  throw new Error(`dev server did not come up within ${timeoutMs}ms — ${reason}\n${devOutput}`);
 }
 
 /** Reads one canvas pixel at a page (CSS) coordinate, accounting for the canvas's own
@@ -206,10 +227,9 @@ try {
   devServer.stdout.on('data', d => { devOutput += d; });
   devServer.stderr.on('data', d => { devOutput += d; });
 
-  const devBase = `http://127.0.0.1:${DEV_PORT}`;
-  await waitForDevServer(`${devBase}/`, 20_000);
+  const devBase = await waitForDevServer(DEV_STARTUP_TIMEOUT_MS); // e.g. "http://localhost:4319/"
 
-  await page.goto(`${devBase}/`, { waitUntil: 'networkidle' });
+  await page.goto(devBase, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
   await page.waitForFunction(() => Boolean(window.__zemya), { timeout: 5000 });
 
