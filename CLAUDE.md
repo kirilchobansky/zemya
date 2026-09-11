@@ -76,6 +76,28 @@ Rules that follow from this layout:
 - Route loaders run at **build time** — every page is prerendered. Node APIs are fine in
   them; `window` is not.
 
+## Interaction principles
+
+> The camera moves only when the user could not already see the target. Clicking a country
+> on the map never moves the camera; arriving from search, a link, or a cold URL does.
+> Any new way of selecting a country must decide which of those two it is.
+
+| What I do | Camera |
+| --- | --- |
+| Click a country on the map | does NOT move |
+| Click empty ocean (deselect) | does NOT move |
+| Pick a result from search | flies to it |
+| Click a neighbour chip in the dossier panel | flies to it |
+| Click a suggestion on the index panel | flies to it |
+| Open /country/<slug> cold (fresh load or shared link) | flies to it |
+| Press the ⌂ reset button | returns to world view |
+| Wheel, drag, pinch, double-click | unchanged |
+
+Intent travels as React Router location state: `state={{ fly: true }}` on a `Link`,
+`{ state: { fly: true } }` on `navigate()`. The map's own click handler passes nothing.
+`flyTo` and `home` on the Atlas controller are unchanged by this rule — it governs who
+calls them, not what they do.
+
 ## Commands
 
 ```bash

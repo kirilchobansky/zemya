@@ -99,7 +99,12 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
           {neighbours.length ? (
             <div className="neighbours">
               {neighbours.map(n => (
-                <Link className="neighbour" key={n.slug} to={`/country/${n.slug}`}>
+                <Link
+                  className="neighbour"
+                  key={n.slug}
+                  to={`/country/${n.slug}`}
+                  state={{ fly: true }}
+                >
                   {n.emoji} {n.name}
                 </Link>
               ))}

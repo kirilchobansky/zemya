@@ -1,7 +1,8 @@
 /**
  * The atlas shell. Owns the canvas, the camera and every piece of map state; the child
- * routes render only the right-hand panel. Selection lives in the URL, so the back button
- * flies the camera and a country page can be linked to directly.
+ * routes render only the right-hand panel. Selection lives in the URL, so a country page
+ * can be linked to directly; whether a selection *also* moves the camera is carried in the
+ * navigation's state rather than inferred from the selection itself.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
@@ -34,6 +35,14 @@ export default function AtlasLayout() {
 
   const slug = COUNTRY_PATH.exec(location.pathname)?.[1] ?? null;
   const selected = slug && world ? world.bySlug.get(slug) ?? null : null;
+
+  /**
+   * The slug the document was loaded with, if any. A cold load of /country/chile must fly:
+   * the visitor arrived already pointed at a country and has never seen the map. It is the
+   * only selection allowed to fly without an explicit flag, so the ref is spent the first
+   * time a selection resolves.
+   */
+  const coldSlugRef = useRef(slug);
 
   /* the style callbacks the renderer calls per country, per frame */
   const styleInputs = useMemo(
@@ -112,12 +121,20 @@ export default function AtlasLayout() {
     });
   }, [styleInputs, showPins]);
 
-  /* fly to whatever the URL says is selected */
+  /**
+   * Move the camera only when the user could not already have seen the target. A map click
+   * navigates without state, so it never flies — the country was on screen and under the
+   * cursor, and moving the map out from under it destroys the sense of place. Search, the
+   * panel links and a cold URL all set `fly`. Deselecting never moves the camera; only the
+   * ⌂ button returns to the world view. See "Interaction principles" in CLAUDE.md.
+   */
   useEffect(() => {
-    if (!atlasRef.current) return;
-    if (selected) atlasRef.current.flyTo(selected);
-    else atlasRef.current.home();
-  }, [selected]);
+    const atlas = atlasRef.current;
+    if (!atlas || !selected) return;
+    const cold = coldSlugRef.current === selected.country.slug;
+    coldSlugRef.current = null;
+    if (cold || (location.state as { fly?: boolean } | null)?.fly === true) atlas.flyTo(selected);
+  }, [selected, location.state]);
 
   const toggleCompare = () => {
     if (comparing || armingCompare) {
@@ -152,7 +169,9 @@ export default function AtlasLayout() {
         <div className="hud hud--top">
           <SearchBox
             world={world}
-            onPick={feature => navigate(`/country/${feature.country.slug}`)}
+            onPick={feature =>
+              navigate(`/country/${feature.country.slug}`, { state: { fly: true } })
+            }
           />
           <div className="toolbar glass">
             <button

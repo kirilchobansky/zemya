@@ -46,7 +46,12 @@ export default function AtlasIndex({ loaderData }: Route.ComponentProps) {
           <h3 className="subhead">Try one of these</h3>
           <div className="neighbours">
             {loaderData.suggestions.map(s => (
-              <Link className="neighbour" key={s.slug} to={`/country/${s.slug}`}>
+              <Link
+                className="neighbour"
+                key={s.slug}
+                to={`/country/${s.slug}`}
+                state={{ fly: true }}
+              >
                 {s.emoji} {s.name}
               </Link>
             ))}

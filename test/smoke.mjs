@@ -2,8 +2,9 @@
  * End-to-end smoke test against the production build.
  *
  * Serves build/client statically the way Cloudflare Pages will, then drives a real
- * browser: the map must paint, hover must hit-test, clicking must navigate, the dossier
- * must fill in, overlays must switch, and the size-comparison tool must lift and drop.
+ * browser: the map must paint, hover must hit-test, clicking must navigate *without
+ * moving the camera*, the dossier must fill in, overlays must switch, and the
+ * size-comparison tool must lift and drop.
  * Any console error or uncaught exception fails the run.
  *
  *   npm run build && npm test
@@ -80,7 +81,34 @@ const colours = await page.evaluate(() => {
 });
 check(colours >= 3, `map looks blank — only ${colours} distinct colours sampled`);
 
-/* --- 2. search finds a country and navigates -------------------------------------- */
+/* --- 2. a map click selects but leaves the camera alone --------------------------- */
+const restingScale = (await page.textContent('.scalebar')).trim();
+
+/* probe for a point that is actually over land — the tooltip only renders on a hit */
+let landPoint = null;
+for (const point of [[430, 330], [980, 330], [760, 250], [1150, 430], [520, 560], [880, 620]]) {
+  await page.mouse.move(point[0], point[1]);
+  await page.waitForTimeout(180);
+  if (await page.isVisible('.tip')) { landPoint = point; break; }
+}
+check(Boolean(landPoint), 'no land found under any probe point — map click untested');
+
+if (landPoint) {
+  await page.mouse.click(landPoint[0], landPoint[1]);
+  await page.waitForURL('**/country/**', { timeout: 5000 });
+  await page.waitForTimeout(1400); // longer than any fly animation, so a regression shows up
+  const afterClick = (await page.textContent('.scalebar')).trim();
+  check(
+    afterClick === restingScale,
+    `map click moved the camera — scale bar went "${restingScale}" -> "${afterClick}"`
+  );
+  check(
+    (await page.textContent('.panel__body')).includes('Memory hook'),
+    'map click did not open a dossier'
+  );
+}
+
+/* --- 3. search finds a country and navigates -------------------------------------- */
 await page.fill('.search input', 'bulgaria');
 await page.waitForTimeout(250);
 await page.keyboard.press('Enter');
@@ -92,22 +120,22 @@ for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Bulgarian lev', 'Romania', '
   check(dossier.includes(probe), `dossier missing "${probe}"`);
 }
 
-/* --- 3. the camera actually flew --------------------------------------------------- */
+/* --- 4. the camera actually flew --------------------------------------------------- */
 const zoomed = await page.textContent('.scalebar');
 check(!/10,000 km/.test(zoomed), `camera did not zoom in — scale still reads "${zoomed.trim()}"`);
 
-/* --- 4. neighbour links navigate --------------------------------------------------- */
+/* --- 5. neighbour links navigate --------------------------------------------------- */
 await page.click('.neighbours a');
 await page.waitForTimeout(1200);
 check(/\/country\/[a-z-]+$/.test(new URL(page.url()).pathname), 'neighbour link did not navigate');
 
-/* --- 5. overlays switch without error ---------------------------------------------- */
+/* --- 6. overlays switch without error ---------------------------------------------- */
 for (const label of ['Density', 'Language', 'Religion', 'Region', 'Terrain']) {
   await page.click(`.chips button:text-is("${label}")`);
   await page.waitForTimeout(220);
 }
 
-/* --- 6. size comparison lifts, drags and drops ------------------------------------- */
+/* --- 7. size comparison lifts, drags and drops ------------------------------------- */
 await page.click('.toolbar button:has-text("Compare size")');
 await page.waitForTimeout(500);
 check(await page.isVisible('.compare-hud'), 'compare tool produced no HUD');
@@ -120,7 +148,7 @@ await page.click('.compare-hud button');
 await page.waitForTimeout(300);
 check(!(await page.isVisible('.compare-hud')), 'compare tool would not put the outline back');
 
-/* --- 7. a country page loads cold, prerendered ------------------------------------- */
+/* --- 8. a country page loads cold, prerendered ------------------------------------- */
 await page.goto(`${base}/country/nepal`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 const nepal = await page.textContent('.panel__body');
