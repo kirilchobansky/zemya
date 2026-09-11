@@ -1,15 +1,56 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 
-import { legendFor, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
+import { useProgress } from '~/lib/core/ProgressProvider';
+import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
+import type { MasteryTotals } from '~/lib/geography/mastery';
 
 interface RailProps {
   overlay: OverlayId;
   onOverlayChange(overlay: OverlayId): void;
   countryCount: number;
+  totals: MasteryTotals;
 }
 
-export function Rail({ overlay, onOverlayChange, countryCount }: RailProps) {
+export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailProps) {
   const legend = legendFor(overlay);
+  const { exportJson, importJson, reset } = useProgress();
+  const [status, setStatus] = useState<string | null>(null);
+
+  const pct = (n: number) => (totals.total ? (n / totals.total) * 100 : 0);
+
+  /**
+   * Clipboard first, `prompt()` when it is unavailable or refused — the API needs a secure
+   * context and a permission the user may not have granted, and losing the only copy of
+   * someone's progress to a silent rejection is not acceptable.
+   */
+  async function handleExport() {
+    const json = await exportJson();
+    try {
+      await navigator.clipboard.writeText(json);
+      setStatus(`Copied ${json.length.toLocaleString()} characters to the clipboard.`);
+    } catch {
+      window.prompt('Copy your progress:', json);
+      setStatus('Clipboard unavailable — copy the text from the dialog.');
+    }
+  }
+
+  async function handleImport() {
+    const text = window.prompt('Paste a Zemya export:');
+    if (!text) return;
+    try {
+      const count = await importJson(text);
+      setStatus(`Imported ${count.toLocaleString()} cards.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Import failed.');
+    }
+  }
+
+  async function handleReset() {
+    if (!window.confirm('Erase all progress on this device? This cannot be undone.')) return;
+    await reset();
+    setStatus('Progress erased.');
+  }
 
   return (
     <aside className="rail">
@@ -51,6 +92,44 @@ export function Rail({ overlay, onOverlayChange, countryCount }: RailProps) {
         </section>
 
         <section className="group">
+          <h2 className="group__title">Your progress</h2>
+          <div className="tally" data-testid="tally">
+            <div className="tally__cell">
+              <span className="tally__n numeric" style={{ color: MASTERY_COLOURS.mastered }}>
+                {totals.mastered}
+              </span>
+              <span className="tally__label">Mastered</span>
+            </div>
+            <div className="tally__cell">
+              <span className="tally__n numeric" style={{ color: MASTERY_COLOURS.learning }}>
+                {totals.learning}
+              </span>
+              <span className="tally__label">Learning</span>
+            </div>
+            <div className="tally__cell">
+              <span className="tally__n numeric" style={{ color: MASTERY_COLOURS.new }}>
+                {totals.new}
+              </span>
+              <span className="tally__label">New</span>
+            </div>
+          </div>
+          <div
+            className="meter"
+            role="img"
+            aria-label={`${totals.mastered} mastered and ${totals.learning} learning of ${totals.total}`}
+          >
+            <span
+              className="meter__seg"
+              style={{ width: `${pct(totals.mastered)}%`, background: MASTERY_COLOURS.mastered }}
+            />
+            <span
+              className="meter__seg"
+              style={{ width: `${pct(totals.learning)}%`, background: MASTERY_COLOURS.learning }}
+            />
+          </div>
+        </section>
+
+        <section className="group">
           <h2 className="group__title">How to use it</h2>
           <div className="note">
             Click any country to open its dossier. Its land neighbours light up in blue, so
@@ -61,6 +140,26 @@ export function Rail({ overlay, onOverlayChange, countryCount }: RailProps) {
             and its true ground area is preserved — Mercator's distortion becomes visible
             instead of invisible.
           </div>
+        </section>
+
+        <section className="group">
+          <h2 className="group__title">Your data</h2>
+          <div className="note">
+            Progress lives in this browser only. Nothing is uploaded, so moving to another
+            device means exporting and importing it yourself.
+          </div>
+          <div className="actions">
+            <button type="button" className="action" onClick={handleExport}>
+              Export
+            </button>
+            <button type="button" className="action" onClick={handleImport}>
+              Import
+            </button>
+            <button type="button" className="action" onClick={handleReset}>
+              Reset
+            </button>
+          </div>
+          {status && <div className="note note--status">{status}</div>}
         </section>
       </div>
 

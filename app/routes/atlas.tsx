@@ -9,18 +9,34 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 
 import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
+import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
-import type { Feature, World } from '~/lib/map/types';
+import type { CountryRecord, Feature, World } from '~/lib/map/types';
 import { loadWorld } from '~/lib/geography/world';
+import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import { fillFor, strokeFor, type OverlayId } from '~/lib/geography/overlays';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
 
+/**
+ * The provider wraps the shell rather than the app root because progress is only ever read
+ * inside the atlas — the panel routes render as its children, so one provider covers the
+ * map, the rail and the dossier.
+ */
 export default function AtlasLayout() {
+  return (
+    <ProgressProvider>
+      <AtlasShell />
+    </ProgressProvider>
+  );
+}
+
+function AtlasShell() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const atlasRef = useRef<Atlas | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { cards } = useProgress();
 
   const [world, setWorld] = useState<World | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +60,25 @@ export default function AtlasLayout() {
    */
   const coldSlugRef = useRef(slug);
 
+  /**
+   * Mastery is derived on demand rather than stored, so this closure is what the renderer
+   * and the rail both read through. It changes identity whenever a card changes, which is
+   * what drives the restyle below — grading a facet recolours the map in the same tick.
+   */
+  const masteryOf = useCallback(
+    (country: CountryRecord) => countryMastery(country, cards),
+    [cards]
+  );
+
+  const totals = useMemo(
+    () => masteryTotals(world ? world.features.map(f => f.country) : [], cards),
+    [world, cards]
+  );
+
   /* the style callbacks the renderer calls per country, per frame */
   const styleInputs = useMemo(
-    () => ({ overlay, selected, hovered, showNeighbours }),
-    [overlay, selected, hovered, showNeighbours]
+    () => ({ overlay, selected, hovered, showNeighbours, masteryOf }),
+    [overlay, selected, hovered, showNeighbours, masteryOf]
   );
 
   useEffect(() => {
@@ -161,6 +192,7 @@ export default function AtlasLayout() {
         overlay={overlay}
         onOverlayChange={setOverlay}
         countryCount={world?.features.length ?? 0}
+        totals={totals}
       />
 
       <main className="stage">

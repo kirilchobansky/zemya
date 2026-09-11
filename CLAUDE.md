@@ -20,8 +20,8 @@ Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, ear
 | Framework | React 19 + Vite 8 + TypeScript + React Router **v8** (framework mode) | Owner already knows React. The perf-critical part is canvas, which is framework-agnostic. Framework mode pre-renders, so `/country/bulgaria` is a crawlable document. (v8, not the v7 first discussed — v8 is current and the config is the same shape.) |
 | Hosting | Cloudflare Pages, fully static | No server needed. Free. Preview URL per PR. |
 | Backend | **None for now** | Ship without accounts. Local-first from day one so adding sync later costs nothing in perceived speed. |
-| Storage | IndexedDB (Dexie), local-first | Every interaction must be 0 ms. Never block UI on network. |
-| Scheduling | FSRS, not SM-2, not the prototype's 3-in-a-row toy | Modern open algorithm, real intervals and due dates. |
+| Storage | IndexedDB via **Dexie 4.4.6**, local-first | Every interaction must be 0 ms. Never block UI on network. |
+| Scheduling | **ts-fsrs 5.4.2** (FSRS), not SM-2, not the prototype's 3-in-a-row toy | Modern open algorithm, real intervals and due dates. MIT, open-spaced-repetition org, actively maintained — checked before pinning. |
 | Map engine | Custom canvas renderer, **not** Leaflet/MapLibre | Tiles need a network; a vector-only engine gives true-size re-projection and exact hit-testing for free, and does the pedagogical things a general-purpose library makes harder. Revisit only when city/street detail is actually wanted. |
 | Repo visibility | Public | Made public so this sandbox can read it. Secrets still never enter the repo. |
 
@@ -35,8 +35,10 @@ app/root.tsx            the HTML document itself + the top-level App
 app/routes.ts           the route table
 app/entry.client.tsx    hydrates the prerendered document
 app/entry.server.tsx    renders each route to HTML at build time
+app/lib/core/           scheduler + Dexie store. subject-agnostic; no geography imports.
 app/lib/map/            projection, topology, camera, renderer, controller. no React.
-app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers
+app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers,
+                        mastery derivation
 app/lib/format.ts       shared formatting and normalisation
 app/components/         Rail, SearchBox, and future panels
 app/routes/             atlas.tsx (layout, owns the canvas) + panel routes
@@ -62,6 +64,12 @@ them invisibly otherwise. Converting to the SPA layout would cost prerendering (
 crawlable country pages), `*.server.ts` stripping, and build-time loaders — see the
 locked decisions above.
 
+`app/entry.client.tsx` and `app/entry.server.tsx` are React Router's default entry
+points, revealed deliberately so the boot sequence is visible rather than generated and
+hidden. They are now maintained in this repo and will **not** receive upstream updates —
+treat them as configuration, not application code, and check them against upstream
+defaults after any React Router major upgrade.
+
 Rules that follow from this layout:
 
 - `content/` must stay editable by a non-programmer. Plain YAML/text, no code, no build
@@ -70,6 +78,8 @@ Rules that follow from this layout:
   diff in both `content/` and `public/data/`.
 - `app/lib/map/` must not import React or anything from `app/lib/geography/`. It is a
   standalone renderer; the globe projection and the history timeline will both reuse it.
+- `app/lib/core/` must not import from `app/lib/geography/`, or anything geography-specific
+  at all. Card ids are opaque strings to it; history will use the same store one day.
 - Anything reading `public/data/*.json` from disk lives in a `*.server.ts` file, so the
   bundler strips it from the client. A 153 KB catalogue must never ship to a browser
   twice.
@@ -97,6 +107,40 @@ Intent travels as React Router location state: `state={{ fly: true }}` on a `Lin
 `{ state: { fly: true } }` on `navigate()`. The map's own click handler passes nothing.
 `flyTo` and `home` on the Atlas controller are unchanged by this rule — it governs who
 calls them, not what they do.
+
+## Progress and scheduling
+
+A country is not one thing you know — you can know Bulgaria's capital and not its
+currency — so the unit of scheduling is a **(country, facet) pair**, one FSRS card each.
+Facets: `location`, `capital`, `flag`, `currency`, `language`, `religion`, `borders`,
+`outline`. A facet only applies when the country has the data for it (no `borders` card
+for an island, no `currency` card where the field is null); the applicable set is the
+denominator for mastery, computed per country in `app/lib/geography/mastery.ts`.
+
+Card ids are `subject:entity:facet` strings — `geo:BGR:capital` — prefixed so history can
+later write `hist:treaty-of-berlin:date` into the same tables without collision. The
+prefix is a geography-layer convention, not a core concept: `app/lib/core/` stores and
+grades opaque id strings and must never import from `app/lib/geography/`.
+
+Cards are created **lazily**. No row exists until a facet is first reviewed — "new" is the
+absence of a row, not a row in a new state. 196 countries never means 1,568 rows up front.
+
+Country mastery is **derived, never stored**, from whatever cards exist for it:
+- **new** — no cards for this country
+- **learning** — at least one card exists
+- **mastered** — every applicable facet has a card that has graduated to FSRS `Review`
+
+"Graduated to Review" is FSRS's own definition of learned; do not invent a threshold.
+
+**Writes are never awaited by the UI.** `app/lib/core/progress.ts` updates in-memory state
+synchronously and renders immediately — `saveCard` and `logReview` are fire-and-forget,
+log a failure and move on. Only the explicit export / import / reset operations are async,
+because the user asked for them and is watching.
+
+**SSR guard.** Route loaders run at build time, where `indexedDB` does not exist. Nothing
+in `app/lib/core/` touches `indexedDB` at module scope — the Dexie instance is constructed
+lazily behind a browser check, so importing the store from a route module is inert during
+prerender. If `npm run build` starts failing inside prerender, look here first.
 
 ## Commands
 

@@ -7,10 +7,17 @@
  * size-comparison tool must lift and drop.
  * Any console error or uncaught exception fails the run.
  *
+ * The progress step (9) is the one exception: it needs `window.__zemya`, the grading test
+ * seam, which is stripped from the production bundle by `import.meta.env.DEV` — by design,
+ * see app/lib/core/ProgressProvider.tsx. So it spawns its own `react-router dev` server
+ * rather than using `base`, and tears that server down in a `finally` so a failed
+ * assertion inside it can never leave `npm test` hanging on an orphaned process.
+ *
  *   npm run build && npm test
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -158,6 +165,132 @@ check(
   `wrong document title on cold load: "${await page.title()}"`
 );
 
+/* --- 9. grading a facet updates the rail and repaints the mastery overlay --------- */
+const DEV_PORT = Number(process.env.DEV_PORT || 4319);
+let devServer = null;
+let devOutput = '';
+
+async function waitForDevServer(url, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return;
+    } catch {
+      /* not listening yet */
+    }
+    await new Promise(r => setTimeout(r, 250));
+  }
+  throw new Error(`dev server did not come up within ${timeoutMs}ms\n${devOutput}`);
+}
+
+/** Reads one canvas pixel at a page (CSS) coordinate, accounting for the canvas's own
+ *  internal resolution (set from devicePixelRatio in Atlas#resize) — see atlas.ts. */
+async function pixelAt(x, y) {
+  return page.evaluate(([px, py]) => {
+    const canvas = document.querySelector('canvas');
+    const rect = canvas.getBoundingClientRect();
+    const cx = Math.round(((px - rect.left) / rect.width) * canvas.width);
+    const cy = Math.round(((py - rect.top) / rect.height) * canvas.height);
+    const [r, g, b] = canvas.getContext('2d').getImageData(cx, cy, 1, 1).data;
+    return [r, g, b];
+  }, [x, y]);
+}
+
+try {
+  devServer = spawn(
+    'npx',
+    ['react-router', 'dev', '--port', String(DEV_PORT), '--strictPort'],
+    { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'], detached: true }
+  );
+  devServer.stdout.on('data', d => { devOutput += d; });
+  devServer.stderr.on('data', d => { devOutput += d; });
+
+  const devBase = `http://127.0.0.1:${DEV_PORT}`;
+  await waitForDevServer(`${devBase}/`, 20_000);
+
+  await page.goto(`${devBase}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  await page.waitForFunction(() => Boolean(window.__zemya), { timeout: 5000 });
+
+  await page.fill('.search input', 'bulgaria');
+  await page.waitForTimeout(250);
+  await page.keyboard.press('Enter');
+  await page.waitForURL('**/country/bulgaria', { timeout: 5000 });
+  await page.waitForTimeout(1400);
+
+  /* find a point over Bulgaria (the flown-to, selected country) via the hover tooltip */
+  let bulgariaPoint = null;
+  for (const point of [[700, 430], [750, 400], [650, 460], [800, 380], [720, 480]]) {
+    await page.mouse.move(point[0], point[1]);
+    await page.waitForTimeout(150);
+    const tip = await page.textContent('.tip').catch(() => '');
+    if (tip.includes('Bulgaria')) { bulgariaPoint = point; break; }
+  }
+  check(Boolean(bulgariaPoint), 'could not find Bulgaria under any probe point on the dev server');
+
+  if (bulgariaPoint) {
+    /* deselect on open ocean so the SELECTED colour stops masking the overlay, but the
+       camera — and so bulgariaPoint — stays exactly where it is (see fix/camera-only-on-intent).
+       Candidates must land on the canvas itself (roughly x < 1120) — the panel to its right
+       also fails the "no tooltip" test but is not the map, and a click there does not deselect. */
+    let oceanPoint = null;
+    for (const point of [[1080, 150], [600, 780], [1050, 200], [650, 800]]) {
+      await page.mouse.move(point[0], point[1]);
+      await page.waitForTimeout(120);
+      if (!(await page.isVisible('.tip'))) { oceanPoint = point; break; }
+    }
+    check(Boolean(oceanPoint), 'could not find open ocean to deselect on the dev server');
+    if (oceanPoint) await page.mouse.click(oceanPoint[0], oceanPoint[1]);
+    await page.waitForTimeout(400);
+
+    await page.click('.chips button:text-is("Mastery")');
+    await page.waitForTimeout(300);
+    await page.mouse.move(30, 30); // off-canvas, so nothing is left hovered while sampling
+
+    const before1 = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    const before2 = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    check(
+      before1.join() === before2.join(),
+      `pixel sampling is unstable even with nothing changing — ${before1} vs ${before2}`
+    );
+
+    const tallyBefore = await page.$$eval('.tally__n', els => els.map(e => e.textContent.trim()));
+
+    /* grade a few facets of Bulgaria twice each — two `good` grades is enough for a fresh
+       FSRS card to pass its learning steps and graduate to Review (verified separately) */
+    await page.evaluate(ids => {
+      for (const id of ids) {
+        window.__zemya.review(id, 'good');
+        window.__zemya.review(id, 'good');
+      }
+    }, ['geo:BGR:capital', 'geo:BGR:flag', 'geo:BGR:currency']);
+    await page.waitForTimeout(300);
+
+    const tallyAfter = await page.$$eval('.tally__n', els => els.map(e => e.textContent.trim()));
+    check(
+      Number(tallyAfter[1]) === Number(tallyBefore[1]) + 1 &&
+        Number(tallyAfter[2]) === Number(tallyBefore[2]) - 1,
+      `rail counts did not move as expected: ${tallyBefore} -> ${tallyAfter}`
+    );
+
+    const after = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    check(
+      after.join() !== before1.join(),
+      `mastery overlay pixel under Bulgaria did not change after grading — stayed ${after}`
+    );
+  }
+} finally {
+  if (devServer) {
+    try {
+      process.kill(-devServer.pid, 'SIGTERM');
+    } catch {
+      /* already dead, or the platform doesn't support process groups */
+    }
+    devServer.kill('SIGKILL');
+  }
+}
+
 await browser.close();
 server.close();
 
@@ -165,4 +298,7 @@ if (problems.length) {
   console.error('FAIL\n' + problems.map(p => `  - ${p}`).join('\n'));
   process.exit(1);
 }
-console.log(`PASS — map painted ${colours} colours, dossier, neighbours, 5 overlays, compare tool, cold prerender`);
+console.log(
+  `PASS — map painted ${colours} colours, dossier, neighbours, 5 overlays, compare tool, ` +
+    'cold prerender, progress grading'
+);

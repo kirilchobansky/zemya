@@ -6,8 +6,15 @@
  * not read as "selected".
  */
 import type { CountryRecord, Feature } from '~/lib/map/types';
+import type { CountryMastery } from './mastery';
 
-export type OverlayId = 'terrain' | 'density' | 'language' | 'religion' | 'region';
+export type OverlayId =
+  | 'terrain'
+  | 'mastery'
+  | 'density'
+  | 'language'
+  | 'religion'
+  | 'region';
 
 export const LAND = '#31485A';
 export const SELECTED = '#E8A33D';
@@ -41,6 +48,17 @@ const RELIGION_COLOURS: Record<string, string> = {
   'Folk / traditional': '#C0D06A',
   'Secular / none': '#8FA3B0',
   Other: '#6B8494'
+};
+
+/**
+ * The three mastery colours are semantic, not categorical: red / amber / green read as
+ * "not yet", "in progress", "done" without a legend. They are the only overlay whose
+ * colours carry a judgement, which is why they are kept out of the palettes above.
+ */
+export const MASTERY_COLOURS: Record<CountryMastery, string> = {
+  new: '#E2544F',
+  learning: '#E8A33D',
+  mastered: '#3DD68C'
 };
 
 const REGION_COLOURS: Record<string, string> = {
@@ -79,6 +97,7 @@ export interface LegendEntry {
 
 export const OVERLAYS: { id: OverlayId; label: string }[] = [
   { id: 'terrain', label: 'Terrain' },
+  { id: 'mastery', label: 'Mastery' },
   { id: 'density', label: 'Density' },
   { id: 'language', label: 'Language' },
   { id: 'religion', label: 'Religion' },
@@ -87,6 +106,15 @@ export const OVERLAYS: { id: OverlayId; label: string }[] = [
 
 export function legendFor(overlay: OverlayId): { title: string; entries: LegendEntry[] } {
   switch (overlay) {
+    case 'mastery':
+      return {
+        title: 'What you know',
+        entries: [
+          { colour: MASTERY_COLOURS.mastered, label: 'Mastered' },
+          { colour: MASTERY_COLOURS.learning, label: 'Learning' },
+          { colour: MASTERY_COLOURS.new, label: 'New / not yet seen' }
+        ]
+      };
     case 'density':
       return {
         title: 'People per km²',
@@ -131,6 +159,12 @@ export interface StyleInputs {
   selected: Feature | null;
   hovered: Feature | null;
   showNeighbours: boolean;
+  /**
+   * Supplied by the caller rather than read here, because mastery depends on the progress
+   * store and this module must stay a pure colour function the renderer can call per
+   * country, per frame.
+   */
+  masteryOf(country: CountryRecord): CountryMastery;
 }
 
 /** Fill resolution, in priority order: selection beats hover beats the overlay. */
@@ -138,6 +172,7 @@ export function fillFor(feature: Feature, s: StyleInputs): string {
   if (s.selected === feature) return SELECTED;
   if (s.showNeighbours && s.selected?.neighbours.includes(feature)) return NEIGHBOUR;
   if (s.hovered === feature) return HOVER;
+  if (s.overlay === 'mastery') return MASTERY_COLOURS[s.masteryOf(feature.country)];
   return overlayColour(s.overlay, feature.country);
 }
 
