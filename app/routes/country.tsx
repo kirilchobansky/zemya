@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 
+import { CountryProgress } from '~/components/CountryProgress';
 import { formatNumber } from '~/lib/format';
 import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
 import type { Route } from './+types/country';
@@ -42,6 +43,8 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
             <div className="dossier__official">{country.officialName}</div>
           </div>
         </div>
+
+        <CountryProgress country={country} />
 
         <div className="hook">
           <div className="hook__label">Memory hook</div>
@@ -99,7 +102,12 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
           {neighbours.length ? (
             <div className="neighbours">
               {neighbours.map(n => (
-                <Link className="neighbour" key={n.slug} to={`/country/${n.slug}`}>
+                <Link
+                  className="neighbour"
+                  key={n.slug}
+                  to={`/country/${n.slug}`}
+                  state={{ fly: true }}
+                >
                   {n.emoji} {n.name}
                 </Link>
               ))}

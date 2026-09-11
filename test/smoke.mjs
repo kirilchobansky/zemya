@@ -2,14 +2,22 @@
  * End-to-end smoke test against the production build.
  *
  * Serves build/client statically the way Cloudflare Pages will, then drives a real
- * browser: the map must paint, hover must hit-test, clicking must navigate, the dossier
- * must fill in, overlays must switch, and the size-comparison tool must lift and drop.
+ * browser: the map must paint, hover must hit-test, clicking must navigate *without
+ * moving the camera*, the dossier must fill in, overlays must switch, and the
+ * size-comparison tool must lift and drop.
  * Any console error or uncaught exception fails the run.
+ *
+ * The progress step (9) is the one exception: it needs `window.__zemya`, the grading test
+ * seam, which is stripped from the production bundle by `import.meta.env.DEV` — by design,
+ * see app/lib/core/ProgressProvider.tsx. So it spawns its own `react-router dev` server
+ * rather than using `base`, and tears that server down in a `finally` so a failed
+ * assertion inside it can never leave `npm test` hanging on an orphaned process.
  *
  *   npm run build && npm test
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -80,7 +88,34 @@ const colours = await page.evaluate(() => {
 });
 check(colours >= 3, `map looks blank — only ${colours} distinct colours sampled`);
 
-/* --- 2. search finds a country and navigates -------------------------------------- */
+/* --- 2. a map click selects but leaves the camera alone --------------------------- */
+const restingScale = (await page.textContent('.scalebar')).trim();
+
+/* probe for a point that is actually over land — the tooltip only renders on a hit */
+let landPoint = null;
+for (const point of [[430, 330], [980, 330], [760, 250], [1150, 430], [520, 560], [880, 620]]) {
+  await page.mouse.move(point[0], point[1]);
+  await page.waitForTimeout(180);
+  if (await page.isVisible('.tip')) { landPoint = point; break; }
+}
+check(Boolean(landPoint), 'no land found under any probe point — map click untested');
+
+if (landPoint) {
+  await page.mouse.click(landPoint[0], landPoint[1]);
+  await page.waitForURL('**/country/**', { timeout: 5000 });
+  await page.waitForTimeout(1400); // longer than any fly animation, so a regression shows up
+  const afterClick = (await page.textContent('.scalebar')).trim();
+  check(
+    afterClick === restingScale,
+    `map click moved the camera — scale bar went "${restingScale}" -> "${afterClick}"`
+  );
+  check(
+    (await page.textContent('.panel__body')).includes('Memory hook'),
+    'map click did not open a dossier'
+  );
+}
+
+/* --- 3. search finds a country and navigates -------------------------------------- */
 await page.fill('.search input', 'bulgaria');
 await page.waitForTimeout(250);
 await page.keyboard.press('Enter');
@@ -92,22 +127,22 @@ for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Bulgarian lev', 'Romania', '
   check(dossier.includes(probe), `dossier missing "${probe}"`);
 }
 
-/* --- 3. the camera actually flew --------------------------------------------------- */
+/* --- 4. the camera actually flew --------------------------------------------------- */
 const zoomed = await page.textContent('.scalebar');
 check(!/10,000 km/.test(zoomed), `camera did not zoom in — scale still reads "${zoomed.trim()}"`);
 
-/* --- 4. neighbour links navigate --------------------------------------------------- */
+/* --- 5. neighbour links navigate --------------------------------------------------- */
 await page.click('.neighbours a');
 await page.waitForTimeout(1200);
 check(/\/country\/[a-z-]+$/.test(new URL(page.url()).pathname), 'neighbour link did not navigate');
 
-/* --- 5. overlays switch without error ---------------------------------------------- */
+/* --- 6. overlays switch without error ---------------------------------------------- */
 for (const label of ['Density', 'Language', 'Religion', 'Region', 'Terrain']) {
   await page.click(`.chips button:text-is("${label}")`);
   await page.waitForTimeout(220);
 }
 
-/* --- 6. size comparison lifts, drags and drops ------------------------------------- */
+/* --- 7. size comparison lifts, drags and drops ------------------------------------- */
 await page.click('.toolbar button:has-text("Compare size")');
 await page.waitForTimeout(500);
 check(await page.isVisible('.compare-hud'), 'compare tool produced no HUD');
@@ -120,7 +155,7 @@ await page.click('.compare-hud button');
 await page.waitForTimeout(300);
 check(!(await page.isVisible('.compare-hud')), 'compare tool would not put the outline back');
 
-/* --- 7. a country page loads cold, prerendered ------------------------------------- */
+/* --- 8. a country page loads cold, prerendered ------------------------------------- */
 await page.goto(`${base}/country/nepal`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 const nepal = await page.textContent('.panel__body');
@@ -130,6 +165,152 @@ check(
   `wrong document title on cold load: "${await page.title()}"`
 );
 
+/* --- 9. grading a facet updates the rail and repaints the mastery overlay --------- */
+const DEV_PORT = Number(process.env.DEV_PORT || 4319);
+const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
+let devServer = null;
+let devOutput = '';
+
+/**
+ * Vite/React Router print exactly one "Local:" line once the server is actually up, e.g.
+ * "  ➜  Local:   http://localhost:4319/". Used only to discover the address to poll —
+ * never as the readiness signal by itself. `react-router dev` relaunches its own process
+ * (see the "[restart] Relaunching with NODE_OPTIONS" line in its output), and on a CI
+ * runner the address it ends up actually listening on is not safe to assume in advance —
+ * "localhost" can resolve to the IPv6 loopback there where a hardcoded 127.0.0.1 would
+ * hang forever even though the server printed its address and is genuinely ready.
+ */
+const LOCAL_URL = /Local:\s+(http:\/\/\S+)/;
+
+/** Poll the server's own advertised URL with real HTTP requests until it answers. Parsing
+ *  stdout only finds the address; readiness is only ever a successful fetch to it. */
+async function waitForDevServer(timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  let url = null;
+  while (Date.now() < deadline) {
+    url ??= LOCAL_URL.exec(devOutput)?.[1] ?? null;
+    if (url) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) return url;
+      } catch {
+        /* printed its address but isn't accepting requests yet */
+      }
+    }
+    await new Promise(r => setTimeout(r, 250));
+  }
+  const reason = url
+    ? `found its address (${url}) but it never answered a request`
+    : 'never printed its "Local:" address';
+  throw new Error(`dev server did not come up within ${timeoutMs}ms — ${reason}\n${devOutput}`);
+}
+
+/** Reads one canvas pixel at a page (CSS) coordinate, accounting for the canvas's own
+ *  internal resolution (set from devicePixelRatio in Atlas#resize) — see atlas.ts. */
+async function pixelAt(x, y) {
+  return page.evaluate(([px, py]) => {
+    const canvas = document.querySelector('canvas');
+    const rect = canvas.getBoundingClientRect();
+    const cx = Math.round(((px - rect.left) / rect.width) * canvas.width);
+    const cy = Math.round(((py - rect.top) / rect.height) * canvas.height);
+    const [r, g, b] = canvas.getContext('2d').getImageData(cx, cy, 1, 1).data;
+    return [r, g, b];
+  }, [x, y]);
+}
+
+try {
+  devServer = spawn(
+    'npx',
+    ['react-router', 'dev', '--port', String(DEV_PORT), '--strictPort'],
+    { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'], detached: true }
+  );
+  devServer.stdout.on('data', d => { devOutput += d; });
+  devServer.stderr.on('data', d => { devOutput += d; });
+
+  const devBase = await waitForDevServer(DEV_STARTUP_TIMEOUT_MS); // e.g. "http://localhost:4319/"
+
+  await page.goto(devBase, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  await page.waitForFunction(() => Boolean(window.__zemya), { timeout: 5000 });
+
+  await page.fill('.search input', 'bulgaria');
+  await page.waitForTimeout(250);
+  await page.keyboard.press('Enter');
+  await page.waitForURL('**/country/bulgaria', { timeout: 5000 });
+  await page.waitForTimeout(1400);
+
+  /* find a point over Bulgaria (the flown-to, selected country) via the hover tooltip */
+  let bulgariaPoint = null;
+  for (const point of [[700, 430], [750, 400], [650, 460], [800, 380], [720, 480]]) {
+    await page.mouse.move(point[0], point[1]);
+    await page.waitForTimeout(150);
+    const tip = await page.textContent('.tip').catch(() => '');
+    if (tip.includes('Bulgaria')) { bulgariaPoint = point; break; }
+  }
+  check(Boolean(bulgariaPoint), 'could not find Bulgaria under any probe point on the dev server');
+
+  if (bulgariaPoint) {
+    /* deselect on open ocean so the SELECTED colour stops masking the overlay, but the
+       camera — and so bulgariaPoint — stays exactly where it is (see fix/camera-only-on-intent).
+       Candidates must land on the canvas itself (roughly x < 1120) — the panel to its right
+       also fails the "no tooltip" test but is not the map, and a click there does not deselect. */
+    let oceanPoint = null;
+    for (const point of [[1080, 150], [600, 780], [1050, 200], [650, 800]]) {
+      await page.mouse.move(point[0], point[1]);
+      await page.waitForTimeout(120);
+      if (!(await page.isVisible('.tip'))) { oceanPoint = point; break; }
+    }
+    check(Boolean(oceanPoint), 'could not find open ocean to deselect on the dev server');
+    if (oceanPoint) await page.mouse.click(oceanPoint[0], oceanPoint[1]);
+    await page.waitForTimeout(400);
+
+    await page.click('.chips button:text-is("Mastery")');
+    await page.waitForTimeout(300);
+    await page.mouse.move(30, 30); // off-canvas, so nothing is left hovered while sampling
+
+    const before1 = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    const before2 = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    check(
+      before1.join() === before2.join(),
+      `pixel sampling is unstable even with nothing changing — ${before1} vs ${before2}`
+    );
+
+    const tallyBefore = await page.$$eval('.tally__n', els => els.map(e => e.textContent.trim()));
+
+    /* grade a few facets of Bulgaria twice each — two `good` grades is enough for a fresh
+       FSRS card to pass its learning steps and graduate to Review (verified separately) */
+    await page.evaluate(ids => {
+      for (const id of ids) {
+        window.__zemya.review(id, 'good');
+        window.__zemya.review(id, 'good');
+      }
+    }, ['geo:BGR:capital', 'geo:BGR:flag', 'geo:BGR:currency']);
+    await page.waitForTimeout(300);
+
+    const tallyAfter = await page.$$eval('.tally__n', els => els.map(e => e.textContent.trim()));
+    check(
+      Number(tallyAfter[1]) === Number(tallyBefore[1]) + 1 &&
+        Number(tallyAfter[2]) === Number(tallyBefore[2]) - 1,
+      `rail counts did not move as expected: ${tallyBefore} -> ${tallyAfter}`
+    );
+
+    const after = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    check(
+      after.join() !== before1.join(),
+      `mastery overlay pixel under Bulgaria did not change after grading — stayed ${after}`
+    );
+  }
+} finally {
+  if (devServer) {
+    try {
+      process.kill(-devServer.pid, 'SIGTERM');
+    } catch {
+      /* already dead, or the platform doesn't support process groups */
+    }
+    devServer.kill('SIGKILL');
+  }
+}
+
 await browser.close();
 server.close();
 
@@ -137,4 +318,7 @@ if (problems.length) {
   console.error('FAIL\n' + problems.map(p => `  - ${p}`).join('\n'));
   process.exit(1);
 }
-console.log(`PASS — map painted ${colours} colours, dossier, neighbours, 5 overlays, compare tool, cold prerender`);
+console.log(
+  `PASS — map painted ${colours} colours, dossier, neighbours, 5 overlays, compare tool, ` +
+    'cold prerender, progress grading'
+);

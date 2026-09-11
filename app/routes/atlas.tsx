@@ -1,25 +1,42 @@
 /**
  * The atlas shell. Owns the canvas, the camera and every piece of map state; the child
- * routes render only the right-hand panel. Selection lives in the URL, so the back button
- * flies the camera and a country page can be linked to directly.
+ * routes render only the right-hand panel. Selection lives in the URL, so a country page
+ * can be linked to directly; whether a selection *also* moves the camera is carried in the
+ * navigation's state rather than inferred from the selection itself.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 
 import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
+import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
-import type { Feature, World } from '~/lib/map/types';
+import type { CountryRecord, Feature, World } from '~/lib/map/types';
 import { loadWorld } from '~/lib/geography/world';
+import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import { fillFor, strokeFor, type OverlayId } from '~/lib/geography/overlays';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
 
+/**
+ * The provider wraps the shell rather than the app root because progress is only ever read
+ * inside the atlas — the panel routes render as its children, so one provider covers the
+ * map, the rail and the dossier.
+ */
 export default function AtlasLayout() {
+  return (
+    <ProgressProvider>
+      <AtlasShell />
+    </ProgressProvider>
+  );
+}
+
+function AtlasShell() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const atlasRef = useRef<Atlas | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { cards } = useProgress();
 
   const [world, setWorld] = useState<World | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +52,33 @@ export default function AtlasLayout() {
   const slug = COUNTRY_PATH.exec(location.pathname)?.[1] ?? null;
   const selected = slug && world ? world.bySlug.get(slug) ?? null : null;
 
+  /**
+   * The slug the document was loaded with, if any. A cold load of /country/chile must fly:
+   * the visitor arrived already pointed at a country and has never seen the map. It is the
+   * only selection allowed to fly without an explicit flag, so the ref is spent the first
+   * time a selection resolves.
+   */
+  const coldSlugRef = useRef(slug);
+
+  /**
+   * Mastery is derived on demand rather than stored, so this closure is what the renderer
+   * and the rail both read through. It changes identity whenever a card changes, which is
+   * what drives the restyle below — grading a facet recolours the map in the same tick.
+   */
+  const masteryOf = useCallback(
+    (country: CountryRecord) => countryMastery(country, cards),
+    [cards]
+  );
+
+  const totals = useMemo(
+    () => masteryTotals(world ? world.features.map(f => f.country) : [], cards),
+    [world, cards]
+  );
+
   /* the style callbacks the renderer calls per country, per frame */
   const styleInputs = useMemo(
-    () => ({ overlay, selected, hovered, showNeighbours }),
-    [overlay, selected, hovered, showNeighbours]
+    () => ({ overlay, selected, hovered, showNeighbours, masteryOf }),
+    [overlay, selected, hovered, showNeighbours, masteryOf]
   );
 
   useEffect(() => {
@@ -112,12 +152,20 @@ export default function AtlasLayout() {
     });
   }, [styleInputs, showPins]);
 
-  /* fly to whatever the URL says is selected */
+  /**
+   * Move the camera only when the user could not already have seen the target. A map click
+   * navigates without state, so it never flies — the country was on screen and under the
+   * cursor, and moving the map out from under it destroys the sense of place. Search, the
+   * panel links and a cold URL all set `fly`. Deselecting never moves the camera; only the
+   * ⌂ button returns to the world view. See "Interaction principles" in CLAUDE.md.
+   */
   useEffect(() => {
-    if (!atlasRef.current) return;
-    if (selected) atlasRef.current.flyTo(selected);
-    else atlasRef.current.home();
-  }, [selected]);
+    const atlas = atlasRef.current;
+    if (!atlas || !selected) return;
+    const cold = coldSlugRef.current === selected.country.slug;
+    coldSlugRef.current = null;
+    if (cold || (location.state as { fly?: boolean } | null)?.fly === true) atlas.flyTo(selected);
+  }, [selected, location.state]);
 
   const toggleCompare = () => {
     if (comparing || armingCompare) {
@@ -144,6 +192,7 @@ export default function AtlasLayout() {
         overlay={overlay}
         onOverlayChange={setOverlay}
         countryCount={world?.features.length ?? 0}
+        totals={totals}
       />
 
       <main className="stage">
@@ -152,7 +201,9 @@ export default function AtlasLayout() {
         <div className="hud hud--top">
           <SearchBox
             world={world}
-            onPick={feature => navigate(`/country/${feature.country.slug}`)}
+            onPick={feature =>
+              navigate(`/country/${feature.country.slug}`, { state: { fly: true } })
+            }
           />
           <div className="toolbar glass">
             <button

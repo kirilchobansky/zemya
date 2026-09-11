@@ -8,7 +8,8 @@
     "build:content": "node scripts/build-content.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs",
+    "test:unit": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -19,10 +20,12 @@
   },
   "homepage": "https://github.com/kirilchobansky/zemya#readme",
   "dependencies": {
+    "dexie": "4.4.6",
     "isbot": "^5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router": "^8.3.0"
+    "react-router": "^8.3.0",
+    "ts-fsrs": "5.4.2"
   },
   "devDependencies": {
     "@react-router/dev": "^8.3.0",
@@ -35,6 +38,7 @@
     "topojson-simplify": "^3.0.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
+    "vitest": "5.0.0",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0",
     "yaml": "^2.9.0"

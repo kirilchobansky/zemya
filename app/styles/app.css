@@ -740,3 +740,109 @@ a {
     font-size: 11.5px;
   }
 }
+
+/* --- progress ------------------------------------------------------------------- */
+
+.tally {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+.tally__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  background: var(--chart-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 9px;
+}
+.tally__n {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.tally__label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Two segments on one track: mastered, then learning. The remainder is "new". */
+.meter {
+  display: flex;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--chart-2);
+  border: 1px solid var(--rule-soft);
+}
+.meter__seg {
+  display: block;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.note--status {
+  color: var(--ink);
+  border-color: var(--brass-dim);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.pill__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.pill__count {
+  color: var(--ink-3);
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.facets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.facet {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.facet[data-seen] {
+  color: var(--ink-2);
+}
+.facet[data-learned] {
+  color: var(--ink);
+}
+.facet__dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+}
