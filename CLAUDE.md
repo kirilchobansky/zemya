@@ -31,6 +31,10 @@ Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, ear
 prototype/              frozen reference build — read it, port from it, never develop in it
 content/geography/      hand-authored YAML, one file per country. THE MOAT.
 scripts/                content/ + upstream datasets -> public/data/
+app/root.tsx            the HTML document itself + the top-level App
+app/routes.ts           the route table
+app/entry.client.tsx    hydrates the prerendered document
+app/entry.server.tsx    renders each route to HTML at build time
 app/lib/map/            projection, topology, camera, renderer, controller. no React.
 app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers
 app/lib/format.ts       shared formatting and normalisation
@@ -43,6 +47,20 @@ test/smoke.mjs          end-to-end browser test against the production build
 
 React Router's framework mode fixes two of these names: the app lives in `app/`, and
 static assets in `public/` (not `src/` and `static/`, as first sketched).
+
+**This is not a renamed `src/`, and the Vite-template files are not missing.** Framework
+mode replaces all three of them:
+
+| Vite SPA template | here |
+| --- | --- |
+| `index.html` | `app/root.tsx` — its `Layout` export renders `<html>`/`<head>`/`<body>` |
+| `src/main.tsx` | `app/entry.client.tsx` — `hydrateRoot(document, …)`, not `#root` |
+| `src/App.tsx` | `app/routes.ts` (route table) + `root.tsx`'s `<Outlet/>` |
+
+The entry files were materialised with `react-router reveal`; framework mode generates
+them invisibly otherwise. Converting to the SPA layout would cost prerendering (197
+crawlable country pages), `*.server.ts` stripping, and build-time loaders — see the
+locked decisions above.
 
 Rules that follow from this layout:
 
