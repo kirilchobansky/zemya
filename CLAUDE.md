@@ -151,10 +151,15 @@ npm run build           # build:content, then prerender 197 static pages
 npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
+npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no browser
 ```
 
 `npm test` requires a completed `npm run build`. In this sandbox pass
 `CHROMIUM_PATH=/opt/pw-browsers/chromium`.
+
+`npm run test:unit` needs no build — it exercises `app/lib/core/` and
+`app/lib/geography/mastery.ts` directly, importing real content through the same
+`catalog.server.ts` reader every route loader uses.
 
 (In `prototype/`: `npm install && npm run build`.)
 

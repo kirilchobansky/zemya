@@ -8,7 +8,8 @@
     "build:content": "node scripts/build-content.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs",
+    "test:unit": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -37,6 +38,7 @@
     "topojson-simplify": "^3.0.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
+    "vitest": "5.0.0",
     "world-atlas": "^2.0.2",
     "world-countries": "^5.1.0",
     "yaml": "^2.9.0"
