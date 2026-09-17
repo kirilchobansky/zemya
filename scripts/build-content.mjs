@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { parse } from 'yaml';
 import * as simplify from 'topojson-simplify';
-import { slugFor } from './lib/slug.mjs';
+import { slugFor, slugify } from './lib/slug.mjs';
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -41,6 +41,30 @@ const DROP_GEOMETRY = new Set(['10']);
  * clickable" path, which is correct for all of them.
  */
 const SYNTHETIC_IDS = { Kosovo: 'x-kosovo' };
+/**
+ * Some Natural Earth geometries are real territory that Zemya draws as part of a
+ * different country's shape, rather than as their own dim, unclickable blob: a
+ * Russian-leased cosmodrome, UK sovereign base areas, land whose only international
+ * recognition is from the country it borders. Each entry says why, in the same spirit
+ * as the content override notes. Merging happens at the geometry level — the absorbed
+ * polygon(s) are appended to the target's own geometry (promoting Polygon to
+ * MultiPolygon where needed) — and the absorbed name is never emitted as a geometry of
+ * its own. Everything NOT listed here keeps the existing "drawn dim, never clickable"
+ * behaviour, which is correct for Greenland, Puerto Rico, Hong Kong, Macau, Western
+ * Sahara, the Falklands, the Spratlys, Clipperton and the rest — do not add to this map
+ * casually, it is a claim about whose territory something is.
+ */
+const ABSORB = {
+  Somaliland: 'SOM',              // de facto self-governing, but recognised by no state;
+                                   // Zemya draws Somalia's internationally recognised territory
+  Baikonur: 'KAZ',                 // Russian-leased cosmodrome; Kazakh territory
+  'N. Cyprus': 'CYP',              // recognised only by Türkiye
+  'Cyprus U.N. Buffer Zone': 'CYP',
+  Akrotiri: 'CYP',                 // UK sovereign base area, drawn as part of the island
+  Dhekelia: 'CYP',
+  'USNB Guantanamo Bay': 'CUB',    // US-leased; Cuban territory
+  'Siachen Glacier': 'IND'         // India-administered; disputed with Pakistan
+};
 /** Integer grid the arcs are re-quantised onto. 32768 keeps sub-kilometre precision at
  *  1:10m while halving the byte cost of the coordinate stream. */
 const QUANT = 32768;
@@ -180,6 +204,14 @@ for (const name of Object.keys(SYNTHETIC_IDS)) {
   if (!exists) throw new Error(`SYNTHETIC_IDS: no geometry named "${name}" in the source data — renamed upstream?`);
 }
 
+for (const [name, targetIso3] of Object.entries(ABSORB)) {
+  const exists = topo.objects.countries.geometries.some(g => g.properties?.name === name);
+  if (!exists) throw new Error(`ABSORB: no geometry named "${name}" in the source data — renamed upstream?`);
+  if (!countries.some(c => c.iso3 === targetIso3)) {
+    throw new Error(`ABSORB: target ISO3 "${targetIso3}" for "${name}" is not in the catalogue`);
+  }
+}
+
 topo.objects.countries.geometries = topo.objects.countries.geometries.filter(
   g => !DROP_GEOMETRY.has(String(Number(g.id)))
 );
@@ -222,11 +254,58 @@ const arcs = absolute.map(arc => {
 // that dedup is filtered — every point in the source 1:10m file survives.
 const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
 
-const geometries = topo.objects.countries.geometries.map(g => ({
-  id: (g.properties && SYNTHETIC_IDS[g.properties.name]) ?? String(Number(g.id)),
-  multi: g.type === 'MultiPolygon',
-  arcs: g.arcs
-}));
+/**
+ * A geometry's arcs, normalised to "list of polygons" (each polygon a list of rings)
+ * regardless of whether the source called it Polygon or MultiPolygon — so absorbing one
+ * into another is just concatenating two such lists.
+ */
+function polygonsOf(g) {
+  return g.type === 'MultiPolygon' ? g.arcs : [g.arcs];
+}
+
+/**
+ * Real numeric ids pass straight through unchanged. A geometry with no id (Kosovo, or
+ * anything left in the "drawn dim" bucket after ABSORB) falls back to SYNTHETIC_IDS,
+ * then to a slug of its own Natural Earth name — stable and unique, never the "NaN"
+ * every id-less geometry used to collide on.
+ */
+function geometryId(g) {
+  if (g.id !== undefined && g.id !== null && g.id !== '') return String(Number(g.id));
+  const name = g.properties?.name;
+  return SYNTHETIC_IDS[name] ?? (name ? `x-${slugify(name)}` : String(Number(g.id)));
+}
+
+const absorbedPolygons = new Map(); // target iso3 -> polygons to append
+const built = []; // { id, multi, arcs, polygons } — polygons kept alongside for merging
+
+for (const g of topo.objects.countries.geometries) {
+  const name = g.properties?.name;
+  if (name && ABSORB[name]) {
+    const list = absorbedPolygons.get(ABSORB[name]) ?? [];
+    list.push(...polygonsOf(g));
+    absorbedPolygons.set(ABSORB[name], list);
+    continue;
+  }
+  const polygons = polygonsOf(g);
+  built.push({ id: geometryId(g), multi: g.type === 'MultiPolygon', arcs: g.arcs, polygons });
+}
+
+for (const [targetIso3, extra] of absorbedPolygons) {
+  const targetId = countries.find(c => c.iso3 === targetIso3).id;
+  const entry = built.find(b => b.id === targetId);
+  if (!entry) {
+    // the target had no geometry of its own to merge into — not the case for any
+    // current ABSORB entry, but a new one shouldn't silently lose its territory
+    built.push({ id: targetId, multi: extra.length > 1, arcs: extra.length > 1 ? extra : extra[0], polygons: extra });
+    continue;
+  }
+  const merged = [...entry.polygons, ...extra];
+  entry.polygons = merged;
+  entry.multi = merged.length > 1;
+  entry.arcs = merged.length > 1 ? merged : merged[0];
+}
+
+const geometries = built.map(({ id, multi, arcs }) => ({ id, multi, arcs }));
 
 /* ------------------------------------------------------------------------- emit */
 
@@ -293,6 +372,10 @@ console.log(`countries      ${countries.length}`);
 console.log(
   `overrides      ${new Set(overriddenFields.map(f => f.split('.')[0])).size}` +
     (overriddenFields.length ? ` (${overriddenFields.join(', ')})` : '')
+);
+console.log(
+  `absorbed       ${Object.keys(ABSORB).length} ` +
+    `(${Object.entries(ABSORB).map(([name, iso3]) => `${name}->${iso3}`).join(', ')})`
 );
 console.log(`arcs           ${arcs.length} (${totalPoints.toLocaleString()} points)`);
 console.log(`detail         ${DETAIL || '0 — unsimplified; nothing filtered, small islands render'}`);

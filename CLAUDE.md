@@ -67,15 +67,31 @@ before reconstructing it from `git log`.
 197 entities: 193 UN member states, plus Vatican City and Palestine (UN permanent
 observers), plus Taiwan and Kosovo.
 
-The rule: de facto control of territory, with its own capital and its own borders. That
-admits Taiwan and Kosovo. It excludes Greenland, Hong Kong, Macau and Puerto Rico (not
-self-governing states) and Western Sahara (no effective control of its territory).
-Northern Cyprus and Somaliland are excluded for now; if that changes, the same rule has
-to justify it.
+The rule: de facto control of territory, its own capital and its own borders, AND
+meaningful international recognition. That admits Kosovo (recognised by about 115
+states) and Taiwan (11 states, plus de facto economic relations with nearly everyone).
+It excludes Somaliland (recognised by none) and Northern Cyprus (recognised only by
+Türkiye) — both of which meet the de facto test and fail the recognition one. It also
+excludes Greenland, Hong Kong, Macau and Puerto Rico (not self-governing states) and
+Western Sahara (no effective control of its territory).
 
-Excluded territories are still drawn, dim and unclickable, so the map has no holes.
+This is an editorial line, not a fact. Recognition counts are approximate and change;
+the line is written down so it stays consistent, not because it is objective.
 
-This is an editorial line, not a fact. It is written down so it stays consistent.
+Excluded territories are drawn, dim and unclickable, so the map has no holes — except
+the ones listed below, which are drawn as part of the country whose shape they are.
+
+### Absorbed territories
+
+Somaliland, Northern Cyprus and a handful of smaller cases are not drawn as separate
+dim shapes: their geometry is merged into a real country's at build time, so the map
+never shows a hole where recognised territory should be. The full list, and the reason
+for each, lives in `scripts/build-content.mjs`'s `ABSORB` map — Somaliland into Somalia,
+Baikonur into Kazakhstan, Northern Cyprus/the UN buffer zone/Akrotiri/Dhekelia into
+Cyprus, Guantanamo Bay into Cuba, the Siachen Glacier into India. If Somalia looks like
+it's missing its north-west again, or Kazakhstan has a hole in the middle again, look
+there before touching the geometry-matching code — the fix is a map entry, not a
+special case in `topology.ts`.
 
 ## Locked decisions — do not reopen without asking
 
