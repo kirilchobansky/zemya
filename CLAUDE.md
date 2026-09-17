@@ -12,6 +12,21 @@ places.
 
 Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 
+## What counts as a country
+
+197 entities: 193 UN member states, plus Vatican City and Palestine (UN permanent
+observers), plus Taiwan and Kosovo.
+
+The rule: de facto control of territory, with its own capital and its own borders. That
+admits Taiwan and Kosovo. It excludes Greenland, Hong Kong, Macau and Puerto Rico (not
+self-governing states) and Western Sahara (no effective control of its territory).
+Northern Cyprus and Somaliland are excluded for now; if that changes, the same rule has
+to justify it.
+
+Excluded territories are still drawn, dim and unclickable, so the map has no holes.
+
+This is an editorial line, not a fact. It is written down so it stays consistent.
+
 ## Locked decisions — do not reopen without asking
 
 | Decision | Choice | Why |

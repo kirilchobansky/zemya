@@ -1,0 +1,21 @@
+# Kosovo (UNK)
+#
+# Authored content only. Capital, currency, languages, borders, area and the flag
+# emoji all come from the ISO dataset at build time — do not duplicate them here.
+#
+#   religion  specific, not a coarse bucket (Eastern Orthodoxy, not Christianity)
+#   flag      geometry and colour, readable aloud without seeing the flag
+#   outline   the silhouette as a thing you would recognise
+#   hook      one concrete, surprising sentence. never an encyclopaedia summary
+#   population  no upstream source carries this one — world-countries and the
+#               country-json fallback both have nothing for Kosovo (cca3 "UNK" isn't a
+#               real ISO 3166-1 code), so this is authored directly rather than optional
+
+iso3: UNK
+slug: kosovo
+name: Kosovo
+religion: Sunni Islam
+flag: Blue field with a gold silhouette of the country's own outline at centre, arced over by six white five-pointed stars.
+outline: A stubby, uneven diamond wedged into the mountains where Serbia, Albania, Montenegro and North Macedonia meet.
+hook: Kosovo uses the euro as its official currency despite not being a member of the EU or the eurozone.
+population: 1586000

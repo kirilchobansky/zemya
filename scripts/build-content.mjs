@@ -31,6 +31,16 @@ const DETAIL = Number(
 /** Antarctica, by ISO numeric. Dropped: it eats a third of a Mercator viewport and no
  *  study mode ever refers to it. */
 const DROP_GEOMETRY = new Set(['10']);
+/**
+ * Entities with no ISO 3166-1 numeric code — world-countries gives Kosovo ccn3 "" and
+ * Natural Earth's geometry has id undefined, only properties.name === "Kosovo" — so the
+ * usual ccn3-based join drops them from both sides. Mapped by common name, which both
+ * upstream datasets happen to share, onto one synthetic id used for both the country
+ * record and its geometry. A no-id geometry with no entry here (Somaliland, N. Cyprus,
+ * Siachen Glacier, ...) falls through unmatched to the existing "drawn dim, never
+ * clickable" path, which is correct for all of them.
+ */
+const SYNTHETIC_IDS = { Kosovo: 'x-kosovo' };
 /** Integer grid the arcs are re-quantised onto. 32768 keeps sub-kilometre precision at
  *  1:10m while halving the byte cost of the coordinate stream. */
 const QUANT = 32768;
@@ -127,7 +137,7 @@ for (const c of wc) {
   const currency = currencyCode ? c.currencies[currencyCode] : null;
   const population = a.population ?? popFallback[c.name.common] ?? 0;
   const record = {
-    id: String(Number(c.ccn3)),
+    id: SYNTHETIC_IDS[c.name.common] ?? String(Number(c.ccn3)),
     iso3: c.cca3,
     iso2: c.cca2,
     slug: a.slug,
@@ -164,6 +174,12 @@ if (missing.length) throw new Error(`authored countries with no ISO record: ${mi
 /* ---------------------------------------------------------------------- geometry */
 
 let topo = JSON.parse(JSON.stringify(require('world-atlas/countries-10m.json')));
+
+for (const name of Object.keys(SYNTHETIC_IDS)) {
+  const exists = topo.objects.countries.geometries.some(g => g.properties?.name === name);
+  if (!exists) throw new Error(`SYNTHETIC_IDS: no geometry named "${name}" in the source data — renamed upstream?`);
+}
+
 topo.objects.countries.geometries = topo.objects.countries.geometries.filter(
   g => !DROP_GEOMETRY.has(String(Number(g.id)))
 );
@@ -207,7 +223,7 @@ const arcs = absolute.map(arc => {
 const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
 
 const geometries = topo.objects.countries.geometries.map(g => ({
-  id: String(Number(g.id)),
+  id: (g.properties && SYNTHETIC_IDS[g.properties.name]) ?? String(Number(g.id)),
   multi: g.type === 'MultiPolygon',
   arcs: g.arcs
 }));

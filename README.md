@@ -11,10 +11,11 @@ share the same data model rather than sit beside it as a separate app.
 
 Pre-alpha, and buildable.
 
-The production app is React 19 + Vite + TypeScript on React Router v8, prerendered to 197
-static pages. It currently does the atlas half: the map, country dossiers, neighbour
-highlighting, five choropleth overlays, search, and true-size comparison. The nine study
-modes still live only in the frozen [`prototype/`](./prototype) and are being ported.
+The production app is React 19 + Vite + TypeScript on React Router v8, prerendered to 199
+static pages. It does the atlas half — the map, country dossiers, neighbour highlighting,
+five choropleth overlays, search, and true-size comparison — plus a first study mode
+(nine question kinds over FSRS-scheduled cards). See CLAUDE.md's "Where this is" for the
+current state in more detail.
 
 ## Repository layout
 
@@ -28,7 +29,7 @@ modes still live only in the frozen [`prototype/`](./prototype) and are being po
 | `prototype/` | The frozen single-file reference build. Self-contained, own `package.json`. |
 
 `content/` is the part of this project with actual value. The canvas renderer can be
-rewritten in a weekend; 196 hand-written memory hooks cannot.
+rewritten in a weekend; 197 hand-written memory hooks cannot.
 
 ## Running it
 
@@ -40,7 +41,7 @@ npm run dev        # http://localhost:5173
 To build the static site exactly as it deploys:
 
 ```bash
-npm run build      # regenerates public/data, then prerenders 197 pages
+npm run build      # regenerates public/data, then prerenders 199 pages
 npm test           # serves build/client and drives a real browser over it
 ```
 
@@ -54,8 +55,9 @@ Change a memory hook in `content/geography/countries/<slug>.yaml`, then:
 npm run build:content
 ```
 
-Commit both the YAML and the regenerated `public/data/geography/*.json`. CI fails if they
-drift apart.
+Commit both the YAML and the regenerated `public/data/geography/*.json` in the same
+commit — there is no CI here to catch a drift between them (see CLAUDE.md's Git
+conventions).
 
 ### The prototype
 
@@ -69,7 +71,7 @@ Open `prototype/dist/zemya-prototype.html`. No server, no network.
 
 | Data | Source | Licence |
 | --- | --- | --- |
-| Country polygons | Natural Earth 1:50m via `world-atlas` | Public domain |
+| Country polygons | Natural Earth 1:10m via `world-atlas`, unsimplified | Public domain |
 | Capitals, currencies, languages, borders, flags | `world-countries` (ISO 3166) | MPL-2.0 |
 | Population | 2025 estimates for the ~200 largest states; `country-json` (World Bank 2018) below that | ODbL / see package |
 | Religion, flag descriptions, outline descriptions, memory hooks | Hand-authored for this project | see Licensing |
