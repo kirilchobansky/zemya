@@ -69,12 +69,29 @@ describe('buildWorld — antimeridian countries, against the real payload', () =
     expect(centre).toBeLessThan(130);
   });
 
-  it("Fiji's and Kiribati's bbox spans are each under 30 degrees", async () => {
+  it("Fiji's span stays small", async () => {
     const world = await loadRealWorld();
-    for (const iso3 of ['FJI', 'KIR']) {
-      const feature = world.byIso3.get(iso3)!;
-      const [minLon, , maxLon] = feature.bbox!;
-      expect(maxLon - minLon, `${iso3} span`).toBeLessThan(30);
-    }
+    const [minLon, , maxLon] = world.byIso3.get('FJI')!.bbox!;
+    expect(maxLon - minLon).toBeLessThan(15);
+  });
+
+  /**
+   * Kiribati is not a small-span case — it is famously the widest-spread country on
+   * Earth, its Gilbert, Phoenix and Line Islands genuinely ~39° of true longitude apart
+   * (the reason it redrew its own date-line boundary in 1995, so all three groups would
+   * share a calendar day). At 1:50m most of that geometry simplified down to degenerate
+   * 2-point fragments and got dropped by the `length > 2` filter, leaving only whichever
+   * single island happened to survive — which is why an earlier draft of this test
+   * expected Kiribati under 30°: that number came from data too coarse to show the real
+   * country. At full 1:10m detail the real spread renders, so the assertion here is a
+   * generous ceiling above the true ~38.7°, not a tight bound — what actually matters is
+   * that it stays nowhere near the 180° that would mean the antimeridian bug is back.
+   */
+  it("Kiribati's real, wide spread renders without wrapping into a false 180°+ span", async () => {
+    const world = await loadRealWorld();
+    const [minLon, , maxLon] = world.byIso3.get('KIR')!.bbox!;
+    const span = maxLon - minLon;
+    expect(span).toBeGreaterThan(30); // it really is this wide once detail is real
+    expect(span).toBeLessThan(45);
   });
 });

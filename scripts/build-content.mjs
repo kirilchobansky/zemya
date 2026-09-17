@@ -5,7 +5,11 @@
  * fetches at runtime. The output is committed so a deploy can never break because an
  * upstream package published a new version.
  *
- *   node scripts/build-content.mjs [--detail 0.005]
+ *   node scripts/build-content.mjs [--detail=0.02]
+ *
+ * Default detail is 0 — full 1:10m resolution, unsimplified (measured: 3.37 MB raw / 687 KB
+ * gzipped, paints in ~585 ms, pans at a solid 60 fps). Pass --detail=N to simplify back down;
+ * dial it up if the unsimplified payload ever stops being affordable.
  */
 import {
   readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, unlinkSync,
@@ -22,13 +26,13 @@ const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const DETAIL = Number(
-  (process.argv.find(a => a.startsWith('--detail=')) || '').split('=')[1] || 0.005
+  (process.argv.find(a => a.startsWith('--detail=')) || '').split('=')[1] || 0
 );
 /** Antarctica, by ISO numeric. Dropped: it eats a third of a Mercator viewport and no
  *  study mode ever refers to it. */
 const DROP_GEOMETRY = new Set(['10']);
 /** Integer grid the arcs are re-quantised onto. 32768 keeps sub-kilometre precision at
- *  1:50m while halving the byte cost of the coordinate stream. */
+ *  1:10m while halving the byte cost of the coordinate stream. */
 const QUANT = 32768;
 
 /* ------------------------------------------------------------------ authored content */
@@ -159,13 +163,15 @@ if (missing.length) throw new Error(`authored countries with no ISO record: ${mi
 
 /* ---------------------------------------------------------------------- geometry */
 
-let topo = JSON.parse(JSON.stringify(require('world-atlas/countries-50m.json')));
+let topo = JSON.parse(JSON.stringify(require('world-atlas/countries-10m.json')));
 topo.objects.countries.geometries = topo.objects.countries.geometries.filter(
   g => !DROP_GEOMETRY.has(String(Number(g.id)))
 );
-topo = simplify.presimplify(topo);
-topo = simplify.simplify(topo, DETAIL);
-topo = simplify.filter(topo, simplify.filterAttachedWeight(topo, DETAIL));
+if (DETAIL > 0) {
+  topo = simplify.presimplify(topo);
+  topo = simplify.simplify(topo, DETAIL);
+  topo = simplify.filter(topo, simplify.filterAttachedWeight(topo, DETAIL));
+}
 
 // presimplify dequantises; arcs come back as absolute lon/lat with no transform
 const absolute = topo.transform
@@ -194,6 +200,11 @@ const arcs = absolute.map(arc => {
   if (out.length < 2) out.push([0, 0]);
   return out;
 });
+
+// the cost of a detail change, made visible: the points actually shipped, after
+// requantisation drops repeated vertices. At DETAIL=0 (the default) nothing upstream of
+// that dedup is filtered — every point in the source 1:10m file survives.
+const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
 
 const geometries = topo.objects.countries.geometries.map(g => ({
   id: String(Number(g.id)),
@@ -267,7 +278,8 @@ console.log(
   `overrides      ${new Set(overriddenFields.map(f => f.split('.')[0])).size}` +
     (overriddenFields.length ? ` (${overriddenFields.join(', ')})` : '')
 );
-console.log(`arcs           ${arcs.length}`);
+console.log(`arcs           ${arcs.length} (${totalPoints.toLocaleString()} points)`);
+console.log(`detail         ${DETAIL || '0 — unsimplified; nothing filtered, small islands render'}`);
 console.log(`geometries     ${geometries.length}`);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);
 console.log(`world.json     ${(json.length / 1024).toFixed(0)} KB`);

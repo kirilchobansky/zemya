@@ -22,7 +22,7 @@ Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, ear
 | Backend | **None for now** | Ship without accounts. Local-first from day one so adding sync later costs nothing in perceived speed. |
 | Storage | IndexedDB via **Dexie 4.4.6**, local-first | Every interaction must be 0 ms. Never block UI on network. |
 | Scheduling | **ts-fsrs 5.4.2** (FSRS), not SM-2, not the prototype's 3-in-a-row toy | Modern open algorithm, real intervals and due dates. MIT, open-spaced-repetition org, actively maintained — checked before pinning. |
-| Map engine | Custom canvas renderer, **not** Leaflet/MapLibre | Tiles need a network; a vector-only engine gives true-size re-projection and exact hit-testing for free, and does the pedagogical things a general-purpose library makes harder. Revisit only when city/street detail is actually wanted. |
+| Map engine | Custom canvas renderer, **not** Leaflet/MapLibre. Coastlines are **1:10m, unsimplified** (~3.4 MB raw, 687 KB gzipped) | Tiles need a network; a vector-only engine gives true-size re-projection and exact hit-testing for free, and does the pedagogical things a general-purpose library makes harder. Revisit only when city/street detail is actually wanted. Measured before shipping unsimplified: paints in ~585 ms, pans at a solid 60 fps. |
 | Repo visibility | Public | Made public so this sandbox can read it. Secrets still never enter the repo. |
 
 ## Structure
@@ -237,3 +237,6 @@ so nothing may depend on a webfont having loaded.
 - Do not change a country's `slug` once shipped. It is a public URL.
 - Do not load flags from a CDN. They are local files so the app can work offline and so
   no third party sees which countries the user is studying.
+- Do not re-introduce coastline simplification (`--detail`) to quiet micro-island noise
+  from the unsimplified 1:10m data. Flag it to the owner instead — see the Map engine row
+  above.
