@@ -12,6 +12,56 @@ places.
 
 Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 
+## Where this is
+
+Updated every commit. One place that answers "what works, what's next" — read this
+before reconstructing it from `git log`.
+
+**Working:**
+- The atlas: canvas map at full 1:10m unsimplified coastline detail, search, neighbour
+  highlighting, true-size compare tool, 5 choropleth overlays plus a mastery overlay.
+- 197 countries (see "What counts as a country" below), each hand-authored in
+  `content/` and joined against `world-countries` + Natural Earth at build time,
+  including Kosovo and Micronesia's currency (both closed data-join gaps, not upstream
+  facts) and every country that crosses the antimeridian (Russia, the USA, Kiribati,
+  Fiji, New Zealand) rendering and flying-to correctly.
+- Real flag images (`public/flags/`, from flag-icons, offline, emoji fallback on error).
+- Progress and scheduling: FSRS cards per (country, facet), created lazily, mastery
+  derived never stored, IndexedDB via Dexie, export/import/reset.
+- Study mode: 9 question kinds, session policy (due cards first, then new cards
+  population-weighted, never the same country twice in a row), a religion-specificity
+  taxonomy so distractors can't be a parent/child of the correct answer.
+- Solo git workflow: commits go straight to `main`, no branches, no CI (removed
+  on purpose — see Git conventions).
+
+**Next:**
+- The `location` facet still has no question kind — it needs map-click interaction,
+  which is why `ASKABLE_FACETS` filters it out rather than removing it from
+  `applicableFacets()`. This is the next piece of study mode, not a bug.
+- The study-mode hint (reveals one wrong option, downgrades a correct answer to FSRS
+  Hard) was a judgement call, not something requested in detail — confirm with the
+  owner it's the right shape before building more on top of it.
+- Watch whether full 1:10m detail makes micro-state pins noisy in practice now that
+  small islands that used to simplify away are rendering (see the Map engine row
+  below). Report it if so — do not silently re-simplify to hide it.
+
+**Known rough edges:**
+- `npm test` (the Playwright smoke test) cannot run in this sandbox — Chromium is
+  missing system shared libraries here and there's no passwordless sudo to install
+  them. Every session so far has substituted `typecheck` + `build:content` +
+  `react-router build` + `test:unit`, plus a real render of the affected geometry
+  through node-canvas for anything visual, but the owner should run the real smoke
+  test after pulling to be sure.
+- Nigeria's religion value was reordered to "larger share first" using CIA World
+  Factbook figures (~53.5% Muslim vs ~45.9% Christian, 2018 est.) for consistency with
+  the rest of `content/` — Nigeria hasn't asked religion in a census since 1963
+  precisely because the true split is contested, so treat that specific ordering as a
+  judgement call to revisit if the owner has a source they trust more.
+- README.md's licensing section still frames repo visibility as a future decision
+  ("before this repo is made public"); the Locked decisions table below already
+  settled that the repo is public now. Left alone deliberately — visibility and
+  licensing are different decisions, and only the first is actually locked.
+
 ## What counts as a country
 
 197 entities: 193 UN member states, plus Vatican City and Palestine (UN permanent
@@ -97,7 +147,7 @@ Rules that follow from this layout:
 - `app/lib/core/` must not import from `app/lib/geography/`, or anything geography-specific
   at all. Card ids are opaque strings to it; history will use the same store one day.
 - Anything reading `public/data/*.json` from disk lives in a `*.server.ts` file, so the
-  bundler strips it from the client. A 153 KB catalogue must never ship to a browser
+  bundler strips it from the client. A 154 KB catalogue must never ship to a browser
   twice.
 - Route loaders run at **build time** — every page is prerendered. Node APIs are fine in
   them; `window` is not.
@@ -139,7 +189,7 @@ prefix is a geography-layer convention, not a core concept: `app/lib/core/` stor
 grades opaque id strings and must never import from `app/lib/geography/`.
 
 Cards are created **lazily**. No row exists until a facet is first reviewed — "new" is the
-absence of a row, not a row in a new state. 196 countries never means 1,568 rows up front.
+absence of a row, not a row in a new state. 197 countries never means 1,576 rows up front.
 
 Country mastery is **derived, never stored**, from whatever cards exist for it:
 - **new** — no cards for this country
@@ -163,7 +213,7 @@ prerender. If `npm run build` starts failing inside prerender, look here first.
 ```bash
 npm install
 npm run dev             # dev server on :5173
-npm run build           # build:content, then prerender 197 static pages
+npm run build           # build:content, then prerender 199 static pages
 npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
@@ -191,6 +241,12 @@ Solo project, one machine, one person. No branches, no pull requests, no CI.
 - Running the browser smoke test is optional. It is a tool for me, not a gate.
 - This sandbox can read the repo but not push. Leave commits unpushed; the owner
   clicks Sync in VS Code.
+- If you make a decision the prompt did not specify — a name, a data shape, a
+  trade-off, a deviation — record it in CLAUDE.md in the same commit. CLAUDE.md is
+  the only channel between this machine and whoever is reviewing the work elsewhere.
+  A decision that lives only in a commit message or a chat reply is a decision that
+  gets relitigated.
+- Update "## Where this is" in every commit that changes what works.
 
 ## Visual identity
 
