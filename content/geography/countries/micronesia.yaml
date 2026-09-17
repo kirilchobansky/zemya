@@ -17,3 +17,12 @@ flag: Light blue field with four white stars in a diamond.
 outline: Four island groups strung 2,700 km across the Pacific.
 hook: Its 607 islands spread across an ocean area larger than Western Europe.
 population: 526849
+
+override:
+  currencyCode: USD
+  currencyName: United States dollar
+  currencySymbol: "$"
+  note: >
+    world-countries ships `currencies: {}` for FSM. The Compact of Free Association
+    makes the US dollar sole legal tender; Marshall Islands and Palau are listed
+    correctly in the same dataset, so this is an upstream gap, not policy.

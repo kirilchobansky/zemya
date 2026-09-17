@@ -89,6 +89,31 @@ function religionGroup(r) {
   return 'Other';
 }
 
+/**
+ * `override:` in a country's YAML closes a gap in the upstream dataset — see e.g.
+ * micronesia.yaml, where world-countries ships `currencies: {}` for FSM even though the
+ * Compact of Free Association makes the US dollar sole legal tender. A shallow merge onto
+ * the built record, validated so a typo or an unjustified override fails the build rather
+ * than silently doing nothing or drifting unnoticed. See CLAUDE.md's Content conventions
+ * for what an override is (and is not) for.
+ */
+const overriddenFields = [];
+function applyOverride(record, a, where) {
+  if (!a.override) return record;
+  const { note, ...fields } = a.override;
+  if (!note || !String(note).trim()) {
+    throw new Error(`${where}: override block needs a non-empty "note" explaining why upstream is wrong`);
+  }
+  for (const key of Object.keys(fields)) {
+    if (!(key in record)) {
+      throw new Error(`${where}: override key "${key}" is not a field on the country record`);
+    }
+    record[key] = fields[key];
+    overriddenFields.push(`${record.iso3}.${key}`);
+  }
+  return record;
+}
+
 const countries = [];
 for (const c of wc) {
   const a = authored[c.cca3];
@@ -97,7 +122,7 @@ for (const c of wc) {
   const currencyCode = Object.keys(c.currencies || {})[0] || null;
   const currency = currencyCode ? c.currencies[currencyCode] : null;
   const population = a.population ?? popFallback[c.name.common] ?? 0;
-  countries.push({
+  const record = {
     id: String(Number(c.ccn3)),
     iso3: c.cca3,
     iso2: c.cca2,
@@ -125,7 +150,8 @@ for (const c of wc) {
     hook: a.hook,
     flagDescription: a.flag,
     outlineDescription: a.outline
-  });
+  };
+  countries.push(applyOverride(record, a, `content/geography/countries/${a.slug}.yaml`));
 }
 
 const missing = Object.keys(authored).filter(iso3 => !countries.some(c => c.iso3 === iso3));
@@ -237,6 +263,10 @@ const flagsBytes = readdirSync(flagsOutDir)
   .reduce((sum, file) => sum + statSync(join(flagsOutDir, file)).size, 0);
 
 console.log(`countries      ${countries.length}`);
+console.log(
+  `overrides      ${new Set(overriddenFields.map(f => f.split('.')[0])).size}` +
+    (overriddenFields.length ? ` (${overriddenFields.join(', ')})` : '')
+);
 console.log(`arcs           ${arcs.length}`);
 console.log(`geometries     ${geometries.length}`);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);

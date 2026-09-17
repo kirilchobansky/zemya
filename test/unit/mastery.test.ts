@@ -54,7 +54,6 @@ describe('applicableFacets — the per-country denominator', () => {
   const switzerland = countryBySlug('switzerland')!; // landlocked, every field populated
   const japan = countryBySlug('japan')!; // island, no land borders
   const vatican = countryBySlug('vatican-city')!; // requested third example — see below
-  const micronesia = countryBySlug('micronesia')!; // island AND a null currencyCode
 
   it('a landlocked country with complete data applies every facet', () => {
     expect(applicableFacets(switzerland)).toEqual(FACETS); // all 8 — nothing excludes any
@@ -79,28 +78,44 @@ describe('applicableFacets — the per-country denominator', () => {
   });
 
   /**
-   * Micronesia is the real, shipped country used in place of Vatican City for the "three
-   * denominators differ" assertion below: an island with no land borders (like Japan) AND
-   * a null currencyCode, excluding a second facet.
+   * Micronesia used to be the real-data example for "missing more than one field": before
+   * the override in content/geography/countries/micronesia.yaml, world-countries shipped
+   * `currencies: {}` for FSM, so it was an island (no borders) AND had a null currencyCode.
+   * That gap is now closed on purpose (see CLAUDE.md's Content conventions), so no shipped
+   * country is missing two facets any more — this is a synthetic fixture, not a fact about
+   * the real catalogue.
    */
   it('a country missing more than one field has a smaller denominator still', () => {
-    expect(micronesia.borders).toHaveLength(0);
-    expect(micronesia.currencyCode).toBeNull();
-    const facets = applicableFacets(micronesia);
+    const sparse = { ...japan, currencyCode: null };
+    const facets = applicableFacets(sparse);
     expect(facets).not.toContain('borders');
     expect(facets).not.toContain('currency');
     expect(facets).toHaveLength(FACETS.length - 2);
   });
 
-  it('the denominator varies: landlocked, island, and a sparser micro-state all differ', () => {
+  it('the denominator varies: landlocked, island, and a sparser synthetic case all differ', () => {
+    const sparse = { ...japan, currencyCode: null };
     const denominators = {
       switzerland: applicableFacets(switzerland).length,
       japan: applicableFacets(japan).length,
-      micronesia: applicableFacets(micronesia).length
+      sparse: applicableFacets(sparse).length
     };
-    console.log('denominators (landlocked / island / sparser micro-state):', denominators);
+    console.log('denominators (landlocked / island / sparser synthetic case):', denominators);
 
     const values = Object.values(denominators);
     expect(new Set(values).size).toBe(values.length); // pairwise distinct
+  });
+
+  /**
+   * The override itself, guarded here rather than only in build-content.mjs: a regression
+   * that silently dropped it would otherwise only show up as Micronesia's currency card
+   * never being askable, which is exactly the bug this override closes.
+   */
+  it('Micronesia gains a currency card now that the override closes the upstream gap', () => {
+    const micronesia = countryBySlug('micronesia')!;
+    expect(micronesia.currencyCode).toBe('USD');
+    const facets = applicableFacets(micronesia);
+    expect(facets).not.toContain('borders'); // still an island
+    expect(facets).toContain('currency'); // no longer excluded
   });
 });

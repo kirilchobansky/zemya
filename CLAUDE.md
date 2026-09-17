@@ -217,6 +217,9 @@ so nothing may depend on a webfont having loaded.
 - Religion values are deliberately specific (Eastern Orthodoxy, Sunni Islam, Theravada
   Buddhism), not coarse buckets. The faith↔language matching round depends on it.
 - Quiz only on falsifiable facts: dates, places, actors, sequence. Never quiz causation.
+- Overrides exist only to close upstream data gaps. Each must carry a `note` saying
+  why upstream is wrong and how that was established. Never use an override to express
+  an opinion — if a fact is disputed, don't quiz it.
 
 ## Do not
 
