@@ -266,7 +266,13 @@ export default function StudyPanel() {
           <>
             <div className="hook">
               <div className="hook__label">Memory hook</div>
-              <p>{question.hook}</p>
+              {/* Hooks are authored as fragments with an implied subject (see
+                  CLAUDE.md's Content conventions) — right under the dossier's own
+                  heading that's fine, but here the question could have been about any
+                  country, so the subject has to be supplied. */}
+              <p>
+                <b>{promptCountry?.name}</b> — {question.hook}
+              </p>
             </div>
             <button type="button" className="action action--primary" onClick={next}>
               Next

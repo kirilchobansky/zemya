@@ -235,6 +235,8 @@ so nothing may depend on a webfont having loaded.
 - Overrides exist only to close upstream data gaps. Each must carry a `note` saying
   why upstream is wrong and how that was established. Never use an override to express
   an opinion — if a fact is disputed, don't quiz it.
+- Hooks are written as fragments with an implied subject. Any surface that shows a hook
+  outside the country's own page must supply the subject itself.
 
 ## Do not
 

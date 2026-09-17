@@ -2,7 +2,7 @@
  * Unit tests for question generation (app/lib/geography/questions.ts), checked against the
  * real, shipped catalogue (public/data/geography/countries.json, via the same catalog
  * reader every route loader uses) rather than fixtures — so "every country produces a
- * sane question" is a fact about the real 196, not a hand-built case.
+ * sane question" is a fact about the real 197, not a hand-built case.
  *
  *   npm run test:unit
  */
@@ -15,6 +15,7 @@ import {
   buildCatalogue,
   KINDS_FOR_FACET,
   questionOfKind,
+  religionsClash,
   type QuestionKind
 } from '~/lib/geography/questions';
 import { makeRng } from '~/lib/core/questions';
@@ -97,6 +98,27 @@ describe('not-a-neighbour', () => {
     for (const country of sparse) {
       expect(questionOfKind('not-a-neighbour', country, catalogue, makeRng(3))).toBeNull();
     }
+  });
+});
+
+describe('religion-of distractors respect the specificity taxonomy', () => {
+  it('no option is an ancestor or descendant of the correct answer, for every country', () => {
+    let checked = 0;
+    for (const country of allCountries()) {
+      const question = questionOfKind('religion-of', country, catalogue, makeRng(11));
+      if (!question) continue;
+      checked += 1;
+
+      const correct = question.options[question.answerIndex];
+      const distractors = question.options.filter((_, i) => i !== question.answerIndex);
+      for (const distractor of distractors) {
+        expect(
+          religionsClash(correct, distractor),
+          `${country.iso3}: "${distractor}" clashes with correct answer "${correct}"`
+        ).toBe(false);
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });
 
