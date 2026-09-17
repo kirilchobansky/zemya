@@ -8,12 +8,61 @@
 import type {
   ContextShape, Feature, LonLat, Ring, World, WorldData
 } from './types';
-import { latToY, lonToX } from './projection';
+import { latToY, lonToX, wrapX } from './projection';
 
-/** Longitude jump that means a ring crossed the antimeridian rather than moved. */
-const WRAP_JUMP = 180;
 /** Below this span in degrees a country cannot render as a recognisable shape. */
 const MICRO_DEGREES = 0.55;
+
+/**
+ * Longitudes arrive in [-180, 180], so a ring that crosses the antimeridian (Russia's
+ * mainland, via Chukotka) contains a ±360 jump. Unwrap it into one continuous frame: walk
+ * the ring and whenever consecutive longitudes differ by more than 180, shift everything
+ * after that point by ∓360. The result may run outside [-180, 180] — Russia becomes
+ * roughly 19°E .. 190°E — and that is exactly what we want: a single Path2D subpath draws
+ * it with no diagonal seam (the renderer already draws the world at −1, 0 and +1 world
+ * widths, so a continuous path lands correctly in every copy with no clipping), and its
+ * longitude span describes its real angular width instead of "the whole world".
+ *
+ * INVARIANT: longitudes stay unwrapped through all geometry and bbox maths below, and are
+ * normalised (wrapX, or folded back into [-180, 180)) only at the moment they are handed
+ * to the camera. Never before.
+ */
+export function unwrapRing(ring: Ring): Ring {
+  if (ring.length < 2) return ring;
+  const out: Ring = [ring[0]];
+  let shift = 0;
+  for (let i = 1; i < ring.length; i++) {
+    const d = ring[i][0] - ring[i - 1][0];
+    if (d > 180) shift -= 360;
+    else if (d < -180) shift += 360;
+    out.push([ring[i][0] + shift, ring[i][1]]);
+  }
+  return out;
+}
+
+/**
+ * A ring crossing the antimeridian inside itself is only half the bug. The USA's
+ * Aleutians, Kiribati's three archipelagos and New Zealand's Chathams are each split into
+ * separate rings (separate islands) that individually never cross ±180 — every ring in
+ * KIR's outer-island group sits happily within its own hemisphere — but land on opposite
+ * sides of it, so naively merging their raw longitudes into one bbox still produces "the
+ * whole world" even after unwrapRing().
+ *
+ * Fixed the same way, one level up: shift each polygon (as a rigid unit — outer ring and
+ * any holes together) by whichever multiple of 360° brings it closest to the country's own
+ * reference longitude (its authored latlng, always in [-180, 180]). That puts every piece
+ * of a feature into one mutually consistent frame regardless of how upstream happened to
+ * split it into rings, with no per-country special case.
+ */
+function nearestBranch(lon: number, reference: number): number {
+  return lon + Math.round((reference - lon) / 360) * 360;
+}
+
+function meanLon(ring: Ring): number {
+  let sum = 0;
+  for (const [lon] of ring) sum += lon;
+  return sum / ring.length;
+}
 
 function decodeArcs(data: WorldData): LonLat[][] {
   const { x0, y0, xs, ys } = data.grid;
@@ -44,20 +93,18 @@ function buildRing(indices: number[], arcs: LonLat[][]): Ring {
 }
 
 /**
- * Append a ring to a path, breaking the subpath wherever the ring jumps the
- * antimeridian. Without the break, Russia and Fiji smear a horizontal band across the
- * entire map.
+ * Append a ring to a path as one continuous subpath. Safe to do unconditionally now that
+ * every ring has already been unwrapped (see unwrapRing) — there is no jump left to break
+ * on, and breaking mid-ring was what drew Russia and Fiji as diagonal slashes in the first
+ * place: fill() implicitly closed the fragments across the whole canvas.
  */
 function traceRing(path: Path2D, ring: Ring): void {
   let started = false;
-  let previous: LonLat | null = null;
   for (const point of ring) {
-    if (previous && Math.abs(point[0] - previous[0]) > WRAP_JUMP) started = false;
     const x = lonToX(point[0]);
     const y = latToY(point[1]);
     if (started) path.lineTo(x, y);
     else { path.moveTo(x, y); started = true; }
-    previous = point;
   }
   path.closePath();
 }
@@ -113,7 +160,7 @@ export function buildWorld(data: WorldData): World {
       let drew = false;
       for (const polygon of polygonList) {
         for (const indices of polygon) {
-          const ring = buildRing(indices, arcs);
+          const ring = unwrapRing(buildRing(indices, arcs));
           if (ring.length < 3) continue;
           traceRing(path, ring);
           drew = true;
@@ -124,13 +171,24 @@ export function buildWorld(data: WorldData): World {
     }
 
     for (const polygon of polygonList) {
-      const rings = polygon.map(indices => buildRing(indices, arcs)).filter(r => r.length > 2);
+      const rings = polygon
+        .map(indices => unwrapRing(buildRing(indices, arcs)))
+        .filter(r => r.length > 2);
       if (rings.length) feature.polygons.push(rings);
     }
   }
 
   for (const feature of features) {
     if (!feature.polygons.length) continue;
+
+    // Bring every disjoint piece of this feature into one consistent angular frame before
+    // measuring anything — see nearestBranch's doc comment.
+    const reference = feature.country.latlng[1];
+    feature.polygons = feature.polygons.map(polygon => {
+      const shift = nearestBranch(meanLon(polygon[0]), reference) - meanLon(polygon[0]);
+      if (!shift) return polygon;
+      return polygon.map(ring => ring.map(([lon, lat]): LonLat => [lon + shift, lat]));
+    });
 
     let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
     let largest: Ring | null = null;
@@ -172,7 +230,10 @@ export function buildWorld(data: WorldData): World {
     if (!Number.isFinite(feature.anchor[0]) || !Number.isFinite(feature.anchor[1])) {
       feature.anchor = [feature.country.latlng[1], feature.country.latlng[0]];
     }
-    feature.ux = lonToX(feature.anchor[0]);
+    // The anchor can sit past 180° for a feature whose largest piece got shifted onto the
+    // far branch above (see nearestBranch) — wrap it back into [0, 1) here, at the camera
+    // boundary, per the invariant on unwrapRing.
+    feature.ux = wrapX(lonToX(feature.anchor[0]));
     feature.uy = latToY(feature.anchor[1]);
     feature.neighbours = feature.country.borders
       .map(iso3 => byIso3.get(iso3))
