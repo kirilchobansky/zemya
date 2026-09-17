@@ -97,6 +97,47 @@ export function frame(
   );
 }
 
+/** Ground distance across the whole world at the equator, in km — Mercator's width at
+ *  zoom 1. Mirrors kmPerPixel/reprojectToTrueSize's own constants. */
+const EARTH_WIDTH_KM = 40075;
+
+/**
+ * Quiz framing: unlike flyTo/frame (which fill most of the viewport with the selected
+ * country), a quiz question wants the country identifiable *with its continent around
+ * it* — see CLAUDE.md's quiz spec. The target is a quarter of the viewport's width; the
+ * resulting ground span is then clamped to [900, 7000] km so Monaco doesn't zoom to
+ * street level and Russia doesn't zoom out to the whole planet. Height is fit too (at a
+ * looser fraction), and the smaller of the two resulting zooms wins, so a tall, narrow
+ * country (Chile) doesn't get cropped top-to-bottom by a framing rule that only looked at
+ * width.
+ *
+ * `box` should be the feature's mainBbox where available (topology.ts) — the full bbox
+ * would centre Chile's frame on empty ocean, dragged there by Easter Island.
+ */
+export function frameForQuiz(
+  box: { x0: number; y0: number; x1: number; y1: number },
+  midLat: number,
+  v: Viewport
+): CameraState {
+  const MIN_SPAN_KM = 900;
+  const MAX_SPAN_KM = 7000;
+  const WIDTH_FRACTION = 0.25;
+  const HEIGHT_FRACTION = 0.55;
+
+  const width = Math.max(box.x1 - box.x0, 0.0002);
+  const height = Math.max(box.y1 - box.y0, 0.0002);
+  const zoomFromWidth = (v.width * WIDTH_FRACTION) / width;
+  const zoomFromHeight = (v.height * HEIGHT_FRACTION) / height;
+  const zoomFit = Math.min(zoomFromWidth, zoomFromHeight);
+
+  const kmPerWorldWidth = EARTH_WIDTH_KM * Math.cos((midLat * Math.PI) / 180);
+  const naiveSpanKm = (v.width * kmPerWorldWidth) / zoomFit;
+  const clampedSpanKm = Math.max(MIN_SPAN_KM, Math.min(MAX_SPAN_KM, naiveSpanKm));
+  const zoom = (v.width * kmPerWorldWidth) / clampedSpanKm;
+
+  return clamp({ x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2, zoom }, v);
+}
+
 /**
  * One step of an exponential ease. Zoom interpolates geometrically so that the rate of
  * apparent movement is constant — linear interpolation of zoom crawls at the far end and

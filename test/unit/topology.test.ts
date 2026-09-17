@@ -96,6 +96,42 @@ describe('buildWorld — antimeridian countries, against the real payload', () =
   });
 });
 
+describe('mainBbox — the main-body box quiz framing uses', () => {
+  /**
+   * Chile's Easter Island sits ~3,700 km off the mainland; feature.bbox spans both (over
+   * 40° of longitude), which would centre a quiz camera on open ocean rather than the
+   * country. mainBbox drops the exclave — see EXCLAVE_KM in topology.ts.
+   */
+  it('Chile: mainBbox is much narrower than bbox (Easter Island dropped)', async () => {
+    const world = await loadRealWorld();
+    const chile = world.byIso3.get('CHL')!;
+    const [bMinLon, , bMaxLon] = chile.bbox!;
+    const [mMinLon, , mMaxLon] = chile.mainBbox!;
+    expect(bMaxLon - bMinLon).toBeGreaterThan(35); // full bbox reaches out to Easter Island
+    expect(mMaxLon - mMinLon).toBeLessThan(15); // mainBbox is just the mainland ribbon
+    // Juan Fernández and the Desventuradas (~650-850 km offshore) legitimately chain into
+    // the mainland cluster and push the west edge out a little — Easter Island (~-109°),
+    // nearly 30° further west again, is the one that must be gone
+    expect(mMinLon).toBeGreaterThan(-90);
+  });
+
+  it('Indonesia: mainBbox keeps the whole archipelago, not just its largest island', async () => {
+    const world = await loadRealWorld();
+    const indonesia = world.byIso3.get('IDN')!;
+    const [bMinLon, , bMaxLon] = indonesia.bbox!;
+    const [mMinLon, , mMaxLon] = indonesia.mainBbox!;
+    // every major island is close enough to its neighbour to chain into one cluster, so
+    // the main-body box should be nearly as wide as the true full extent
+    expect(mMaxLon - mMinLon).toBeGreaterThan((bMaxLon - bMinLon) * 0.9);
+  });
+
+  it('a single-polygon country has an identical bbox and mainBbox', async () => {
+    const world = await loadRealWorld();
+    const bulgaria = world.byIso3.get('BGR')!;
+    expect(bulgaria.mainBbox).toEqual(bulgaria.bbox);
+  });
+});
+
 describe('absorbed territories leave no hole-fill seam behind', () => {
   /**
    * Baikonur is cut out of Kazakhstan's own Natural Earth polygon as a hole, and

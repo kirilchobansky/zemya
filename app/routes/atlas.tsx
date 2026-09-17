@@ -4,7 +4,10 @@
  * can be linked to directly; whether a selection *also* moves the camera is carried in the
  * navigation's state rather than inferred from the selection itself.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  type Dispatch, type SetStateAction
+} from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 
 import { Rail } from '~/components/Rail';
@@ -14,9 +17,34 @@ import { Atlas } from '~/lib/map/atlas';
 import type { CountryRecord, Feature, World } from '~/lib/map/types';
 import { loadWorld } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
-import { fillFor, strokeFor, type OverlayId } from '~/lib/geography/overlays';
+import {
+  fillFor, quizFillFor, quizStrokeFor, strokeFor, type OverlayId, type QuizOverride
+} from '~/lib/geography/overlays';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
+
+/**
+ * The layout owns the canvas, so a quiz run — a child route rendered only into the right
+ * panel — reaches the Atlas controller (to fly the camera) and the map's style (to paint
+ * answered countries) through this context rather than through props. `quiz` is the
+ * single flag CLAUDE.md's Quizzes section asks for: setting it swaps the map into quiz
+ * mode (see the style effect below) and, at the JSX call sites in this file, hides the
+ * search box and the hover tooltip and turns off the default neighbour glow — one state,
+ * checked in the few places that need it, rather than four independent booleans.
+ */
+interface AtlasContextValue {
+  atlas: Atlas | null;
+  quiz: QuizOverride | null;
+  setQuiz: Dispatch<SetStateAction<QuizOverride | null>>;
+}
+
+const AtlasContext = createContext<AtlasContextValue | null>(null);
+
+export function useAtlasContext(): AtlasContextValue {
+  const value = useContext(AtlasContext);
+  if (!value) throw new Error('useAtlasContext must be used inside the atlas layout');
+  return value;
+}
 
 /**
  * The provider wraps the shell rather than the app root because progress is only ever read
@@ -48,6 +76,8 @@ function AtlasShell() {
   const [scale, setScale] = useState({ km: 0, px: 0 });
   const [comparing, setComparing] = useState<{ feature: Feature; over: Feature | null } | null>(null);
   const [armingCompare, setArmingCompare] = useState(false);
+  const [atlasInstance, setAtlasInstance] = useState<Atlas | null>(null);
+  const [quiz, setQuiz] = useState<QuizOverride | null>(null);
 
   const slug = COUNTRY_PATH.exec(location.pathname)?.[1] ?? null;
   const selected = slug && world ? world.bySlug.get(slug) ?? null : null;
@@ -136,21 +166,36 @@ function AtlasShell() {
       getComputedStyle(document.body).getPropertyValue('--font-ui') || 'system-ui, sans-serif'
     );
     atlasRef.current = atlas;
+    setAtlasInstance(atlas);
     return () => {
       atlas.destroy();
       atlasRef.current = null;
+      setAtlasInstance(null);
     };
   }, [world]);
 
-  /* restyle whenever anything visual changes */
+  /* restyle whenever anything visual changes — quiz mode takes over the whole style
+     rather than folding into fillFor/strokeFor, since none of the normal overlay/
+     selection/mastery logic applies mid-quiz (see quizFillFor's own doc comment) */
   useEffect(() => {
-    atlasRef.current?.setStyle({
-      fill: f => fillFor(f, styleRef.current),
-      stroke: f => strokeFor(f, styleRef.current),
-      showLabels: true,
-      showPins
-    });
-  }, [styleInputs, showPins]);
+    atlasRef.current?.setStyle(
+      quiz
+        ? {
+            fill: f => quizFillFor(f, quiz),
+            stroke: f => quizStrokeFor(f, quiz),
+            showLabels: true,
+            showPins,
+            quizMode: true
+          }
+        : {
+            fill: f => fillFor(f, styleRef.current),
+            stroke: f => strokeFor(f, styleRef.current),
+            showLabels: true,
+            showPins,
+            quizMode: false
+          }
+    );
+  }, [styleInputs, showPins, quiz]);
 
   /**
    * Move the camera only when the user could not already have seen the target. A map click
@@ -183,10 +228,12 @@ function AtlasShell() {
 
   const canvasClass = [
     'stage__canvas',
-    armingCompare ? 'is-picking' : ''
+    armingCompare ? 'is-picking' : '',
+    quiz?.paused ? 'is-quiz-paused' : ''
   ].filter(Boolean).join(' ');
 
   return (
+    <AtlasContext.Provider value={{ atlas: atlasInstance, quiz, setQuiz }}>
     <div className="shell">
       <Rail
         overlay={overlay}
@@ -198,40 +245,42 @@ function AtlasShell() {
       <main className="stage">
         <canvas ref={canvasRef} className={canvasClass} aria-label="World map" />
 
-        <div className="hud hud--top">
-          <SearchBox
-            world={world}
-            onPick={feature =>
-              navigate(`/country/${feature.country.slug}`, { state: { fly: true } })
-            }
-          />
-          <div className="toolbar glass">
-            <button
-              type="button"
-              className="tool"
-              aria-pressed={Boolean(comparing) || armingCompare}
-              onClick={toggleCompare}
-            >
-              ⇲ Compare size
-            </button>
-            <button
-              type="button"
-              className="tool"
-              aria-pressed={showNeighbours}
-              onClick={() => setShowNeighbours(v => !v)}
-            >
-              Neighbour glow
-            </button>
-            <button
-              type="button"
-              className="tool"
-              aria-pressed={showPins}
-              onClick={() => setShowPins(v => !v)}
-            >
-              Micro-states
-            </button>
+        {!quiz && (
+          <div className="hud hud--top">
+            <SearchBox
+              world={world}
+              onPick={feature =>
+                navigate(`/country/${feature.country.slug}`, { state: { fly: true } })
+              }
+            />
+            <div className="toolbar glass">
+              <button
+                type="button"
+                className="tool"
+                aria-pressed={Boolean(comparing) || armingCompare}
+                onClick={toggleCompare}
+              >
+                ⇲ Compare size
+              </button>
+              <button
+                type="button"
+                className="tool"
+                aria-pressed={showNeighbours}
+                onClick={() => setShowNeighbours(v => !v)}
+              >
+                Neighbour glow
+              </button>
+              <button
+                type="button"
+                className="tool"
+                aria-pressed={showPins}
+                onClick={() => setShowPins(v => !v)}
+              >
+                Micro-states
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="hud hud--bottom">
           <div className="zoomer glass">
@@ -245,7 +294,7 @@ function AtlasShell() {
           </div>
         </div>
 
-        {hovered && tip && (
+        {!quiz && hovered && tip && (
           <div className="tip glass" style={{ left: tip.x, top: tip.y }}>
             <span>{hovered.country.emoji}</span>
             <span>{hovered.country.name}</span>
@@ -289,6 +338,7 @@ function AtlasShell() {
         <Outlet />
       </aside>
     </div>
+    </AtlasContext.Provider>
   );
 }
 

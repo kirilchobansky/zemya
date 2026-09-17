@@ -9,6 +9,8 @@ export default [
   layout('routes/atlas.tsx', [
     index('routes/atlas.index.tsx'),
     route('country/:slug', 'routes/country.tsx'),
-    route('study', 'routes/study.tsx')
+    route('study', 'routes/study.tsx'),
+    route('quiz', 'routes/quiz.tsx'),
+    route('quiz/countries/:size', 'routes/quiz.countries.tsx')
   ])
 ] satisfies RouteConfig;

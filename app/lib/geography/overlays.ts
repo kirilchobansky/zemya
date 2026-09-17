@@ -182,3 +182,42 @@ export function strokeFor(feature: Feature, s: StyleInputs): [string, number] {
   if (s.hovered === feature) return ['#7E9CB0', 1.2];
   return ['rgba(10,16,23,.92)', 1];
 }
+
+/**
+ * Live state of a "Name the Country" run, read by quizFillFor/quizStrokeFor every frame.
+ * `answered` is keyed by iso3 rather than by Feature so it survives independently of
+ * whatever object identity a re-fetched world happens to have.
+ */
+export interface QuizOverride {
+  /** The country currently being asked about, highlighted in brass. Null before START
+   *  and during the results screen. */
+  target: Feature | null;
+  /** Every country answered so far this run, and how — stays filled for the rest of the
+   *  run once set (see CLAUDE.md's Quizzes section). */
+  answered: ReadonlyMap<string, 'correct' | 'revealed'>;
+  /** Off by default, per the owner's explicit request — a manual toggle in the quiz HUD
+   *  turns it on for the current target only. */
+  showNeighbours: boolean;
+  /** True while the run is paused (Esc). Doesn't change fill/stroke — the map is blurred
+   *  via a CSS class in app/routes/atlas.tsx instead — but travels with the rest of the
+   *  quiz state since it's the same "what is this run doing right now" object. */
+  paused: boolean;
+}
+
+/** Fill resolution during a quiz run: answered beats the current target beats the
+ *  optional neighbour glow beats plain land. No overlay, no hover, no mastery — none of
+ *  those apply mid-quiz and showing them would be one more thing to explain, not help. */
+export function quizFillFor(feature: Feature, quiz: QuizOverride): string {
+  const outcome = quiz.answered.get(feature.country.iso3);
+  if (outcome === 'correct') return MASTERY_COLOURS.mastered;
+  if (outcome === 'revealed') return MASTERY_COLOURS.learning;
+  if (quiz.target === feature) return SELECTED;
+  if (quiz.showNeighbours && quiz.target?.neighbours.includes(feature)) return NEIGHBOUR;
+  return LAND;
+}
+
+export function quizStrokeFor(feature: Feature, quiz: QuizOverride): [string, number] {
+  if (quiz.target === feature) return ['#F5CE86', 1.8];
+  if (quiz.showNeighbours && quiz.target?.neighbours.includes(feature)) return ['#8FD3EA', 1.2];
+  return ['rgba(10,16,23,.92)', 1];
+}

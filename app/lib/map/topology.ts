@@ -118,6 +118,79 @@ function ringArea(ring: Ring): number {
   return Math.abs(sum / 2);
 }
 
+/** Flat-earth approximation, fine at these scales — mirrors reprojectToTrueSize's own
+ *  constants below. */
+const KM_PER_DEG_LAT = 110.574;
+const KM_PER_DEG_LON = 111.32;
+function centroidDistanceKm(a: LonLat, b: LonLat): number {
+  const dLat = (a[1] - b[1]) * KM_PER_DEG_LAT;
+  const avgLat = (a[1] + b[1]) / 2;
+  const dLon = (a[0] - b[0]) * KM_PER_DEG_LON * Math.cos((avgLat * Math.PI) / 180);
+  return Math.hypot(dLat, dLon);
+}
+
+/**
+ * A polygon further than this from every other piece of the same country is a remote
+ * exclave, not part of its main body — Chile's Easter Island sits ~3,700 km from the
+ * mainland with nothing in between. An archipelago nation's islands chain together well
+ * under this (Indonesia's biggest gap between neighbouring major islands is under
+ * 500 km) and so stay grouped as one cluster. Used only for mainBbox / quiz framing;
+ * `bbox` itself is untouched and still spans every polygon the country has.
+ */
+const EXCLAVE_KM = 1000;
+
+interface Piece {
+  outer: Ring;
+  area: number;
+  bbox: [number, number, number, number];
+  centroid: LonLat;
+}
+
+function pieceOf(outer: Ring): Piece {
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  for (const [lon, lat] of outer) {
+    if (lon < minLon) minLon = lon;
+    if (lon > maxLon) maxLon = lon;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
+  return {
+    outer,
+    area: ringArea(outer),
+    bbox: [minLon, minLat, maxLon, maxLat],
+    centroid: [(minLon + maxLon) / 2, (minLat + maxLat) / 2]
+  };
+}
+
+/** Union-find over a country's pieces, connecting any two within EXCLAVE_KM of each
+ *  other. Cheap at these sizes — a couple hundred polygons at most, once per page load. */
+function clusterPieces(pieces: Piece[]): number[] {
+  const parent = pieces.map((_, i) => i);
+  function find(i: number): number {
+    return parent[i] === i ? i : (parent[i] = find(parent[i]));
+  }
+  for (let i = 0; i < pieces.length; i++) {
+    for (let j = i + 1; j < pieces.length; j++) {
+      if (centroidDistanceKm(pieces[i].centroid, pieces[j].centroid) <= EXCLAVE_KM) {
+        const ri = find(i), rj = find(j);
+        if (ri !== rj) parent[ri] = rj;
+      }
+    }
+  }
+  return pieces.map((_, i) => find(i));
+}
+
+function unionBbox(boxes: [number, number, number, number][]): [number, number, number, number] {
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  for (const [a, b, c, d] of boxes) {
+    if (a < minLon) minLon = a;
+    if (c > maxLon) maxLon = c;
+    if (b < minLat) minLat = b;
+    if (d > maxLat) maxLat = d;
+  }
+  return [minLon, minLat, maxLon, maxLat];
+}
+
 export function buildWorld(data: WorldData): World {
   const arcs = decodeArcs(data);
 
@@ -131,6 +204,7 @@ export function buildWorld(data: WorldData): World {
       country,
       polygons: [],
       bbox: null,
+      mainBbox: null,
       anchor: [country.latlng[1], country.latlng[0]],
       ux: 0,
       uy: 0,
@@ -205,31 +279,27 @@ export function buildWorld(data: WorldData): World {
       return polygon.map(ring => ring.map(([lon, lat]): LonLat => [lon + shift, lat]));
     });
 
-    let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
-    let largest: Ring | null = null;
-    let largestArea = -1;
+    const pieces = feature.polygons.map(polygon => pieceOf(polygon[0]));
 
-    for (const polygon of feature.polygons) {
-      const outer = polygon[0];
-      const area = ringArea(outer);
-      if (area > largestArea) { largestArea = area; largest = outer; }
-      for (const [lon, lat] of outer) {
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
-      }
+    feature.bbox = unionBbox(pieces.map(p => p.bbox));
+
+    let largestIndex = 0;
+    for (let i = 1; i < pieces.length; i++) {
+      if (pieces[i].area > pieces[largestIndex].area) largestIndex = i;
     }
+    const largest = pieces[largestIndex].outer;
+    let sx = 0, sy = 0;
+    for (const [lon, lat] of largest) { sx += lon; sy += lat; }
+    feature.anchor = [sx / largest.length, sy / largest.length];
 
-    feature.bbox = [minLon, minLat, maxLon, maxLat];
-
-    if (largest) {
-      let sx = 0, sy = 0;
-      for (const [lon, lat] of largest) { sx += lon; sy += lat; }
-      feature.anchor = [sx / largest.length, sy / largest.length];
-    }
+    const clusters = clusterPieces(pieces);
+    const mainCluster = clusters[largestIndex];
+    feature.mainBbox = unionBbox(
+      pieces.filter((_, i) => clusters[i] === mainCluster).map(p => p.bbox)
+    );
 
     // width has to be corrected for latitude or every Arctic country looks enormous
+    const [minLon, minLat, maxLon, maxLat] = feature.bbox;
     const midLat = (minLat + maxLat) / 2;
     const widthDeg = (maxLon - minLon) * Math.cos((midLat * Math.PI) / 180);
     feature.tiny = Math.max(widthDeg, maxLat - minLat) < MICRO_DEGREES;

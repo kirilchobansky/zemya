@@ -11,9 +11,18 @@ const slugs: string[] = JSON.parse(
   readFileSync('public/data/geography/slugs.json', 'utf8')
 );
 
+/** Mirrors app/lib/geography/quizzes.ts's QUIZ_SIZES — kept as a separate literal because
+ *  this config file is loaded directly, not bundled through the `~` alias, the same way
+ *  scripts/build-content.mjs duplicates a couple of app/lib constants of its own. */
+const QUIZ_SIZES = ['20', '30', '50', '90', '120', 'all'];
+
 export default {
   ssr: true,
-  prerender: () => ['/', '/study', ...slugs.map(slug => `/country/${slug}`)],
+  prerender: () => [
+    '/', '/study', '/quiz',
+    ...QUIZ_SIZES.map(size => `/quiz/countries/${size}`),
+    ...slugs.map(slug => `/country/${slug}`)
+  ],
 
   /**
    * Ship the whole route manifest with the first document. The default, lazy discovery,

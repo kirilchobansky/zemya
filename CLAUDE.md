@@ -45,8 +45,13 @@ before reconstructing it from `git log`.
   never quizzed and never counts against mastery.
 - Solo git workflow: commits go straight to `main`, no branches, no CI (removed
   on purpose — see Git conventions).
+- Country name matching (`aliases` on every country record, built at build time from
+  world-countries' altSpellings/common/official name; matched in
+  `app/lib/geography/names.ts`) and the "Name the Country" quiz — see Quizzes below.
 
 **Next:**
+- The quiz's results screen, personal best and FSRS grading are not built yet — a run
+  currently ends with a bare "finished in M:SS, run it again" panel. See Quizzes below.
 - The `location` facet still has no question kind — it needs map-click interaction,
   which is why `ASKABLE_FACETS` filters it out rather than removing it from
   `applicableFacets()`. This is the next piece of study mode, not a bug.
@@ -67,7 +72,13 @@ before reconstructing it from `git log`.
   them. Every session so far has substituted `typecheck` + `build:content` +
   `react-router build` + `test:unit`, plus a real render of the affected geometry
   through node-canvas for anything visual, but the owner should run the real smoke
-  test after pulling to be sure.
+  test after pulling to be sure. The installed node-canvas version (3.2.3, added and
+  removed again with `--no-save` — it is not a dependency) turned out not to implement
+  Path2D at all, so the quiz's "no labels leak the answer" requirement was instead
+  verified with a mocked 2D context asserting `fillText`/`strokeText` are never called
+  under `quizMode` (`test/unit/renderer.test.ts`) rather than an eyeballed screenshot —
+  a stronger, deterministic check where it applies, but still not a substitute for
+  actually running `npm test` after pulling.
 - Vatican City's 1:10m source geometry (world-atlas, one arc, 3 points, all at the same
   longitude) is degenerate — a zero-width line, not a polygon — so it stays a pin at any
   zoom regardless of the pin/shape fix above. Confirmed it's the only one of the small
@@ -240,12 +251,63 @@ in `app/lib/core/` touches `indexedDB` at module scope — the Dexie instance is
 lazily behind a browser check, so importing the store from a route module is inert during
 prerender. If `npm run build` starts failing inside prerender, look here first.
 
+## Quizzes
+
+The owner's own words on why this exists: "the reason i want this app is the quizzes
+actually. Not the detail not anything else." — treat this as the app's core loop, not a
+feature alongside the atlas and study mode.
+
+**Route shape.** `/quiz` (`routes/quiz.tsx`) is the catalogue — a list built from
+`app/lib/geography/quizzes.ts`'s `QUIZZES`/`QUIZ_SIZES`, so a second quiz ("Name the
+Capital", say) is a new entry in that list plus a new `route()` in `app/routes.ts` for its
+`:size` leaf, never its own route tree or a rewrite of the catalogue page. Today there is
+one quiz, "Name the Country", at `/quiz/countries/:size` (`routes/quiz.countries.tsx`),
+sizes `20 | 30 | 50 | 90 | 120 | all` ranked by population (`topByPopulation` — kept
+behind one function so ranking by a different axis later is a one-line change).
+
+**Quiz mode is one flag, not four conditionals.** A quiz run's route component reaches the
+map through `useAtlasContext()` (exported from `routes/atlas.tsx`) and writes a `quiz:
+QuizOverride | null` there for the whole lifetime of the route (set on mount, torn down on
+unmount) — `quiz.tsx`'s catalogue never touches it. Setting it non-null does four things,
+all gated on that one value: the renderer's `Style.quizMode` suppresses `drawLabels()`
+entirely (`renderer.ts`); `atlas.tsx` stops rendering the search box and the hover
+`.tip`; and the neighbour glow defaults off, driven by `quiz.showNeighbours` rather than
+the normal toolbar's `showNeighbours` state (the quiz run screen has its own toggle for
+it). Fill/stroke while active come from `quizFillFor`/`quizStrokeFor`
+(`geography/overlays.ts`) instead of the normal `fillFor`/`strokeFor` — answered-correct
+green, answered-revealed amber, the current target brass, everything else plain land; no
+overlay, hover or mastery colouring applies mid-quiz. Anyone adding a fifth surface that
+could show a country's name should gate it on this same `quiz`/`quizMode` value rather
+than inventing a new flag.
+
+**Camera framing (`camera.ts`'s `frameForQuiz`).** Deliberately looser than the normal
+`flyTo` — the target should occupy roughly a quarter of the viewport width with its region
+visible around it, not fill the screen. The resulting ground span is clamped to
+900–7,000 km (Monaco doesn't zoom to street level, Russia doesn't zoom out to the whole
+planet), and the smaller of a width-fit and a height-fit zoom wins so a tall, narrow
+country isn't cropped by a rule that only looked at width. Framing reads
+`feature.mainBbox` (topology.ts), not `feature.bbox`: **Chile's Easter Island sits ~3,700
+km from the mainland**, and the full bbox would centre the camera over open ocean between
+the two. `mainBbox` is the bounding box of whichever connected cluster of the country's
+polygons (single-linkage, pieces within `EXCLAVE_KM` = 1,000 km of each other chain
+together) contains its largest piece — Easter Island forms its own excluded cluster,
+while an archipelago nation's islands (Indonesia: no gap between neighbouring major
+islands over ~500 km) all chain into one and stay in whole. Tuned against real decoded
+geometry for Monaco/Chile/Russia/Indonesia (the four the owner named as breaking naive
+framing), not against a running browser — see the Known rough edges note on why.
+
+**Not built yet (commit 3 territory):** the results screen, personal best
+(`quizRuns` in Dexie), and feeding a `geo:<ISO3>:location` FSRS card from quiz answers.
+When that lands: `location` is graded by the quiz even though study mode still can't ask
+it (`ASKABLE_FACETS` excludes it) — that's intentional, the quiz *is* the location
+question, so don't "fix" it by adding a location question kind to study mode instead.
+
 ## Commands
 
 ```bash
 npm install
 npm run dev             # dev server on :5173
-npm run build           # build:content, then prerender 199 static pages
+npm run build           # build:content, then prerender 206 static pages
 npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser

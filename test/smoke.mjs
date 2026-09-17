@@ -227,7 +227,15 @@ if (await page.isVisible('.quiz__option')) {
   check(false, '/study rendered no question to answer (is a session ever generated?)');
 }
 
-/* --- 12. grading a facet updates the rail and repaints the mastery overlay -------- */
+/* --- 12. quiz mode hides the search box and the map's own hover tooltip ----------- */
+await page.goto(`${base}/quiz/countries/20`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1000);
+check(!(await page.isVisible('.search')), 'the search box is visible during a quiz run');
+await page.mouse.move(700, 430);
+await page.waitForTimeout(200);
+check(!(await page.isVisible('.tip')), 'the hover tooltip is visible during a quiz run');
+
+/* --- 13. grading a facet updates the rail and repaints the mastery overlay -------- */
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
 let devServer = null;
 let devOutput = '';
@@ -381,6 +389,41 @@ try {
       `mastery overlay pixel under Bulgaria did not change after grading — stayed ${after}`
     );
   }
+
+  /* --- 14. quiz mode: answering advances and never leaks the next country's name --- */
+  await page.goto(`${devBase}quiz/countries/20`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(1600); // outlast the fly-to animation
+
+  const firstQuizState = await page.evaluate(() => window.__zemyaQuiz);
+  check(Boolean(firstQuizState?.target), 'quiz exposed no current target after START');
+
+  if (firstQuizState?.target) {
+    await page.fill('.quiz-dock__input', firstQuizState.target);
+    await page.waitForTimeout(400);
+
+    const afterQuizState = await page.evaluate(() => window.__zemyaQuiz);
+    check(
+      afterQuizState?.target !== firstQuizState.target,
+      'typing the correct name did not advance the quiz'
+    );
+    check(
+      afterQuizState?.answeredCount === firstQuizState.answeredCount + 1,
+      `answered count did not increase — ${firstQuizState.answeredCount} -> ${afterQuizState?.answeredCount}`
+    );
+
+    // the regression test for the leak: the NEXT target's name must appear nowhere on
+    // the page — not as a label, not in a tooltip, not in the panel
+    if (afterQuizState?.target) {
+      const bodyText = await page.textContent('body');
+      check(
+        !bodyText.includes(afterQuizState.target),
+        `the next target's name ("${afterQuizState.target}") is visible somewhere on the page`
+      );
+    }
+  }
 } finally {
   if (devServer) {
     try {
@@ -402,5 +445,5 @@ if (problems.length) {
 console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
-    'progress grading'
+    'progress grading, quiz mode (no leak)'
 );

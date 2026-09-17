@@ -22,6 +22,15 @@ export interface Style {
   overlay?: { path: Path2D; fill: string; stroke: string } | null;
   showLabels: boolean;
   showPins: boolean;
+  /**
+   * True for the whole lifetime of a quiz run. Suppresses every surface that could hand
+   * over the answer: no country labels here (see drawLabels below); the hover tooltip,
+   * the search box and the default neighbour-glow are suppressed at their call sites in
+   * app/routes/atlas.tsx, gated on this same flag. One name for all four, so a fifth
+   * surface that shows a country name has one obvious place to check — see CLAUDE.md's
+   * Quizzes section.
+   */
+  quizMode?: boolean;
 }
 
 export const COLORS = {
@@ -143,7 +152,8 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
 /** Minimum on-screen width, in pixels, before a country is worth labelling. */
 const LABEL_MIN_WIDTH = 46;
 
-function drawLabels(rc: RenderContext, world: World, font: string): void {
+function drawLabels(rc: RenderContext, world: World, font: string, quizMode: boolean): void {
+  if (quizMode) return; // a label at the quiz's framing would print the answer
   const { ctx, camera, viewport } = rc;
   if (camera.zoom < homeZoom(viewport) * 1.4) return;
 
@@ -245,7 +255,7 @@ export function render(
 
   resetTransform(rc);
   if (style.showPins) drawPins(rc, world, style, focus);
-  if (style.showLabels) drawLabels(rc, world, uiFont);
+  if (style.showLabels) drawLabels(rc, world, uiFont, Boolean(style.quizMode));
 }
 
 /** Nearest round distance that fits in roughly 90 px, for the scale bar. */

@@ -66,13 +66,22 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
 
       <div className="rail__scroll">
         <section className="group">
-          <Link
-            to="/study"
-            className="action action--primary"
-            style={{ display: 'block', textAlign: 'center' }}
-          >
-            Study
-          </Link>
+          <div className="actions" style={{ flexWrap: 'nowrap' }}>
+            <Link
+              to="/study"
+              className="action action--primary"
+              style={{ flex: 1, textAlign: 'center' }}
+            >
+              Study
+            </Link>
+            <Link
+              to="/quiz"
+              className="action action--primary"
+              style={{ flex: 1, textAlign: 'center' }}
+            >
+              Quizzes
+            </Link>
+          </div>
         </section>
 
         <section className="group">
