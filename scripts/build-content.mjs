@@ -316,6 +316,13 @@ for (const g of topo.objects.countries.geometries) {
   built.push({ id: geometryId(g), multi: g.type === 'MultiPolygon', arcs: g.arcs, polygons });
 }
 
+/** Same underlying arcs, regardless of direction — a hole ring and the polygon that
+ *  exactly fills it reference identical arcs with opposite winding (one forward, one
+ *  reversed), never the same signs. */
+function arcKey(ring) {
+  return ring.map(i => (i < 0 ? ~i : i)).sort((a, b) => a - b).join(',');
+}
+
 for (const [targetIso3, extra] of absorbedPolygons) {
   const targetId = countries.find(c => c.iso3 === targetIso3).id;
   const entry = built.find(b => b.id === targetId);
@@ -325,7 +332,31 @@ for (const [targetIso3, extra] of absorbedPolygons) {
     built.push({ id: targetId, multi: extra.length > 1, arcs: extra.length > 1 ? extra : extra[0], polygons: extra });
     continue;
   }
-  const merged = [...entry.polygons, ...extra];
+
+  /**
+   * Baikonur is cut out of Kazakhstan's own polygon as a hole, and Baikonur's polygon
+   * exactly re-fills that same hole (confirmed: both reference arc 903, one forward as
+   * the hole, one reversed as Baikonur's outer ring). Appending Baikonur as a NEW polygon
+   * on top of an unmodified Kazakhstan would leave both rings in place — invisible in the
+   * fill (same colour, so no visible seam there) but both still get traced in the stroke
+   * pass, drawing a circle where there should be seamless one-colour territory. Cancel
+   * the pair instead of stacking them: remove the target's hole, skip adding the
+   * absorbed polygon. Anything that ISN'T a hole-fill (Somaliland is a genuinely separate
+   * adjacent landmass, not a hole in Somalia) still gets appended as before.
+   */
+  const remaining = [];
+  for (const polygon of extra) {
+    const outerKey = arcKey(polygon[0]);
+    const targetPolygon = entry.polygons.find(p => p.slice(1).some(hole => arcKey(hole) === outerKey));
+    if (targetPolygon) {
+      const holeIndex = targetPolygon.findIndex((ring, i) => i > 0 && arcKey(ring) === outerKey);
+      targetPolygon.splice(holeIndex, 1);
+    } else {
+      remaining.push(polygon);
+    }
+  }
+
+  const merged = [...entry.polygons, ...remaining];
   entry.polygons = merged;
   entry.multi = merged.length > 1;
   entry.arcs = merged.length > 1 ? merged : merged[0];

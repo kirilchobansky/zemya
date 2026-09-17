@@ -43,14 +43,14 @@ describe('unwrapRing', () => {
   });
 });
 
-describe('buildWorld — antimeridian countries, against the real payload', () => {
-  async function loadRealWorld() {
-    const { buildWorld } = await import('~/lib/map/topology');
-    const path = join(process.cwd(), 'public', 'data', 'geography', 'world.json');
-    const data = JSON.parse(readFileSync(path, 'utf8')) as WorldData;
-    return buildWorld(data);
-  }
+async function loadRealWorld() {
+  const { buildWorld } = await import('~/lib/map/topology');
+  const path = join(process.cwd(), 'public', 'data', 'geography', 'world.json');
+  const data = JSON.parse(readFileSync(path, 'utf8')) as WorldData;
+  return buildWorld(data);
+}
 
+describe('buildWorld — antimeridian countries, against the real payload', () => {
   it('no country has a bbox longitude span greater than 180 degrees', async () => {
     const world = await loadRealWorld();
     const offenders = world.features
@@ -93,5 +93,24 @@ describe('buildWorld — antimeridian countries, against the real payload', () =
     const span = maxLon - minLon;
     expect(span).toBeGreaterThan(30); // it really is this wide once detail is real
     expect(span).toBeLessThan(45);
+  });
+});
+
+describe('absorbed territories leave no hole-fill seam behind', () => {
+  /**
+   * Baikonur is cut out of Kazakhstan's own Natural Earth polygon as a hole, and
+   * Baikonur's own polygon exactly re-fills that hole — confirmed against the raw
+   * source: both reference arc 903, one forward (the hole), one reversed (Baikonur's
+   * outer ring). Absorbing Baikonur by simply appending its polygon left both rings in
+   * the feature's polygon list: invisible in the fill (same colour) but both still
+   * traced by the stroke pass, drawing a visible circle in the middle of Kazakhstan
+   * where there should be seamless one-colour territory. build-content.mjs now cancels
+   * a hole-fill pair instead of stacking them — this is the regression guard for that.
+   */
+  it('Kazakhstan has no internal holes after Baikonur is absorbed into it', async () => {
+    const world = await loadRealWorld();
+    const kazakhstan = world.byIso3.get('KAZ')!;
+    const holes = kazakhstan.polygons.filter(polygon => polygon.length > 1);
+    expect(holes, `polygons with a leftover hole: ${JSON.stringify(holes)}`).toEqual([]);
   });
 });
