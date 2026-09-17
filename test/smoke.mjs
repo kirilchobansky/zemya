@@ -17,6 +17,7 @@
  */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
@@ -166,43 +167,49 @@ check(
 );
 
 /* --- 9. grading a facet updates the rail and repaints the mastery overlay --------- */
-const DEV_PORT = Number(process.env.DEV_PORT || 4319);
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
 let devServer = null;
 let devOutput = '';
 
-/**
- * Vite/React Router print exactly one "Local:" line once the server is actually up, e.g.
- * "  ➜  Local:   http://localhost:4319/". Used only to discover the address to poll —
- * never as the readiness signal by itself. `react-router dev` relaunches its own process
- * (see the "[restart] Relaunching with NODE_OPTIONS" line in its output), and on a CI
- * runner the address it ends up actually listening on is not safe to assume in advance —
- * "localhost" can resolve to the IPv6 loopback there where a hardcoded 127.0.0.1 would
- * hang forever even though the server printed its address and is genuinely ready.
- */
-const LOCAL_URL = /Local:\s+(http:\/\/\S+)/;
+/** Strip ANSI escapes (colour, bold, …) so a captured-output error message is readable —
+ *  and so nothing downstream ever needs to pattern-match coloured bytes. On GitHub
+ *  Actions, Vite/React Router emit colour (e.g. "\x1b[1mLocal\x1b[22m:") even though the
+ *  same command run locally through a pipe does not, because CI allocates a TTY-like
+ *  stream. A regex looking for the literal text "Local:" silently fails there — the origin
+ *  of this whole readiness rewrite. Parsing stdout for anything, coloured or not, is no
+ *  longer on the critical path; this is kept only for readable error output. */
+const stripAnsi = s => s.replace(/\x1b\[[0-9;]*m/g, '');
 
-/** Poll the server's own advertised URL with real HTTP requests until it answers. Parsing
- *  stdout only finds the address; readiness is only ever a successful fetch to it. */
-async function waitForDevServer(timeoutMs) {
+/** Ask the OS for a free port up front, rather than guessing one and hoping nothing else
+ *  on the runner has it. */
+async function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createNetServer();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+/** Poll the dev server's own URL with a real HTTP request until it answers, with a hard
+ *  ceiling. Readiness is only ever "a request to this exact address succeeded" — never
+ *  something inferred from captured stdout/stderr. */
+async function waitForDevServer(url, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
-  let url = null;
   while (Date.now() < deadline) {
-    url ??= LOCAL_URL.exec(devOutput)?.[1] ?? null;
-    if (url) {
-      try {
-        const res = await fetch(url);
-        if (res.ok) return url;
-      } catch {
-        /* printed its address but isn't accepting requests yet */
-      }
+    try {
+      const res = await fetch(url);
+      if (res.ok) return;
+    } catch {
+      /* not accepting connections yet */
     }
     await new Promise(r => setTimeout(r, 250));
   }
-  const reason = url
-    ? `found its address (${url}) but it never answered a request`
-    : 'never printed its "Local:" address';
-  throw new Error(`dev server did not come up within ${timeoutMs}ms — ${reason}\n${devOutput}`);
+  throw new Error(
+    `dev server did not come up within ${timeoutMs}ms polling ${url}\n${stripAnsi(devOutput)}`
+  );
 }
 
 /** Reads one canvas pixel at a page (CSS) coordinate, accounting for the canvas's own
@@ -219,15 +226,28 @@ async function pixelAt(x, y) {
 }
 
 try {
+  const devPort = await getFreePort();
+  const devHost = '127.0.0.1';
+  const devBase = `http://${devHost}:${devPort}/`;
+
   devServer = spawn(
     'npx',
-    ['react-router', 'dev', '--port', String(DEV_PORT), '--strictPort'],
-    { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'], detached: true }
+    ['react-router', 'dev', '--host', devHost, '--port', String(devPort), '--strictPort'],
+    {
+      cwd: process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
+      // Belt and braces: force colour off however picocolors decides to detect it, so
+      // captured output is never coloured regardless of the parent's own TTY/env state
+      // (the React Router CLI's own --no-color flag is documentation-only in this
+      // version — it is not a recognised parseArgs option and errors out if passed).
+      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' }
+    }
   );
   devServer.stdout.on('data', d => { devOutput += d; });
   devServer.stderr.on('data', d => { devOutput += d; });
 
-  const devBase = await waitForDevServer(DEV_STARTUP_TIMEOUT_MS); // e.g. "http://localhost:4319/"
+  await waitForDevServer(devBase, DEV_STARTUP_TIMEOUT_MS);
 
   await page.goto(devBase, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
