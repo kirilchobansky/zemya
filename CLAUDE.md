@@ -22,15 +22,27 @@ before reconstructing it from `git log`.
   highlighting, true-size compare tool, 5 choropleth overlays plus a mastery overlay.
 - 197 countries (see "What counts as a country" below), each hand-authored in
   `content/` and joined against `world-countries` + Natural Earth at build time,
-  including Kosovo and Micronesia's currency (both closed data-join gaps, not upstream
-  facts) and every country that crosses the antimeridian (Russia, the USA, Kiribati,
-  Fiji, New Zealand) rendering and flying-to correctly.
+  including Kosovo, Micronesia's currency and Somaliland/Baikonur/Northern Cyprus/the
+  UN buffer zone/Akrotiri/Dhekelia/Guantanamo Bay/the Siachen Glacier (absorbed into the
+  country whose territory they are, not drawn as holes — see `ABSORB` in
+  build-content.mjs), and every country that crosses the antimeridian (Russia, the USA,
+  Kiribati, Fiji, New Zealand) rendering and flying-to correctly.
+- Every country with polygons draws as a real shape once you're zoomed in far enough to
+  see it, not just the large ones — pin-vs-shape is a per-frame decision from on-screen
+  width, not a fixed property. Malta and Singapore confirmed by rendering the actual
+  shipped code through node-canvas (Playwright still can't launch here). Vatican City is
+  a known exception — see Known rough edges.
+- The Caspian Sea renders as water, not a hole through to the page background — pulled
+  from a hole already present in world-atlas's separate land layer, no new dependency.
+  The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
 - Real flag images (`public/flags/`, from flag-icons, offline, emoji fallback on error).
 - Progress and scheduling: FSRS cards per (country, facet), created lazily, mastery
   derived never stored, IndexedDB via Dexie, export/import/reset.
 - Study mode: 9 question kinds, session policy (due cards first, then new cards
   population-weighted, never the same country twice in a row), a religion-specificity
-  taxonomy so distractors can't be a parent/child of the correct answer.
+  taxonomy so distractors can't be a parent/child of the correct answer, and a
+  `disputed:` mechanism so a genuinely contested fact (Nigeria's religion) is shown but
+  never quizzed and never counts against mastery.
 - Solo git workflow: commits go straight to `main`, no branches, no CI (removed
   on purpose — see Git conventions).
 
@@ -41,9 +53,13 @@ before reconstructing it from `git log`.
 - The study-mode hint (reveals one wrong option, downgrades a correct answer to FSRS
   Hard) was a judgement call, not something requested in detail — confirm with the
   owner it's the right shape before building more on top of it.
-- Watch whether full 1:10m detail makes micro-state pins noisy in practice now that
-  small islands that used to simplify away are rendering (see the Map engine row
-  below). Report it if so — do not silently re-simplify to hide it.
+- The Great Lakes, Lake Victoria and Lake Baikal still render as holes. Getting them
+  needs Natural Earth's `ne_10m_lakes` (a 2.3 MB shapefile covering thousands of lakes
+  worldwide, not bundled in `world-atlas`), filtered down to the handful worth drawing —
+  investigated and punted for now rather than adding a new dependency or a build-time
+  network fetch on a unilateral call. If this is worth doing, it needs: (a) a decision on
+  parsing the Shapefile — new dependency vs. a hand-rolled binary reader in
+  build-content.mjs — and (b) a one-time fetch step this project has never had before.
 
 **Known rough edges:**
 - `npm test` (the Playwright smoke test) cannot run in this sandbox — Chromium is
@@ -52,6 +68,11 @@ before reconstructing it from `git log`.
   `react-router build` + `test:unit`, plus a real render of the affected geometry
   through node-canvas for anything visual, but the owner should run the real smoke
   test after pulling to be sure.
+- Vatican City's 1:10m source geometry (world-atlas, one arc, 3 points, all at the same
+  longitude) is degenerate — a zero-width line, not a polygon — so it stays a pin at any
+  zoom regardless of the pin/shape fix above. Confirmed it's the only one of the small
+  states checked with this problem (San Marino, Monaco, Liechtenstein, Nauru all have
+  real if small polygons). A data gap, not a rendering bug; not worked around.
 - README.md's licensing section still frames repo visibility as a future decision
   ("before this repo is made public"); the Locked decisions table below already
   settled that the repo is public now. Left alone deliberately — visibility and
@@ -329,3 +350,7 @@ so nothing may depend on a webfont having loaded.
 - Do not re-introduce coastline simplification (`--detail`) to quiet micro-island noise
   from the unsimplified 1:10m data. Flag it to the owner instead — see the Map engine row
   above.
+- Do not add a Shapefile-parsing dependency or a build-time network fetch to draw the
+  remaining lakes (Great Lakes, Victoria, Baikal) without asking first — see "Where this
+  is"'s Next section. The Caspian was free; the rest genuinely cost something, and that's
+  a decision for the owner, not a default to reach for.

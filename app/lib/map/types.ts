@@ -48,6 +48,11 @@ export interface WorldData {
   arcs: [number, number][][];
   geometries: { id: string; multi: boolean; arcs: number[][] | number[][][] }[];
   countries: CountryRecord[];
+  /** Large inland water bodies missing from the country polygons themselves — world-atlas
+   *  ships no lakes layer, so these are the holes already punched into its separate land
+   *  layer (see scripts/build-content.mjs), re-encoded into this file's own arc pool.
+   *  Drawn as water, not clickable, not joined to any country. */
+  lakes: { id: string; arcs: number[][] }[];
 }
 
 export type LonLat = [number, number];
@@ -88,4 +93,6 @@ export interface World {
   bySlug: Map<string, Feature>;
   byId: Map<string, Feature>;
   context: ContextShape[];
+  /** Built from data.lakes the same way context shapes are — see ContextShape. */
+  lakes: ContextShape[];
 }

@@ -280,11 +280,6 @@ const arcs = absolute.map(arc => {
   return out;
 });
 
-// the cost of a detail change, made visible: the points actually shipped, after
-// requantisation drops repeated vertices. At DETAIL=0 (the default) nothing upstream of
-// that dedup is filtered — every point in the source 1:10m file survives.
-const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
-
 /**
  * A geometry's arcs, normalised to "list of polygons" (each polygon a list of rings)
  * regardless of whether the source called it Polygon or MultiPolygon — so absorbing one
@@ -338,7 +333,114 @@ for (const [targetIso3, extra] of absorbedPolygons) {
 
 const geometries = built.map(({ id, multi, arcs }) => ({ id, multi, arcs }));
 
+/* --------------------------------------------------------------------------- lakes */
+
+/**
+ * world-atlas ships no lakes layer. Investigated fetching Natural Earth's ne_10m_lakes
+ * directly (a 2.3 MB shapefile covering thousands of lakes worldwide) and decided against
+ * it for now — filtering it down to the handful of lakes worth drawing would need either
+ * a new dependency to parse a Shapefile or a hand-rolled binary parser, plus a build-time
+ * network fetch this project has never had. Punted; see CLAUDE.md's Where this is.
+ *
+ * What's free: world-atlas's separate land-10m.json land polygon already excludes the
+ * Caspian Sea as a hole — the one polygon-with-holes in that entire dataset, confirmed by
+ * its bounding box (46-55°E, 36-47°N, exactly the Caspian's real extent). Extracted here
+ * and re-encoded into this file's own arc pool — no new dependency, no network call, just
+ * reading a file already installed for a different purpose. The Great Lakes, Lake
+ * Victoria and Lake Baikal are not holes in any world-atlas layer and are not included.
+ */
+let land = JSON.parse(JSON.stringify(require('world-atlas/land-10m.json')));
+if (DETAIL > 0) {
+  land = simplify.presimplify(land);
+  land = simplify.simplify(land, DETAIL);
+  land = simplify.filter(land, simplify.filterAttachedWeight(land, DETAIL));
+}
+
+const landAbsolute = land.transform
+  ? land.arcs.map(arc => {
+      let x = 0, y = 0;
+      return arc.map(([dx, dy]) => {
+        x += dx; y += dy;
+        return [x * land.transform.scale[0] + land.transform.translate[0],
+                y * land.transform.scale[1] + land.transform.translate[1]];
+      });
+    })
+  : land.arcs.map(arc => arc.map(p => [p[0], p[1]]));
+
+/** Stitch a ring's arc indices into absolute lon/lat points — same logic as topology.ts's
+ *  buildRing, but at build time and against land-10m's own separate arc pool. */
+function stitchRing(indices) {
+  let points = [];
+  for (const index of indices) {
+    const reversed = index < 0;
+    const arc = landAbsolute[reversed ? ~index : index];
+    const segment = reversed ? arc.slice().reverse() : arc;
+    points = points.length ? points.concat(segment.slice(1)) : segment.slice();
+  }
+  return points;
+}
+
+/** Re-quantise already-absolute lon/lat points onto this file's own grid — the same
+ *  transform the main arcs went through, just run on one extra ring instead of the whole
+ *  arc pool. */
+function requantise(points) {
+  let px = 0, py = 0;
+  const out = [];
+  for (const [lon, lat] of points) {
+    const x = Math.round((lon - X0) / XS);
+    const y = Math.round((lat - Y0) / YS);
+    const dx = x - px, dy = y - py;
+    px = x; py = y;
+    if (out.length && dx === 0 && dy === 0) continue;
+    out.push([dx, dy]);
+  }
+  if (out.length < 2) out.push([0, 0]);
+  return out;
+}
+
+// every ring after a polygon's first is a hole
+const holes = land.objects.land.geometries.flatMap(g => {
+  const polygons = g.type === 'MultiPolygon' ? g.arcs : [g.arcs];
+  return polygons.flatMap(rings => rings.slice(1));
+});
+if (!holes.length) {
+  throw new Error(
+    "lakes: expected at least one hole in world-atlas's land layer (the Caspian Sea) — did the upstream data change?"
+  );
+}
+
+const lakes = holes.map((indices, i) => {
+  const points = stitchRing(indices);
+  let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (const [lon, lat] of points) {
+    if (lon < minLon) minLon = lon;
+    if (lon > maxLon) maxLon = lon;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
+  // this only ever expected to find the Caspian — if a future Natural Earth release
+  // punches a second hole somewhere else, that needs a deliberate decision, not a
+  // silent new water body
+  const looksLikeCaspian = minLon > 40 && maxLon < 60 && minLat > 30 && maxLat < 50;
+  if (!looksLikeCaspian) {
+    throw new Error(
+      `lakes: a hole in the land layer no longer matches the Caspian Sea's expected bounds ` +
+        `(got lon ${minLon.toFixed(1)}..${maxLon.toFixed(1)}, lat ${minLat.toFixed(1)}..${maxLat.toFixed(1)}) — ` +
+        'investigate before shipping; do not just widen this check'
+    );
+  }
+  const arcIndex = arcs.length;
+  arcs.push(requantise(points));
+  return { id: i === 0 ? 'lake-caspian-sea' : `lake-caspian-sea-${i}`, arcs: [[arcIndex]] };
+});
+
 /* ------------------------------------------------------------------------- emit */
+
+// the cost of a detail change, made visible: every point actually shipped, arcs and
+// lakes both, after requantisation drops repeated vertices. At DETAIL=0 (the default)
+// nothing upstream of that dedup is filtered — every point in the source 1:10m file
+// survives.
+const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
 
 const withGeometry = new Set(geometries.map(g => g.id));
 const noPolygon = countries.filter(c => !withGeometry.has(c.id)).map(c => c.iso3);
@@ -349,6 +451,7 @@ const payload = {
   grid: { x0: X0, y0: Y0, xs: XS, ys: YS },
   arcs,
   geometries,
+  lakes,
   countries
 };
 
@@ -415,6 +518,7 @@ console.log(
 console.log(`arcs           ${arcs.length} (${totalPoints.toLocaleString()} points)`);
 console.log(`detail         ${DETAIL || '0 — unsimplified; nothing filtered, small islands render'}`);
 console.log(`geometries     ${geometries.length}`);
+console.log(`lakes          ${lakes.length} (${lakes.map(l => l.id).join(', ')})`);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);
 console.log(`world.json     ${(json.length / 1024).toFixed(0)} KB`);
 console.log(`countries.json ${(facts.length / 1024).toFixed(0)} KB`);

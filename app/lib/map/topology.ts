@@ -178,6 +178,21 @@ export function buildWorld(data: WorldData): World {
     }
   }
 
+  // Not clickable, not joined to any country — see data.lakes's own doc comment for
+  // where these come from. Built the same way context shapes are.
+  const lakes: ContextShape[] = [];
+  for (const lake of data.lakes) {
+    const path = new Path2D();
+    let drew = false;
+    for (const indices of lake.arcs) {
+      const ring = unwrapRing(buildRing(indices, arcs));
+      if (ring.length < 3) continue;
+      traceRing(path, ring);
+      drew = true;
+    }
+    if (drew) lakes.push({ path });
+  }
+
   for (const feature of features) {
     if (!feature.polygons.length) continue;
 
@@ -242,7 +257,7 @@ export function buildWorld(data: WorldData): World {
       .filter((f): f is Feature => Boolean(f));
   }
 
-  return { data, features, byIso3, bySlug, byId, context };
+  return { data, features, byIso3, bySlug, byId, context, lakes };
 }
 
 /**

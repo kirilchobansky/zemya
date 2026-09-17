@@ -229,6 +229,11 @@ export function render(
       ctx.stroke(feature.path);
     }
 
+    // lakes on top of the land they cut into, so the Caspian reads as water sitting in
+    // Kazakhstan/Russia rather than a hole through to the page background
+    ctx.fillStyle = COLORS.ocean;
+    for (const lake of world.lakes) ctx.fill(lake.path);
+
     if (style.overlay) {
       ctx.fillStyle = style.overlay.fill;
       ctx.fill(style.overlay.path);
