@@ -165,13 +165,16 @@ npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no b
 
 ## Git conventions
 
-- **Never commit to `main`.** Branch, push, hand over a compare link. The owner merges.
-- Branch names: `feat/…`, `fix/…`, `chore/…`, `docs/…`
-- Commit subject: imperative, lower case, no trailing period. Body explains *why*.
-- One logical change per PR. If a PR needs three paragraphs to explain, it's two PRs.
-- Branch protection is convention here, not enforcement. Treat it as enforcement anyway.
-- This sandbox can **read** the repo but not push to it. Work is handed over as a git
-  bundle for the owner to push.
+Solo project, one machine, one person. No branches, no pull requests, no CI.
+
+- Work directly on `main`. Do not create branches. Do not open pull requests.
+- Commit when a change works. Small commits are fine; perfect commits are not required.
+- Commit subject: imperative, lower case, no trailing period. One line is enough.
+- Before committing, run `npm run typecheck` and `npm run build:content`. If content
+  changed, commit the regenerated public/data in the same commit.
+- Running the browser smoke test is optional. It is a tool for me, not a gate.
+- This sandbox can read the repo but not push. Leave commits unpushed; the owner
+  clicks Sync in VS Code.
 
 ## Visual identity
 
