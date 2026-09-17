@@ -63,6 +63,12 @@ export function parseCardId(id: string): { iso3: string; facet: Facet } | null {
  * an island, no currency card where the field is null. This set is the denominator for
  * mastery, which is what keeps the bar fair — Vatican City has fewer facets than Brazil,
  * and mastering it should not require answering questions that have no answer.
+ *
+ * A facet the content marks `disputed` (see content/geography/countries/*.yaml and
+ * scripts/build-content.mjs) is excluded here too, not just from the question rotation:
+ * quizzing a fact nobody can verify would make mastery require guessing right on
+ * something contested, and a country whose only disputed field is, say, religion should
+ * still be able to reach 100%.
  */
 export function applicableFacets(country: CountryRecord): Facet[] {
   const applies: Record<Facet, boolean> = {
@@ -75,7 +81,7 @@ export function applicableFacets(country: CountryRecord): Facet[] {
     borders: country.borders.length > 0,
     outline: Boolean(country.outlineDescription)
   };
-  return FACETS.filter(facet => applies[facet]);
+  return FACETS.filter(facet => applies[facet] && !country.disputed[facet]);
 }
 
 /**

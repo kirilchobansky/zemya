@@ -619,6 +619,21 @@ a {
   font-size: 13px;
   line-height: 1.35;
 }
+
+.disputed {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: help;
+  vertical-align: 1px;
+}
 .numeric {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

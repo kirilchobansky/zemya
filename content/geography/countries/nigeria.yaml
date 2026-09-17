@@ -12,8 +12,14 @@
 iso3: NGA
 slug: nigeria
 name: Nigeria
-religion: Sunni Islam / Christianity
+religion: Christianity and Sunni Islam, roughly evenly split
 flag: "Three vertical bands: green, white, green."
 outline: A broad block with the Niger delta fanning into the Gulf.
 hook: Africa's most populous country, split almost evenly between Muslim north and Christian south.
 population: 232679478
+
+disputed:
+  religion: >
+    Nigeria has not asked religion in a census since 1963 because the split is
+    contested. Survey estimates put Muslims and Christians within a few points of each
+    other and disagree on which is larger. There is no answer precise enough to test.

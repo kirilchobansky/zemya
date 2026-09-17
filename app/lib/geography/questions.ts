@@ -393,7 +393,9 @@ export function questionOfKind(
   catalogue: Catalogue,
   rng: () => number
 ): Question | null {
-  return GENERATORS[kind](country, catalogue, rng, cardId(country.iso3, FACET_FOR_KIND[kind]));
+  const facet = FACET_FOR_KIND[kind];
+  if (country.disputed[facet]) return null;
+  return GENERATORS[kind](country, catalogue, rng, cardId(country.iso3, facet));
 }
 
 /**
@@ -406,6 +408,11 @@ export function questionOfKind(
 export function makeQuestion(card: FacetCard, catalogue: Catalogue, rng: () => number): Question | null {
   const country = catalogue.byIso3.get(card.iso3);
   if (!country) return null;
+  // A disputed facet is never quizzed — see mastery.ts's applicableFacets(), which is
+  // the reason this branch is normally unreachable (the session builder won't offer a
+  // disputed facet as a candidate in the first place); kept here too so makeQuestion()
+  // gives the same answer even when called directly, e.g. from a test.
+  if (country.disputed[card.facet]) return null;
   for (const kind of shuffle(KINDS_FOR_FACET[card.facet], rng)) {
     const question = GENERATORS[kind](country, catalogue, rng, card.id);
     if (question) return question;

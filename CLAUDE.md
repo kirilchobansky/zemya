@@ -52,11 +52,6 @@ before reconstructing it from `git log`.
   `react-router build` + `test:unit`, plus a real render of the affected geometry
   through node-canvas for anything visual, but the owner should run the real smoke
   test after pulling to be sure.
-- Nigeria's religion value was reordered to "larger share first" using CIA World
-  Factbook figures (~53.5% Muslim vs ~45.9% Christian, 2018 est.) for consistency with
-  the rest of `content/` — Nigeria hasn't asked religion in a census since 1963
-  precisely because the true split is contested, so treat that specific ordering as a
-  judgement call to revisit if the owner has a source they trust more.
 - README.md's licensing section still frames repo visibility as a future decision
   ("before this repo is made public"); the Locked decisions table below already
   settled that the repo is public now. Left alone deliberately — visibility and
@@ -307,6 +302,11 @@ so nothing may depend on a webfont having loaded.
 - Overrides exist only to close upstream data gaps. Each must carry a `note` saying
   why upstream is wrong and how that was established. Never use an override to express
   an opinion — if a fact is disputed, don't quiz it.
+- "If a fact is disputed, don't quiz it" has a mechanism, not just a principle: mark the
+  facet `disputed:` in the country's YAML with a mandatory reason (see Nigeria's
+  religion). A disputed facet is excluded from the question rotation and from that
+  country's mastery denominator; the dossier still shows the value, with the reason on
+  hover. Reach for this instead of picking a source and asserting precision nobody has.
 - Hooks are written as fragments with an implied subject. Any surface that shows a hook
   outside the country's own page must supply the subject itself.
 

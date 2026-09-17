@@ -93,7 +93,10 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
           </div>
           <div className="fact">
             <dt>Religion</dt>
-            <dd>{country.religion}</dd>
+            <dd>
+              {country.religion}
+              <Disputed reason={country.disputed.religion} />
+            </dd>
           </div>
         </dl>
 
@@ -130,5 +133,18 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
     </>
+  );
+}
+
+/** A small marker for a fact the content marks genuinely disputed (see the `disputed:`
+ *  block in content/geography/countries/*.yaml) — the value is still shown, this just
+ *  says not to take it as settled, with the reason on hover. Renders nothing when the
+ *  fact isn't disputed. */
+function Disputed({ reason }: { reason?: string }) {
+  if (!reason) return null;
+  return (
+    <span className="disputed" title={reason}>
+      disputed
+    </span>
   );
 }

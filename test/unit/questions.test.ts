@@ -14,10 +14,12 @@ import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
 import {
   buildCatalogue,
   KINDS_FOR_FACET,
+  makeQuestion,
   questionOfKind,
   religionsClash,
   type QuestionKind
 } from '~/lib/geography/questions';
+import { cardId } from '~/lib/geography/mastery';
 import { makeRng } from '~/lib/core/questions';
 
 const catalogue = buildCatalogue(allCountries());
@@ -129,6 +131,29 @@ describe('Micronesia currency (guards the override in commit 2)', () => {
     const question = questionOfKind('currency-of', micronesia, catalogue, makeRng(9));
     expect(question).not.toBeNull();
     expect(question!.options[question!.answerIndex]).toBe('United States dollar');
+  });
+});
+
+describe('disputed facets are never quizzed (guards commit 3)', () => {
+  it("Nigeria's religion is marked disputed, with a reason", () => {
+    const nigeria = countryBySlug('nigeria')!;
+    expect(nigeria.disputed.religion).toBeTruthy();
+  });
+
+  it('questionOfKind refuses to build a question for a disputed facet', () => {
+    const nigeria = countryBySlug('nigeria')!;
+    expect(questionOfKind('religion-of', nigeria, catalogue, makeRng(13))).toBeNull();
+  });
+
+  it('makeQuestion refuses too, given a FacetCard for the disputed facet directly', () => {
+    const nigeria = countryBySlug('nigeria')!;
+    const card = { id: cardId(nigeria.iso3, 'religion'), iso3: nigeria.iso3, facet: 'religion' as const };
+    expect(makeQuestion(card, catalogue, makeRng(13))).toBeNull();
+  });
+
+  it('an undisputed facet on the same country is unaffected', () => {
+    const nigeria = countryBySlug('nigeria')!;
+    expect(questionOfKind('capital-of', nigeria, catalogue, makeRng(13))).not.toBeNull();
   });
 });
 

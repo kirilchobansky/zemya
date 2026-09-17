@@ -118,4 +118,17 @@ describe('applicableFacets — the per-country denominator', () => {
     expect(facets).not.toContain('borders'); // still an island
     expect(facets).toContain('currency'); // no longer excluded
   });
+
+  /**
+   * Nigeria's religion is marked `disputed` in content/geography/countries/nigeria.yaml
+   * (guards commit 3): the facet has real data (country.religion is non-empty) but is
+   * still excluded from the denominator, on purpose, so a genuinely contested fact can
+   * never stand between a country and 100% mastery.
+   */
+  it('a disputed facet is excluded from the denominator even though the data is present', () => {
+    const nigeria = countryBySlug('nigeria')!;
+    expect(nigeria.religion).toBeTruthy();
+    expect(nigeria.disputed.religion).toBeTruthy();
+    expect(applicableFacets(nigeria)).not.toContain('religion');
+  });
 });

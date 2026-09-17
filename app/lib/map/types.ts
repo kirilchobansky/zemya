@@ -31,6 +31,13 @@ export interface CountryRecord {
   hook: string;
   flagDescription: string;
   outlineDescription: string;
+  /** Facet name -> reason, for a fact the content marks genuinely disputed (see
+   *  content/geography/countries/*.yaml's `disputed:` block). Keyed as a plain string
+   *  here rather than typed against Facet — that type lives in the geography layer, and
+   *  this file must not import it — but the geography layer's applicableFacets() and
+   *  questions.ts both read it and treat the keys as Facet values. Always present, empty
+   *  when nothing about this country is disputed. */
+  disputed: Record<string, string>;
 }
 
 export interface WorldData {

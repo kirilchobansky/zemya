@@ -152,6 +152,35 @@ function applyOverride(record, a, where) {
   return record;
 }
 
+/** Mirrors app/lib/geography/mastery.ts's FACETS. Kept as a separate literal because this
+ *  build script runs as plain Node and can't import a .ts module through the `~` alias —
+ *  if you add a facet there, add it here too. */
+const FACETS = ['location', 'capital', 'flag', 'currency', 'language', 'religion', 'borders', 'outline'];
+
+/**
+ * `disputed:` in a country's YAML marks a facet as genuinely contested rather than picking
+ * a source and asserting precision nobody has (see Nigeria's religion — CLAUDE.md's
+ * Content conventions). Same validation shape as override: a non-empty reason is
+ * mandatory, and the facet name must be real. The effect lives in
+ * app/lib/geography/mastery.ts (applicableFacets excludes it) and questions.ts (never
+ * generates a question from it) — this function only records it onto the record.
+ */
+const disputedFacets = [];
+function applyDisputed(record, a, where) {
+  if (!a.disputed) return record;
+  for (const [facet, reason] of Object.entries(a.disputed)) {
+    if (!FACETS.includes(facet)) {
+      throw new Error(`${where}: disputed key "${facet}" is not a recognised facet`);
+    }
+    if (!reason || !String(reason).trim()) {
+      throw new Error(`${where}: disputed.${facet} needs a non-empty reason`);
+    }
+    record.disputed[facet] = String(reason).trim();
+    disputedFacets.push(`${record.iso3}.${facet}`);
+  }
+  return record;
+}
+
 const countries = [];
 for (const c of wc) {
   const a = authored[c.cca3];
@@ -187,9 +216,11 @@ for (const c of wc) {
     subregion: c.subregion,
     hook: a.hook,
     flagDescription: a.flag,
-    outlineDescription: a.outline
+    outlineDescription: a.outline,
+    disputed: {}
   };
-  countries.push(applyOverride(record, a, `content/geography/countries/${a.slug}.yaml`));
+  const where = `content/geography/countries/${a.slug}.yaml`;
+  countries.push(applyDisputed(applyOverride(record, a, where), a, where));
 }
 
 const missing = Object.keys(authored).filter(iso3 => !countries.some(c => c.iso3 === iso3));
@@ -372,6 +403,10 @@ console.log(`countries      ${countries.length}`);
 console.log(
   `overrides      ${new Set(overriddenFields.map(f => f.split('.')[0])).size}` +
     (overriddenFields.length ? ` (${overriddenFields.join(', ')})` : '')
+);
+console.log(
+  `disputed       ${new Set(disputedFacets.map(f => f.split('.')[0])).size}` +
+    (disputedFacets.length ? ` (${disputedFacets.join(', ')})` : '')
 );
 console.log(
   `absorbed       ${Object.keys(ABSORB).length} ` +
