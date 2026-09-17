@@ -31,6 +31,11 @@ export interface CountryRecord {
   hook: string;
   flagDescription: string;
   outlineDescription: string;
+  /** Every string a user could reasonably type to name this country in the "Name the
+   *  Country" quiz — see scripts/build-content.mjs's alias-building step and
+   *  app/lib/geography/names.ts's matcher. Deduped, two-letter ISO codes dropped, and
+   *  anything that would ambiguously match another country dropped from both. */
+  aliases: string[];
   /** Facet name -> reason, for a fact the content marks genuinely disputed (see
    *  content/geography/countries/*.yaml's `disputed:` block). Keyed as a plain string
    *  here rather than typed against Facet — that type lives in the geography layer, and

@@ -226,6 +226,73 @@ for (const c of wc) {
 const missing = Object.keys(authored).filter(iso3 => !countries.some(c => c.iso3 === iso3));
 if (missing.length) throw new Error(`authored countries with no ISO record: ${missing.join(', ')}`);
 
+/* ------------------------------------------------------------------------- aliases */
+
+/**
+ * Every string a user could reasonably type to name a country in the "Name the Country"
+ * quiz, sourced from world-countries' altSpellings plus its own common and official name
+ * — it already covers the hard cases (Burma/Myanmar, Swaziland/Eswatini, East Timor/
+ * Timor-Leste, Holland/Netherlands, DRC, UAE, Ivory Coast/Côte d'Ivoire, Macedonia)
+ * without hand-writing a list from memory. Two-letter ISO codes are dropped — they are
+ * not names and they collide ("US", "GB", "CI") — non-Latin spellings are kept for free.
+ * Matching itself (case, diacritics, punctuation) lives in app/lib/geography/names.ts;
+ * this only decides the candidate set and guards against ambiguity, since a normalised
+ * alias that maps to two different countries must never resolve to whichever one was
+ * parsed first.
+ */
+/** Mirrors app/lib/geography/names.ts's normaliseName() — kept in sync deliberately, the
+ *  same way build-content.mjs's FACETS mirrors mastery.ts's, because this build script
+ *  runs as plain Node and can't import a .ts module through the `~` alias. Unicode
+ *  `\p{L}`/`\p{N}` matters here too: an ASCII a-z0-9 range would treat Armenian or
+ *  Cyrillic aliases as pure punctuation and normalise every one of them to "", which
+ *  would make every non-Latin alias in the catalogue collide with every other one. */
+function normaliseAlias(s) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/['’‘ʼ`]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+const aliasSources = new Map(); // iso3 -> raw alias strings, deduped, before the collision check
+for (const c of wc) {
+  if (!authored[c.cca3]) continue;
+  const raw = [...(c.altSpellings || []), c.name.common, c.name.official];
+  aliasSources.set(c.cca3, [...new Set(raw.filter(s => s && s.trim().length > 2))]);
+}
+
+// normalised alias -> every iso3 that claims it, across the whole catalogue
+const claimedBy = new Map();
+for (const [iso3, aliases] of aliasSources) {
+  for (const alias of aliases) {
+    const key = normaliseAlias(alias);
+    if (!key) continue;
+    if (!claimedBy.has(key)) claimedBy.set(key, new Set());
+    claimedBy.get(key).add(iso3);
+  }
+}
+// ambiguous means two DIFFERENT countries claim the same normalised form — the same
+// country listing a spelling twice (common name === an altSpelling) does not count
+const ambiguous = [...claimedBy.entries()].filter(([, isos]) => isos.size > 1);
+const ambiguousKeys = new Set(ambiguous.map(([key]) => key));
+
+let totalAliases = 0;
+let droppedAliases = 0;
+for (const country of countries) {
+  const kept = [];
+  for (const alias of aliasSources.get(country.iso3) ?? []) {
+    if (ambiguousKeys.has(normaliseAlias(alias))) {
+      droppedAliases += 1;
+      continue;
+    }
+    kept.push(alias);
+  }
+  country.aliases = kept;
+  totalAliases += kept.length;
+}
+
 /* ---------------------------------------------------------------------- geometry */
 
 let topo = JSON.parse(JSON.stringify(require('world-atlas/countries-10m.json')));
@@ -541,6 +608,10 @@ console.log(
 console.log(
   `disputed       ${new Set(disputedFacets.map(f => f.split('.')[0])).size}` +
     (disputedFacets.length ? ` (${disputedFacets.join(', ')})` : '')
+);
+console.log(
+  `aliases        ${totalAliases}` +
+    (droppedAliases ? ` (${droppedAliases} dropped as ambiguous: ${ambiguous.map(([key]) => key).join(', ')})` : '')
 );
 console.log(
   `absorbed       ${Object.keys(ABSORB).length} ` +
