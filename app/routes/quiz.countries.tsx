@@ -66,7 +66,10 @@ export default function QuizCountriesRun() {
   const [queue, setQueue] = useState<CountryRecord[]>([]);
   const [input, setInput] = useState('');
   const [revealedSet, setRevealedSet] = useState<ReadonlySet<string>>(new Set());
-  const [accumulatedMs, setAccumulatedMs] = useState(0);
+  // A ref, not state: the timer's own math must never depend on when a setState happens
+  // to be applied/batched — a plain ref mutation is immediate and synchronous, so
+  // "continue from where it was" on resume can't be skewed by render timing.
+  const elapsedRef = useRef(0);
   const [tick, setTick] = useState(0); // forces a re-render so the live timer moves
   const segmentStartRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +133,7 @@ export default function QuizCountriesRun() {
     setQueue([]);
     setInput('');
     setRevealedSet(new Set());
-    setAccumulatedMs(0);
+    elapsedRef.current = 0;
     setResult(null);
     segmentStartRef.current = null;
     shownAtRef.current = new Map();
@@ -143,7 +146,7 @@ export default function QuizCountriesRun() {
     setQueue(shuffle(countries, rng));
     setInput('');
     setRevealedSet(new Set());
-    setAccumulatedMs(0);
+    elapsedRef.current = 0;
     setResult(null);
     shownAtRef.current = new Map();
     skippedRef.current = new Set();
@@ -180,7 +183,7 @@ export default function QuizCountriesRun() {
     if (target) shownAtRef.current.set(target.country.iso3, Date.now());
   }, [phase, target, atlas, setQuiz]);
 
-  /* live timer tick while running; frozen (not just visually — accumulatedMs itself stops
+  /* live timer tick while running; frozen (not just visually — elapsedRef itself stops
      growing) the instant the run is paused or finishes */
   useEffect(() => {
     if (phase !== 'running') return;
@@ -190,11 +193,13 @@ export default function QuizCountriesRun() {
   void tick;
 
   const liveElapsedMs =
-    accumulatedMs + (phase === 'running' && segmentStartRef.current ? Date.now() - segmentStartRef.current : 0);
+    elapsedRef.current + (segmentStartRef.current ? Date.now() - segmentStartRef.current : 0);
 
   const stopSegment = useCallback(() => {
-    setAccumulatedMs(a => a + (segmentStartRef.current ? Date.now() - segmentStartRef.current : 0));
-    segmentStartRef.current = null;
+    if (segmentStartRef.current !== null) {
+      elapsedRef.current += Date.now() - segmentStartRef.current;
+      segmentStartRef.current = null;
+    }
   }, []);
 
   const skip = useCallback(() => {
@@ -272,7 +277,10 @@ export default function QuizCountriesRun() {
       const remaining = queue.slice(1);
       setQueue(remaining);
       if (remaining.length === 0) {
-        const finalElapsedMs = accumulatedMs + (segmentStartRef.current ? Date.now() - segmentStartRef.current : 0);
+        // computed from the refs directly, not the render-scope liveElapsedMs — refs are
+        // always current, but this callback's closure could otherwise be stale
+        const finalElapsedMs =
+          elapsedRef.current + (segmentStartRef.current ? Date.now() - segmentStartRef.current : 0);
         stopSegment();
         setPhase('done');
         atlas?.home();
@@ -297,7 +305,7 @@ export default function QuizCountriesRun() {
         });
       }
     },
-    [phase, target, world, revealedSet, review, queue, setQuiz, accumulatedMs, stopSegment, atlas, countries, priorBest, size]
+    [phase, target, world, revealedSet, review, queue, setQuiz, stopSegment, atlas, countries, priorBest, size]
   );
 
   /* Escape is deliberately not handled here — it's a window-level listener above, so
