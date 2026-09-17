@@ -8,6 +8,7 @@ import { type RouteConfig, index, layout, route } from '@react-router/dev/routes
 export default [
   layout('routes/atlas.tsx', [
     index('routes/atlas.index.tsx'),
-    route('country/:slug', 'routes/country.tsx')
+    route('country/:slug', 'routes/country.tsx'),
+    route('study', 'routes/study.tsx')
   ])
 ] satisfies RouteConfig;

@@ -66,6 +66,16 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
 
       <div className="rail__scroll">
         <section className="group">
+          <Link
+            to="/study"
+            className="action action--primary"
+            style={{ display: 'block', textAlign: 'center' }}
+          >
+            Study
+          </Link>
+        </section>
+
+        <section className="group">
           <h2 className="group__title">Map overlay</h2>
           <div className="chips">
             {OVERLAYS.map(o => (

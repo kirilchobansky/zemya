@@ -7,7 +7,7 @@
  * size-comparison tool must lift and drop.
  * Any console error or uncaught exception fails the run.
  *
- * The progress step (9) is the one exception: it needs `window.__zemya`, the grading test
+ * The progress step (10) is the one exception: it needs `window.__zemya`, the grading test
  * seam, which is stripped from the production bundle by `import.meta.env.DEV` — by design,
  * see app/lib/core/ProgressProvider.tsx. So it spawns its own `react-router dev` server
  * rather than using `base`, and tears that server down in a `finally` so a failed
@@ -128,6 +128,12 @@ for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Bulgarian lev', 'Romania', '
   check(dossier.includes(probe), `dossier missing "${probe}"`);
 }
 
+const flagLoaded = await page.evaluate(() => {
+  const img = document.querySelector('.dossier__flag img.flag');
+  return img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0;
+});
+check(flagLoaded, 'dossier flag <img> did not load (naturalWidth is 0)');
+
 /* --- 4. the camera actually flew --------------------------------------------------- */
 const zoomed = await page.textContent('.scalebar');
 check(!/10,000 km/.test(zoomed), `camera did not zoom in — scale still reads "${zoomed.trim()}"`);
@@ -166,7 +172,27 @@ check(
   `wrong document title on cold load: "${await page.title()}"`
 );
 
-/* --- 9. grading a facet updates the rail and repaints the mastery overlay --------- */
+/* --- 9. study mode: answering a question reveals the hook and advances ------------ */
+await page.goto(`${base}/study`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1000);
+await page.waitForSelector('.quiz__option', { timeout: 5000 }).catch(() => {});
+if (await page.isVisible('.quiz__option')) {
+  const before = (await page.textContent('.panel__head h2')).trim();
+  await page.click('.quiz__option >> nth=0');
+  await page.waitForTimeout(300);
+  check(
+    (await page.textContent('.hook__label').catch(() => '')) === 'Memory hook',
+    'answering a study question did not reveal the memory hook'
+  );
+  await page.click('.action--primary:has-text("Next")');
+  await page.waitForTimeout(300);
+  const after = (await page.textContent('.panel__head h2')).trim();
+  check(after !== before, `answering did not advance to the next question — stayed on "${before}"`);
+} else {
+  check(false, '/study rendered no question to answer (is a session ever generated?)');
+}
+
+/* --- 10. grading a facet updates the rail and repaints the mastery overlay -------- */
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
 let devServer = null;
 let devOutput = '';
@@ -339,6 +365,6 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(
-  `PASS — map painted ${colours} colours, dossier, neighbours, 5 overlays, compare tool, ` +
-    'cold prerender, progress grading'
+  `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
+    'compare tool, cold prerender, study mode, progress grading'
 );

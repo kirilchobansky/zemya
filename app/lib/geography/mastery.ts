@@ -49,6 +49,15 @@ export function cardId(iso3: string, facet: Facet): string {
   return `${SUBJECT}:${iso3}:${facet}`;
 }
 
+/** The inverse of cardId() — used where a screen needs to get back from a card id (or a
+ *  Question's cardId, which is the same string) to the country it's about. Returns null
+ *  for anything that isn't one of ours, rather than throwing on a malformed id. */
+export function parseCardId(id: string): { iso3: string; facet: Facet } | null {
+  const [subject, iso3, facet] = id.split(':');
+  if (subject !== SUBJECT || !iso3 || !FACETS.includes(facet as Facet)) return null;
+  return { iso3, facet: facet as Facet };
+}
+
 /**
  * A facet only counts when the country actually has the data for it: no borders card for
  * an island, no currency card where the field is null. This set is the denominator for

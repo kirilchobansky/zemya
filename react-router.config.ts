@@ -13,7 +13,7 @@ const slugs: string[] = JSON.parse(
 
 export default {
   ssr: true,
-  prerender: () => ['/', ...slugs.map(slug => `/country/${slug}`)],
+  prerender: () => ['/', '/study', ...slugs.map(slug => `/country/${slug}`)],
 
   /**
    * Ship the whole route manifest with the first document. The default, lazy discovery,
