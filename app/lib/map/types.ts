@@ -58,8 +58,12 @@ export interface Feature {
   /** Anchor projected into the unit square. */
   ux: number;
   uy: number;
-  /** Too small to render as a shape at this detail level — drawn and hit-tested as a pin. */
-  micro: boolean;
+  /** True when the country's real angular size is under MICRO_DEGREES — a fact about the
+   *  country, not about whether it has a path. Every feature with polygons gets a path
+   *  and is hit-tested as a shape; the renderer decides per frame, from the feature's
+   *  on-screen width at the current zoom, whether to draw a pin instead. Kept mostly so
+   *  a caller can say "this one is always going to be small" without re-deriving it. */
+  tiny: boolean;
   path: Path2D | null;
   /** Resolved neighbours, populated after all features are built. */
   neighbours: Feature[];

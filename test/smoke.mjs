@@ -7,7 +7,7 @@
  * size-comparison tool must lift and drop.
  * Any console error or uncaught exception fails the run.
  *
- * The progress step (11) is the one exception: it needs `window.__zemya`, the grading test
+ * The progress step (12) is the one exception: it needs `window.__zemya`, the grading test
  * seam, which is stripped from the production bundle by `import.meta.env.DEV` — by design,
  * see app/lib/core/ProgressProvider.tsx. So it spawns its own `react-router dev` server
  * rather than using `base`, and tears that server down in a `finally` so a failed
@@ -181,7 +181,33 @@ check(
   `camera did not zoom into Russia — scale still reads "${russiaScale.trim()}"`
 );
 
-/* --- 10. study mode: answering a question reveals the hook and advances ----------- */
+/* --- 10. Malta renders as a real shape at its own zoom, not a permanent dot ------- */
+await page.goto(`${base}/country/malta`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1400); // longer than the fly animation, so a regression shows up
+const [maltaX, maltaY] = await page.evaluate(() => {
+  const rect = document.querySelector('canvas').getBoundingClientRect();
+  return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+});
+
+const BRASS = [232, 163, 61]; // --brass / overlays.ts's SELECTED
+const isBrass = (rgb, tolerance = 12) => BRASS.every((c, i) => Math.abs(rgb[i] - c) <= tolerance);
+
+const maltaCentre = await pixelAt(maltaX, maltaY);
+check(
+  isBrass(maltaCentre),
+  `Malta's centre pixel is not the selection colour — got rgb(${maltaCentre.join(',')})`
+);
+
+// A 9-pixel pin at the centre would pass the check above too. Also require brass ~40px
+// off centre, so what's on screen is a real filled shape with extent, not a dot.
+const maltaOffCentre = await pixelAt(maltaX + 40, maltaY);
+check(
+  isBrass(maltaOffCentre),
+  `Malta has no extent beyond its centre pixel — looks like a pin, not a shape ` +
+    `(rgb(${maltaOffCentre.join(',')}))`
+);
+
+/* --- 11. study mode: answering a question reveals the hook and advances ----------- */
 await page.goto(`${base}/study`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1000);
 await page.waitForSelector('.quiz__option', { timeout: 5000 }).catch(() => {});
@@ -201,7 +227,7 @@ if (await page.isVisible('.quiz__option')) {
   check(false, '/study rendered no question to answer (is a session ever generated?)');
 }
 
-/* --- 11. grading a facet updates the rail and repaints the mastery overlay -------- */
+/* --- 12. grading a facet updates the rail and repaints the mastery overlay -------- */
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
 let devServer = null;
 let devOutput = '';
@@ -375,5 +401,6 @@ if (problems.length) {
 }
 console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
-    'compare tool, cold prerender, Russia antimeridian, study mode, progress grading'
+    'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
+    'progress grading'
 );

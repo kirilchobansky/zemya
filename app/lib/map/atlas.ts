@@ -108,7 +108,7 @@ export class Atlas {
   }
 
   flyTo(feature: Feature, padding = 0.55): void {
-    if (!feature.bbox || feature.micro) {
+    if (!feature.bbox) {
       this.moveTo(
         clamp({ x: feature.ux, y: feature.uy, zoom: homeZoom(this.viewport) * 34 }, this.viewport),
         true

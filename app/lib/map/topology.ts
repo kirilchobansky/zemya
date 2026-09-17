@@ -134,7 +134,7 @@ export function buildWorld(data: WorldData): World {
       anchor: [country.latlng[1], country.latlng[0]],
       ux: 0,
       uy: 0,
-      micro: true,
+      tiny: true,
       path: null,
       neighbours: []
     };
@@ -217,13 +217,15 @@ export function buildWorld(data: WorldData): World {
     // width has to be corrected for latitude or every Arctic country looks enormous
     const midLat = (minLat + maxLat) / 2;
     const widthDeg = (maxLon - minLon) * Math.cos((midLat * Math.PI) / 180);
-    feature.micro = Math.max(widthDeg, maxLat - minLat) < MICRO_DEGREES;
+    feature.tiny = Math.max(widthDeg, maxLat - minLat) < MICRO_DEGREES;
 
-    if (!feature.micro) {
-      const path = new Path2D();
-      for (const polygon of feature.polygons) for (const ring of polygon) traceRing(path, ring);
-      feature.path = path;
-    }
+    // Every feature with polygons gets a real path now, tiny or not — Malta and Vatican
+    // City must be clickable shapes once you're zoomed in far enough to see them, not
+    // permanent pins. The renderer decides per frame, from on-screen width, whether to
+    // draw this path or a pin in its place; see renderer.ts's drawPins/drawShapes.
+    const path = new Path2D();
+    for (const polygon of feature.polygons) for (const ring of polygon) traceRing(path, ring);
+    feature.path = path;
   }
 
   for (const feature of features) {

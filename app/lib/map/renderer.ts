@@ -97,10 +97,34 @@ function drawGraticule(rc: RenderContext): void {
   ctx.stroke();
 }
 
+/** Below this on-screen width, in CSS pixels, a country draws as a pin instead of its
+ *  real shape — a per-frame decision from the current zoom, not a fixed property of the
+ *  country. Tune by looking at the result: too low and micro-states are unclickable
+ *  slivers before they're worth drawing as shapes; too high and mid-size islands stay
+ *  pins longer than they should. */
+const PIN_MAX_WIDTH = 7;
+
+/** A feature's on-screen width in CSS pixels at the current zoom, from its (unwrapped,
+ *  already-consistent — see topology.ts) bbox. A feature with no bbox at all has no
+ *  shape to draw at any zoom, so it is always a pin. */
+function onScreenWidth(feature: Feature, camera: CameraState): number {
+  if (!feature.bbox) return 0;
+  const [minLon, , maxLon] = feature.bbox;
+  return (lonToX(maxLon) - lonToX(minLon)) * camera.zoom;
+}
+
+/** Whether this feature draws as a pin THIS FRAME. Never both a pin and a shape, and
+ *  never neither — renderer, hit-testing and labelling all call this so they can't
+ *  disagree with each other. */
+function drawsAsPin(feature: Feature, camera: CameraState): boolean {
+  if (!feature.path) return true;
+  return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
+}
+
 function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feature>): void {
   const { ctx, camera, viewport } = rc;
   for (const feature of world.features) {
-    if (!feature.micro) continue;
+    if (!drawsAsPin(feature, camera)) continue;
     const colour = style.fill(feature);
     if (!colour) continue;
     const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
@@ -128,7 +152,7 @@ function drawLabels(rc: RenderContext, world: World, font: string): void {
 
   const placed: [number, number, number][] = [];
   const candidates = world.features
-    .filter(f => f.bbox && !f.micro)
+    .filter(f => f.bbox)
     .sort((a, b) => b.country.area - a.country.area);
 
   for (const feature of candidates) {
@@ -188,7 +212,7 @@ export function render(
     for (const shape of world.context) ctx.fill(shape.path);
 
     for (const feature of world.features) {
-      if (!feature.path) continue;
+      if (!feature.path || drawsAsPin(feature, camera)) continue;
       const colour = style.fill(feature);
       if (!colour) continue;
       ctx.fillStyle = colour;
@@ -197,7 +221,7 @@ export function render(
 
     // strokes in a second pass so no fill can bleed over a neighbour's border
     for (const feature of world.features) {
-      if (!feature.path) continue;
+      if (!feature.path || drawsAsPin(feature, camera)) continue;
       const s = style.stroke(feature);
       if (!s) continue;
       ctx.strokeStyle = s[0];
@@ -231,10 +255,12 @@ export function scaleBar(camera: CameraState, viewport: Viewport): { km: number;
 /**
  * Which country is under this screen point.
  *
- * Micro-state pins are tested first because they sit on top of whatever they overlap.
- * Polygon testing uses `isPointInPath`, which takes screen coordinates and applies the
- * current transform to the path — so the same transform used to draw is the one that
- * decides hits, and the two can never disagree.
+ * Pins are tested first because they sit on top of whatever they overlap — but only the
+ * ones actually drawn as pins this frame (drawsAsPin() is the same per-frame decision the
+ * renderer just made, not the static `tiny` flag). Whatever wasn't a pin was a real shape,
+ * so it's hit-tested as one with `isPointInPath`, which takes screen coordinates and
+ * applies the current transform to the path — the same transform used to draw is the one
+ * that decides hits, so the two can never disagree.
  */
 export function pick(
   rc: RenderContext,
@@ -248,7 +274,7 @@ export function pick(
   let nearestPin: Feature | null = null;
   let nearestDistance = pinRadius;
   for (const feature of world.features) {
-    if (!feature.micro) continue;
+    if (!drawsAsPin(feature, camera)) continue;
     const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
     const distance = Math.hypot(x - sx, y - sy);
     if (distance < nearestDistance) {
@@ -263,7 +289,7 @@ export function pick(
   for (const copy of [0, -1, 1]) {
     applyTransform(rc, copy);
     for (const feature of world.features) {
-      if (!feature.path) continue;
+      if (!feature.path || drawsAsPin(feature, camera)) continue;
       if (ctx.isPointInPath(feature.path, px, py)) {
         resetTransform(rc);
         return feature;

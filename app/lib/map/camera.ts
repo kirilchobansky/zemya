@@ -80,8 +80,11 @@ export function frame(
   padding = 0.55,
   maxFactor = Infinity
 ): CameraState {
-  const width = Math.max(box.x1 - box.x0, 0.004);
-  const height = Math.max(box.y1 - box.y0, 0.004);
+  // The floor below matters for the smallest states: 0.004 units (~160 km) used to leave
+  // Vatican City (~1 km across) at about 5 px on screen however hard you tried to zoom in
+  // on it. 0.0002 units (~8 km) lets the smallest real countries actually fill the frame.
+  const width = Math.max(box.x1 - box.x0, 0.0002);
+  const height = Math.max(box.y1 - box.y0, 0.0002);
   const home = homeZoom(v);
   const fit = Math.min((v.width / width) * padding, (v.height / height) * padding);
   return clamp(
