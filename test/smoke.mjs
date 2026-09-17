@@ -395,7 +395,7 @@ try {
   await page.waitForTimeout(1000);
   await page.click('.quiz-dock__start');
   await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
-  await page.waitForTimeout(1600); // outlast the fly-to animation
+  await page.waitForTimeout(600);
 
   const firstQuizState = await page.evaluate(() => window.__zemyaQuiz);
   check(Boolean(firstQuizState?.target), 'quiz exposed no current target after START');
@@ -425,7 +425,32 @@ try {
     }
   }
 
-  /* --- 15. finishing a run shows the results screen and records a personal best ----- */
+  /* --- 15. pausing freezes the timer; Esc (not just the button) resumes it correctly -- */
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  const pausedOnce = await page.evaluate(() => window.__zemyaQuiz);
+  check(pausedOnce?.phase === 'paused', 'Esc did not pause the run');
+
+  await page.waitForTimeout(500); // while paused — elapsedMs must not move
+  const stillPaused = await page.evaluate(() => window.__zemyaQuiz);
+  check(
+    stillPaused?.elapsedMs === pausedOnce?.elapsedMs,
+    `timer kept moving while paused — ${pausedOnce?.elapsedMs} -> ${stillPaused?.elapsedMs}`
+  );
+
+  // the actual regression: a SECOND Escape, aimed at what used to be a disabled (and so
+  // unfocusable) input, used to do nothing at all
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  const resumed = await page.evaluate(() => window.__zemyaQuiz);
+  check(resumed?.phase === 'running', 'a second Esc did not resume the run');
+  check(
+    typeof resumed?.elapsedMs === 'number' && resumed.elapsedMs >= (pausedOnce?.elapsedMs ?? 0),
+    `resuming reset the timer instead of continuing it — paused at ${pausedOnce?.elapsedMs}, ` +
+      `resumed at ${resumed?.elapsedMs}`
+  );
+
+  /* --- 16. finishing a run shows the results screen and records a personal best ----- */
   let guard = 0;
   while (guard++ < 25) {
     const state = await page.evaluate(() => window.__zemyaQuiz);
@@ -475,5 +500,5 @@ if (problems.length) {
 console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
-    'progress grading, quiz mode (no leak), quiz results and personal best'
+    'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best'
 );

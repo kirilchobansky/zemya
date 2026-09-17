@@ -102,12 +102,25 @@ export default function QuizCountriesRun() {
     return world.byIso3.get(queue[0].iso3) ?? null;
   }, [world, queue]);
 
+  /* Read only in the unmount cleanup below — kept as a ref, not a dependency, so that
+     effect runs once on mount/unmount and never mid-run just because the Atlas controller
+     finished initialising after this route did (see its own comment). */
+  const atlasRef = useRef(atlas);
+  atlasRef.current = atlas;
+
   /* quiz mode covers the whole lifetime of this route, not just the running phase — the
      map should already be in its stripped-down, full-screen state on the START (idle)
-     screen. Torn down on unmount so leaving /quiz/countries restores the normal map. */
+     screen. Torn down on unmount so leaving /quiz/countries restores the normal map.
+     Deliberately depends on nothing but the (stable) setQuiz setter: if this also
+     depended on `atlas`, it would re-fire — and wipe the in-progress answered map — the
+     moment the Atlas controller finished initialising after this route had already
+     mounted and the user had started answering. */
   useEffect(() => {
     setQuiz({ target: null, answered: new Map(), showNeighbours: false, paused: false });
-    return () => setQuiz(null);
+    return () => {
+      setQuiz(null);
+      atlasRef.current?.setFocus([]); // don't leave a random country's pin permanently enlarged
+    };
   }, [setQuiz]);
 
   /* a different :size while this route stays mounted (e.g. a Link between two sizes) is
@@ -136,7 +149,11 @@ export default function QuizCountriesRun() {
     skippedRef.current = new Set();
     segmentStartRef.current = Date.now();
     setPhase('running');
-  }, [countries]);
+    // little to no zoom, on purpose — the run stays at (roughly) the world view the whole
+    // time, so a country is found by its highlight, not by the camera flying to it; see
+    // CLAUDE.md's Quizzes section
+    atlas?.home();
+  }, [countries, atlas]);
 
   /* Space or Enter also starts a run — the input doesn't exist yet to carry a keydown
      handler, so this is the one shortcut that has to live on the window. */
@@ -152,13 +169,15 @@ export default function QuizCountriesRun() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [phase, start]);
 
-  /* fly to the current target whenever it changes — covers the first question on START
-     and every answer/skip after it, since both always change queue[0] */
+  /* The camera itself never moves per question — only the target's pin/shape is marked
+     "in focus" (renderer.ts draws a bigger, ringed pin for it — see quizMode's own note
+     there), which is what makes a small country findable at world zoom without flying
+     the map to it. */
   useEffect(() => {
-    if (phase !== 'running' || !atlas || !target) return;
-    atlas.flyToQuiz(target);
+    if (phase !== 'running' || !atlas) return;
+    atlas.setFocus(target ? [target] : []);
     setQuiz(prev => (prev ? { ...prev, target } : prev));
-    shownAtRef.current.set(target.country.iso3, Date.now());
+    if (target) shownAtRef.current.set(target.country.iso3, Date.now());
   }, [phase, target, atlas, setQuiz]);
 
   /* live timer tick while running; frozen (not just visually — accumulatedMs itself stops
@@ -202,11 +221,31 @@ export default function QuizCountriesRun() {
     }
   }, [phase, stopSegment, setQuiz]);
 
+  /* Esc toggles pause from the window, not the input's own onKeyDown — the input used to
+     be given the `disabled` attribute while paused, which also silently drops keyboard
+     focus (a disabled element can't be focused at all), so a second Esc, aimed at the
+     input, never reached any handler and the run looked stuck. A global listener means
+     pausing can never strand its own resume shortcut. */
+  useEffect(() => {
+    if (phase !== 'running' && phase !== 'paused') return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        togglePause();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [phase, togglePause]);
+
   const handleInputChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
+      // ignored, not disabled, while paused — an actually-disabled <input> can't hold
+      // keyboard focus at all, which is what made Esc-to-resume unreachable (see the
+      // paused-Escape effect above)
+      if (phase !== 'running' || !target || !world) return;
       const value = e.target.value;
       setInput(value);
-      if (phase !== 'running' || !target || !world) return;
       if (!matchesCountry(value, target.country)) return;
 
       const iso3 = target.country.iso3;
@@ -237,6 +276,7 @@ export default function QuizCountriesRun() {
         stopSegment();
         setPhase('done');
         atlas?.home();
+        atlas?.setFocus([]);
 
         const revealed = [...revealedSet]
           .map(revealedIso3 => world.byIso3.get(revealedIso3)?.country)
@@ -260,6 +300,8 @@ export default function QuizCountriesRun() {
     [phase, target, world, revealedSet, review, queue, setQuiz, accumulatedMs, stopSegment, atlas, countries, priorBest, size]
   );
 
+  /* Escape is deliberately not handled here — it's a window-level listener above, so
+     pausing can never leave itself with no focused, enabled element to resume from. */
   function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -267,16 +309,15 @@ export default function QuizCountriesRun() {
     } else if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
       reveal();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      togglePause();
     }
   }
 
   /* the input must never need the mouse to regain focus — refocus after every state
-     change that could plausibly have moved it (a new question, a reveal, resuming) */
+     change that could plausibly have moved it (a new question, a reveal, pausing,
+     resuming). Kept focused while paused too — Esc is a window-level listener now (see
+     above), but there's no reason to drop focus just because typing is ignored. */
   useEffect(() => {
-    if (phase === 'running') inputRef.current?.focus();
+    if (phase === 'running' || phase === 'paused') inputRef.current?.focus();
   }, [phase, queue, revealedSet]);
 
   /**
@@ -291,9 +332,10 @@ export default function QuizCountriesRun() {
     (window as unknown as { __zemyaQuiz?: unknown }).__zemyaQuiz = {
       target: target?.country.name ?? null,
       answeredCount: quiz?.answered.size ?? 0,
-      phase
+      phase,
+      elapsedMs: liveElapsedMs
     };
-  }, [target, quiz, phase]);
+  }, [target, quiz, phase, liveElapsedMs]);
 
   if (!world) {
     return (
@@ -430,17 +472,19 @@ export default function QuizCountriesRun() {
               )}
               <input
                 ref={inputRef}
-                className="quiz-dock__input"
+                // NOT the `disabled` attribute while paused — a disabled element can't
+                // hold keyboard focus, which is exactly what broke Esc-to-resume. Paused
+                // input is ignored in handleInputChange instead; this is purely visual.
+                className={`quiz-dock__input${phase === 'paused' ? ' quiz-dock__input--paused' : ''}`}
                 type="text"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                disabled={phase === 'paused'}
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={onInputKeyDown}
-                placeholder="Type the country's name…"
+                placeholder={phase === 'paused' ? 'Paused' : "Type the country's name…"}
                 aria-label="Type the country's name"
               />
             </>

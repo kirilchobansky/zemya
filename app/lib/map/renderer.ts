@@ -130,6 +130,13 @@ function drawsAsPin(feature: Feature, camera: CameraState): boolean {
   return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
 }
 
+/** How much bigger the quiz's current target draws as a pin, plus a halo ring outside
+ *  it — the quiz keeps the camera at (roughly) the world view rather than zooming in
+ *  (see CLAUDE.md's Quizzes section), so a country too small to draw as a shape needs a
+ *  pin that reads at a glance, not the same small dot every other pin gets. */
+const QUIZ_FOCUS_PIN_RADIUS = 9;
+const QUIZ_FOCUS_RING_GAP = 7;
+
 function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feature>): void {
   const { ctx, camera, viewport } = rc;
   for (const feature of world.features) {
@@ -138,10 +145,23 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
     if (!colour) continue;
     const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
     if (x < -14 || x > viewport.width + 14 || y < -14 || y > viewport.height + 14) continue;
-    const radius = focus.has(feature) ? 6.5 : 4.2;
+
+    const inFocus = focus.has(feature);
+    const isQuizTarget = Boolean(style.quizMode) && inFocus;
+    const radius = isQuizTarget ? QUIZ_FOCUS_PIN_RADIUS : inFocus ? 6.5 : 4.2;
+    const fillColour = colour === COLORS.land ? COLORS.microPin : colour;
+
+    if (isQuizTarget) {
+      ctx.beginPath();
+      ctx.arc(x, y, radius + QUIZ_FOCUS_RING_GAP, 0, Math.PI * 2);
+      ctx.strokeStyle = fillColour;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = colour === COLORS.land ? COLORS.microPin : colour;
+    ctx.fillStyle = fillColour;
     ctx.fill();
     ctx.lineWidth = 1.2;
     ctx.strokeStyle = COLORS.pinEdge;

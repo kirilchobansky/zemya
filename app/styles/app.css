@@ -1079,7 +1079,7 @@ kbd {
   outline: none;
   border-color: var(--brass-dim);
 }
-.quiz-dock__input:disabled {
+.quiz-dock__input--paused {
   opacity: 0.5;
 }
 .quiz-dock__answer {

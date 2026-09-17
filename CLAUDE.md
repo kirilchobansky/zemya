@@ -280,21 +280,40 @@ overlay, hover or mastery colouring applies mid-quiz. Anyone adding a fifth surf
 could show a country's name should gate it on this same `quiz`/`quizMode` value rather
 than inventing a new flag.
 
-**Camera framing (`camera.ts`'s `frameForQuiz`).** Deliberately looser than the normal
-`flyTo` — the target should occupy roughly a quarter of the viewport width with its region
-visible around it, not fill the screen. The resulting ground span is clamped to
-900–7,000 km (Monaco doesn't zoom to street level, Russia doesn't zoom out to the whole
-planet), and the smaller of a width-fit and a height-fit zoom wins so a tall, narrow
-country isn't cropped by a rule that only looked at width. Framing reads
-`feature.mainBbox` (topology.ts), not `feature.bbox`: **Chile's Easter Island sits ~3,700
-km from the mainland**, and the full bbox would centre the camera over open ocean between
-the two. `mainBbox` is the bounding box of whichever connected cluster of the country's
-polygons (single-linkage, pieces within `EXCLAVE_KM` = 1,000 km of each other chain
-together) contains its largest piece — Easter Island forms its own excluded cluster,
-while an archipelago nation's islands (Indonesia: no gap between neighbouring major
-islands over ~500 km) all chain into one and stay in whole. Tuned against real decoded
-geometry for Monaco/Chile/Russia/Indonesia (the four the owner named as breaking naive
-framing), not against a running browser — see the Known rough edges note on why.
+**Camera: little to no zoom, on purpose.** The first version of this flew the camera to
+each question with custom quarter-viewport-width framing (`camera.ts`'s `frameForQuiz`,
+reading a `feature.mainBbox` built from clustering a country's polygons so a remote
+exclave like Chile's Easter Island didn't drag the frame out over open ocean). The owner
+overruled this after using it: the per-question zoom was too aggressive, and the point is
+to keep the sense of the whole world, not to be flown around it question by question. That
+whole mechanism (`frameForQuiz`, `Atlas#flyToQuiz`, `feature.mainBbox`, the polygon
+clustering in `topology.ts`) was removed rather than left dead. **A run now calls
+`atlas.home()` once, on START, and never moves the camera again on its own** — the map
+sits at (roughly) the world view for the whole run; the user's own pan/zoom is untouched.
+The current target is marked with `Atlas#setFocus([target])` instead (pre-existing,
+previously-unused infrastructure) — `renderer.ts`'s `drawPins` gives a focused feature
+drawn as a pin a bigger radius, and under `quizMode` specifically, a much bigger radius
+plus an outer halo ring in the target's own colour, since at a near-world zoom a
+Monaco-sized pin would otherwise be nearly invisible. Real shapes (large countries) need
+no such treatment — the brass fill/stroke from `quizFillFor`/`quizStrokeFor` already
+reads fine at any zoom.
+
+**Map clicks are inert during a quiz.** `atlas.tsx`'s `handleSelect` (which normally
+navigates to a country's dossier) returns immediately whenever `quiz` is set. Before this
+guard existed, clicking the map mid-run — easy to do by accident once the per-question fly
+was removed and the whole world is visible and clickable — would navigate away, unmount
+the run, and silently lose it with no confirmation. This is the same category of bug as
+the pause one below: an interaction the quiz doesn't own reaching in and clobbering it.
+
+**Pause/resume: never `disabled` the input.** The run input used to get the HTML
+`disabled` attribute while paused. A disabled element cannot hold keyboard focus at all —
+so the second Esc a player pressed, aimed at resuming, reached no handler, and the run
+looked permanently stuck (the owner's actual bug report). Escape is now a `window`-level
+listener active in both `running` and `paused`, independent of what has focus; the input
+itself is only *visually* dimmed (`.quiz-dock__input--paused`) and its keystrokes are
+ignored in `handleInputChange`'s own phase check, so it stays focused and every shortcut
+keeps working. General lesson: a keyboard shortcut that is supposed to escape a state must
+not be attached only to a DOM node that state disables.
 
 **Feeding the spaced repetition.** Every answer grades that country's `geo:<ISO3>:location`
 card (`app/lib/geography/mastery.ts`'s `cardId`) through the normal `review()` from

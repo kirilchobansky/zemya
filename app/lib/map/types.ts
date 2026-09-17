@@ -70,13 +70,6 @@ export interface Feature {
   polygons: Ring[][];
   /** [minLon, minLat, maxLon, maxLat], or null when there is no polygon. */
   bbox: [number, number, number, number] | null;
-  /** Same shape as `bbox`, but scoped to the connected cluster of polygons containing the
-   *  country's largest piece — a remote exclave more than EXCLAVE_KM from everything else
-   *  (Chile's Easter Island, ~3,700 km from the mainland) is left out, so framing on this
-   *  box centres on the country's actual body instead of the ocean between the two. An
-   *  archipelago nation's islands (Indonesia) sit close enough to chain together and stay
-   *  in whole. Null under the same conditions as `bbox`. See topology.ts's buildWorld(). */
-  mainBbox: [number, number, number, number] | null;
   /** Where to put the label / pin, in lon-lat. */
   anchor: LonLat;
   /** Anchor projected into the unit square. */

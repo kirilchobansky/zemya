@@ -4,7 +4,7 @@
  * for hover and click.
  */
 import {
-  clamp, frame, frameForQuiz, homeCamera, homeZoom, screenToWorld, settled, shortestX, step,
+  clamp, frame, homeCamera, homeZoom, screenToWorld, settled, shortestX, step,
   type CameraState, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
@@ -90,6 +90,9 @@ export class Atlas {
     this.draw();
   }
 
+  /** Marks features for a bigger pin (renderer.ts's drawPins) — the quiz run uses this
+   *  for its current target instead of moving the camera, so a small country stays
+   *  findable at the world view it keeps the whole run. */
   setFocus(features: Iterable<Feature>): void {
     this.focus = new Set(features);
     this.draw();
@@ -121,32 +124,6 @@ export class Atlas {
         { x0: lonToX(minLon), x1: lonToX(maxLon), y0: latToY(maxLat), y1: latToY(minLat) },
         this.viewport,
         padding
-      ),
-      true
-    );
-  }
-
-  /**
-   * Quiz framing (see camera.ts's frameForQuiz): looser than flyTo, so the target reads
-   * as "this country, in its region" rather than filling the screen. Uses mainBbox where
-   * available so a remote exclave (Chile's Easter Island) doesn't drag the frame's centre
-   * out over open ocean.
-   */
-  flyToQuiz(feature: Feature): void {
-    const box = feature.mainBbox ?? feature.bbox;
-    if (!box) {
-      this.moveTo(
-        clamp({ x: feature.ux, y: feature.uy, zoom: homeZoom(this.viewport) * 34 }, this.viewport),
-        true
-      );
-      return;
-    }
-    const [minLon, minLat, maxLon, maxLat] = box;
-    this.moveTo(
-      frameForQuiz(
-        { x0: lonToX(minLon), x1: lonToX(maxLon), y0: latToY(maxLat), y1: latToY(minLat) },
-        (minLat + maxLat) / 2,
-        this.viewport
       ),
       true
     );

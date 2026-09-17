@@ -60,7 +60,6 @@ function fakeFeature(iso3: string, neighbours: Feature[] = []): Feature {
     country: { iso3 } as Feature['country'],
     polygons: [],
     bbox: null,
-    mainBbox: null,
     anchor: [0, 0],
     ux: 0,
     uy: 0,
