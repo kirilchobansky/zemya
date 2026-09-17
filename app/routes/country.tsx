@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 
 import { CountryProgress } from '~/components/CountryProgress';
+import { Flag } from '~/components/Flag';
 import { formatNumber } from '~/lib/format';
 import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
 import type { Route } from './+types/country';
@@ -37,7 +38,9 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
 
       <div className="panel__body">
         <div className="dossier__hero">
-          <div className="dossier__flag">{country.emoji}</div>
+          <div className="dossier__flag">
+            <Flag iso2={country.iso2} emoji={country.emoji} size="md" />
+          </div>
           <div>
             <h3>{country.name}</h3>
             <div className="dossier__official">{country.officialName}</div>

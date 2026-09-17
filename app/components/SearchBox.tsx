@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { Flag } from '~/components/Flag';
 import { normalise } from '~/lib/format';
 import type { Feature, World } from '~/lib/map/types';
 
@@ -104,7 +105,7 @@ export function SearchBox({ world, onPick }: SearchBoxProps) {
                 data-active={i === active}
                 onClick={() => choose(feature)}
               >
-                <span className="search__flag">{feature.country.emoji}</span>
+                <Flag iso2={feature.country.iso2} emoji={feature.country.emoji} size="sm" />
                 <span>{feature.country.name}</span>
                 <span className="search__meta">{feature.country.capital ?? '—'}</span>
               </button>

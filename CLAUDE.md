@@ -44,6 +44,7 @@ app/components/         Rail, SearchBox, and future panels
 app/routes/             atlas.tsx (layout, owns the canvas) + panel routes
 app/styles/             tokens.css then app.css
 public/data/geography/  generated, committed on purpose
+public/flags/           generated from flag-icons, committed on purpose
 test/smoke.mjs          end-to-end browser test against the production build
 ```
 
@@ -231,3 +232,5 @@ so nothing may depend on a webfont having loaded.
   404 breaks every client-side navigation silently. `routeDiscovery: { mode: 'initial' }`
   is deliberate.
 - Do not change a country's `slug` once shipped. It is a public URL.
+- Do not load flags from a CDN. They are local files so the app can work offline and so
+  no third party sees which countries the user is studying.

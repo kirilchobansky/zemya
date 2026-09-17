@@ -7,7 +7,10 @@
  *
  *   node scripts/build-content.mjs [--detail 0.005]
  */
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import {
+  readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, unlinkSync,
+  statSync, existsSync
+} from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -203,9 +206,43 @@ writeFileSync(
   'utf8'
 );
 
+/* ------------------------------------------------------------------------- flags */
+
+// Committed alongside public/data/, not fetched from flag-icons at runtime — the app
+// must work offline and no third party should see which flag a browser just requested.
+const flagsSrcDir = join(dirname(require.resolve('flag-icons/package.json')), 'flags', '4x3');
+const flagsOutDir = join(root, 'public', 'flags');
+mkdirSync(flagsOutDir, { recursive: true });
+
+const wantedFlags = new Set(countries.map(c => c.iso2.toLowerCase()));
+const missingFlags = [...wantedFlags].filter(iso2 => !existsSync(join(flagsSrcDir, `${iso2}.svg`)));
+if (missingFlags.length) {
+  throw new Error(`flag-icons has no flag for: ${missingFlags.join(', ')}`);
+}
+for (const iso2 of wantedFlags) {
+  copyFileSync(join(flagsSrcDir, `${iso2}.svg`), join(flagsOutDir, `${iso2}.svg`));
+}
+
+// an orphan here would be a country that shipped once and no longer does — clean it up
+// rather than let public/flags/ grow forever
+let orphanedFlags = 0;
+for (const file of readdirSync(flagsOutDir)) {
+  if (!wantedFlags.has(file.replace(/\.svg$/, ''))) {
+    unlinkSync(join(flagsOutDir, file));
+    orphanedFlags += 1;
+  }
+}
+
+const flagsBytes = readdirSync(flagsOutDir)
+  .reduce((sum, file) => sum + statSync(join(flagsOutDir, file)).size, 0);
+
 console.log(`countries      ${countries.length}`);
 console.log(`arcs           ${arcs.length}`);
 console.log(`geometries     ${geometries.length}`);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);
 console.log(`world.json     ${(json.length / 1024).toFixed(0)} KB`);
 console.log(`countries.json ${(facts.length / 1024).toFixed(0)} KB`);
+console.log(
+  `flags          ${wantedFlags.size} (${(flagsBytes / (1024 * 1024)).toFixed(1)} MB)` +
+    (orphanedFlags ? `, removed ${orphanedFlags} orphan(s)` : '')
+);

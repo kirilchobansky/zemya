@@ -456,14 +456,30 @@ a {
 .search__results button[data-active='true'] {
   background: var(--chart-3);
 }
-.search__flag {
-  font-size: 15px;
-}
 .search__meta {
   margin-left: auto;
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------- flag */
+
+.flag {
+  display: block;
+  flex: 0 0 auto;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  /* no background colour: a flag that isn't really 4:3 (Nepal, Switzerland, Vatican)
+     ships with transparent padding, and a background would draw a false rectangle */
+}
+.flag--emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* ---------------------------------------------------------------- panel */
@@ -519,8 +535,9 @@ a {
   align-items: flex-start;
 }
 .dossier__flag {
-  font-size: 44px;
-  line-height: 1;
+  flex: 0 0 auto;
+}
+.dossier__flag .flag {
   filter: drop-shadow(0 3px 8px rgb(0 0 0 / 50%));
 }
 .dossier__hero h3 {
