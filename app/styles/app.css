@@ -1015,6 +1015,14 @@ a {
   color: var(--ink-3);
 }
 
+.quiz-result__time {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--brass-2);
+  margin: 2px 0 8px;
+}
+
 kbd {
   font-family: var(--font-mono);
   font-size: 9.5px;

@@ -47,11 +47,11 @@ before reconstructing it from `git log`.
   on purpose — see Git conventions).
 - Country name matching (`aliases` on every country record, built at build time from
   world-countries' altSpellings/common/official name; matched in
-  `app/lib/geography/names.ts`) and the "Name the Country" quiz — see Quizzes below.
+  `app/lib/geography/names.ts`) and the "Name the Country" quiz, including its results
+  screen, a `quizRuns` personal-best history and feeding the FSRS `location` card on
+  every answer — see Quizzes below.
 
 **Next:**
-- The quiz's results screen, personal best and FSRS grading are not built yet — a run
-  currently ends with a bare "finished in M:SS, run it again" panel. See Quizzes below.
 - The `location` facet still has no question kind — it needs map-click interaction,
   which is why `ASKABLE_FACETS` filters it out rather than removing it from
   `applicableFacets()`. This is the next piece of study mode, not a bug.
@@ -296,11 +296,31 @@ islands over ~500 km) all chain into one and stay in whole. Tuned against real d
 geometry for Monaco/Chile/Russia/Indonesia (the four the owner named as breaking naive
 framing), not against a running browser — see the Known rough edges note on why.
 
-**Not built yet (commit 3 territory):** the results screen, personal best
-(`quizRuns` in Dexie), and feeding a `geo:<ISO3>:location` FSRS card from quiz answers.
-When that lands: `location` is graded by the quiz even though study mode still can't ask
-it (`ASKABLE_FACETS` excludes it) — that's intentional, the quiz *is* the location
-question, so don't "fix" it by adding a location question kind to study mode instead.
+**Feeding the spaced repetition.** Every answer grades that country's `geo:<ISO3>:location`
+card (`app/lib/geography/mastery.ts`'s `cardId`) through the normal `review()` from
+`useProgress()` — the same path study mode uses. `location` is graded here even though
+study mode still can't ask it (`ASKABLE_FACETS` excludes it) — that's intentional, the
+quiz *is* the location question, so don't "fix" it by adding a location question kind to
+study mode instead. Rating: revealed -> Again; not revealed but skipped at least once ->
+Hard; answered clean and fast (under 5 s of the country last becoming the target) ->
+Easy; answered clean otherwise -> Good. "Fast" is measured from when the country MOST
+RECENTLY became the target, not first — the two are the same instant for any answer that
+was never skipped, i.e. every Easy/Good case, so this only matters for telling Hard apart,
+where it already resolves to Hard regardless of elapsed time.
+
+**Personal best.** Every finished run is appended (never overwritten) to a `quizRuns`
+table in the same Dexie database as `cards`/`reviews` (`app/lib/core/progress.ts`) —
+`bestQuizTime()` reads the fastest for a given quiz+size, shown on the catalogue's size
+cards and on the results screen ("beat your best" / "personal best stays"). Deliberately
+left out of the JSON export/import format: a personal best is local flavour, not learning
+progress, and folding it in would force `SCHEMA_VERSION` to move over an additive table.
+Revisit if the owner wants best times to survive a device move.
+
+**Results screen.** On the last correct answer the camera pulls back to the world view
+(`atlas.home()`) while the finished map stays coloured (green/amber, from the `quiz`
+override, which is only cleared on unmounting the route) and the panel shows the time,
+the personal-best comparison, a first-try-vs-revealed tally, and every revealed country
+as a dossier link — "the ones worth another look", the actual point of the screen.
 
 ## Commands
 

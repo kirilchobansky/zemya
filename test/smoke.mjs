@@ -424,6 +424,36 @@ try {
       );
     }
   }
+
+  /* --- 15. finishing a run shows the results screen and records a personal best ----- */
+  let guard = 0;
+  while (guard++ < 25) {
+    const state = await page.evaluate(() => window.__zemyaQuiz);
+    if (!state || state.phase === 'done') break;
+    if (!state.target) break;
+    await page.fill('.quiz-dock__input', state.target);
+    await page.waitForTimeout(1500); // outlast the fly-to animation to the next target
+  }
+  const finishedState = await page.evaluate(() => window.__zemyaQuiz);
+  check(finishedState?.phase === 'done', `run did not reach "done" after ${guard} answers`);
+
+  if (finishedState?.phase === 'done') {
+    const resultText = await page.textContent('.panel__body');
+    check(/personal best/i.test(resultText), 'results screen missing the personal best line');
+    check(/first-try/.test(resultText), 'results screen missing the first-try/revealed tally');
+    check(!(await page.isVisible('.quiz-dock')), 'the input dock is still visible after finishing');
+
+    await page.click('.action--primary:has-text("Run it again")');
+    await page.waitForTimeout(500);
+    const restarted = await page.evaluate(() => window.__zemyaQuiz);
+    check(restarted?.phase === 'running', '"Run it again" did not start a new run');
+
+    // a second, slower run should report the earlier one as the (unbeaten) personal best
+    await page.goto(`${devBase}quiz`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    const catalogueText = await page.textContent('.panel__body');
+    check(/\d:\d\d\.\d/.test(catalogueText), 'the quiz catalogue shows no personal best time after a finished run');
+  }
 } finally {
   if (devServer) {
     try {
@@ -445,5 +475,5 @@ if (problems.length) {
 console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
-    'progress grading, quiz mode (no leak)'
+    'progress grading, quiz mode (no leak), quiz results and personal best'
 );

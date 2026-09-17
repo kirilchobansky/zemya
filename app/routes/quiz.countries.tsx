@@ -16,12 +16,19 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { Link, useParams } from 'react-router';
 
 import { useAtlasContext } from './atlas';
-import { formatDuration } from '~/lib/format';
+import { useProgress } from '~/lib/core/ProgressProvider';
+import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { makeRng, shuffle } from '~/lib/core/questions';
+import type { ReviewRating } from '~/lib/core/scheduler';
+import { formatDuration } from '~/lib/format';
+import { cardId } from '~/lib/geography/mastery';
 import { matchesCountry } from '~/lib/geography/names';
 import { isQuizSize, QUIZZES, topByPopulation, type QuizSize } from '~/lib/geography/quizzes';
 import { loadWorld } from '~/lib/geography/world';
 import type { CountryRecord, World } from '~/lib/map/types';
+
+/** Grading thresholds mapped onto FSRS's four ratings — see CLAUDE.md's Quizzes section. */
+const EASY_MS = 5000;
 
 const DEFAULT_SIZE: QuizSize = '20';
 
@@ -41,6 +48,7 @@ export default function QuizCountriesRun() {
   const quizTitle = QUIZZES.find(q => q.id === 'countries')?.title ?? 'Name the Country';
 
   const { atlas, quiz, setQuiz } = useAtlasContext();
+  const { review } = useProgress();
 
   const [world, setWorld] = useState<World | null>(null);
   useEffect(() => {
@@ -63,6 +71,32 @@ export default function QuizCountriesRun() {
   const segmentStartRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /** When each country most recently became the target, and which countries were ever
+   *  skipped — read once per answer to grade the location card (see handleInputChange)
+   *  and never rendered, so refs rather than state. */
+  const shownAtRef = useRef<Map<string, number>>(new Map());
+  const skippedRef = useRef<Set<string>>(new Set());
+
+  const [priorBest, setPriorBest] = useState<number | null>(null);
+  interface RunResult {
+    timeMs: number;
+    firstTryCount: number;
+    revealed: CountryRecord[];
+    beatBest: boolean;
+    /** The best time going INTO this run, snapshotted at finish time — priorBest itself
+     *  gets folded forward to include this run's own time right after, so the display
+     *  must read this copy rather than the reactive state or "beat your best" would
+     *  compare the new time against itself once the state settles. */
+    previousBest: number | null;
+  }
+  const [result, setResult] = useState<RunResult | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    bestQuizTime('countries', size).then(best => { if (!cancelled) setPriorBest(best); });
+    return () => { cancelled = true; };
+  }, [size]);
+
   const target = useMemo(() => {
     if (!world || queue.length === 0) return null;
     return world.byIso3.get(queue[0].iso3) ?? null;
@@ -84,7 +118,10 @@ export default function QuizCountriesRun() {
     setInput('');
     setRevealedSet(new Set());
     setAccumulatedMs(0);
+    setResult(null);
     segmentStartRef.current = null;
+    shownAtRef.current = new Map();
+    skippedRef.current = new Set();
   }, [size]);
 
   const start = useCallback(() => {
@@ -94,6 +131,9 @@ export default function QuizCountriesRun() {
     setInput('');
     setRevealedSet(new Set());
     setAccumulatedMs(0);
+    setResult(null);
+    shownAtRef.current = new Map();
+    skippedRef.current = new Set();
     segmentStartRef.current = Date.now();
     setPhase('running');
   }, [countries]);
@@ -118,6 +158,7 @@ export default function QuizCountriesRun() {
     if (phase !== 'running' || !atlas || !target) return;
     atlas.flyToQuiz(target);
     setQuiz(prev => (prev ? { ...prev, target } : prev));
+    shownAtRef.current.set(target.country.iso3, Date.now());
   }, [phase, target, atlas, setQuiz]);
 
   /* live timer tick while running; frozen (not just visually — accumulatedMs itself stops
@@ -139,6 +180,7 @@ export default function QuizCountriesRun() {
 
   const skip = useCallback(() => {
     if (phase !== 'running' || queue.length < 2) return;
+    skippedRef.current.add(queue[0].iso3);
     setQueue(q => [...q.slice(1), q[0]]);
     setInput('');
   }, [phase, queue]);
@@ -164,14 +206,26 @@ export default function QuizCountriesRun() {
     (e: ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setInput(value);
-      if (phase !== 'running' || !target) return;
+      if (phase !== 'running' || !target || !world) return;
       if (!matchesCountry(value, target.country)) return;
 
-      const outcome: Outcome = revealedSet.has(target.country.iso3) ? 'revealed' : 'correct';
+      const iso3 = target.country.iso3;
+      const wasRevealed = revealedSet.has(iso3);
+      const wasSkipped = skippedRef.current.has(iso3);
+      const elapsedMs = Date.now() - (shownAtRef.current.get(iso3) ?? Date.now());
+
+      /* Feed the spaced repetition: this is the point of having built FSRS. Playing the
+         quiz schedules the countries you don't know for review in study mode — location
+         is graded here even though study mode still can't ask it (ASKABLE_FACETS
+         excludes it); the quiz IS the location question. See CLAUDE.md's Quizzes section. */
+      const rating: ReviewRating = wasRevealed ? 'again' : wasSkipped ? 'hard' : elapsedMs < EASY_MS ? 'easy' : 'good';
+      review(cardId(iso3, 'location'), rating);
+
+      const outcome: Outcome = wasRevealed ? 'revealed' : 'correct';
       setQuiz(prev => {
         if (!prev) return prev;
         const answered = new Map(prev.answered);
-        answered.set(target.country.iso3, outcome);
+        answered.set(iso3, outcome);
         return { ...prev, answered };
       });
       setInput('');
@@ -179,11 +233,31 @@ export default function QuizCountriesRun() {
       const remaining = queue.slice(1);
       setQueue(remaining);
       if (remaining.length === 0) {
+        const finalElapsedMs = accumulatedMs + (segmentStartRef.current ? Date.now() - segmentStartRef.current : 0);
         stopSegment();
         setPhase('done');
+        atlas?.home();
+
+        const revealed = [...revealedSet]
+          .map(revealedIso3 => world.byIso3.get(revealedIso3)?.country)
+          .filter((c): c is CountryRecord => Boolean(c));
+        const firstTryCount = countries.length - revealed.length;
+        const beatBest = priorBest === null || finalElapsedMs < priorBest;
+
+        setResult({ timeMs: finalElapsedMs, firstTryCount, revealed, beatBest, previousBest: priorBest });
+        setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
+        saveQuizRun({
+          quizId: 'countries',
+          size,
+          timeMs: finalElapsedMs,
+          totalCount: countries.length,
+          firstTryCount,
+          revealedCount: revealed.length,
+          at: Date.now()
+        });
       }
     },
-    [phase, target, revealedSet, queue, setQuiz, stopSegment]
+    [phase, target, world, revealedSet, review, queue, setQuiz, accumulatedMs, stopSegment, atlas, countries, priorBest, size]
   );
 
   function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -295,21 +369,50 @@ export default function QuizCountriesRun() {
           </>
         )}
 
-        {phase === 'done' && (
-          <div className="hook">
-            <div className="hook__label">Result</div>
-            <p>
-              Finished in <b>{formatDuration(accumulatedMs)}</b>.
-            </p>
-            <button type="button" className="action action--primary" onClick={start}>
-              Run it again
-            </button>
-            <p style={{ marginTop: 10 }}>
+        {phase === 'done' && result && (
+          <>
+            <div className="hook">
+              <div className="hook__label">Result</div>
+              <p className="quiz-result__time numeric">{formatDuration(result.timeMs)}</p>
+              <p style={{ marginBottom: 6 }}>
+                {result.beatBest ? (
+                  result.previousBest !== null ? (
+                    <>New personal best — beat <b>{formatDuration(result.previousBest)}</b>.</>
+                  ) : (
+                    <>First run at this size — <b>{formatDuration(result.timeMs)}</b> is now your personal best.</>
+                  )
+                ) : (
+                  <>Personal best stays <b>{formatDuration(result.previousBest ?? result.timeMs)}</b>.</>
+                )}
+              </p>
+              <p>
+                <b>{result.firstTryCount}</b> first-try, <b>{result.revealed.length}</b> revealed
+                {' '}(of {countries.length}).
+              </p>
+            </div>
+
+            {result.revealed.length > 0 && (
+              <section>
+                <h3 className="subhead">Revealed — the ones worth another look</h3>
+                <div className="neighbours">
+                  {result.revealed.map(country => (
+                    <Link className="neighbour" key={country.iso3} to={`/country/${country.slug}`}>
+                      {country.emoji} {country.name}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div className="actions">
+              <button type="button" className="action action--primary" onClick={start}>
+                Run it again
+              </button>
               <Link to="/quiz" className="action">
                 Back to quizzes
               </Link>
-            </p>
-          </div>
+            </div>
+          </>
         )}
       </div>
 

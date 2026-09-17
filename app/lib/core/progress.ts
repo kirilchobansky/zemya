@@ -19,7 +19,10 @@ import Dexie, { type EntityTable } from 'dexie';
 
 import type { ProgressCard, ReviewEntry } from './scheduler';
 
-/** Bump only for a breaking row shape. Written into meta and into every export. */
+/** Bump only for a breaking row shape. Written into meta and into every export. Not the
+ *  same number as the Dexie schema version below — quizRuns is additive (a new table,
+ *  not a changed row shape) and deliberately left out of export/import (see QuizRunEntry's
+ *  own doc comment), so it doesn't force this one to move. */
 export const SCHEMA_VERSION = 1;
 
 const DB_NAME = 'zemya-progress';
@@ -29,10 +32,34 @@ interface MetaRow {
   value: unknown;
 }
 
+/**
+ * One finished quiz run, appended — never overwritten, so a history exists later even
+ * though only the fastest time is surfaced today. `quizId`/`size` are opaque strings here
+ * for the same reason card ids are: this file must not need to know what "countries"
+ * means, so a future history quiz can log runs into the same table.
+ *
+ * Deliberately NOT part of ExportPayload/SCHEMA_VERSION: a personal best is local flavour,
+ * not learning progress, and keeping it out avoids forcing every existing export
+ * incompatible over an additive table. Revisit if the owner wants best times to survive
+ * a device move.
+ */
+export interface QuizRunEntry {
+  id?: number;
+  quizId: string;
+  size: string;
+  timeMs: number;
+  totalCount: number;
+  firstTryCount: number;
+  revealedCount: number;
+  /** Epoch ms. */
+  at: number;
+}
+
 type ProgressDb = Dexie & {
   cards: EntityTable<ProgressCard, 'id'>;
   reviews: EntityTable<ReviewEntry & { seq?: number }, 'seq'>;
   meta: EntityTable<MetaRow, 'key'>;
+  quizRuns: EntityTable<QuizRunEntry, 'id'>;
 };
 
 let db: ProgressDb | null = null;
@@ -51,9 +78,38 @@ function database(): ProgressDb | null {
       reviews: '++seq, cardId, at',
       meta: 'key'
     });
+    // Additive only — quizRuns is a new table, existing rows in the first three are
+    // untouched, so no upgrade() callback is needed for Dexie to carry them forward.
+    instance.version(2).stores({
+      cards: 'id, due, state',
+      reviews: '++seq, cardId, at',
+      meta: 'key',
+      quizRuns: '++id, quizId, size, at'
+    });
     db = instance;
   }
   return db;
+}
+
+/** Fire-and-forget, like saveCard/logReview — the UI never waits on this write. */
+export function saveQuizRun(entry: Omit<QuizRunEntry, 'id'>): void {
+  const store = database();
+  if (!store) return;
+  store.quizRuns.add(entry as QuizRunEntry).catch(shrug('quiz run write'));
+}
+
+/** The fastest recorded time for this quiz size, or null if it has never been run. */
+export async function bestQuizTime(quizId: string, size: string): Promise<number | null> {
+  const store = database();
+  if (!store) return null;
+  try {
+    const runs = await store.quizRuns.where('quizId').equals(quizId).toArray();
+    const matching = runs.filter(r => r.size === size);
+    return matching.length ? Math.min(...matching.map(r => r.timeMs)) : null;
+  } catch (error) {
+    shrug('best time read')(error);
+    return null;
+  }
 }
 
 function shrug(what: string): (error: unknown) => void {
