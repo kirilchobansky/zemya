@@ -315,6 +315,13 @@ ignored in `handleInputChange`'s own phase check, so it stays focused and every 
 keeps working. General lesson: a keyboard shortcut that is supposed to escape a state must
 not be attached only to a DOM node that state disables.
 
+**Abandon.** `Ctrl+Backspace` (also a button) quits a run outright — nothing saved, no
+`quizRuns` row, no FSRS grading for anything answered so far — and returns to `/quiz`.
+Deliberately just a `navigate('/quiz')`: the route unmounting is what already tears the
+`quiz` override down (see its mount effect), so there is no local state to reset first.
+Not a bare key, and not Esc (already pause) — a bare letter would fire while typing a
+country's own name (e.g. "Qatar").
+
 **Feeding the spaced repetition.** Every answer grades that country's `geo:<ISO3>:location`
 card (`app/lib/geography/mastery.ts`'s `cardId`) through the normal `review()` from
 `useProgress()` — the same path study mode uses. `location` is graded here even though

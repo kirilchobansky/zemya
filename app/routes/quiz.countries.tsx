@@ -13,7 +13,7 @@
  * per the interaction spec, even though both come from this one route.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 
 import { useAtlasContext } from './atlas';
 import { useProgress } from '~/lib/core/ProgressProvider';
@@ -43,6 +43,7 @@ type Phase = 'idle' | 'running' | 'paused' | 'done';
 type Outcome = 'correct' | 'revealed';
 
 export default function QuizCountriesRun() {
+  const navigate = useNavigate();
   const params = useParams<{ size: string }>();
   const size: QuizSize = params.size && isQuizSize(params.size) ? params.size : DEFAULT_SIZE;
   const quizTitle = QUIZZES.find(q => q.id === 'countries')?.title ?? 'Name the Country';
@@ -226,22 +227,35 @@ export default function QuizCountriesRun() {
     }
   }, [phase, stopSegment, setQuiz]);
 
-  /* Esc toggles pause from the window, not the input's own onKeyDown — the input used to
-     be given the `disabled` attribute while paused, which also silently drops keyboard
-     focus (a disabled element can't be focused at all), so a second Esc, aimed at the
-     input, never reached any handler and the run looked stuck. A global listener means
-     pausing can never strand its own resume shortcut. */
+  /* Abandon: quit the run outright, nothing saved — no quizRuns row, no FSRS grading for
+     whatever was answered so far. Just navigate away; the route unmounts, which is what
+     already tears the quiz override down and restores the normal map (see the mount
+     effect above). Nothing here needs to reset local state first. */
+  const abandon = useCallback(() => {
+    navigate('/quiz');
+  }, [navigate]);
+
+  /* Esc toggles pause, Ctrl+Backspace abandons — both live on the window, not the input's
+     own onKeyDown. The input used to be given the `disabled` attribute while paused,
+     which also silently drops keyboard focus (a disabled element can't be focused at
+     all), so a second Esc, aimed at resuming, reached no handler and the run looked
+     stuck; a global listener means pausing can never strand its own resume shortcut.
+     Ctrl+Backspace (not a bare key) so it can never fire while actually typing a
+     country's name — a bare letter would collide with typing e.g. "Qatar". */
   useEffect(() => {
     if (phase !== 'running' && phase !== 'paused') return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault();
         togglePause();
+      } else if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        abandon();
       }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [phase, togglePause]);
+  }, [phase, togglePause, abandon]);
 
   const handleInputChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -400,6 +414,9 @@ export default function QuizCountriesRun() {
               </button>
               <button type="button" className="action" onClick={togglePause}>
                 {phase === 'paused' ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
+              </button>
+              <button type="button" className="action" onClick={abandon}>
+                Abandon <kbd>Ctrl+⌫</kbd>
               </button>
             </div>
 
