@@ -12,7 +12,7 @@
  * dial it up if the unsimplified payload ever stops being affordable.
  */
 import {
-  readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, unlinkSync,
+  readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync,
   statSync, existsSync
 } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -583,31 +583,50 @@ if (missingFlags.length) {
   throw new Error(`svg-country-flags has no flag for: ${missingFlags.join(', ')}`);
 }
 
-/**
- * Some of these SVGs carry only a `viewBox`, no width/height attributes — a browser can't
- * infer a display size from a bare viewBox, so `width: auto` in CSS falls back to a
- * default box and the flag renders small and wrong (hit this in a test render; Qatar and
- * Nepal are two such files). The fix has to be a build step: parse the viewBox here and
- * ship the ratio on the country record, so Flag.tsx can set an explicit `aspect-ratio`
- * instead. Throws rather than silently falling back to a fixed box, which is the bug this
- * exists to prevent.
- */
-function flagRatio(svg, iso2) {
+/** Every one of these SVGs' root `<svg>` element carries only a `viewBox`, no width/height
+ *  attributes (confirmed: 0/197 have one). Throws rather than silently skipping a file,
+ *  which is the bug this exists to prevent. */
+function viewBoxSize(svg, iso2) {
   const match = svg.match(/viewBox\s*=\s*"([^"]+)"/i);
-  if (!match) throw new Error(`flags: ${iso2}.svg has no viewBox to compute an aspect ratio from`);
+  if (!match) throw new Error(`flags: ${iso2}.svg has no viewBox to size it from`);
   const parts = match[1].trim().split(/[\s,]+/).map(Number);
   const [, , w, h] = parts;
   if (parts.length !== 4 || !(w > 0) || !(h > 0)) {
     throw new Error(`flags: ${iso2}.svg has an unparseable viewBox "${match[1]}"`);
   }
-  return w / h;
+  return { w, h };
+}
+
+/**
+ * An <img> with no intrinsic size at all computes to zero height with width/height left
+ * auto, no matter what CSS aspect-ratio says — aspect-ratio needs one definite dimension
+ * to resolve against, and a bare `viewBox` gives the element neither a natural size nor,
+ * in practice, a reliably-honoured natural ratio. Confirmed by looking: every flag
+ * rendered invisible until this existed. The fix has to be in the file itself, so every
+ * place a flag is used gets a real intrinsic size for free — inject width/height from the
+ * viewBox onto the root `<svg>` before writing it to public/flags/, rather than leaving
+ * each caller to work around a sizeless image. flagRatio is still emitted on the country
+ * record too (Flag.tsx wants a definite number, not a re-parsed viewBox, to size from).
+ */
+function withIntrinsicSize(svg, w, h, iso2) {
+  // The FIRST <svg ...> tag only — some flags (Slovenia's coat of arms) embed a second,
+  // nested <svg> deeper in the file that legitimately has its own width/height. Checking
+  // (or injecting into) anywhere-in-the-string would false-positive on that nested tag
+  // and leave the actual root element still sizeless — confirmed: this is exactly what
+  // happened to si.svg before the check was scoped to the root tag specifically.
+  const rootTag = svg.match(/<svg\b[^>]*>/);
+  if (!rootTag) throw new Error(`flags: ${iso2}.svg has no <svg> root element to size`);
+  if (/\bwidth\s*=/.test(rootTag[0]) && /\bheight\s*=/.test(rootTag[0])) return svg;
+  const injectedTag = rootTag[0].replace('<svg', `<svg width="${w}" height="${h}"`);
+  return svg.slice(0, rootTag.index) + injectedTag + svg.slice(rootTag.index + rootTag[0].length);
 }
 
 for (const iso2 of wantedFlags) {
   const svgPath = join(flagsSrcDir, `${iso2}.svg`);
   const svg = readFileSync(svgPath, 'utf8');
-  byIso2.get(iso2).flagRatio = flagRatio(svg, iso2);
-  copyFileSync(svgPath, join(flagsOutDir, `${iso2}.svg`));
+  const { w, h } = viewBoxSize(svg, iso2);
+  byIso2.get(iso2).flagRatio = w / h;
+  writeFileSync(join(flagsOutDir, `${iso2}.svg`), withIntrinsicSize(svg, w, h, iso2), 'utf8');
 }
 
 // an orphan here would be a country that shipped once and no longer does — clean it up

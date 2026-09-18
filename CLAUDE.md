@@ -36,11 +36,30 @@ before reconstructing it from `git log`.
   from a hole already present in world-atlas's separate land layer, no new dependency.
   The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
 - Real flag images (`public/flags/`, from svg-country-flags, offline, emoji fallback on
-  error) at their own true aspect ratio — `flagRatio` on the country record, computed at
-  build time from each SVG's `viewBox` and set as an explicit CSS `aspect-ratio` in
-  `Flag.tsx`, since a bare `viewBox` with no width/height (Qatar, Nepal) leaves a browser
-  nothing to size an `<img>` from otherwise. `flag-icons`, which normalised everything to
-  4:3, is gone.
+  error) at their own true aspect ratio. `flag-icons`, which normalised everything to
+  4:3, is gone. Every one of these SVGs' root element carries only a `viewBox`, no
+  width/height — `scripts/build-content.mjs` injects both onto the file itself (from the
+  viewBox) before it's written to `public/flags/`, and separately emits the same ratio as
+  `flagRatio` on the country record. **Both matter, for different reasons**: the injected
+  width/height give the `<img>` a real intrinsic size, which is what CSS auto-sizing
+  actually needs to not collapse to zero (see the incident below); `flagRatio` is what
+  `Flag.tsx` uses to compute an explicit, definite pixel width AND height in JS for each
+  size box, rather than leaning on the browser's own auto-sizing algorithm at all. A first
+  version tried to fix this with CSS alone (`aspect-ratio` + `max-width`/`max-height`,
+  `width`/`height` left `auto`) and shipped every flag invisible everywhere in the app —
+  computed to zero height silently, no console error. It looked fine in the generated
+  HTML (a plausible `style="aspect-ratio:…"` string) and passed
+  `typecheck`/`build`/`test:unit`, and even the Playwright smoke test's flag assertion,
+  which only checked `img.naturalWidth > 0` (the decoded resource's own size) rather than
+  `clientWidth`/`clientHeight` (the actual on-screen box) — the two are not the same
+  thing, and only the second one was zero. Fixed by injecting real intrinsic dimensions at
+  the source AND computing both rendered dimensions explicitly in JS; the smoke test's
+  flag checks now assert `clientWidth`/`clientHeight` too. Lesson for next time a sizing
+  bug is this suspicious: **check
+  `clientWidth`/`clientHeight` on the actual element, not just that the network request
+  succeeded or a plausible-looking style string got emitted** — and see the Playwright
+  workaround under Known rough edges below, since this bug is exactly why "the tests
+  passed" stopped being reassuring enough.
 - Progress and scheduling: FSRS cards per (country, facet), created lazily, mastery
   derived never stored, IndexedDB via Dexie, export/import/reset.
 - Study mode: 9 question kinds, session policy (due cards first, then new cards
@@ -87,23 +106,41 @@ before reconstructing it from `git log`.
   build-content.mjs — and (b) a one-time fetch step this project has never had before.
 
 **Known rough edges:**
-- `npm test` (the Playwright smoke test) cannot run in this sandbox — Chromium is
-  missing system shared libraries here and there's no passwordless sudo to install
-  them. Every session so far has substituted `typecheck` + `build:content` +
-  `react-router build` + `test:unit`, plus a real render of the affected geometry
-  through node-canvas for anything visual, but the owner should run the real smoke
-  test after pulling to be sure. The installed node-canvas version (3.2.3, added and
-  removed again with `--no-save` — it is not a dependency) turned out not to implement
-  Path2D at all, so the quiz's "no labels leak the answer" requirement was instead
-  verified with a mocked 2D context asserting `fillText`/`strokeText` are never called
-  under `quizMode` (`test/unit/renderer.test.ts`) rather than an eyeballed screenshot —
-  a stronger, deterministic check where it applies, but still not a substitute for
-  actually running `npm test` after pulling. Confirmed again while building the flags
-  quiz: `npx playwright install chromium` succeeds (network access to the CDN works
-  fine), but launching it still fails — `error while loading shared libraries:
-  libnspr4.so` — so this is a missing-system-package problem, not a missing-browser-
-  binary one; installing Chromium again will not fix it without also installing its
-  runtime dependencies, which needs the sudo this sandbox doesn't have.
+- `npm test` (the Playwright smoke test) needs Chromium's runtime shared libraries,
+  which this sandbox doesn't have installed system-wide and there's no passwordless sudo
+  to `apt install` them with. **This is now solvable without root**, though — worked out
+  while chasing the invisible-flags bug (see below), where "the tests passed while the
+  bug was live" made a real browser run non-optional. `apt-get download <pkg>` fetches a
+  `.deb` to the current directory as a plain user (it only needs read access to the apt
+  lists, not install privileges), and `dpkg-deb -x <pkg>.deb <dir>` extracts it without
+  touching the system. `npx playwright install-deps --dry-run chromium` lists 28 "missing"
+  packages, but that count is for the full X11/Xvfb/font stack a real display needs —
+  Chrome's own headless mode only actually `dlopen`s a handful of them. In practice, three
+  were enough to get `chromium.launch()` working end to end:
+  ```bash
+  mkdir -p /tmp/pwlibs && cd /tmp/pwlibs
+  apt-get download libnspr4 libnss3 libasound2t64
+  for f in *.deb; do dpkg-deb -x "$f" extract; done
+  export LD_LIBRARY_PATH=/tmp/pwlibs/extract/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+  CHROMIUM_PATH=<path from `npx playwright install chromium`'s "Install location"> npm test
+  ```
+  (found by launching, reading the next `error while loading shared libraries: libX.so`,
+  downloading that one package, and repeating — did not need to guess the full list up
+  front). This environment variable only lasts the shell session; a future session hitting
+  the "Chromium is missing shared libraries" error should try this before assuming `npm
+  test` is unavailable and falling back to the substitute checks below.
+- Node-canvas is still not a real substitute for a browser when this shortcut isn't
+  available for some reason: `typecheck` + `build:content` + `react-router build` +
+  `test:unit`, plus a real render of the affected geometry through node-canvas for
+  anything visual, catch most regressions but not a CSS layout bug — the invisible-flags
+  incident (see "Where this is") shipped past every one of those checks, including a
+  passing `test:unit` and a passing (wrongly-asserting) smoke test, and was only visible
+  once an actual browser laid out the page. The installed node-canvas version (3.2.3,
+  added and removed again with `--no-save` — it is not a dependency) also turned out not
+  to implement Path2D at all, so the quiz's "no labels leak the answer" requirement is
+  instead verified with a mocked 2D context asserting `fillText`/`strokeText` are never
+  called under `quizMode` (`test/unit/renderer.test.ts`) — a stronger, deterministic check
+  where it applies, but still no substitute for a real layout engine.
 - Vatican City's 1:10m source geometry (world-atlas, one arc, 3 points, all at the same
   longitude) is degenerate — a zero-width line, not a polygon — so it stays a pin at any
   zoom regardless of the pin/shape fix above. Confirmed it's the only one of the small

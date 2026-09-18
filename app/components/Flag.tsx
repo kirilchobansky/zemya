@@ -1,20 +1,24 @@
 /**
  * A country flag, rendered from the local SVGs in public/flags/ (generated from
- * svg-country-flags at build time — see scripts/build-content.mjs). Falls back to the
+ * svg-country-flags at build time — see scripts/build-content.mjs, which now also
+ * injects width/height onto the SVG's root element from its viewBox). Falls back to the
  * emoji flag on error: offline, or before the service worker exists to cache the SVG, a
  * broken-image icon must never be what a learner sees.
  *
  * Sized from the country's own flagRatio rather than assumed 4:3 — Qatar is 2.55:1, Nepal
- * isn't even a rectangle, Switzerland and the Vatican are square. `size` is a bounding
- * box (max-width/max-height); the flag fits inside it at its true shape rather than being
- * stretched or letterboxed into a fixed 4:3 slot. See CLAUDE.md's Quizzes section.
+ * isn't even a rectangle, Switzerland and the Vatican are square. Both the rendered width
+ * AND height are computed here, in JS, as a "contain" fit inside `size`'s bounding box —
+ * deliberately not `width: auto` / `height: auto` plus CSS `aspect-ratio`, which renders
+ * every flag at zero height the moment the source SVG has no intrinsic size of its own
+ * (confirmed by looking: that is exactly what shipped before this comment was written).
+ * Two explicit pixel numbers can't collapse to zero regardless of what the source file
+ * does or does not declare. See CLAUDE.md's Quizzes section.
  */
 import { useState } from 'react';
 
-/** Bounding box a flag fits inside, in CSS px — not the flag's own final size. Heights
- *  are derived at 4:3 (the shape most flags are actually close to) so a typical flag ends
- *  up exactly the size it always did; a genuinely different shape (Qatar, Nepal, a
- *  square) sizes down from there rather than being forced into this box. */
+/** Bounding box a flag fits inside, in CSS px. A typical ~3:2-ish flag ends up close to
+ *  the size flags always rendered at; a genuinely different shape (Qatar, Nepal, a
+ *  square) sizes down from there rather than being stretched or letterboxed. */
 const BOXES = {
   sm: { width: 20, height: 15 },
   md: { width: 64, height: 48 },
@@ -38,6 +42,17 @@ interface FlagProps {
   alt?: string;
 }
 
+/** The largest width/height that fits `ratio` inside `box` without exceeding either
+ *  dimension — the same "contain" result `object-fit: contain` would give, computed
+ *  ahead of time as two plain numbers so the element never depends on the browser's
+ *  replaced-element auto-sizing algorithm at all. */
+function containFit(ratio: number, box: { width: number; height: number }): { width: number; height: number } {
+  const boxRatio = box.width / box.height;
+  return ratio > boxRatio
+    ? { width: box.width, height: box.width / ratio }
+    : { width: box.height * ratio, height: box.height };
+}
+
 export function Flag({ iso2, emoji, flagRatio, size = 'md', alt = '' }: FlagProps) {
   const [broken, setBroken] = useState(false);
   const box = BOXES[size];
@@ -50,11 +65,13 @@ export function Flag({ iso2, emoji, flagRatio, size = 'md', alt = '' }: FlagProp
     );
   }
 
+  const { width, height } = containFit(flagRatio, box);
+
   return (
     <img
       className="flag"
       data-size={size}
-      style={{ aspectRatio: flagRatio, maxWidth: box.width, maxHeight: box.height }}
+      style={{ width, height }}
       src={`/flags/${iso2.toLowerCase()}.svg`}
       loading="lazy"
       alt={alt}

@@ -468,14 +468,15 @@ a {
 .flag {
   display: block;
   flex: 0 0 auto;
-  width: auto;
-  height: auto;
   object-fit: contain;
   border: 1px solid var(--rule);
   border-radius: 3px;
-  /* aspect-ratio is set inline per flag (Flag.tsx), from its own true viewBox — not
-     assumed 4:3. No background colour either: a flag that isn't a plain rectangle
-     (Nepal's pennant) has transparent corners, and a background would draw a false one. */
+  /* width/height are set inline per flag (Flag.tsx), as two explicit pixel numbers
+     computed from its own true viewBox — not assumed 4:3, and deliberately not
+     width:auto/height:auto, which renders at zero size once the source SVG has no
+     intrinsic dimensions of its own (see Flag.tsx's own comment). No background colour
+     either: a flag that isn't a plain rectangle (Nepal's pennant) has transparent
+     corners, and a background would draw a false one. */
 }
 .flag--emoji {
   display: inline-flex;

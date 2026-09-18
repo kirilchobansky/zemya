@@ -119,6 +119,17 @@ if (landPoint) {
 /* --- 3. search finds a country and navigates -------------------------------------- */
 await page.fill('.search input', 'bulgaria');
 await page.waitForTimeout(250);
+
+const searchFlagBox = await page.evaluate(() => {
+  const img = document.querySelector('.search__results img.flag');
+  if (!(img instanceof HTMLImageElement)) return null;
+  return { naturalWidth: img.naturalWidth, clientWidth: img.clientWidth, clientHeight: img.clientHeight };
+});
+check(
+  Boolean(searchFlagBox && searchFlagBox.naturalWidth > 0 && searchFlagBox.clientWidth > 0 && searchFlagBox.clientHeight > 0),
+  `the search dropdown's flag image did not render at a real size — ${JSON.stringify(searchFlagBox)}`
+);
+
 await page.keyboard.press('Enter');
 await page.waitForURL('**/country/bulgaria', { timeout: 5000 });
 await page.waitForTimeout(1400);
@@ -128,11 +139,21 @@ for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Bulgarian lev', 'Romania', '
   check(dossier.includes(probe), `dossier missing "${probe}"`);
 }
 
-const flagLoaded = await page.evaluate(() => {
+/* naturalWidth alone is not enough — it's the decoded image resource's own size, and
+   stayed nonzero even in the exact regression this guards against (every flag rendering
+   at zero size because width:auto/height:auto has nothing to resolve against when the
+   source SVG has no intrinsic dimensions of its own; see Flag.tsx and
+   scripts/build-content.mjs). clientWidth/clientHeight is the actual on-screen box, which
+   is what was zero — that's the one this check needs to catch. */
+const flagBox = await page.evaluate(() => {
   const img = document.querySelector('.dossier__flag img.flag');
-  return img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0;
+  if (!(img instanceof HTMLImageElement)) return null;
+  return { complete: img.complete, naturalWidth: img.naturalWidth, clientWidth: img.clientWidth, clientHeight: img.clientHeight };
 });
-check(flagLoaded, 'dossier flag <img> did not load (naturalWidth is 0)');
+check(
+  Boolean(flagBox?.complete && flagBox.naturalWidth > 0 && flagBox.clientWidth > 0 && flagBox.clientHeight > 0),
+  `dossier flag <img> did not render at a real size — ${JSON.stringify(flagBox)}`
+);
 
 /* --- 4. the camera actually flew --------------------------------------------------- */
 const zoomed = await page.textContent('.scalebar');
@@ -490,7 +511,17 @@ try {
 
   const firstFlagState = await page.evaluate(() => window.__zemyaQuiz);
   check(Boolean(firstFlagState?.target), 'flags quiz exposed no current target after START');
-  check(await page.isVisible('.quiz-flag-stage__flag img'), 'the flags quiz shows no flag image');
+
+  // same "actually rendered, not just present" check as the dossier flag above
+  const quizFlagBox = await page.evaluate(() => {
+    const img = document.querySelector('.quiz-flag-stage__flag img');
+    if (!(img instanceof HTMLImageElement)) return null;
+    return { naturalWidth: img.naturalWidth, clientWidth: img.clientWidth, clientHeight: img.clientHeight };
+  });
+  check(
+    Boolean(quizFlagBox && quizFlagBox.naturalWidth > 0 && quizFlagBox.clientWidth > 0 && quizFlagBox.clientHeight > 0),
+    `the flags quiz's flag image did not render at a real size — ${JSON.stringify(quizFlagBox)}`
+  );
 
   if (firstFlagState?.target) {
     await page.fill('.quiz-dock__input', firstFlagState.target);
