@@ -223,7 +223,12 @@ export default function StudyPanel() {
 
         {question.promptFlag ? (
           <div className="quiz__prompt-flag">
-            <Flag iso2={question.promptFlag} emoji={promptCountry?.emoji ?? ''} size="lg" />
+            <Flag
+              iso2={question.promptFlag}
+              emoji={promptCountry?.emoji ?? ''}
+              flagRatio={promptCountry?.flagRatio ?? 4 / 3}
+              size="lg"
+            />
           </div>
         ) : (
           <p className="quiz__prompt">{question.prompt}</p>

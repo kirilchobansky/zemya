@@ -532,6 +532,63 @@ const lakes = holes.map((indices, i) => {
   return { id: i === 0 ? 'lake-caspian-sea' : `lake-caspian-sea-${i}`, arcs: [[arcIndex]] };
 });
 
+/* ------------------------------------------------------------------------- flags */
+
+// Committed alongside public/data/, not fetched from svg-country-flags at runtime — the
+// app must work offline and no third party should see which flag a browser just
+// requested. svg-country-flags (not flag-icons) ships each flag at its own true aspect
+// ratio instead of normalising everything to 4:3 — see CLAUDE.md's Quizzes section.
+const flagsSrcDir = join(dirname(require.resolve('svg-country-flags/package.json')), 'svg');
+const flagsOutDir = join(root, 'public', 'flags');
+mkdirSync(flagsOutDir, { recursive: true });
+
+const byIso2 = new Map(countries.map(c => [c.iso2.toLowerCase(), c]));
+const wantedFlags = new Set(byIso2.keys());
+const missingFlags = [...wantedFlags].filter(iso2 => !existsSync(join(flagsSrcDir, `${iso2}.svg`)));
+if (missingFlags.length) {
+  throw new Error(`svg-country-flags has no flag for: ${missingFlags.join(', ')}`);
+}
+
+/**
+ * Some of these SVGs carry only a `viewBox`, no width/height attributes — a browser can't
+ * infer a display size from a bare viewBox, so `width: auto` in CSS falls back to a
+ * default box and the flag renders small and wrong (hit this in a test render; Qatar and
+ * Nepal are two such files). The fix has to be a build step: parse the viewBox here and
+ * ship the ratio on the country record, so Flag.tsx can set an explicit `aspect-ratio`
+ * instead. Throws rather than silently falling back to a fixed box, which is the bug this
+ * exists to prevent.
+ */
+function flagRatio(svg, iso2) {
+  const match = svg.match(/viewBox\s*=\s*"([^"]+)"/i);
+  if (!match) throw new Error(`flags: ${iso2}.svg has no viewBox to compute an aspect ratio from`);
+  const parts = match[1].trim().split(/[\s,]+/).map(Number);
+  const [, , w, h] = parts;
+  if (parts.length !== 4 || !(w > 0) || !(h > 0)) {
+    throw new Error(`flags: ${iso2}.svg has an unparseable viewBox "${match[1]}"`);
+  }
+  return w / h;
+}
+
+for (const iso2 of wantedFlags) {
+  const svgPath = join(flagsSrcDir, `${iso2}.svg`);
+  const svg = readFileSync(svgPath, 'utf8');
+  byIso2.get(iso2).flagRatio = flagRatio(svg, iso2);
+  copyFileSync(svgPath, join(flagsOutDir, `${iso2}.svg`));
+}
+
+// an orphan here would be a country that shipped once and no longer does — clean it up
+// rather than let public/flags/ grow forever
+let orphanedFlags = 0;
+for (const file of readdirSync(flagsOutDir)) {
+  if (!wantedFlags.has(file.replace(/\.svg$/, ''))) {
+    unlinkSync(join(flagsOutDir, file));
+    orphanedFlags += 1;
+  }
+}
+
+const flagsBytes = readdirSync(flagsOutDir)
+  .reduce((sum, file) => sum + statSync(join(flagsOutDir, file)).size, 0);
+
 /* ------------------------------------------------------------------------- emit */
 
 // the cost of a detail change, made visible: every point actually shipped, arcs and
@@ -569,36 +626,6 @@ writeFileSync(
   JSON.stringify(countries.map(c => c.slug).sort()),
   'utf8'
 );
-
-/* ------------------------------------------------------------------------- flags */
-
-// Committed alongside public/data/, not fetched from flag-icons at runtime — the app
-// must work offline and no third party should see which flag a browser just requested.
-const flagsSrcDir = join(dirname(require.resolve('flag-icons/package.json')), 'flags', '4x3');
-const flagsOutDir = join(root, 'public', 'flags');
-mkdirSync(flagsOutDir, { recursive: true });
-
-const wantedFlags = new Set(countries.map(c => c.iso2.toLowerCase()));
-const missingFlags = [...wantedFlags].filter(iso2 => !existsSync(join(flagsSrcDir, `${iso2}.svg`)));
-if (missingFlags.length) {
-  throw new Error(`flag-icons has no flag for: ${missingFlags.join(', ')}`);
-}
-for (const iso2 of wantedFlags) {
-  copyFileSync(join(flagsSrcDir, `${iso2}.svg`), join(flagsOutDir, `${iso2}.svg`));
-}
-
-// an orphan here would be a country that shipped once and no longer does — clean it up
-// rather than let public/flags/ grow forever
-let orphanedFlags = 0;
-for (const file of readdirSync(flagsOutDir)) {
-  if (!wantedFlags.has(file.replace(/\.svg$/, ''))) {
-    unlinkSync(join(flagsOutDir, file));
-    orphanedFlags += 1;
-  }
-}
-
-const flagsBytes = readdirSync(flagsOutDir)
-  .reduce((sum, file) => sum + statSync(join(flagsOutDir, file)).size, 0);
 
 console.log(`countries      ${countries.length}`);
 console.log(

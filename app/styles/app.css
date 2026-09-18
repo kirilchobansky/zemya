@@ -468,12 +468,14 @@ a {
 .flag {
   display: block;
   flex: 0 0 auto;
-  aspect-ratio: 4 / 3;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border: 1px solid var(--rule);
   border-radius: 3px;
-  /* no background colour: a flag that isn't really 4:3 (Nepal, Switzerland, Vatican)
-     ships with transparent padding, and a background would draw a false rectangle */
+  /* aspect-ratio is set inline per flag (Flag.tsx), from its own true viewBox — not
+     assumed 4:3. No background colour either: a flag that isn't a plain rectangle
+     (Nepal's pennant) has transparent corners, and a background would draw a false one. */
 }
 .flag--emoji {
   display: inline-flex;

@@ -105,7 +105,12 @@ export function SearchBox({ world, onPick }: SearchBoxProps) {
                 data-active={i === active}
                 onClick={() => choose(feature)}
               >
-                <Flag iso2={feature.country.iso2} emoji={feature.country.emoji} size="sm" />
+                <Flag
+                  iso2={feature.country.iso2}
+                  emoji={feature.country.emoji}
+                  flagRatio={feature.country.flagRatio}
+                  size="sm"
+                />
                 <span>{feature.country.name}</span>
                 <span className="search__meta">{feature.country.capital ?? '—'}</span>
               </button>

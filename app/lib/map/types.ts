@@ -31,6 +31,11 @@ export interface CountryRecord {
   hook: string;
   flagDescription: string;
   outlineDescription: string;
+  /** Width / height of the flag's own viewBox (see scripts/build-content.mjs) — most
+   *  flags ship as 4:3 in the source data, but the true ratio varies (Nepal is not even a
+   *  rectangle; Switzerland and the Vatican are square). Flag.tsx sets this as an explicit
+   *  CSS aspect-ratio rather than assuming 4:3. */
+  flagRatio: number;
   /** Every string a user could reasonably type to name this country in the "Name the
    *  Country" quiz — see scripts/build-content.mjs's alias-building step and
    *  app/lib/geography/names.ts's matcher. Deduped, two-letter ISO codes dropped, and

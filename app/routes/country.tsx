@@ -39,7 +39,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
       <div className="panel__body">
         <div className="dossier__hero">
           <div className="dossier__flag">
-            <Flag iso2={country.iso2} emoji={country.emoji} size="md" />
+            <Flag iso2={country.iso2} emoji={country.emoji} flagRatio={country.flagRatio} size="md" />
           </div>
           <div>
             <h3>{country.name}</h3>
