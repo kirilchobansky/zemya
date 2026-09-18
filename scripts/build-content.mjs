@@ -1,15 +1,21 @@
 /**
- * Content pipeline: content/geography/**  ->  public/data/geography/world.json
+ * Content pipeline: content/geography/** -> public/data/geography/{world,world-coarse,
+ * countries,slugs}.json
  *
- * Joins hand-authored YAML against two upstream datasets and emits one payload the app
+ * Joins hand-authored YAML against two upstream datasets and emits the payloads the app
  * fetches at runtime. The output is committed so a deploy can never break because an
  * upstream package published a new version.
  *
  *   node scripts/build-content.mjs [--detail=0.02]
  *
- * Default detail is 0 — full 1:10m resolution, unsimplified (measured: 3.37 MB raw / 687 KB
- * gzipped, paints in ~585 ms, pans at a solid 60 fps). Pass --detail=N to simplify back down;
- * dial it up if the unsimplified payload ever stops being affordable.
+ * Emits TWO geometry payloads, always: world.json at DETAIL (below; default 0, full
+ * 1:10m, unsimplified) and world-coarse.json at a hardcoded COARSE_DETAIL (0.006) the map
+ * renders from at world zoom, where full detail is sub-pixel — see CLAUDE.md's Performance
+ * section for the measured detail/frame-time table this is based on, and
+ * app/lib/geography/world.ts / app/lib/map/topology.ts's attachFullDetail for how the two
+ * are loaded and switched between at runtime. --detail only ever affects world.json,
+ * which is what makes it useful for testing a specific "full" resolution (as the
+ * Performance section's table did) without touching the coarse tier at all.
  */
 import {
   readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync,
@@ -329,57 +335,7 @@ for (const pair of confusableDoc.pairs ?? []) {
 
 /* ---------------------------------------------------------------------- geometry */
 
-let topo = JSON.parse(JSON.stringify(require('world-atlas/countries-10m.json')));
-
-for (const name of Object.keys(SYNTHETIC_IDS)) {
-  const exists = topo.objects.countries.geometries.some(g => g.properties?.name === name);
-  if (!exists) throw new Error(`SYNTHETIC_IDS: no geometry named "${name}" in the source data — renamed upstream?`);
-}
-
-for (const [name, targetIso3] of Object.entries(ABSORB)) {
-  const exists = topo.objects.countries.geometries.some(g => g.properties?.name === name);
-  if (!exists) throw new Error(`ABSORB: no geometry named "${name}" in the source data — renamed upstream?`);
-  if (!countries.some(c => c.iso3 === targetIso3)) {
-    throw new Error(`ABSORB: target ISO3 "${targetIso3}" for "${name}" is not in the catalogue`);
-  }
-}
-
-topo.objects.countries.geometries = topo.objects.countries.geometries.filter(
-  g => !DROP_GEOMETRY.has(String(Number(g.id)))
-);
-if (DETAIL > 0) {
-  topo = simplify.presimplify(topo);
-  topo = simplify.simplify(topo, DETAIL);
-  topo = simplify.filter(topo, simplify.filterAttachedWeight(topo, DETAIL));
-}
-
-// presimplify dequantises; arcs come back as absolute lon/lat with no transform
-const absolute = topo.transform
-  ? topo.arcs.map(arc => {
-      let x = 0, y = 0;
-      return arc.map(([dx, dy]) => {
-        x += dx; y += dy;
-        return [x * topo.transform.scale[0] + topo.transform.translate[0],
-                y * topo.transform.scale[1] + topo.transform.translate[1]];
-      });
-    })
-  : topo.arcs.map(arc => arc.map(p => [p[0], p[1]]));
-
 const X0 = -180, Y0 = -90, XS = 360 / (QUANT - 1), YS = 180 / (QUANT - 1);
-const arcs = absolute.map(arc => {
-  let px = 0, py = 0;
-  const out = [];
-  for (const [lon, lat] of arc) {
-    const x = Math.round((lon - X0) / XS);
-    const y = Math.round((lat - Y0) / YS);
-    const dx = x - px, dy = y - py;
-    px = x; py = y;
-    if (out.length && dx === 0 && dy === 0) continue;   // drop repeated vertices
-    out.push([dx, dy]);
-  }
-  if (out.length < 2) out.push([0, 0]);
-  return out;
-});
 
 /**
  * A geometry's arcs, normalised to "list of polygons" (each polygon a list of rings)
@@ -402,21 +358,6 @@ function geometryId(g) {
   return SYNTHETIC_IDS[name] ?? (name ? `x-${slugify(name)}` : String(Number(g.id)));
 }
 
-const absorbedPolygons = new Map(); // target iso3 -> polygons to append
-const built = []; // { id, multi, arcs, polygons } — polygons kept alongside for merging
-
-for (const g of topo.objects.countries.geometries) {
-  const name = g.properties?.name;
-  if (name && ABSORB[name]) {
-    const list = absorbedPolygons.get(ABSORB[name]) ?? [];
-    list.push(...polygonsOf(g));
-    absorbedPolygons.set(ABSORB[name], list);
-    continue;
-  }
-  const polygons = polygonsOf(g);
-  built.push({ id: geometryId(g), multi: g.type === 'MultiPolygon', arcs: g.arcs, polygons });
-}
-
 /** Same underlying arcs, regardless of direction — a hole ring and the polygon that
  *  exactly fills it reference identical arcs with opposite winding (one forward, one
  *  reversed), never the same signs. */
@@ -424,147 +365,237 @@ function arcKey(ring) {
   return ring.map(i => (i < 0 ? ~i : i)).sort((a, b) => a - b).join(',');
 }
 
-for (const [targetIso3, extra] of absorbedPolygons) {
-  const targetId = countries.find(c => c.iso3 === targetIso3).id;
-  const entry = built.find(b => b.id === targetId);
-  if (!entry) {
-    // the target had no geometry of its own to merge into — not the case for any
-    // current ABSORB entry, but a new one shouldn't silently lose its territory
-    built.push({ id: targetId, multi: extra.length > 1, arcs: extra.length > 1 ? extra : extra[0], polygons: extra });
-    continue;
-  }
+/**
+ * Builds one detail level's arcs/geometries/lakes, always from a FRESH clone of the
+ * upstream Natural Earth data. topojson-simplify's simplify()+filter() permanently drops
+ * points, so simplifying an already-simplified topology to a coarser threshold is not the
+ * same as simplifying the original once at that threshold directly — two independent
+ * calls (one at DETAIL, one at COARSE_DETAIL below) is what emitting "two full detail
+ * levels" actually requires, not one call feeding the next.
+ */
+function buildGeometry(detail) {
+  let topo = JSON.parse(JSON.stringify(require('world-atlas/countries-10m.json')));
 
-  /**
-   * Baikonur is cut out of Kazakhstan's own polygon as a hole, and Baikonur's polygon
-   * exactly re-fills that same hole (confirmed: both reference arc 903, one forward as
-   * the hole, one reversed as Baikonur's outer ring). Appending Baikonur as a NEW polygon
-   * on top of an unmodified Kazakhstan would leave both rings in place — invisible in the
-   * fill (same colour, so no visible seam there) but both still get traced in the stroke
-   * pass, drawing a circle where there should be seamless one-colour territory. Cancel
-   * the pair instead of stacking them: remove the target's hole, skip adding the
-   * absorbed polygon. Anything that ISN'T a hole-fill (Somaliland is a genuinely separate
-   * adjacent landmass, not a hole in Somalia) still gets appended as before.
-   */
-  const remaining = [];
-  for (const polygon of extra) {
-    const outerKey = arcKey(polygon[0]);
-    const targetPolygon = entry.polygons.find(p => p.slice(1).some(hole => arcKey(hole) === outerKey));
-    if (targetPolygon) {
-      const holeIndex = targetPolygon.findIndex((ring, i) => i > 0 && arcKey(ring) === outerKey);
-      targetPolygon.splice(holeIndex, 1);
-    } else {
-      remaining.push(polygon);
+  for (const name of Object.keys(SYNTHETIC_IDS)) {
+    const exists = topo.objects.countries.geometries.some(g => g.properties?.name === name);
+    if (!exists) throw new Error(`SYNTHETIC_IDS: no geometry named "${name}" in the source data — renamed upstream?`);
+  }
+  for (const [name, targetIso3] of Object.entries(ABSORB)) {
+    const exists = topo.objects.countries.geometries.some(g => g.properties?.name === name);
+    if (!exists) throw new Error(`ABSORB: no geometry named "${name}" in the source data — renamed upstream?`);
+    if (!countries.some(c => c.iso3 === targetIso3)) {
+      throw new Error(`ABSORB: target ISO3 "${targetIso3}" for "${name}" is not in the catalogue`);
     }
   }
 
-  const merged = [...entry.polygons, ...remaining];
-  entry.polygons = merged;
-  entry.multi = merged.length > 1;
-  entry.arcs = merged.length > 1 ? merged : merged[0];
-}
-
-const geometries = built.map(({ id, multi, arcs }) => ({ id, multi, arcs }));
-
-/* --------------------------------------------------------------------------- lakes */
-
-/**
- * world-atlas ships no lakes layer. Investigated fetching Natural Earth's ne_10m_lakes
- * directly (a 2.3 MB shapefile covering thousands of lakes worldwide) and decided against
- * it for now — filtering it down to the handful of lakes worth drawing would need either
- * a new dependency to parse a Shapefile or a hand-rolled binary parser, plus a build-time
- * network fetch this project has never had. Punted; see CLAUDE.md's Where this is.
- *
- * What's free: world-atlas's separate land-10m.json land polygon already excludes the
- * Caspian Sea as a hole — the one polygon-with-holes in that entire dataset, confirmed by
- * its bounding box (46-55°E, 36-47°N, exactly the Caspian's real extent). Extracted here
- * and re-encoded into this file's own arc pool — no new dependency, no network call, just
- * reading a file already installed for a different purpose. The Great Lakes, Lake
- * Victoria and Lake Baikal are not holes in any world-atlas layer and are not included.
- */
-let land = JSON.parse(JSON.stringify(require('world-atlas/land-10m.json')));
-if (DETAIL > 0) {
-  land = simplify.presimplify(land);
-  land = simplify.simplify(land, DETAIL);
-  land = simplify.filter(land, simplify.filterAttachedWeight(land, DETAIL));
-}
-
-const landAbsolute = land.transform
-  ? land.arcs.map(arc => {
-      let x = 0, y = 0;
-      return arc.map(([dx, dy]) => {
-        x += dx; y += dy;
-        return [x * land.transform.scale[0] + land.transform.translate[0],
-                y * land.transform.scale[1] + land.transform.translate[1]];
-      });
-    })
-  : land.arcs.map(arc => arc.map(p => [p[0], p[1]]));
-
-/** Stitch a ring's arc indices into absolute lon/lat points — same logic as topology.ts's
- *  buildRing, but at build time and against land-10m's own separate arc pool. */
-function stitchRing(indices) {
-  let points = [];
-  for (const index of indices) {
-    const reversed = index < 0;
-    const arc = landAbsolute[reversed ? ~index : index];
-    const segment = reversed ? arc.slice().reverse() : arc;
-    points = points.length ? points.concat(segment.slice(1)) : segment.slice();
-  }
-  return points;
-}
-
-/** Re-quantise already-absolute lon/lat points onto this file's own grid — the same
- *  transform the main arcs went through, just run on one extra ring instead of the whole
- *  arc pool. */
-function requantise(points) {
-  let px = 0, py = 0;
-  const out = [];
-  for (const [lon, lat] of points) {
-    const x = Math.round((lon - X0) / XS);
-    const y = Math.round((lat - Y0) / YS);
-    const dx = x - px, dy = y - py;
-    px = x; py = y;
-    if (out.length && dx === 0 && dy === 0) continue;
-    out.push([dx, dy]);
-  }
-  if (out.length < 2) out.push([0, 0]);
-  return out;
-}
-
-// every ring after a polygon's first is a hole
-const holes = land.objects.land.geometries.flatMap(g => {
-  const polygons = g.type === 'MultiPolygon' ? g.arcs : [g.arcs];
-  return polygons.flatMap(rings => rings.slice(1));
-});
-if (!holes.length) {
-  throw new Error(
-    "lakes: expected at least one hole in world-atlas's land layer (the Caspian Sea) — did the upstream data change?"
+  topo.objects.countries.geometries = topo.objects.countries.geometries.filter(
+    g => !DROP_GEOMETRY.has(String(Number(g.id)))
   );
-}
-
-const lakes = holes.map((indices, i) => {
-  const points = stitchRing(indices);
-  let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
-  for (const [lon, lat] of points) {
-    if (lon < minLon) minLon = lon;
-    if (lon > maxLon) maxLon = lon;
-    if (lat < minLat) minLat = lat;
-    if (lat > maxLat) maxLat = lat;
+  if (detail > 0) {
+    topo = simplify.presimplify(topo);
+    topo = simplify.simplify(topo, detail);
+    topo = simplify.filter(topo, simplify.filterAttachedWeight(topo, detail));
   }
-  // this only ever expected to find the Caspian — if a future Natural Earth release
-  // punches a second hole somewhere else, that needs a deliberate decision, not a
-  // silent new water body
-  const looksLikeCaspian = minLon > 40 && maxLon < 60 && minLat > 30 && maxLat < 50;
-  if (!looksLikeCaspian) {
+
+  // presimplify dequantises; arcs come back as absolute lon/lat with no transform
+  const absolute = topo.transform
+    ? topo.arcs.map(arc => {
+        let x = 0, y = 0;
+        return arc.map(([dx, dy]) => {
+          x += dx; y += dy;
+          return [x * topo.transform.scale[0] + topo.transform.translate[0],
+                  y * topo.transform.scale[1] + topo.transform.translate[1]];
+        });
+      })
+    : topo.arcs.map(arc => arc.map(p => [p[0], p[1]]));
+
+  const arcs = absolute.map(arc => {
+    let px = 0, py = 0;
+    const out = [];
+    for (const [lon, lat] of arc) {
+      const x = Math.round((lon - X0) / XS);
+      const y = Math.round((lat - Y0) / YS);
+      const dx = x - px, dy = y - py;
+      px = x; py = y;
+      if (out.length && dx === 0 && dy === 0) continue;   // drop repeated vertices
+      out.push([dx, dy]);
+    }
+    if (out.length < 2) out.push([0, 0]);
+    return out;
+  });
+
+  const absorbedPolygons = new Map(); // target iso3 -> polygons to append
+  const built = []; // { id, multi, arcs, polygons } — polygons kept alongside for merging
+
+  for (const g of topo.objects.countries.geometries) {
+    const name = g.properties?.name;
+    if (name && ABSORB[name]) {
+      const list = absorbedPolygons.get(ABSORB[name]) ?? [];
+      list.push(...polygonsOf(g));
+      absorbedPolygons.set(ABSORB[name], list);
+      continue;
+    }
+    const polygons = polygonsOf(g);
+    built.push({ id: geometryId(g), multi: g.type === 'MultiPolygon', arcs: g.arcs, polygons });
+  }
+
+  for (const [targetIso3, extra] of absorbedPolygons) {
+    const targetId = countries.find(c => c.iso3 === targetIso3).id;
+    const entry = built.find(b => b.id === targetId);
+    if (!entry) {
+      // the target had no geometry of its own to merge into — not the case for any
+      // current ABSORB entry, but a new one shouldn't silently lose its territory
+      built.push({ id: targetId, multi: extra.length > 1, arcs: extra.length > 1 ? extra : extra[0], polygons: extra });
+      continue;
+    }
+
+    /**
+     * Baikonur is cut out of Kazakhstan's own polygon as a hole, and Baikonur's polygon
+     * exactly re-fills that same hole (confirmed: both reference arc 903, one forward as
+     * the hole, one reversed as Baikonur's outer ring). Appending Baikonur as a NEW
+     * polygon on top of an unmodified Kazakhstan would leave both rings in place —
+     * invisible in the fill (same colour, so no visible seam there) but both still get
+     * traced in the stroke pass, drawing a circle where there should be seamless
+     * one-colour territory. Cancel the pair instead of stacking them: remove the
+     * target's hole, skip adding the absorbed polygon. Anything that ISN'T a hole-fill
+     * (Somaliland is a genuinely separate adjacent landmass, not a hole in Somalia)
+     * still gets appended as before.
+     */
+    const remaining = [];
+    for (const polygon of extra) {
+      const outerKey = arcKey(polygon[0]);
+      const targetPolygon = entry.polygons.find(p => p.slice(1).some(hole => arcKey(hole) === outerKey));
+      if (targetPolygon) {
+        const holeIndex = targetPolygon.findIndex((ring, i) => i > 0 && arcKey(ring) === outerKey);
+        targetPolygon.splice(holeIndex, 1);
+      } else {
+        remaining.push(polygon);
+      }
+    }
+
+    const merged = [...entry.polygons, ...remaining];
+    entry.polygons = merged;
+    entry.multi = merged.length > 1;
+    entry.arcs = merged.length > 1 ? merged : merged[0];
+  }
+
+  const geometries = built.map(({ id, multi, arcs }) => ({ id, multi, arcs }));
+
+  /* ------------------------------------------------------------------------- lakes */
+
+  /**
+   * world-atlas ships no lakes layer. Investigated fetching Natural Earth's ne_10m_lakes
+   * directly (a 2.3 MB shapefile covering thousands of lakes worldwide) and decided
+   * against it for now — filtering it down to the handful of lakes worth drawing would
+   * need either a new dependency to parse a Shapefile or a hand-rolled binary parser,
+   * plus a build-time network fetch this project has never had. Punted; see CLAUDE.md's
+   * Where this is.
+   *
+   * What's free: world-atlas's separate land-10m.json land polygon already excludes the
+   * Caspian Sea as a hole — the one polygon-with-holes in that entire dataset, confirmed
+   * by its bounding box (46-55°E, 36-47°N, exactly the Caspian's real extent). Extracted
+   * here and re-encoded into this file's own arc pool — no new dependency, no network
+   * call, just reading a file already installed for a different purpose. The Great
+   * Lakes, Lake Victoria and Lake Baikal are not holes in any world-atlas layer and are
+   * not included.
+   */
+  let land = JSON.parse(JSON.stringify(require('world-atlas/land-10m.json')));
+  if (detail > 0) {
+    land = simplify.presimplify(land);
+    land = simplify.simplify(land, detail);
+    land = simplify.filter(land, simplify.filterAttachedWeight(land, detail));
+  }
+
+  const landAbsolute = land.transform
+    ? land.arcs.map(arc => {
+        let x = 0, y = 0;
+        return arc.map(([dx, dy]) => {
+          x += dx; y += dy;
+          return [x * land.transform.scale[0] + land.transform.translate[0],
+                  y * land.transform.scale[1] + land.transform.translate[1]];
+        });
+      })
+    : land.arcs.map(arc => arc.map(p => [p[0], p[1]]));
+
+  /** Stitch a ring's arc indices into absolute lon/lat points — same logic as
+   *  topology.ts's buildRing, but at build time and against land-10m's own arc pool. */
+  function stitchRing(indices) {
+    let points = [];
+    for (const index of indices) {
+      const reversed = index < 0;
+      const arc = landAbsolute[reversed ? ~index : index];
+      const segment = reversed ? arc.slice().reverse() : arc;
+      points = points.length ? points.concat(segment.slice(1)) : segment.slice();
+    }
+    return points;
+  }
+
+  /** Re-quantise already-absolute lon/lat points onto this file's own grid — the same
+   *  transform the main arcs went through, just run on one extra ring instead of the
+   *  whole arc pool. */
+  function requantise(points) {
+    let px = 0, py = 0;
+    const out = [];
+    for (const [lon, lat] of points) {
+      const x = Math.round((lon - X0) / XS);
+      const y = Math.round((lat - Y0) / YS);
+      const dx = x - px, dy = y - py;
+      px = x; py = y;
+      if (out.length && dx === 0 && dy === 0) continue;
+      out.push([dx, dy]);
+    }
+    if (out.length < 2) out.push([0, 0]);
+    return out;
+  }
+
+  // every ring after a polygon's first is a hole
+  const holes = land.objects.land.geometries.flatMap(g => {
+    const polygons = g.type === 'MultiPolygon' ? g.arcs : [g.arcs];
+    return polygons.flatMap(rings => rings.slice(1));
+  });
+  if (!holes.length) {
     throw new Error(
-      `lakes: a hole in the land layer no longer matches the Caspian Sea's expected bounds ` +
-        `(got lon ${minLon.toFixed(1)}..${maxLon.toFixed(1)}, lat ${minLat.toFixed(1)}..${maxLat.toFixed(1)}) — ` +
-        'investigate before shipping; do not just widen this check'
+      "lakes: expected at least one hole in world-atlas's land layer (the Caspian Sea) — did the upstream data change?"
     );
   }
-  const arcIndex = arcs.length;
-  arcs.push(requantise(points));
-  return { id: i === 0 ? 'lake-caspian-sea' : `lake-caspian-sea-${i}`, arcs: [[arcIndex]] };
-});
+
+  const lakes = holes.map((indices, i) => {
+    const points = stitchRing(indices);
+    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    for (const [lon, lat] of points) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    // this only ever expected to find the Caspian — if a future Natural Earth release
+    // punches a second hole somewhere else, that needs a deliberate decision, not a
+    // silent new water body
+    const looksLikeCaspian = minLon > 40 && maxLon < 60 && minLat > 30 && maxLat < 50;
+    if (!looksLikeCaspian) {
+      throw new Error(
+        `lakes: a hole in the land layer no longer matches the Caspian Sea's expected bounds ` +
+          `(got lon ${minLon.toFixed(1)}..${maxLon.toFixed(1)}, lat ${minLat.toFixed(1)}..${maxLat.toFixed(1)}) — ` +
+          'investigate before shipping; do not just widen this check'
+      );
+    }
+    const arcIndex = arcs.length;
+    arcs.push(requantise(points));
+    return { id: i === 0 ? 'lake-caspian-sea' : `lake-caspian-sea-${i}`, arcs: [[arcIndex]] };
+  });
+
+  const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
+  return { arcs, geometries, lakes, totalPoints };
+}
+
+/** ~48,600 points, ~645 KB — see CLAUDE.md's Performance section for the measured
+ *  detail/frame-time table this value was picked from. Hardcoded, not overridable by
+ *  --detail: that flag is for testing the FULL payload at a different resolution (see
+ *  this file's own header comment), and always applies to `full` below. */
+const COARSE_DETAIL = 0.006;
+
+const full = buildGeometry(DETAIL);
+const coarse = buildGeometry(COARSE_DETAIL);
 
 /* ------------------------------------------------------------------------- flags */
 
@@ -644,32 +675,47 @@ const flagsBytes = readdirSync(flagsOutDir)
 
 /* ------------------------------------------------------------------------- emit */
 
-// the cost of a detail change, made visible: every point actually shipped, arcs and
-// lakes both, after requantisation drops repeated vertices. At DETAIL=0 (the default)
-// nothing upstream of that dedup is filtered — every point in the source 1:10m file
-// survives.
-const totalPoints = arcs.reduce((sum, arc) => sum + arc.length, 0);
-
-const withGeometry = new Set(geometries.map(g => g.id));
+const withGeometry = new Set(full.geometries.map(g => g.id));
 const noPolygon = countries.filter(c => !withGeometry.has(c.id)).map(c => c.iso3);
+
+const outDir = join(root, 'public', 'data', 'geography');
+mkdirSync(outDir, { recursive: true });
 
 const payload = {
   version: 1,
   generated: { detail: DETAIL, quantisation: QUANT },
   grid: { x0: X0, y0: Y0, xs: XS, ys: YS },
-  arcs,
-  geometries,
-  lakes,
+  arcs: full.arcs,
+  geometries: full.geometries,
+  lakes: full.lakes,
   countries
 };
-
-const outDir = join(root, 'public', 'data', 'geography');
-mkdirSync(outDir, { recursive: true });
 const json = JSON.stringify(payload);
 writeFileSync(join(outDir, 'world.json'), json, 'utf8');
 
+/**
+ * The reduced-detail counterpart the map loads first (see app/lib/geography/world.ts) —
+ * geometry only. Country records, borders, names and everything else non-geometric stay
+ * in world.json alone; this file is never a second source of truth for them. Lakes ARE
+ * included here despite being their own top-level field rather than part of
+ * `geometries`, deliberately: leaving them out would show the Caspian Sea as solid land
+ * at world zoom (exactly the tier this file is drawn at) until the full payload finished
+ * loading, regressing a "Working" feature — see CLAUDE.md's Where this is.
+ */
+const coarsePayload = {
+  version: 1,
+  generated: { detail: COARSE_DETAIL, quantisation: QUANT },
+  grid: { x0: X0, y0: Y0, xs: XS, ys: YS },
+  arcs: coarse.arcs,
+  geometries: coarse.geometries,
+  lakes: coarse.lakes
+};
+const coarseJson = JSON.stringify(coarsePayload);
+writeFileSync(join(outDir, 'world-coarse.json'), coarseJson, 'utf8');
+
 // facts without geometry: what route loaders read at build time, so a country page's
-// HTML is complete before the 480 KB map payload has even started downloading
+// HTML is complete before the map payload has even started downloading — and what the
+// client fetches alongside world-coarse.json for the map's own first paint.
 const facts = JSON.stringify(countries);
 writeFileSync(join(outDir, 'countries.json'), facts, 'utf8');
 
@@ -698,12 +744,15 @@ console.log(
   `absorbed       ${Object.keys(ABSORB).length} ` +
     `(${Object.entries(ABSORB).map(([name, iso3]) => `${name}->${iso3}`).join(', ')})`
 );
-console.log(`arcs           ${arcs.length} (${totalPoints.toLocaleString()} points)`);
-console.log(`detail         ${DETAIL || '0 — unsimplified; nothing filtered, small islands render'}`);
-console.log(`geometries     ${geometries.length}`);
-console.log(`lakes          ${lakes.length} (${lakes.map(l => l.id).join(', ')})`);
+console.log(`arcs (full)    ${full.arcs.length} (${full.totalPoints.toLocaleString()} points)`);
+console.log(`arcs (coarse)  ${coarse.arcs.length} (${coarse.totalPoints.toLocaleString()} points)`);
+console.log(`detail (full)  ${DETAIL || '0 — unsimplified; nothing filtered, small islands render'}`);
+console.log(`detail (coarse) ${COARSE_DETAIL}`);
+console.log(`geometries     ${full.geometries.length}`);
+console.log(`lakes          ${full.lakes.length} (${full.lakes.map(l => l.id).join(', ')})`);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);
 console.log(`world.json     ${(json.length / 1024).toFixed(0)} KB`);
+console.log(`world-coarse   ${(coarseJson.length / 1024).toFixed(0)} KB`);
 console.log(`countries.json ${(facts.length / 1024).toFixed(0)} KB`);
 console.log(
   `flags          ${wantedFlags.size} (${(flagsBytes / (1024 * 1024)).toFixed(1)} MB)` +

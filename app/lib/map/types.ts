@@ -56,19 +56,31 @@ export interface CountryRecord {
   disputed: Record<string, string>;
 }
 
-export interface WorldData {
+/**
+ * The geometry half of a world payload — everything scripts/build-content.mjs emits at a
+ * given simplification detail. Shared by both public/data/geography/world.json (detail 0,
+ * full 1:10m) and world-coarse.json (detail 0.006, ~48,600 points) — see topology.ts's
+ * attachFullDetail and CLAUDE.md's Performance section for why there are two.
+ */
+export interface GeometryData {
   version: number;
   generated: { detail: number; quantisation: number };
   grid: { x0: number; y0: number; xs: number; ys: number };
   /** Delta-encoded, quantised arcs. Decode with decodeArcs(). */
   arcs: [number, number][][];
   geometries: { id: string; multi: boolean; arcs: number[][] | number[][][] }[];
-  countries: CountryRecord[];
   /** Large inland water bodies missing from the country polygons themselves — world-atlas
    *  ships no lakes layer, so these are the holes already punched into its separate land
    *  layer (see scripts/build-content.mjs), re-encoded into this file's own arc pool.
    *  Drawn as water, not clickable, not joined to any country. */
   lakes: { id: string; arcs: number[][] }[];
+}
+
+/** The full payload: geometry plus everything non-geometric. Only world.json carries
+ *  `countries` — world-coarse.json is GeometryData alone, so it never duplicates country
+ *  records, names or borders (see build-content.mjs). */
+export interface WorldData extends GeometryData {
+  countries: CountryRecord[];
 }
 
 export type LonLat = [number, number];
@@ -92,7 +104,19 @@ export interface Feature {
    *  on-screen width at the current zoom, whether to draw a pin instead. Kept mostly so
    *  a caller can say "this one is always going to be small" without re-deriving it. */
   tiny: boolean;
+  /** Reduced-detail shape (world-coarse.json), built first — this is what buildWorld()
+   *  populates, since it's built from the coarse payload so the map can paint before the
+   *  full one arrives. bbox/anchor/ux/uy/tiny/polygons above are ALSO computed from
+   *  whichever geometry most recently ran through topology.ts's finalizeFeature — coarse
+   *  here, full again once attachFullDetail runs — because a coarse-detail centroid is
+   *  close to but not identical to the full-detail one, and that was once enough to move
+   *  a country's own name label a few pixels once you looked for it. */
   path: Path2D | null;
+  /** Full 1:10m detail (world.json), attached in place once it loads — see
+   *  topology.ts's attachFullDetail. Null until then, or for a feature whose full
+   *  geometry is genuinely degenerate (Vatican City). The renderer and pick() use this
+   *  above the LOD zoom threshold when it exists, `path` otherwise. */
+  fullPath: Path2D | null;
   /** Resolved neighbours, populated after all features are built. */
   neighbours: Feature[];
 }
@@ -108,7 +132,12 @@ export interface World {
   byIso3: Map<string, Feature>;
   bySlug: Map<string, Feature>;
   byId: Map<string, Feature>;
+  /** Coarse-detail landmasses with no country record (Greenland, Western Sahara,
+   *  dependencies) — see Feature.path's own doc comment for why "coarse first" here too. */
   context: ContextShape[];
   /** Built from data.lakes the same way context shapes are — see ContextShape. */
   lakes: ContextShape[];
+  /** Full-detail counterparts to context/lakes, empty until attachFullDetail runs. */
+  fullContext: ContextShape[];
+  fullLakes: ContextShape[];
 }

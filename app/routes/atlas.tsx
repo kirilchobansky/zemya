@@ -15,7 +15,7 @@ import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
 import type { CountryRecord, Feature, World } from '~/lib/map/types';
-import { loadWorld } from '~/lib/geography/world';
+import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import {
   fillFor, quizFillFor, quizStrokeFor, strokeFor, type OverlayId, type QuizOverride
@@ -171,6 +171,10 @@ function AtlasShell() {
     );
     atlasRef.current = atlas;
     setAtlasInstance(atlas);
+    // The map has been painting from coarse geometry since `world` first resolved (see
+    // loadWorld) — repaint once the full 1:10m payload attaches in place, so a country
+    // already on screen sharpens up without waiting for the next pan or zoom.
+    onFullDetail(() => atlas.redraw());
     return () => {
       atlas.destroy();
       atlasRef.current = null;

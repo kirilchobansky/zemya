@@ -164,8 +164,30 @@ function onScreenWidth(feature: Feature, camera: CameraState): number {
  *  never neither — renderer, hit-testing and labelling all call this so they can't
  *  disagree with each other. */
 function drawsAsPin(feature: Feature, camera: CameraState): boolean {
-  if (!feature.path) return true;
+  if (!feature.path && !feature.fullPath) return true;
   return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
+}
+
+/**
+ * Below this zoom (a multiple of homeZoom, the zoom at which the whole world fills the
+ * viewport), the map renders from the coarse payload — full 1:10m coastline is sub-pixel
+ * at world zoom, so rasterising it costs real frame time to show detail nobody can see.
+ * 4x was chosen by zooming in slowly and watching for the switch — it must not be visible
+ * as a jump; tune by looking, the same way PIN_MAX_WIDTH above was. See CLAUDE.md's
+ * Performance section.
+ */
+const LOD_ZOOM_FACTOR = 4;
+
+function useFullDetail(camera: CameraState, viewport: Viewport): boolean {
+  return camera.zoom >= homeZoom(viewport) * LOD_ZOOM_FACTOR;
+}
+
+/** Whichever detail level is both loaded and appropriate for the current zoom — full only
+ *  above the LOD threshold AND once world.json has actually attached (attachFullDetail),
+ *  coarse otherwise. Renderer and pick() share this so a click can never hit-test against
+ *  a different shape than what's on screen. */
+function activePath(feature: Feature, full: boolean): Path2D | null {
+  return full && feature.fullPath ? feature.fullPath : feature.path;
 }
 
 /** How much bigger the quiz's current target draws as a pin, plus a halo ring outside
@@ -275,26 +297,33 @@ export function render(
   // never be possible to cull the map down to a blank canvas
   const copies = copyCandidates.filter(copy => copy === 0 || isCopyVisible(rc, copy));
 
+  const full = useFullDetail(camera, viewport);
+  // world.fullContext/fullLakes start empty and fill in once attachFullDetail runs — fall
+  // back to the coarse (always-populated) versions until then, same as activePath does
+  // per feature.
+  const contextShapes = full && world.fullContext.length ? world.fullContext : world.context;
+  const lakeShapes = full && world.fullLakes.length ? world.fullLakes : world.lakes;
+
   for (const copy of copies) {
     applyTransform(rc, copy);
     ctx.lineJoin = 'round';
 
     ctx.fillStyle = COLORS.context;
-    for (const shape of world.context) ctx.fill(shape.path);
+    for (const shape of contextShapes) ctx.fill(shape.path);
 
     // Computed once per copy and reused for both passes below — same bbox test the pin
     // logic already needs (onScreenWidth), just against the viewport instead of a pixel
     // threshold. A frame is pixel-identical to drawing every feature unconditionally:
     // nothing visible is skipped, only work for shapes nowhere near the viewport.
     const visible = world.features.filter(
-      feature => feature.path && !drawsAsPin(feature, camera) && isFeatureVisible(rc, feature, copy)
+      feature => activePath(feature, full) && !drawsAsPin(feature, camera) && isFeatureVisible(rc, feature, copy)
     );
 
     for (const feature of visible) {
       const colour = style.fill(feature);
       if (!colour) continue;
       ctx.fillStyle = colour;
-      ctx.fill(feature.path!);
+      ctx.fill(activePath(feature, full)!);
     }
 
     // strokes in a second pass so no fill can bleed over a neighbour's border
@@ -303,13 +332,13 @@ export function render(
       if (!s) continue;
       ctx.strokeStyle = s[0];
       ctx.lineWidth = s[1] / camera.zoom;
-      ctx.stroke(feature.path!);
+      ctx.stroke(activePath(feature, full)!);
     }
 
     // lakes on top of the land they cut into, so the Caspian reads as water sitting in
     // Kazakhstan/Russia rather than a hole through to the page background
     ctx.fillStyle = COLORS.ocean;
-    for (const lake of world.lakes) ctx.fill(lake.path);
+    for (const lake of lakeShapes) ctx.fill(lake.path);
 
     if (style.overlay) {
       ctx.fillStyle = style.overlay.fill;
@@ -352,6 +381,7 @@ export function pick(
   pinRadius = 9
 ): Feature | null {
   const { ctx, camera, viewport, dpr } = rc;
+  const full = useFullDetail(camera, viewport);
 
   let nearestPin: Feature | null = null;
   let nearestDistance = pinRadius;
@@ -371,8 +401,9 @@ export function pick(
   for (const copy of [0, -1, 1]) {
     applyTransform(rc, copy);
     for (const feature of world.features) {
-      if (!feature.path || drawsAsPin(feature, camera)) continue;
-      if (ctx.isPointInPath(feature.path, px, py)) {
+      const path = activePath(feature, full);
+      if (!path || drawsAsPin(feature, camera)) continue;
+      if (ctx.isPointInPath(path, px, py)) {
         resetTransform(rc);
         return feature;
       }

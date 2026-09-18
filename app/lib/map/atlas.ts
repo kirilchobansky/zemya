@@ -102,6 +102,14 @@ export class Atlas {
     this.uiFont = font;
   }
 
+  /** Forces a repaint without moving the camera or changing style/focus — used when the
+   *  world's own geometry changes under it (the full-detail payload attaching in place;
+   *  see geography/world.ts's loadWorld) rather than in response to any camera/style/focus
+   *  change of its own. */
+  redraw(): void {
+    this.draw();
+  }
+
   home(animate = true): void {
     this.moveTo(homeCamera(this.viewport), animate);
   }

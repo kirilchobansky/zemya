@@ -6,7 +6,7 @@
  * a list of fills.
  */
 import type {
-  ContextShape, Feature, LonLat, Ring, World, WorldData
+  ContextShape, Feature, GeometryData, LonLat, Ring, World, WorldData
 } from './types';
 import { latToY, lonToX, wrapX } from './projection';
 
@@ -64,7 +64,7 @@ function meanLon(ring: Ring): number {
   return sum / ring.length;
 }
 
-function decodeArcs(data: WorldData): LonLat[][] {
+function decodeArcs(data: GeometryData): LonLat[][] {
   const { x0, y0, xs, ys } = data.grid;
   return data.arcs.map(arc => {
     let x = 0;
@@ -136,6 +136,7 @@ export function buildWorld(data: WorldData): World {
       uy: 0,
       tiny: true,
       path: null,
+      fullPath: null,
       neighbours: []
     };
     features.push(feature);
@@ -195,69 +196,149 @@ export function buildWorld(data: WorldData): World {
 
   for (const feature of features) {
     if (!feature.polygons.length) continue;
-
-    // Bring every disjoint piece of this feature into one consistent angular frame before
-    // measuring anything — see nearestBranch's doc comment.
-    const reference = feature.country.latlng[1];
-    feature.polygons = feature.polygons.map(polygon => {
-      const shift = nearestBranch(meanLon(polygon[0]), reference) - meanLon(polygon[0]);
-      if (!shift) return polygon;
-      return polygon.map(ring => ring.map(([lon, lat]): LonLat => [lon + shift, lat]));
-    });
-
-    let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
-    let largest: Ring | null = null;
-    let largestArea = -1;
-
-    for (const polygon of feature.polygons) {
-      const outer = polygon[0];
-      const area = ringArea(outer);
-      if (area > largestArea) { largestArea = area; largest = outer; }
-      for (const [lon, lat] of outer) {
-        if (lon < minLon) minLon = lon;
-        if (lon > maxLon) maxLon = lon;
-        if (lat < minLat) minLat = lat;
-        if (lat > maxLat) maxLat = lat;
-      }
-    }
-
-    feature.bbox = [minLon, minLat, maxLon, maxLat];
-
-    if (largest) {
-      let sx = 0, sy = 0;
-      for (const [lon, lat] of largest) { sx += lon; sy += lat; }
-      feature.anchor = [sx / largest.length, sy / largest.length];
-    }
-
-    // width has to be corrected for latitude or every Arctic country looks enormous
-    const midLat = (minLat + maxLat) / 2;
-    const widthDeg = (maxLon - minLon) * Math.cos((midLat * Math.PI) / 180);
-    feature.tiny = Math.max(widthDeg, maxLat - minLat) < MICRO_DEGREES;
-
-    // Every feature with polygons gets a real path now, tiny or not — Malta and Vatican
-    // City must be clickable shapes once you're zoomed in far enough to see them, not
-    // permanent pins. The renderer decides per frame, from on-screen width, whether to
-    // draw this path or a pin in its place; see renderer.ts's drawPins/drawShapes.
-    const path = new Path2D();
-    for (const polygon of feature.polygons) for (const ring of polygon) traceRing(path, ring);
-    feature.path = path;
+    finalizeFeature(feature, feature.polygons, 'path');
   }
 
   for (const feature of features) {
-    if (!Number.isFinite(feature.anchor[0]) || !Number.isFinite(feature.anchor[1])) {
-      feature.anchor = [feature.country.latlng[1], feature.country.latlng[0]];
-    }
-    // The anchor can sit past 180° for a feature whose largest piece got shifted onto the
-    // far branch above (see nearestBranch) — wrap it back into [0, 1) here, at the camera
-    // boundary, per the invariant on unwrapRing.
-    feature.ux = wrapX(lonToX(feature.anchor[0]));
-    feature.uy = latToY(feature.anchor[1]);
     feature.neighbours = feature.country.borders
       .map(iso3 => byIso3.get(iso3))
       .filter((f): f is Feature => Boolean(f));
   }
 
-  return { data, features, byIso3, bySlug, byId, context, lakes };
+  return { data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [] };
+}
+
+/**
+ * Computes bbox/anchor/tiny/(path or fullPath) from a feature's polygons and writes them
+ * onto it — shared by buildWorld (coarse, on first load) and attachFullDetail (full, once
+ * it arrives) so both go through identical maths. This turned out to matter for more than
+ * tidiness: a coarse-detail centroid is close to but not identical to the full-detail one,
+ * and that small a difference was once enough to move a country's own name label a few
+ * pixels — a real visible difference once you're looking for it, not just an internal
+ * approximation. attachFullDetail calls this again, with `target: 'fullPath'`, so a
+ * country's camera-framing and label-placement geometry always matches full detail again
+ * once it's loaded, exactly as before this file had two detail levels at all.
+ */
+function finalizeFeature(feature: Feature, polygons: Ring[][], target: 'path' | 'fullPath'): void {
+  // Bring every disjoint piece of this feature into one consistent angular frame before
+  // measuring anything — see nearestBranch's doc comment.
+  const reference = feature.country.latlng[1];
+  const shifted = polygons.map(polygon => {
+    const shift = nearestBranch(meanLon(polygon[0]), reference) - meanLon(polygon[0]);
+    if (!shift) return polygon;
+    return polygon.map(ring => ring.map(([lon, lat]): LonLat => [lon + shift, lat]));
+  });
+  // reprojectToTrueSize (the size-comparison tool) reads this — always keep it in sync
+  // with whichever detail level most recently ran through here, coarse or full.
+  feature.polygons = shifted;
+
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  let largest: Ring | null = null;
+  let largestArea = -1;
+
+  for (const polygon of shifted) {
+    const outer = polygon[0];
+    const area = ringArea(outer);
+    if (area > largestArea) { largestArea = area; largest = outer; }
+    for (const [lon, lat] of outer) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+  }
+
+  feature.bbox = [minLon, minLat, maxLon, maxLat];
+
+  if (largest) {
+    let sx = 0, sy = 0;
+    for (const [lon, lat] of largest) { sx += lon; sy += lat; }
+    feature.anchor = [sx / largest.length, sy / largest.length];
+  }
+  if (!Number.isFinite(feature.anchor[0]) || !Number.isFinite(feature.anchor[1])) {
+    feature.anchor = [feature.country.latlng[1], feature.country.latlng[0]];
+  }
+  // The anchor can sit past 180° for a feature whose largest piece got shifted onto the
+  // far branch above (see nearestBranch) — wrap it back into [0, 1) here, at the camera
+  // boundary, per the invariant on unwrapRing.
+  feature.ux = wrapX(lonToX(feature.anchor[0]));
+  feature.uy = latToY(feature.anchor[1]);
+
+  // width has to be corrected for latitude or every Arctic country looks enormous
+  const midLat = (minLat + maxLat) / 2;
+  const widthDeg = (maxLon - minLon) * Math.cos((midLat * Math.PI) / 180);
+  feature.tiny = Math.max(widthDeg, maxLat - minLat) < MICRO_DEGREES;
+
+  // Every feature with polygons gets a real path now, tiny or not — Malta and Vatican
+  // City must be clickable shapes once you're zoomed in far enough to see them, not
+  // permanent pins. The renderer decides per frame, from on-screen width, whether to
+  // draw this path or a pin in its place; see renderer.ts's drawPins/drawShapes.
+  const path = new Path2D();
+  for (const polygon of shifted) for (const ring of polygon) traceRing(path, ring);
+  feature[target] = path;
+}
+
+/**
+ * Attaches full 1:10m detail to an already-painted (coarse-built) World, in place —
+ * called once world.json arrives in the background (see geography/world.ts's loadWorld).
+ * Recomputes bbox/anchor/tiny from the full geometry too (via finalizeFeature, the same
+ * function buildWorld uses) — see that function's own doc comment for why a coarse-only
+ * approximation there wasn't good enough to leave alone.
+ */
+export function attachFullDetail(world: World, data: GeometryData): void {
+  const arcs = decodeArcs(data);
+  const polygonsByFeature = new Map<Feature, Ring[][]>();
+
+  for (const geometry of data.geometries) {
+    const polygonList = (geometry.multi
+      ? (geometry.arcs as number[][][])
+      : [geometry.arcs as number[][]]);
+
+    const feature = world.byId.get(geometry.id);
+
+    if (!feature) {
+      // no country record: Greenland, Western Sahara, overseas departments
+      const path = new Path2D();
+      let drew = false;
+      for (const polygon of polygonList) {
+        for (const indices of polygon) {
+          const ring = unwrapRing(buildRing(indices, arcs));
+          if (ring.length < 3) continue;
+          traceRing(path, ring);
+          drew = true;
+        }
+      }
+      if (drew) world.fullContext.push({ path });
+      continue;
+    }
+
+    for (const polygon of polygonList) {
+      const rings = polygon
+        .map(indices => unwrapRing(buildRing(indices, arcs)))
+        .filter(r => r.length > 2);
+      if (rings.length) {
+        const list = polygonsByFeature.get(feature) ?? [];
+        list.push(rings);
+        polygonsByFeature.set(feature, list);
+      }
+    }
+  }
+
+  for (const [feature, polygons] of polygonsByFeature) {
+    finalizeFeature(feature, polygons, 'fullPath');
+  }
+
+  for (const lake of data.lakes) {
+    const path = new Path2D();
+    let drew = false;
+    for (const indices of lake.arcs) {
+      const ring = unwrapRing(buildRing(indices, arcs));
+      if (ring.length < 3) continue;
+      traceRing(path, ring);
+      drew = true;
+    }
+    if (drew) world.fullLakes.push({ path });
+  }
 }
 
 /**
