@@ -50,6 +50,11 @@ before reconstructing it from `git log`.
   `app/lib/geography/names.ts`) and the "Name the Country" quiz, including its results
   screen, a `quizRuns` personal-best history and feeding the FSRS `location` card on
   every answer — see Quizzes below.
+- Run history on the quiz catalogue: clicking a size's best time opens its past runs
+  (date, time, first-try/revealed) with a delete control per row — the owner's own data
+  about their own performance, removable without a console. `resetAll()`,
+  `exportAll`/`importAll` and `saveQuizRun`'s impossible-run guard now all cover
+  `quizRuns` too — see the new note under Progress and scheduling.
 
 **Next:**
 - The `location` facet still has no question kind — it needs map-click interaction,
@@ -251,6 +256,14 @@ in `app/lib/core/` touches `indexedDB` at module scope — the Dexie instance is
 lazily behind a browser check, so importing the store from a route module is inert during
 prerender. If `npm run build` starts failing inside prerender, look here first.
 
+**Every table the app writes must be covered by reset, export and import.** `quizRuns`
+shipped covered by neither: `resetAll()` only cleared `cards`/`reviews`, so a timer bug's
+bogus 1-second personal best survived a full progress reset, and `exportAll`/`importAll`
+didn't touch it either, so it couldn't even travel with a backup. A table only one of the
+three knows about is how data goes stale (reset) or orphaned (export/import) — when a new
+table is added to `app/lib/core/progress.ts`, add it to all three in the same commit, not
+"when it comes up."
+
 ## Quizzes
 
 The owner's own words on why this exists: "the reason i want this app is the quizzes
@@ -365,7 +378,11 @@ npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no b
 
 `npm run test:unit` needs no build — it exercises `app/lib/core/` and
 `app/lib/geography/mastery.ts` directly, importing real content through the same
-`catalog.server.ts` reader every route loader uses.
+`catalog.server.ts` reader every route loader uses. `test/unit/progress.test.ts` is the
+one exception that needs a real IndexedDB to exercise `progress.ts`'s actual Dexie code
+(rather than the `available() === false` no-op path) — it pulls in `fake-indexeddb`
+(devDependency only, `fake-indexeddb/auto` imported at the top of that file) rather than
+mocking Dexie by hand.
 
 (In `prototype/`: `npm install && npm run build`.)
 

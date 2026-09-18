@@ -19,11 +19,18 @@ import Dexie, { type EntityTable } from 'dexie';
 
 import type { ProgressCard, ReviewEntry } from './scheduler';
 
-/** Bump only for a breaking row shape. Written into meta and into every export. Not the
- *  same number as the Dexie schema version below — quizRuns is additive (a new table,
- *  not a changed row shape) and deliberately left out of export/import (see QuizRunEntry's
- *  own doc comment), so it doesn't force this one to move. */
-export const SCHEMA_VERSION = 1;
+/** Bump for a breaking row shape, or for adding a table to the export payload — not the
+ *  same number as the Dexie schema version below, which tracks the local IndexedDB shape
+ *  instead. `parseExport` accepts any payload at or below this number (an older export is
+ *  just missing newer optional fields, like `quizRuns`); it only rejects one from a
+ *  version this build has never heard of. Bumped to 2 when quizRuns joined the payload. */
+export const SCHEMA_VERSION = 2;
+
+/** A run under this many ms per country is not a real score — nobody types a country's
+ *  name that fast. Exists because a timer bug once recorded a 1-second, 20-country run as
+ *  a "personal best"; see saveQuizRun. Keep this well under what a genuinely fast player
+ *  could do — it must only catch the impossible, never the merely excellent. */
+const MIN_MS_PER_COUNTRY = 300;
 
 const DB_NAME = 'zemya-progress';
 
@@ -33,15 +40,10 @@ interface MetaRow {
 }
 
 /**
- * One finished quiz run, appended — never overwritten, so a history exists later even
- * though only the fastest time is surfaced today. `quizId`/`size` are opaque strings here
+ * One finished quiz run, appended — never overwritten, so a history exists (surfaced on
+ * the quiz catalogue, alongside the fastest time). `quizId`/`size` are opaque strings here
  * for the same reason card ids are: this file must not need to know what "countries"
  * means, so a future history quiz can log runs into the same table.
- *
- * Deliberately NOT part of ExportPayload/SCHEMA_VERSION: a personal best is local flavour,
- * not learning progress, and keeping it out avoids forcing every existing export
- * incompatible over an additive table. Revisit if the owner wants best times to survive
- * a device move.
  */
 export interface QuizRunEntry {
   id?: number;
@@ -91,24 +93,59 @@ function database(): ProgressDb | null {
   return db;
 }
 
-/** Fire-and-forget, like saveCard/logReview — the UI never waits on this write. */
+/** Fire-and-forget, like saveCard/logReview — the UI never waits on this write. Refuses
+ *  to record a run faster than MIN_MS_PER_COUNTRY per country: this is a guard against a
+ *  broken timer, not a substitute for the delete control on the quiz catalogue — it only
+ *  catches runs that are outright impossible. */
 export function saveQuizRun(entry: Omit<QuizRunEntry, 'id'>): void {
   const store = database();
   if (!store) return;
+  const floorMs = entry.totalCount * MIN_MS_PER_COUNTRY;
+  if (entry.timeMs < floorMs) {
+    console.warn(
+      `[progress] discarding an impossible quiz run: ${entry.timeMs}ms for ${entry.totalCount} ` +
+        `countries (under the ${floorMs}ms floor) — this is a timer bug, not a score`
+    );
+    return;
+  }
   store.quizRuns.add(entry as QuizRunEntry).catch(shrug('quiz run write'));
 }
 
-/** The fastest recorded time for this quiz size, or null if it has never been run. */
+/** The fastest recorded time for this quiz size, or null if none are left. Always reads
+ *  the live table, so it self-corrects after deleteQuizRun with no extra bookkeeping. */
 export async function bestQuizTime(quizId: string, size: string): Promise<number | null> {
+  const matching = await quizRunsFor(quizId, size);
+  return matching.length ? Math.min(...matching.map(r => r.timeMs)) : null;
+}
+
+/** Every recorded run for a quiz size, most recent first — the catalogue's history list. */
+export async function listQuizRuns(quizId: string, size: string): Promise<QuizRunEntry[]> {
+  const matching = await quizRunsFor(quizId, size);
+  return matching.sort((a, b) => b.at - a.at);
+}
+
+async function quizRunsFor(quizId: string, size: string): Promise<QuizRunEntry[]> {
   const store = database();
-  if (!store) return null;
+  if (!store) return [];
   try {
     const runs = await store.quizRuns.where('quizId').equals(quizId).toArray();
-    const matching = runs.filter(r => r.size === size);
-    return matching.length ? Math.min(...matching.map(r => r.timeMs)) : null;
+    return runs.filter(r => r.size === size);
   } catch (error) {
-    shrug('best time read')(error);
-    return null;
+    shrug('run history read')(error);
+    return [];
+  }
+}
+
+/** Deletes one run. The caller has already confirmed with the user — this is the whole
+ *  point of the history list: the user's own data about their own performance, removable
+ *  without a console. */
+export async function deleteQuizRun(id: number): Promise<void> {
+  const store = database();
+  if (!store) return;
+  try {
+    await store.quizRuns.delete(id);
+  } catch (error) {
+    shrug('run delete')(error);
   }
 }
 
@@ -152,30 +189,39 @@ export interface ExportPayload {
   exportedAt: string;
   cards: ProgressCard[];
   reviews: ReviewEntry[];
+  /** Optional so a payload exported before schemaVersion 2 still parses — see
+   *  parseExport's version check and importAll's merge. */
+  quizRuns?: Omit<QuizRunEntry, 'id'>[];
 }
 
 /**
  * The review log is included even though mastery can be derived without it: it is the one
  * thing that cannot be reconstructed from anything else, and it is what a future FSRS
- * parameter optimisation would be fitted against.
+ * parameter optimisation would be fitted against. `id` is stripped from quizRuns — it is
+ * a local IndexedDB auto-increment key, meaningless on another device and liable to
+ * collide with an unrelated local row on import.
  */
 export async function exportAll(): Promise<ExportPayload> {
   const store = database();
-  const [cards, reviews] = store
-    ? await Promise.all([store.cards.toArray(), store.reviews.toArray()])
-    : [[], []];
+  const [cards, reviews, quizRuns] = store
+    ? await Promise.all([store.cards.toArray(), store.reviews.toArray(), store.quizRuns.toArray()])
+    : [[], [], []];
   return {
     app: 'zemya',
     schemaVersion: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     cards,
-    reviews: reviews.map(({ cardId, rating, at }) => ({ cardId, rating, at }))
+    reviews: reviews.map(({ cardId, rating, at }) => ({ cardId, rating, at })),
+    quizRuns: quizRuns.map(({ id, ...rest }) => { void id; return rest; })
   };
 }
 
 export class ImportError extends Error {}
 
-/** Validate before touching anything — a bad paste must not be able to destroy progress. */
+/** Validate before touching anything — a bad paste must not be able to destroy progress.
+ *  Accepts any schemaVersion at or below this build's — an older export is just missing
+ *  newer optional fields (quizRuns) — and only rejects one from a version this build has
+ *  never heard of. */
 export function parseExport(text: string): ExportPayload {
   let raw: unknown;
   try {
@@ -186,34 +232,50 @@ export function parseExport(text: string): ExportPayload {
   if (!raw || typeof raw !== 'object') throw new ImportError('That is not a Zemya export.');
   const payload = raw as Partial<ExportPayload>;
   if (payload.app !== 'zemya') throw new ImportError('That is not a Zemya export.');
-  if (payload.schemaVersion !== SCHEMA_VERSION) {
+  if (typeof payload.schemaVersion !== 'number' || payload.schemaVersion > SCHEMA_VERSION) {
     throw new ImportError(
-      `Export is schema version ${String(payload.schemaVersion)}; this build reads ${SCHEMA_VERSION}.`
+      `Export is schema version ${String(payload.schemaVersion)}; this build reads up to ${SCHEMA_VERSION}.`
     );
   }
   if (!Array.isArray(payload.cards) || !Array.isArray(payload.reviews)) {
     throw new ImportError('Export is missing its cards or reviews.');
   }
+  if (payload.quizRuns !== undefined && !Array.isArray(payload.quizRuns)) {
+    throw new ImportError('Export has a malformed quizRuns list.');
+  }
   return payload as ExportPayload;
 }
 
-/** Replaces everything. The caller has already confirmed with the user. */
+/** Replaces cards and reviews entirely. quizRuns is MERGED instead, deduplicated on
+ *  (quizId, size, at) — a run is an immutable historical fact, so importing an older
+ *  backup must not delete runs recorded since it was taken. The caller has already
+ *  confirmed with the user. */
 export async function importAll(payload: ExportPayload): Promise<ProgressCard[]> {
   const store = database();
   if (!store) return payload.cards;
-  await store.transaction('rw', store.cards, store.reviews, store.meta, async () => {
+  await store.transaction('rw', store.cards, store.reviews, store.meta, store.quizRuns, async () => {
     await Promise.all([store.cards.clear(), store.reviews.clear()]);
     await store.cards.bulkAdd(payload.cards);
     await store.reviews.bulkAdd(payload.reviews);
     await store.meta.put({ key: 'schemaVersion', value: SCHEMA_VERSION });
+
+    if (payload.quizRuns?.length) {
+      const existingKeys = new Set((await store.quizRuns.toArray()).map(quizRunKey));
+      const toAdd = payload.quizRuns.filter(run => !existingKeys.has(quizRunKey(run)));
+      if (toAdd.length) await store.quizRuns.bulkAdd(toAdd as QuizRunEntry[]);
+    }
   });
   return payload.cards;
+}
+
+function quizRunKey(run: Pick<QuizRunEntry, 'quizId' | 'size' | 'at'>): string {
+  return `${run.quizId} ${run.size} ${run.at}`;
 }
 
 export async function resetAll(): Promise<void> {
   const store = database();
   if (!store) return;
-  await store.transaction('rw', store.cards, store.reviews, async () => {
-    await Promise.all([store.cards.clear(), store.reviews.clear()]);
+  await store.transaction('rw', store.cards, store.reviews, store.quizRuns, async () => {
+    await Promise.all([store.cards.clear(), store.reviews.clear(), store.quizRuns.clear()]);
   });
 }

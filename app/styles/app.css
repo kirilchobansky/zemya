@@ -983,6 +983,16 @@ a {
   border-color: var(--brass-dim);
   background: var(--chart-3);
 }
+/* the size/label link and the best-time button are two separate clickable zones inside
+   one card — starting a run vs. opening that size's history — so neither can be nested
+   inside the other (an <a> containing a <button> is invalid and behaves unpredictably) */
+.quiz-size-card__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: inherit;
+}
 .quiz-size-card__n {
   font-family: var(--font-display);
   font-size: 22px;
@@ -997,9 +1007,93 @@ a {
 }
 .quiz-size-card__best {
   margin-top: 2px;
+  border: none;
+  background: none;
+  padding: 0;
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--brass-2);
+  cursor: pointer;
+}
+.quiz-size-card__best:hover {
+  text-decoration: underline;
+}
+
+.quiz-history {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule-soft);
+  background: var(--chart-2);
+}
+.quiz-history__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.quiz-history__head h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.quiz-history__close {
+  color: var(--ink-3);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.quiz-history__close:hover {
+  color: var(--ink);
+}
+.quiz-history__empty {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.quiz-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quiz-history__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+.quiz-history__row:hover {
+  background: var(--chart-3);
+}
+.quiz-history__date {
+  color: var(--ink-3);
+  flex: 0 0 auto;
+}
+.quiz-history__time {
+  color: var(--brass-2);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.quiz-history__tally {
+  color: var(--ink-2);
+  flex: 1 1 auto;
+}
+.quiz-history__delete {
+  flex: 0 0 auto;
+  color: var(--ink-3);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.quiz-history__delete:hover {
+  color: var(--new);
+  background: rgb(226 84 79 / 12%);
 }
 
 .quiz-run__timer {
