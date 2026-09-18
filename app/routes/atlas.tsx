@@ -123,7 +123,7 @@ function AtlasShell() {
   const handleSelect = useCallback(
     (feature: Feature | null) => {
       // A map click during a quiz run must never navigate — it would unmount the run
-      // (leaving /quiz/countries tears the quiz override down) and lose all progress and
+      // (leaving /quiz/:quizId tears the quiz override down) and lose all progress and
       // the timer, with no confirmation. The quiz has its own input for interaction.
       if (quiz) return;
       if (armingCompare) {

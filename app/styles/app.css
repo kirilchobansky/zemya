@@ -1127,7 +1127,7 @@ kbd {
   color: var(--ink-3);
 }
 
-/* Docked over the canvas, not the panel — see quiz.countries.tsx's own doc comment for
+/* Docked over the canvas, not the panel — see quiz.$quizId.tsx's own doc comment for
    why a panel-route component renders a fixed-position element outside the panel.
    Centred on the STAGE, not the viewport: the stage sits between the rail and the panel,
    so centring on 50vw would drift toward the panel on desktop widths. */

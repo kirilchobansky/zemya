@@ -11,6 +11,6 @@ export default [
     route('country/:slug', 'routes/country.tsx'),
     route('study', 'routes/study.tsx'),
     route('quiz', 'routes/quiz.tsx'),
-    route('quiz/countries/:size', 'routes/quiz.countries.tsx')
+    route('quiz/:quizId/:size', 'routes/quiz.$quizId.tsx')
   ])
 ] satisfies RouteConfig;

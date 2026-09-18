@@ -1,8 +1,11 @@
 /**
- * The quiz catalogue. Today there is one quiz — "Name the Country" — but the shape below
- * (an entry describing itself, ranked by one exported function) is what lets a future
- * "Name the Capital" be a new entry in QUIZZES rather than a rewrite of /quiz.
+ * The quiz catalogue: the size ladder every quiz shares, and the registry of
+ * QuizDefinitions the shared engine/route (app/lib/quiz/engine.ts,
+ * routes/quiz.$quizId.tsx) run. A second quiz is one entry in QUIZ_DEFINITIONS, never a
+ * new route tree — see CLAUDE.md's Quizzes section.
  */
+import { CountriesStage } from '~/components/quiz/CountriesStage';
+import type { QuizDefinition } from '~/lib/quiz/types';
 import type { CountryRecord } from '~/lib/map/types';
 
 export const QUIZ_SIZES = ['20', '30', '50', '90', '120', 'all'] as const;
@@ -12,19 +15,19 @@ export function isQuizSize(value: string): value is QuizSize {
   return (QUIZ_SIZES as readonly string[]).includes(value);
 }
 
-export interface QuizDef {
-  id: string;
-  title: string;
-  description: string;
-}
-
-export const QUIZZES: QuizDef[] = [
+export const QUIZ_DEFINITIONS: QuizDefinition[] = [
   {
     id: 'countries',
     title: 'Name the Country',
-    description: 'The map flies to a country. Type its name before the timer runs out of countries to ask.'
+    description: 'The map flies to a country. Type its name before the timer runs out of countries to ask.',
+    facet: 'location',
+    Stage: CountriesStage
   }
 ];
+
+export function quizDefinition(id: string): QuizDefinition | undefined {
+  return QUIZ_DEFINITIONS.find(q => q.id === id);
+}
 
 /** The N most populous countries — the axis "Name the Country" ranks by. Kept behind one
  *  function so ranking by a different axis (area, alphabetical, ...) for a future quiz is

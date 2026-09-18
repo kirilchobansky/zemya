@@ -1,14 +1,14 @@
 /**
- * The quiz catalogue. Today there is one quiz — "Name the Country" — laid out from
- * QUIZZES/QUIZ_SIZES (app/lib/geography/quizzes.ts) so a future quiz is a new entry in
- * that list, not a new route tree. See CLAUDE.md's Quizzes section.
+ * The quiz catalogue. Laid out from QUIZ_DEFINITIONS/QUIZ_SIZES
+ * (app/lib/geography/quizzes.ts) so a new quiz is one entry in that registry, not a new
+ * route tree. See CLAUDE.md's Quizzes section.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import { bestQuizTime, deleteQuizRun, listQuizRuns, type QuizRunEntry } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
-import { QUIZ_SIZES, QUIZZES, type QuizSize } from '~/lib/geography/quizzes';
+import { QUIZ_DEFINITIONS, QUIZ_SIZES, type QuizSize } from '~/lib/geography/quizzes';
 
 export function meta() {
   return [
@@ -30,7 +30,7 @@ export default function QuizCatalogue() {
 
   const refreshBestTimes = useCallback(async () => {
     const entries = await Promise.all(
-      QUIZZES.flatMap(quiz =>
+      QUIZ_DEFINITIONS.flatMap(quiz =>
         QUIZ_SIZES.map(async size => [`${quiz.id}:${size}`, await bestQuizTime(quiz.id, size)] as const)
       )
     );
@@ -65,7 +65,7 @@ export default function QuizCatalogue() {
         <h2>Pick a quiz</h2>
       </header>
       <div className="panel__body">
-        {QUIZZES.map(quiz => (
+        {QUIZ_DEFINITIONS.map(quiz => (
           <section key={quiz.id}>
             <h3 className="subhead">{quiz.title}</h3>
             <p style={{ color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5, margin: '0 0 10px' }}>
@@ -78,7 +78,7 @@ export default function QuizCatalogue() {
                   <div key={size} className="quiz-size-card">
                     <Link className="quiz-size-card__link" to={`/quiz/${quiz.id}/${size}`}>
                       <span className="quiz-size-card__n">{size === 'all' ? 'All' : size}</span>
-                      <span className="quiz-size-card__label">countries</span>
+                      <span className="quiz-size-card__label">rounds</span>
                     </Link>
                     {best != null && (
                       <button
@@ -97,7 +97,7 @@ export default function QuizCatalogue() {
             {history?.quizId === quiz.id && (
               <div className="quiz-history">
                 <div className="quiz-history__head">
-                  <h4>{history.size === 'all' ? 'All' : history.size} countries — history</h4>
+                  <h4>{history.size === 'all' ? 'All' : history.size} rounds — history</h4>
                   <button
                     type="button"
                     className="quiz-history__close"
