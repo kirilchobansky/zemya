@@ -5,7 +5,9 @@
  * new route tree — see CLAUDE.md's Quizzes section.
  */
 import { CountriesStage } from '~/components/quiz/CountriesStage';
-import type { QuizDefinition } from '~/lib/quiz/types';
+import { FlagsStage } from '~/components/quiz/FlagsStage';
+import { normaliseName } from '~/lib/geography/names';
+import type { MatchOutcome, QuizDefinition } from '~/lib/quiz/types';
 import type { CountryRecord } from '~/lib/map/types';
 
 export const QUIZ_SIZES = ['20', '30', '50', '90', '120', 'all'] as const;
@@ -15,6 +17,30 @@ export function isQuizSize(value: string): value is QuizSize {
   return (QUIZ_SIZES as readonly string[]).includes(value);
 }
 
+/**
+ * Accepts the target's confusable twin (see content/geography/confusable-flags.yaml) as
+ * well as its own name — the flags quiz's one addition on top of the plain name match
+ * every quiz gets for free. Returns null (fall through to the default matcher) for
+ * everything else, including the target's own name; matchesCountry already handles that.
+ */
+function matchFlag(typed: string, target: CountryRecord): MatchOutcome | null {
+  const twin = target.confusableFlag;
+  if (!twin) return null;
+  const normalised = normaliseName(typed);
+  if (!normalised || !twin.aliases.some(alias => normaliseName(alias) === normalised)) return null;
+  return { accepted: true, note: `Accepted — that one was ${target.name}. ${twin.note}` };
+}
+
+/** Preloads the SVGs for a lookahead of targets — the heaviest flags are 200+ KB, and a
+ *  hitch fetching one mid-run would feel broken in a timed quiz. The browser's own cache
+ *  is all that's needed; nothing here holds onto the Image object. */
+function preloadFlags(targets: CountryRecord[]): void {
+  for (const country of targets) {
+    const img = new Image();
+    img.src = `/flags/${country.iso2.toLowerCase()}.svg`;
+  }
+}
+
 export const QUIZ_DEFINITIONS: QuizDefinition[] = [
   {
     id: 'countries',
@@ -22,6 +48,15 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     description: 'The map flies to a country. Type its name before the timer runs out of countries to ask.',
     facet: 'location',
     Stage: CountriesStage
+  },
+  {
+    id: 'flags',
+    title: 'Name the Flag',
+    description: 'A flag fills the screen. Type the country before the timer runs out of flags to ask.',
+    facet: 'flag',
+    Stage: FlagsStage,
+    prepare: preloadFlags,
+    match: matchFlag
   }
 ];
 

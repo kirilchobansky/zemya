@@ -35,7 +35,12 @@ before reconstructing it from `git log`.
 - The Caspian Sea renders as water, not a hole through to the page background — pulled
   from a hole already present in world-atlas's separate land layer, no new dependency.
   The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
-- Real flag images (`public/flags/`, from flag-icons, offline, emoji fallback on error).
+- Real flag images (`public/flags/`, from svg-country-flags, offline, emoji fallback on
+  error) at their own true aspect ratio — `flagRatio` on the country record, computed at
+  build time from each SVG's `viewBox` and set as an explicit CSS `aspect-ratio` in
+  `Flag.tsx`, since a bare `viewBox` with no width/height (Qatar, Nepal) leaves a browser
+  nothing to size an `<img>` from otherwise. `flag-icons`, which normalised everything to
+  4:3, is gone.
 - Progress and scheduling: FSRS cards per (country, facet), created lazily, mastery
   derived never stored, IndexedDB via Dexie, export/import/reset.
 - Study mode: 9 question kinds, session policy (due cards first, then new cards
@@ -55,6 +60,16 @@ before reconstructing it from `git log`.
   about their own performance, removable without a console. `resetAll()`,
   `exportAll`/`importAll` and `saveQuizRun`'s impossible-run guard now all cover
   `quizRuns` too — see the new note under Progress and scheduling.
+- The quiz run screen (queue, timer, pause/resume, abandon, grading, results, personal
+  best) is a shared, subject-agnostic engine (`app/lib/quiz/engine.ts`) behind one route
+  (`routes/quiz.$quizId.tsx`, `/quiz/:quizId/:size`) — a second quiz is one
+  `QuizDefinition` entry in `app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`, not a new
+  route tree. "Name the Flag" is that second quiz: a flag fills the whole stage area (no
+  map), typing the country grades `geo:<ISO3>:flag`, and a small curated list
+  (`content/geography/confusable-flags.yaml`) accepts a few flags that are still
+  genuinely hard to tell apart (Romania/Chad) for each other, with a note on the real
+  difference — see Quizzes below for the mechanism and the design calls made along the
+  way.
 
 **Next:**
 - The `location` facet still has no question kind — it needs map-click interaction,
@@ -83,7 +98,12 @@ before reconstructing it from `git log`.
   verified with a mocked 2D context asserting `fillText`/`strokeText` are never called
   under `quizMode` (`test/unit/renderer.test.ts`) rather than an eyeballed screenshot —
   a stronger, deterministic check where it applies, but still not a substitute for
-  actually running `npm test` after pulling.
+  actually running `npm test` after pulling. Confirmed again while building the flags
+  quiz: `npx playwright install chromium` succeeds (network access to the CDN works
+  fine), but launching it still fails — `error while loading shared libraries:
+  libnspr4.so` — so this is a missing-system-package problem, not a missing-browser-
+  binary one; installing Chromium again will not fix it without also installing its
+  runtime dependencies, which needs the sudo this sandbox doesn't have.
 - Vatican City's 1:10m source geometry (world-atlas, one arc, 3 points, all at the same
   longitude) is degenerate — a zero-width line, not a polygon — so it stays a pin at any
   zoom regardless of the pin/shape fix above. Confirmed it's the only one of the small
@@ -271,27 +291,63 @@ actually. Not the detail not anything else." — treat this as the app's core lo
 feature alongside the atlas and study mode.
 
 **Route shape.** `/quiz` (`routes/quiz.tsx`) is the catalogue — a list built from
-`app/lib/geography/quizzes.ts`'s `QUIZZES`/`QUIZ_SIZES`, so a second quiz ("Name the
-Capital", say) is a new entry in that list plus a new `route()` in `app/routes.ts` for its
-`:size` leaf, never its own route tree or a rewrite of the catalogue page. Today there is
-one quiz, "Name the Country", at `/quiz/countries/:size` (`routes/quiz.countries.tsx`),
-sizes `20 | 30 | 50 | 90 | 120 | all` ranked by population (`topByPopulation` — kept
-behind one function so ranking by a different axis later is a one-line change).
+`app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`/`QUIZ_SIZES`. Every run, of any quiz,
+is served by one route: `/quiz/:quizId/:size` (`routes/quiz.$quizId.tsx`), which looks the
+id up in `QUIZ_DEFINITIONS` and renders that definition's `Stage`. A second quiz ("Name
+the Capital", say) is one new `QuizDefinition` entry, never a new route tree or a rewrite
+of the catalogue page — this is what let "Name the Flag" arrive as a ~50-line presenter
+(`components/quiz/FlagsStage.tsx`) plus a registry entry, reusing everything else. Sizes
+are `20 | 30 | 50 | 90 | 120 | all`, ranked by population for the countries quiz
+(`topByPopulation` — kept behind one function so ranking by a different axis later is a
+one-line change); a quiz that shouldn't rank by population would pass its own list into
+the shared engine instead.
 
-**Quiz mode is one flag, not four conditionals.** A quiz run's route component reaches the
+**The engine/presenter split.** `app/lib/quiz/engine.ts`'s `useQuizEngine()` hook owns a
+run end-to-end — question order, the current target, attempt state, timer accumulation,
+pause/resume, abandon, per-answer outcome, completion, the results payload, the
+personal-best write and FSRS grading — and is deliberately ignorant of maps, flag images
+or anything else a Stage renders; it knows a list of countries and a callback per answer.
+A `QuizDefinition` (`app/lib/quiz/types.ts`) is `{ id, title, description, facet, Stage,
+prepare?, match? }`: `facet` says which FSRS card an answer grades
+(`geo:<ISO3>:<facet>`), `Stage` is the component that renders what the player sees,
+`prepare(targets)` is an optional lookahead hook for preloading something heavier than a
+name (the flags quiz preloads SVGs three questions ahead — the heaviest are 200+ KB and a
+mid-run hitch would feel broken), and `match(typed, target)` is an optional acceptance
+rule layered on top of the plain name match every quiz gets for free (see confusable
+pairs below). `description` and `match` aren't in the minimal shape first sketched for
+this split; both turned out to be needed once the catalogue text and the flags quiz's
+confusable pairs were actually built, so they're recorded here rather than only in a
+commit message.
+
+`routes/quiz.$quizId.tsx` is the "atlas bridge": it owns the handful of things every quiz
+needs from the atlas layout — hiding the search box/toolbar/tooltip for the run's whole
+lifetime, returning the camera to the world view on START and on finish, and mirroring
+the run's target/answered/showNeighbours/paused state into the map's own quiz-mode
+painting. This happens unconditionally for every quiz, including one whose Stage never
+shows the map (flags) — harmless there, since nothing is looking at the map underneath a
+full-stage overlay, and it means the atlas-integration code is written once rather than
+per quiz. `QuizStageProps` has a `slot: 'stage' | 'panel'` a Stage is called with twice
+per render: `'stage'` is the thing docked or overlaid on the canvas (the countries quiz's
+START/input dock; the flags quiz's full-stage flag + input), `'panel'` is anything extra
+a quiz wants inside the right panel alongside the generic timer/count/action buttons —
+today only the countries quiz uses it, for its neighbour-glow toggle, since no other quiz
+has a notion of map neighbours. This `slot` prop is how a one-off control like that gets a
+home without `QuizStageProps` growing a bespoke field per future quiz.
+
+**Quiz mode is one flag, not four conditionals.** `routes/quiz.$quizId.tsx` reaches the
 map through `useAtlasContext()` (exported from `routes/atlas.tsx`) and writes a `quiz:
 QuizOverride | null` there for the whole lifetime of the route (set on mount, torn down on
-unmount) — `quiz.tsx`'s catalogue never touches it. Setting it non-null does four things,
-all gated on that one value: the renderer's `Style.quizMode` suppresses `drawLabels()`
-entirely (`renderer.ts`); `atlas.tsx` stops rendering the search box and the hover
-`.tip`; and the neighbour glow defaults off, driven by `quiz.showNeighbours` rather than
-the normal toolbar's `showNeighbours` state (the quiz run screen has its own toggle for
-it). Fill/stroke while active come from `quizFillFor`/`quizStrokeFor`
-(`geography/overlays.ts`) instead of the normal `fillFor`/`strokeFor` — answered-correct
-green, answered-revealed amber, the current target brass, everything else plain land; no
-overlay, hover or mastery colouring applies mid-quiz. Anyone adding a fifth surface that
-could show a country's name should gate it on this same `quiz`/`quizMode` value rather
-than inventing a new flag.
+unmount), for every quiz alike — `quiz.tsx`'s catalogue never touches it. Setting it
+non-null does four things, all gated on that one value: the renderer's `Style.quizMode`
+suppresses `drawLabels()` entirely (`renderer.ts`); `atlas.tsx` stops rendering the search
+box and the hover `.tip`; and the neighbour glow defaults off, driven by
+`quiz.showNeighbours` rather than the normal toolbar's `showNeighbours` state (only the
+countries quiz's Stage renders a toggle for it — see the engine/presenter split above).
+Fill/stroke while active come from `quizFillFor`/`quizStrokeFor` (`geography/overlays.ts`)
+instead of the normal `fillFor`/`strokeFor` — answered-correct green, answered-revealed
+amber, the current target brass, everything else plain land; no overlay, hover or mastery
+colouring applies mid-quiz. Anyone adding a fifth surface that could show a country's name
+should gate it on this same `quiz`/`quizMode` value rather than inventing a new flag.
 
 **Camera: little to no zoom, on purpose.** The first version of this flew the camera to
 each question with custom quarter-viewport-width framing (`camera.ts`'s `frameForQuiz`,
@@ -335,17 +391,37 @@ Deliberately just a `navigate('/quiz')`: the route unmounting is what already te
 Not a bare key, and not Esc (already pause) — a bare letter would fire while typing a
 country's own name (e.g. "Qatar").
 
-**Feeding the spaced repetition.** Every answer grades that country's `geo:<ISO3>:location`
-card (`app/lib/geography/mastery.ts`'s `cardId`) through the normal `review()` from
-`useProgress()` — the same path study mode uses. `location` is graded here even though
-study mode still can't ask it (`ASKABLE_FACETS` excludes it) — that's intentional, the
-quiz *is* the location question, so don't "fix" it by adding a location question kind to
-study mode instead. Rating: revealed -> Again; not revealed but skipped at least once ->
-Hard; answered clean and fast (under 5 s of the country last becoming the target) ->
-Easy; answered clean otherwise -> Good. "Fast" is measured from when the country MOST
-RECENTLY became the target, not first — the two are the same instant for any answer that
-was never skipped, i.e. every Easy/Good case, so this only matters for telling Hard apart,
-where it already resolves to Hard regardless of elapsed time.
+**Feeding the spaced repetition.** Every answer grades that country's
+`geo:<ISO3>:<definition.facet>` card (`app/lib/geography/mastery.ts`'s `cardId`) through
+the normal `review()` from `useProgress()` — the same path study mode uses. For the
+countries quiz that's `location`, graded here even though study mode still can't ask it
+(`ASKABLE_FACETS` excludes it) — that's intentional, the quiz *is* the location question,
+so don't "fix" it by adding a location question kind to study mode instead. The flags
+quiz grades `flag` instead, feeding the same card study mode's flag questions already use.
+Rating: revealed -> Again; not revealed but skipped at least once -> Hard; answered clean
+and fast (under 5 s of the country last becoming the target) -> Easy; answered clean
+otherwise -> Good. "Fast" is measured from when the country MOST RECENTLY became the
+target, not first — the two are the same instant for any answer that was never skipped,
+i.e. every Easy/Good case, so this only matters for telling Hard apart, where it already
+resolves to Hard regardless of elapsed time.
+
+**"Name the Flag" and confusable pairs.** Same engine, same six sizes, same top-N-by-
+population ladder, same keyboard rules, same matcher, same timer, same results and
+personal best — its `QuizDefinition` (`app/lib/geography/quizzes.ts`) is a `Stage`
+(`components/quiz/FlagsStage.tsx`, no map, the flag filling the stage area with the
+input directly under it), `facet: 'flag'`, a `prepare()` that preloads the next three
+flags' SVGs, and a `match()`. True aspect ratios (see "Where this is") solve most
+lookalikes outright — Monaco vs Indonesia is a real shape difference now, not just a
+colour one — but a very short list of pairs are still genuinely unfair even so. The list
+lives in `content/geography/confusable-flags.yaml` (plain YAML, hand-curated, one entry
+today: Romania/Chad), because generating it from a pixel comparison was tried and
+over-reports badly — it ranked Egypt/Iraq as the closest pair in the set, which is only
+true at thumbnail size where their emblems blur away. `build-content.mjs` resolves each
+pair by country name and denormalises the OTHER side's `aliases` and a shared `note`
+directly onto both countries' `confusableFlag` field, so `quizzes.ts`'s `match()` can
+accept the twin's name and explain the real difference (`"Accepted — that one was
+<target>. <note>"`) without a second catalogue lookup at match time. Keep this list short
+and only grow it from real play.
 
 **Personal best.** Every finished run is appended (never overwritten) to a `quizRuns`
 table in the same Dexie database as `cards`/`reviews` (`app/lib/core/progress.ts`) —
@@ -366,7 +442,7 @@ as a dossier link — "the ones worth another look", the actual point of the scr
 ```bash
 npm install
 npm run dev             # dev server on :5173
-npm run build           # build:content, then prerender 206 static pages
+npm run build           # build:content, then prerender 212 static pages
 npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
@@ -455,6 +531,11 @@ so nothing may depend on a webfont having loaded.
   hover. Reach for this instead of picking a source and asserting precision nobody has.
 - Hooks are written as fragments with an implied subject. Any surface that shows a hook
   outside the country's own page must supply the subject itself.
+- `content/geography/confusable-flags.yaml` is the one content file that isn't
+  per-country — a hand-curated list of flag pairs the "Name the Flag" quiz accepts for
+  each other (see Quizzes). Same rule as everywhere else in `content/`: plain YAML,
+  editable without touching code, and a mandatory `note` saying why the pair is genuinely
+  confusable, not asserted opinion.
 
 ## Do not
 

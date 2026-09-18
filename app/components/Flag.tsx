@@ -18,7 +18,10 @@ import { useState } from 'react';
 const BOXES = {
   sm: { width: 20, height: 15 },
   md: { width: 64, height: 48 },
-  lg: { width: 220, height: 165 }
+  lg: { width: 220, height: 165 },
+  /** The "Name the Flag" quiz's own full-stage presentation — big enough that Qatar's
+   *  sliver and Nepal's pennant both read clearly. */
+  xl: { width: 460, height: 300 }
 } as const;
 
 export type FlagSize = keyof typeof BOXES;

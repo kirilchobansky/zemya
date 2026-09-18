@@ -479,6 +479,43 @@ try {
     const catalogueText = await page.textContent('.panel__body');
     check(/\d:\d\d\.\d/.test(catalogueText), 'the quiz catalogue shows no personal best time after a finished run');
   }
+
+  /* --- 17. flags quiz: no map, answering advances, and no leaked country name ------ */
+  await page.goto(`${devBase}quiz/flags/20`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  check(await page.isVisible('.quiz-dock__start'), 'the flags quiz has no START control');
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(400);
+
+  const firstFlagState = await page.evaluate(() => window.__zemyaQuiz);
+  check(Boolean(firstFlagState?.target), 'flags quiz exposed no current target after START');
+  check(await page.isVisible('.quiz-flag-stage__flag img'), 'the flags quiz shows no flag image');
+
+  if (firstFlagState?.target) {
+    await page.fill('.quiz-dock__input', firstFlagState.target);
+    await page.waitForTimeout(400);
+
+    const afterFlagState = await page.evaluate(() => window.__zemyaQuiz);
+    check(
+      afterFlagState?.target !== firstFlagState.target,
+      'typing the correct country name did not advance the flags quiz'
+    );
+    check(
+      afterFlagState?.answeredCount === firstFlagState.answeredCount + 1,
+      `flags quiz answered count did not increase — ${firstFlagState.answeredCount} -> ${afterFlagState?.answeredCount}`
+    );
+
+    // same leak check as the countries quiz: the NEXT flag's country name must appear
+    // nowhere on the page
+    if (afterFlagState?.target) {
+      const bodyText = await page.textContent('body');
+      check(
+        !bodyText.includes(afterFlagState.target),
+        `the next flag's country name ("${afterFlagState.target}") is visible somewhere on the page`
+      );
+    }
+  }
 } finally {
   if (devServer) {
     try {
@@ -500,5 +537,6 @@ if (problems.length) {
 console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
-    'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best'
+    'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best, ' +
+    'flags quiz (no leak)'
 );

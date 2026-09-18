@@ -36,6 +36,12 @@ export interface CountryRecord {
    *  rectangle; Switzerland and the Vatican are square). Flag.tsx sets this as an explicit
    *  CSS aspect-ratio rather than assuming 4:3. */
   flagRatio: number;
+  /** This country's flag is genuinely still hard to tell apart from another's even with
+   *  true aspect ratios (see content/geography/confusable-flags.yaml) — naming that other
+   *  country in the "Name the Flag" quiz is accepted too. `aliases`/`note` are the OTHER
+   *  country's own, denormalised at build time so matching doesn't need a second lookup.
+   *  Undefined for every country not on the curated list. */
+  confusableFlag?: { iso3: string; aliases: string[]; note: string };
   /** Every string a user could reasonably type to name this country in the "Name the
    *  Country" quiz — see scripts/build-content.mjs's alias-building step and
    *  app/lib/geography/names.ts's matcher. Deduped, two-letter ISO codes dropped, and

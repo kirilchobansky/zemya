@@ -1,0 +1,13 @@
+# Flags that are still genuinely hard to tell apart in the "Name the Flag" quiz, even
+# after true aspect ratios fixed the ones that were only confusable because flag-icons had
+# stretched everything to 4:3 (see CLAUDE.md's Quizzes section). Each pair is unordered —
+# naming either country is accepted for the other's flag — with one factual `note`
+# explaining the real difference, shown (from whichever side was actually the target)
+# when the lookalike is accepted instead of marked wrong.
+#
+# Keep this list short and only add to it from real play — do not generate it from a pixel
+# comparison, which over-reports badly (it ranks pairs as confusable that are only close
+# at thumbnail size, once emblems blur away).
+pairs:
+  - countries: [Romania, Chad]
+    note: "Chad's blue is darker than Romania's (#002664 vs #00319C)."

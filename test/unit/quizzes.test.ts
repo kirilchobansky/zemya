@@ -7,8 +7,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { allCountries } from '~/lib/geography/catalog.server';
-import { isQuizSize, QUIZ_SIZES, topByPopulation } from '~/lib/geography/quizzes';
+import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
+import { isQuizSize, quizDefinition, QUIZ_SIZES, topByPopulation } from '~/lib/geography/quizzes';
 import { quizFillFor, quizStrokeFor, MASTERY_COLOURS, SELECTED, NEIGHBOUR, LAND } from '~/lib/geography/overlays';
 import type { Feature } from '~/lib/map/types';
 
@@ -104,5 +104,32 @@ describe('quizFillFor / quizStrokeFor', () => {
     const [colour] = quizStrokeFor(target, quiz);
     expect(colour).toBe('#F5CE86'); // target's own stroke — still the active question
     expect(quizFillFor(target, quiz)).toBe(MASTERY_COLOURS.mastered); // but its fill reflects the answer
+  });
+});
+
+describe('the flags quiz\'s confusable-pair match', () => {
+  const match = quizDefinition('flags')!.match!;
+
+  it('accepts the target\'s confusable twin, with a note naming the real target', () => {
+    const chad = countryBySlug('chad')!;
+    const outcome = match('Romania', chad);
+    expect(outcome?.accepted).toBe(true);
+    expect(outcome?.note).toContain('Chad');
+  });
+
+  it('works both directions — Chad is also accepted for Romania', () => {
+    const romania = countryBySlug('romania')!;
+    const outcome = match('Chad', romania);
+    expect(outcome?.accepted).toBe(true);
+  });
+
+  it('returns null (fall through to the default matcher) for an unrelated guess', () => {
+    const chad = countryBySlug('chad')!;
+    expect(match('France', chad)).toBeNull();
+  });
+
+  it('returns null for a country with no curated twin at all', () => {
+    const bulgaria = countryBySlug('bulgaria')!;
+    expect(match('Romania', bulgaria)).toBeNull();
   });
 });

@@ -16,7 +16,7 @@ const slugs: string[] = JSON.parse(
  *  `~` alias, the same way scripts/build-content.mjs duplicates a couple of app/lib
  *  constants of its own. */
 const QUIZ_SIZES = ['20', '30', '50', '90', '120', 'all'];
-const QUIZ_IDS = ['countries'];
+const QUIZ_IDS = ['countries', 'flags'];
 
 export default {
   ssr: true,

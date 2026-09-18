@@ -1193,6 +1193,42 @@ kbd {
   transition: filter 0.2s ease;
 }
 
+/* "Name the Flag" has no map — this covers the whole stage area instead of docking a
+   small control over it. Fixed, not nested layout, for the same reason as .quiz-dock:
+   it's rendered from a panel-route component (routes/quiz.$quizId.tsx's Outlet lives in
+   .panel, not .stage), so it has to break out via position:fixed to sit over the canvas.
+   left/right are the rail/panel widths directly, not the .quiz-dock midpoint calc, since
+   this covers the full stage rather than centring one dock over it. */
+.quiz-flag-stage {
+  position: fixed;
+  z-index: 6;
+  top: 0;
+  bottom: 0;
+  left: var(--rail-width);
+  right: var(--panel-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: var(--abyss);
+}
+.quiz-flag-stage__flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 6px 18px rgb(0 0 0 / 55%));
+}
+
+@media (max-width: 900px) {
+  .quiz-flag-stage {
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: 44vh;
+  }
+}
+
 @media (max-width: 900px) {
   .quiz-dock {
     left: 50%;
