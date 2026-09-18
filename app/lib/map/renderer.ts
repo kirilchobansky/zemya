@@ -106,6 +106,44 @@ function drawGraticule(rc: RenderContext): void {
   ctx.stroke();
 }
 
+/** Small buffer, in CSS px, so a copy or a feature that's only just off-screen doesn't
+ *  pop into view a frame late during a fast pan. */
+const CULL_MARGIN_PX = 120;
+
+/**
+ * Does this copy's world tile land anywhere near the viewport? At world zoom the -1/+1
+ * copies (used so panning across the ±180° seam looks continuous — see applyTransform)
+ * are almost entirely off screen, and were being filled/stroked in full regardless.
+ * Real content can overflow a copy's nominal [0,1] unit-square tile slightly (Russia's
+ * Chukotka crossing lands past x=1 — see topology.ts's unwrapRing), which the margin
+ * comfortably covers: multi-copy rendering only happens near world zoom (see render()),
+ * where 120px is a small fraction of the zoom-sized tile.
+ */
+function isCopyVisible(rc: RenderContext, copy: number): boolean {
+  const { camera, viewport } = rc;
+  const left = viewport.width / 2 + camera.zoom * (copy - wrapX(camera.x));
+  return left < viewport.width + CULL_MARGIN_PX && left + camera.zoom > -CULL_MARGIN_PX;
+}
+
+/** Does this feature's bbox land anywhere near the viewport, in this copy's transform?
+ *  Same margin and reasoning as isCopyVisible. A feature with no bbox is never reached
+ *  here — the caller already skips anything with no path to draw. */
+function isFeatureVisible(rc: RenderContext, feature: Feature, copy: number): boolean {
+  const bbox = feature.bbox;
+  if (!bbox) return true;
+  const { camera, viewport } = rc;
+  const x = wrapX(camera.x);
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+  const left = viewport.width / 2 + camera.zoom * (lonToX(minLon) - x + copy);
+  const right = viewport.width / 2 + camera.zoom * (lonToX(maxLon) - x + copy);
+  const top = viewport.height / 2 + camera.zoom * (latToY(maxLat) - camera.y);
+  const bottom = viewport.height / 2 + camera.zoom * (latToY(minLat) - camera.y);
+  return (
+    right > -CULL_MARGIN_PX && left < viewport.width + CULL_MARGIN_PX &&
+    bottom > -CULL_MARGIN_PX && top < viewport.height + CULL_MARGIN_PX
+  );
+}
+
 /** Below this on-screen width, in CSS pixels, a country draws as a pin instead of its
  *  real shape — a per-frame decision from the current zoom, not a fixed property of the
  *  country. Tune by looking at the result: too low and micro-states are unclickable
@@ -232,7 +270,10 @@ export function render(
 
   drawGraticule(rc);
 
-  const copies = camera.zoom < viewport.width * 1.6 ? [-1, 0, 1] : [0];
+  const copyCandidates = camera.zoom < viewport.width * 1.6 ? [-1, 0, 1] : [0];
+  // copy 0 always renders even if the visibility maths somehow says otherwise — it must
+  // never be possible to cull the map down to a blank canvas
+  const copies = copyCandidates.filter(copy => copy === 0 || isCopyVisible(rc, copy));
 
   for (const copy of copies) {
     applyTransform(rc, copy);
@@ -241,22 +282,28 @@ export function render(
     ctx.fillStyle = COLORS.context;
     for (const shape of world.context) ctx.fill(shape.path);
 
-    for (const feature of world.features) {
-      if (!feature.path || drawsAsPin(feature, camera)) continue;
+    // Computed once per copy and reused for both passes below — same bbox test the pin
+    // logic already needs (onScreenWidth), just against the viewport instead of a pixel
+    // threshold. A frame is pixel-identical to drawing every feature unconditionally:
+    // nothing visible is skipped, only work for shapes nowhere near the viewport.
+    const visible = world.features.filter(
+      feature => feature.path && !drawsAsPin(feature, camera) && isFeatureVisible(rc, feature, copy)
+    );
+
+    for (const feature of visible) {
       const colour = style.fill(feature);
       if (!colour) continue;
       ctx.fillStyle = colour;
-      ctx.fill(feature.path);
+      ctx.fill(feature.path!);
     }
 
     // strokes in a second pass so no fill can bleed over a neighbour's border
-    for (const feature of world.features) {
-      if (!feature.path || drawsAsPin(feature, camera)) continue;
+    for (const feature of visible) {
       const s = style.stroke(feature);
       if (!s) continue;
       ctx.strokeStyle = s[0];
       ctx.lineWidth = s[1] / camera.zoom;
-      ctx.stroke(feature.path);
+      ctx.stroke(feature.path!);
     }
 
     // lakes on top of the land they cut into, so the Caspian reads as water sitting in
