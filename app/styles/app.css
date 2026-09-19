@@ -470,6 +470,10 @@ a {
   flex: 0 0 auto;
   object-fit: contain;
   border-radius: 3px;
+  /* drop-shadow follows the image's alpha, not its box: a thin light rim plus a soft dark
+     lift, so a flag's own outline reads against --chart (Nepal's pennant, Qatar's
+     serrated edge) without a rectangle round it. */
+  filter: drop-shadow(0 0 1px rgba(230, 238, 243, 0.55)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
   /* width/height are set inline per flag (Flag.tsx), as two explicit pixel numbers
      computed from its own true viewBox — not assumed 4:3, and deliberately not
      width:auto/height:auto, which renders at zero size once the source SVG has no
@@ -539,9 +543,6 @@ a {
 }
 .dossier__flag {
   flex: 0 0 auto;
-}
-.dossier__flag .flag {
-  filter: drop-shadow(0 3px 8px rgb(0 0 0 / 50%));
 }
 .dossier__hero h3 {
   margin: 0;
@@ -1294,7 +1295,7 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 24px;
-  background: var(--abyss);
+  background: #273549;
 }
 /* The box never changes size — only the flag inside it does (Qatar 2.55:1 fits by width,
    Nepal 0.82:1 by height), so the input below sits at the same y for every flag. Its
