@@ -1,0 +1,148 @@
+# Extra names the "Name the Capital" quiz accepts for a country's capital, beyond the
+# authored `capital` itself. Plain YAML, editable without touching code.
+#
+# Matching is exact after normalisation (lowercase, no diacritics, no apostrophes, other
+# punctuation collapsed — see app/lib/geography/names.ts's normaliseName), so:
+#   - do NOT list a spelling that only differs by case, accents or punctuation from one
+#     already accepted ("Chisinau" for "Chișinău", "Sanaa" for "Sana'a" and "Ulan-Bator"
+#     for "Ulan Bator" all match for free). Dashes and dots DO matter once stripped to a
+#     space, though: "Washington DC" and "Washington D.C." are different normalised
+#     strings ("washington dc" / "washington d c"), so both the authored form and the
+#     spaceless one are covered here.
+#   - there is NO fuzzy matching. A typo is wrong, on purpose.
+#
+# Every entry needs a `note` saying why the extra name is a real alternative, not a guess.
+# A normalised name may belong to only ONE country: build-content.mjs throws if two
+# countries claim the same one. GeoNames' own `altName` field was investigated as a seed
+# and is empty for 196 of the 197 capitals (the 197th is the junk value "IT"), so this
+# file is the whole source of alternates.
+#
+# South Africa is the one country with several official capitals (executive Pretoria,
+# judicial Bloemfontein, legislative Cape Town); the map's dot sits on Pretoria.
+aliases:
+  - country: Ukraine
+    add: [Kiev]
+    note: The Russian-derived spelling English used until about 2019.
+  - country: Kazakhstan
+    add: [Nur-Sultan, Nursultan]
+    note: Renamed Astana to Nur-Sultan in 2019 and back again in 2022; both are still typed.
+  - country: Myanmar
+    add: [Nay Pyi Taw, Naypyitaw]
+    note: Romanisations of the Burmese name that differ from the authored one by more than punctuation.
+  - country: United States
+    add: [Washington, Washington DC]
+    note: Everyone says Washington; "Washington DC" normalises differently from the authored "Washington D.C.".
+  - country: Switzerland
+    add: [Berne]
+    note: The French and older English spelling of Bern.
+  - country: Mongolia
+    add: [Ulaanbaatar, Ulaan Baatar]
+    note: The modern romanisation; the authored form is the older "Ulan Bator".
+  - country: China
+    add: [Peking]
+    note: The older English name, still common.
+  - country: Moldova
+    add: [Kishinev, Kishinyov]
+    note: The Russian-derived spellings of Chișinău.
+  - country: Turkmenistan
+    add: [Ashkhabad]
+    note: The Russian-derived spelling.
+  - country: Bangladesh
+    add: [Dacca]
+    note: The colonial-era spelling.
+  - country: Iran
+    add: [Teheran]
+    note: The older, French-derived spelling.
+  - country: Belgium
+    add: [Bruxelles, Brussel]
+    note: The French and Dutch names — the city is officially bilingual.
+  - country: India
+    add: [Delhi]
+    note: New Delhi is the capital district within Delhi; nobody means the difference.
+  - country: Vatican City
+    add: [Vatican]
+    note: The state and its only settlement share a name.
+  - country: South Africa
+    add: [Bloemfontein, Cape Town]
+    note: Three official capitals — Pretoria (executive), Bloemfontein (judicial), Cape Town (legislative).
+  - country: San Marino
+    add: [San Marino]
+    note: The authored capital is "City of San Marino"; the city is universally just "San Marino".
+  - country: Kiribati
+    add: [Tarawa]
+    note: The atoll; the authored "South Tarawa" is the part of it that holds the government.
+  - country: Antigua and Barbuda
+    add: [St. John's, St Johns]
+    note: Saint/St. abbreviation.
+  - country: Grenada
+    add: [Saint George's]
+    note: Saint/St. abbreviation.
+  - country: Kosovo
+    add: [Prishtina, Prishtine]
+    note: The Albanian spelling.
+  - country: Cyprus
+    add: [Lefkosia]
+    note: The Greek name of Nicosia.
+  - country: Cuba
+    add: [La Habana]
+    note: The Spanish name.
+  - country: Madagascar
+    add: [Tananarive]
+    note: The colonial-era French name.
+  - country: Palau
+    add: [Melekeok]
+    note: The capital until 2006, when it moved to Ngerulmud; still what older sources say.
+  - country: Sri Lanka
+    add: [Sri Jayawardenepura Kotte, Sri Jayawardenepura, Kotte]
+    note: The legislative capital; Colombo is the authored answer and remains the commercial capital.
+  - country: Eswatini
+    add: [Mbabane]
+    note: The administrative capital; Lobamba (authored) is the legislative and royal one.
+  - country: Algeria
+    add: [Alger]
+    note: The French name.
+  - country: Panama
+    add: [Panama]
+    note: The city and country share a name; a bare "Panama" is what people type.
+  - country: Mexico
+    add: [Mexico, Ciudad de Mexico]
+    note: A bare "Mexico" is what people type, and the Spanish name.
+  - country: Guatemala
+    add: [Guatemala]
+    note: The city and country share a name.
+  - country: Kuwait
+    add: [Kuwait]
+    note: The city and country share a name.
+  - country: Andorra
+    add: [Andorra]
+    note: Usually shortened.
+  - country: Czechia
+    add: [Praha]
+    note: The Czech name.
+  - country: Poland
+    add: [Warszawa]
+    note: The Polish name.
+  - country: Portugal
+    add: [Lisboa]
+    note: The Portuguese name.
+  - country: Italy
+    add: [Roma]
+    note: The Italian name.
+  - country: Austria
+    add: [Wien]
+    note: The German name.
+  - country: Denmark
+    add: [København, Kobenhavn]
+    note: The Danish name; ø is not a diacritic to strip, so the ASCII spelling needs its own entry.
+  - country: Greece
+    add: [Athina]
+    note: The Greek name.
+  - country: Russia
+    add: [Moskva]
+    note: The Russian name.
+  - country: Serbia
+    add: [Beograd]
+    note: The Serbian name.
+  - country: Romania
+    add: [Bucuresti]
+    note: The Romanian name.

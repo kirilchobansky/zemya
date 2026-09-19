@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
-import { matchesCountry, normaliseName } from '~/lib/geography/names';
+import { matchesCapital, matchesCountry, normaliseName } from '~/lib/geography/names';
 
 describe('matchesCountry', () => {
   it('matches every spelling of Côte d\'Ivoire / Ivory Coast', () => {
@@ -108,5 +108,97 @@ describe('normaliseName', () => {
   it('is case, diacritic and punctuation insensitive', () => {
     expect(normaliseName('CÔTE D\'IVOIRE')).toBe(normaliseName('cote divoire'));
     expect(normaliseName('ivory-coast')).toBe(normaliseName('Ivory Coast'));
+  });
+});
+
+describe('matchesCapital', () => {
+  /** Every country whose capital `typed` names, by ISO3 — the "does this resolve to exactly
+   *  one country" question in one call. */
+  const ownersOf = (typed: string) =>
+    allCountries().filter(c => matchesCapital(typed, c)).map(c => c.iso3);
+
+  it('every capital matches its own authored name, typed exactly and lowercased', () => {
+    for (const country of allCountries()) {
+      expect(country.capital, country.iso3).toBeTruthy();
+      expect(matchesCapital(country.capital!, country), country.iso3).toBe(true);
+      expect(matchesCapital(country.capital!.toLowerCase(), country), country.iso3).toBe(true);
+    }
+  });
+
+  it('normalisation alone handles diacritics, apostrophes and punctuation', () => {
+    expect(ownersOf('Bogota')).toEqual(['COL']);
+    expect(ownersOf('sao tome')).toEqual(['STP']);
+    expect(ownersOf("N'Djamena")).toEqual(['TCD']);
+    expect(ownersOf('ndjamena')).toEqual(['TCD']);
+    expect(ownersOf("Nuku'alofa")).toEqual(['TON']);
+    expect(ownersOf('nukualofa')).toEqual(['TON']);
+    expect(ownersOf('Chisinau')).toEqual(['MDA']);
+    expect(ownersOf('Sanaa')).toEqual(['YEM']);
+    expect(ownersOf("Sana'a")).toEqual(['YEM']);
+    expect(ownersOf('Ulan-Bator')).toEqual(['MNG']);
+  });
+
+  /** The ones a player will actually type — alternates, older names, spellings that differ
+   *  by more than punctuation. [typed, iso3] */
+  const ALIASES: [string, string][] = [
+    ['Kyiv', 'UKR'], ['Kiev', 'UKR'],
+    ['Astana', 'KAZ'], ['Nur-Sultan', 'KAZ'], ['Nur Sultan', 'KAZ'],
+    ['Nay Pyi Taw', 'MMR'], ['Naypyidaw', 'MMR'], ['Naypyitaw', 'MMR'],
+    ['Washington', 'USA'], ['Washington DC', 'USA'], ['Washington D.C.', 'USA'],
+    ['Bern', 'CHE'], ['Berne', 'CHE'],
+    ['Ulaanbaatar', 'MNG'], ['Ulan Bator', 'MNG'],
+    ['Beijing', 'CHN'], ['Peking', 'CHN'],
+    ['Chisinau', 'MDA'], ['Kishinev', 'MDA'],
+    ['Ashgabat', 'TKM'], ['Ashkhabad', 'TKM'],
+    ['Dhaka', 'BGD'], ['Dacca', 'BGD'],
+    ['Tehran', 'IRN'], ['Teheran', 'IRN'],
+    ['Brussels', 'BEL'], ['Bruxelles', 'BEL'], ['Brussel', 'BEL'],
+    ['New Delhi', 'IND'], ['Delhi', 'IND'],
+    ['Vatican City', 'VAT'], ['Vatican', 'VAT'],
+    ['Pretoria', 'ZAF'], ['Bloemfontein', 'ZAF'], ['Cape Town', 'ZAF'],
+    ['San Marino', 'SMR'], ['Tarawa', 'KIR'], ['Saint George\'s', 'GRD'], ['St. George\'s', 'GRD'],
+    ['København', 'DNK'], ['Kobenhavn', 'DNK'], ['Copenhagen', 'DNK']
+  ];
+  it.each(ALIASES)('%s names the capital of exactly one country: %s', (typed, iso3) => {
+    expect(ownersOf(typed)).toEqual([iso3]);
+  });
+
+  it('South Africa is the only country that accepts three capitals, through the ordinary alias list', () => {
+    const zaf = allCountries().find(c => c.iso3 === 'ZAF')!;
+    expect(zaf.capital).toBe('Pretoria');
+    expect(zaf.capitalAliases).toEqual(expect.arrayContaining(['Pretoria', 'Bloemfontein', 'Cape Town']));
+    // no other country lists another official capital of its own as an alternate
+    for (const country of allCountries()) {
+      if (country.iso3 === 'ZAF') continue;
+      expect(country.capitalAliases).not.toContain('Bloemfontein');
+      expect(country.capitalAliases).not.toContain('Cape Town');
+    }
+  });
+
+  it('no accepted capital name resolves to two countries', () => {
+    const seen = new Map<string, string>();
+    for (const country of allCountries()) {
+      for (const alias of country.capitalAliases) {
+        const key = normaliseName(alias);
+        const prior = seen.get(key);
+        expect(prior === undefined || prior === country.iso3, `"${alias}" claimed by ${prior} and ${country.iso3}`).toBe(true);
+        seen.set(key, country.iso3);
+      }
+    }
+  });
+
+  it('a typo does not match — matching is exact after normalisation, not fuzzy', () => {
+    for (const typed of ['Bucharst', 'Viena', 'Sofa', 'Buenos Aires ', 'Washingtn', 'Kyv', '']) {
+      const owners = ownersOf(typed);
+      // "Buenos Aires " (trailing space) DOES match after normalisation; the rest must not
+      if (typed.trim() === 'Buenos Aires') expect(owners).toEqual(['ARG']);
+      else expect(owners, typed).toEqual([]);
+    }
+  });
+
+  it('a country name is not its capital, unless the two really share one', () => {
+    expect(ownersOf('France')).toEqual([]);
+    expect(ownersOf('Bulgaria')).toEqual([]);
+    expect(ownersOf('Luxembourg')).toEqual(['LUX']);
   });
 });

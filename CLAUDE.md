@@ -49,6 +49,11 @@ before reconstructing it from `git log`.
   name beside it above `CAPITAL_LABEL_ZOOM_FACTOR` (5x), a "Capitals" toolbar toggle
   (default on), hover tooltip with the city name, and click selecting the *country* (no
   city page). Suppressed entirely under `quizMode`. See "## Places and capitals".
+- Capital name matching (`capitalAliases` on every country record, `matchesCapital` in
+  `names.ts`): the authored capital plus a curated list in
+  `content/geography/capital-aliases.yaml`, exact after the unchanged `normaliseName`, with
+  a build-time collision check — see "## Places and capitals". Nothing consumes it yet
+  beyond the tests until the capital quiz lands.
 - Real flag images (`public/flags/`, from svg-country-flags, offline, emoji fallback on
   error) at their own true aspect ratio. `flag-icons`, which normalised everything to
   4:3, is gone. Every one of these SVGs' root element carries only a `viewBox`, no
@@ -362,6 +367,29 @@ skips its ring (the pin already marks it).
 the same one flag (`capitalsVisible()` is the single predicate drawing, labels and
 `pickPlace()` all share, so they cannot disagree). A capital label at quiz zoom prints the
 answer next to the dot.
+
+**Capital names** (`matchesCapital`, `names.ts`) reuse `normaliseName` unchanged and are just
+as exact — no fuzzy matching, a typo is wrong. `CountryRecord.capitalAliases` is the authored
+capital plus `content/geography/capital-aliases.yaml` (a single hand-edited file like
+`confusable-flags.yaml`: `country` by name, `add: [...]`, mandatory `note`). Things worth
+knowing before editing it:
+- **GeoNames' `altName` was investigated as a seed and is not usable** — empty for 196 of the
+  197 capitals, and "IT" (junk) for the 197th. The YAML is the entire source of alternates.
+- Normalisation already covers case, diacritics, apostrophes and dashes (`Chisinau`, `Sanaa`,
+  `Ulan-Bator`, `Nuku'alofa`), so don't list those. It does *not* cover `ø`
+  (`København` and `Kobenhavn` both listed), `Washington DC` vs the authored `Washington
+  D.C.` (`washington dc` vs `washington d c`), or anything that differs by a whole word.
+- **South Africa's three capitals** (Pretoria authored, Bloemfontein and Cape Town added) go
+  through this same list — no special case anywhere. The dot sits on Pretoria.
+- **Deliberate additions worth a second look** (all in the YAML with notes): Eswatini also
+  accepts Mbabane, Sri Lanka also accepts Kotte / Sri Jayawardenepura Kotte, Palau accepts
+  Melekeok, and bare `Mexico`/`Panama`/`Guatemala`/`Kuwait`/`Andorra` are accepted for their
+  same-named capitals. **Burundi does not accept Bujumbura**: Gitega is the capital since
+  2019 and accepting the old one would teach the wrong answer.
+- **The collision check throws, it does not drop.** Country aliases silently strip an
+  ambiguous name from both countries; capital aliases are hand-written, so two countries
+  claiming one normalised name is a mistake to fix, and the build fails naming both.
+  (Verified by planting `Luxembourg: add [Bruxelles]`.)
 
 ## Progress and scheduling
 

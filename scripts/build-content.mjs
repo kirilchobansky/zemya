@@ -453,6 +453,54 @@ for (const iso3 of Object.keys(GEONAMES_CAPITAL)) {
   if (!countries.some(c => c.iso3 === iso3)) throw new Error(`GEONAMES_CAPITAL: "${iso3}" is not in the catalogue`);
 }
 
+/* ------------------------------------------------------------------- capital aliases */
+
+/**
+ * `capitalAliases` on each country record: every name the "Name the Capital" quiz accepts.
+ * The authored capital, plus the curated alternates in content/geography/capital-aliases.yaml
+ * (Kyiv/Kiev, Astana/Nur-Sultan, the three South African capitals, ...) — see that file's
+ * header for why GeoNames' own `altName` field is not a source (empty for 196 of 197).
+ * Matching (case, diacritics, apostrophes, punctuation) is app/lib/geography/names.ts's
+ * normaliseName, unchanged — this only decides the candidate set, then guards it.
+ *
+ * COLLISION CHECK, same rule as country aliases: one normalised name may belong to only ONE
+ * country. Unlike country aliases (which silently drop an ambiguous one) this THROWS — a
+ * capital alias is hand-written, so an ambiguity is a mistake to fix, not data to filter.
+ */
+const capitalAliasDoc = parse(readFileSync(join(root, 'content', 'geography', 'capital-aliases.yaml'), 'utf8')) ?? {};
+const capitalAliasEntries = new Map(); // iso3 -> extra names
+for (const entry of capitalAliasDoc.aliases ?? []) {
+  const where = 'content/geography/capital-aliases.yaml';
+  const country = countries.find(c => c.name === entry.country);
+  if (!country) throw new Error(`${where}: "${entry.country}" is not a known country name`);
+  if (!String(entry.note ?? '').trim()) throw new Error(`${where}: "${entry.country}" needs a non-empty note`);
+  if (!Array.isArray(entry.add) || !entry.add.length) throw new Error(`${where}: "${entry.country}" needs a non-empty add list`);
+  if (capitalAliasEntries.has(country.iso3)) throw new Error(`${where}: "${entry.country}" appears twice`);
+  capitalAliasEntries.set(country.iso3, entry.add.map(String));
+}
+
+const capitalClaimedBy = new Map(); // normalised name -> Set of iso3
+for (const country of countries) {
+  const names = [country.capital, ...(capitalAliasEntries.get(country.iso3) ?? [])];
+  const kept = [];
+  for (const name of names) {
+    const key = normaliseAlias(name);
+    if (!key) throw new Error(`capital aliases: "${name}" (${country.iso3}) normalises to nothing`);
+    if (!capitalClaimedBy.has(key)) capitalClaimedBy.set(key, new Set());
+    capitalClaimedBy.get(key).add(country.iso3);
+    if (!kept.some(k => normaliseAlias(k) === key)) kept.push(name); // "Ulan-Bator" adds nothing to "Ulan Bator"
+  }
+  country.capitalAliases = kept;
+}
+const capitalCollisions = [...capitalClaimedBy].filter(([, isos]) => isos.size > 1);
+if (capitalCollisions.length) {
+  throw new Error(
+    'capital aliases: a normalised city name maps to more than one country:\n  ' +
+      capitalCollisions.map(([key, isos]) => `"${key}" -> ${[...isos].join(', ')}`).join('\n  ')
+  );
+}
+const totalCapitalAliases = countries.reduce((sum, c) => sum + c.capitalAliases.length - 1, 0);
+
 /* ---------------------------------------------------------------------- geometry */
 
 const X0 = -180, Y0 = -90, XS = 360 / (QUANT - 1), YS = 180 / (QUANT - 1);
@@ -865,6 +913,7 @@ console.log(`detail (coarse) ${COARSE_DETAIL}`);
 console.log(`geometries     ${full.geometries.length}`);
 console.log(`lakes          ${full.lakes.length} (${full.lakes.map(l => l.id).join(', ')})`);
 console.log(`places         ${places.length} (capitals)`);
+console.log(`capital aliases ${totalCapitalAliases} extra across ${capitalAliasEntries.size} countries`);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);
 console.log(`world.json     ${(json.length / 1024).toFixed(0)} KB`);
 console.log(`world-coarse   ${(coarseJson.length / 1024).toFixed(0)} KB`);

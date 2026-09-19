@@ -47,6 +47,12 @@ export interface CountryRecord {
    *  app/lib/geography/names.ts's matcher. Deduped, two-letter ISO codes dropped, and
    *  anything that would ambiguously match another country dropped from both. */
   aliases: string[];
+  /** Every string that names this country's CAPITAL in the "Name the Capital" quiz: the
+   *  authored `capital` first, then the curated alternates in
+   *  content/geography/capital-aliases.yaml (Kiev, Nur-Sultan, South Africa's other two
+   *  capitals, ...). Matched with the same normaliseName as `aliases`. A normalised name
+   *  belongs to one country only — the build throws otherwise. */
+  capitalAliases: string[];
   /** Facet name -> reason, for a fact the content marks genuinely disputed (see
    *  content/geography/countries/*.yaml's `disputed:` block). Keyed as a plain string
    *  here rather than typed against Facet — that type lives in the geography layer, and

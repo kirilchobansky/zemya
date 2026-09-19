@@ -33,3 +33,12 @@ export function matchesCountry(typed: string, country: CountryRecord): boolean {
   if (!normalisedTyped) return false;
   return country.aliases.some(alias => normaliseName(alias) === normalisedTyped);
 }
+
+/** True if `typed` is, after normalisation, exactly one of the names accepted for the
+ *  country's capital (see CountryRecord.capitalAliases). Same exact-after-normalisation
+ *  rule as matchesCountry, and for the same reason: no fuzzy matching. */
+export function matchesCapital(typed: string, country: CountryRecord): boolean {
+  const normalisedTyped = normaliseName(typed);
+  if (!normalisedTyped) return false;
+  return country.capitalAliases.some(alias => normaliseName(alias) === normalisedTyped);
+}
