@@ -97,10 +97,11 @@ before reconstructing it from `git log`.
   genuinely hard to tell apart (Romania/Chad) for each other, with a note on the real
   difference — see Quizzes below for the mechanism and the design calls made along the
   way.
-- Continent scopes on every quiz: a row of chips (World · Africa · Asia · Europe ·
-  Americas · Oceania, from each country's `region`) in each quiz's block on the catalogue,
-  a size ladder derived from the pool, personal bests keyed by (quiz, scope, size) with
-  every pre-scope run still counting as World — see Quizzes below. The catalogue's quiz
+- Continent scopes on every quiz: a row of chips (World · Africa · Asia · Europe · North
+  America · South America · Oceania, from each country's `region`/`subregion`) in each
+  quiz's block on the catalogue, a size ladder computed from the pool by one rule,
+  personal bests keyed by (quiz, scope, size) with every pre-scope run still counting as
+  World — see Quizzes below. The catalogue's quiz
   titles are 28px Fraunces in `--sea`, the whole size card is the link (hover and
   keyboard focus show a `--sea` border), and the flag no longer has a hairline border
   (it drew a false rectangle round Nepal's pennant).
@@ -364,26 +365,31 @@ own list into the shared engine instead.
 
 **Scopes.** Every quiz has a continent filter, in the shared catalogue and engine, not
 per quiz. Route: `/quiz/:quizId/:scope/:size`, scope one of `world | africa | asia |
-europe | americas | oceania`; the pool is `poolForScope(countries, scope)` (the `region`
-field on the country record — 197 / 54 / 48 / 46 / 35 / 14), and "top N" means the N most
-populous *within* that pool. The old `/quiz/:quizId/:size` still exists as
-`routes/quiz.legacy.tsx`, a redirect to the world scope, and is prerendered for the old
-sizes so bookmarks to a static host still resolve. A size the pool can't offer (typed
-into the URL by hand) redirects to `/quiz`.
+europe | north-america | south-america | oceania`; the pool is
+`poolForScope(countries, scope)` (`region`, plus `subregion` to split the Americas: South
+America is the subregion, North America is every other Americas country — 197 / 54 / 48 /
+46 / 23 / 12 / 14), and "top N" means the N most populous *within* that pool. The old
+`/quiz/:quizId/:size` still exists as `routes/quiz.legacy.tsx`, a redirect to the world
+scope, and is prerendered for the old sizes so bookmarks to a static host still resolve. A
+removed scope key (`LEGACY_SCOPES` in `scopes.ts` — today just `americas`, split in two)
+redirects to its replacement (world) and is prerendered for the sizes it once offered; a
+size the pool can't offer (typed into the URL by hand) redirects to `/quiz`.
 `scopes.ts` is deliberately dependency-free (no `~` alias, no React): `react-router.config.ts`
 imports it directly to derive the prerendered `/quiz/:id/:scope/:size` set from
 `countries.json`, so adding a country changes both the offered sizes and the prerendered
 pages with no list to edit. The catalogue reads the same pool sizes from a build-time
-route loader.
+route loader. A new quiz is one id in that config's `QUIZ_IDS` plus its
+`QUIZ_DEFINITIONS` entry.
 
-**The size ladder** is `10, 20, 30, 50, 90, 120, All`; a rung is offered only if it is
-strictly smaller than the pool, and All always is (`sizesForPool`). **One deviation from
-that rule, a judgement call:** the 10 rung is only offered for pools of 100 or fewer
-(`SMALLEST_RUNG_MAX_POOL`), because the strictly-smaller rule alone would have given the
-World row a 10 — and the specified World row, and its unit test, are `20 30 50 90 120 All`
-(the ladder before scopes existed). The spec's own rule and its own table disagreed
-there; the table and test were treated as the intent. Continents get 10 (Oceania: `10,
-All`). If World should get a 10 after all, delete that one condition.
+**The size ladder is computed, never listed.** `sizesForPool(N)` keeps a rung S of
+`[10, 20, 30, 50, 90, 120]` when `0.08 * N <= S <= 0.68 * N`, and always appends All. The
+lower bound (`MIN_SHARE`) drops a size that is a trivial slice of the pool — why World
+doesn't offer "top 10 of 197". The upper bound (`MAX_SHARE`) drops a size so close to All
+it is the same quiz twice — why Oceania and South America offer only All. The table it
+yields is asserted in the unit test, not stored: World 20/30/50/90/120/All, Africa, Asia
+and Europe 10/20/30/All, North America 10/All, South America and Oceania All. (This
+replaced an earlier rule — strictly smaller than the pool, plus a special case keeping 10
+off World — which had to be patched by hand.)
 
 **Personal bests are keyed by (quizId, scope, size).** `quizRuns` rows written before
 scopes existed have no `scope` field. They are read as `'world'` at read time
@@ -391,7 +397,10 @@ scopes existed have no `scope` field. They are read as `'world'` at read time
 would silently hide every existing best time, and every one of those runs really was a
 world run. New rows always write `scope`; the export/import dedupe key includes it (with
 the same missing-means-world default). `useQuizEngine` therefore takes a `scope` argument
-alongside `size` — the one engine change this needed.
+alongside `size` — the one engine change this needed. A stored scope that no longer
+exists matches nothing and never throws: **personal bests recorded under `americas` are
+orphaned** — that scope was split, a run can't be attributed to either half, and the rows
+are left in the table (not deleted, not migrated).
 
 **The engine/presenter split.** `app/lib/quiz/engine.ts`'s `useQuizEngine()` hook owns a
 run end-to-end — question order, the current target, attempt state, timer accumulation,

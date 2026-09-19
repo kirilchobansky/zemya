@@ -185,6 +185,17 @@ describe('personal bests are keyed by (quizId, scope, size) — and pre-scope ru
     expect(await bestQuizTime(QUIZ_ID, 'world', SIZE)).toBe(45_000);
   });
 
+  it('a run stored under a scope that no longer exists is orphaned, not an error', async () => {
+    // "americas" was split into north-america and south-america; its rows stay in the table
+    await importAll(withRuns([{ ...preScopeRun({ timeMs: 33_000, at: 600 }), scope: 'americas' }]));
+    await expect(bestQuizTime(QUIZ_ID, 'americas', SIZE)).resolves.toBe(33_000); // still readable by key
+    await expect(bestQuizTime(QUIZ_ID, 'north-america', SIZE)).resolves.toBeNull();
+    await expect(bestQuizTime(QUIZ_ID, 'south-america', SIZE)).resolves.toBeNull();
+    await expect(bestQuizTime(QUIZ_ID, 'world', SIZE)).resolves.toBeNull();
+    await expect(listQuizRuns(QUIZ_ID, 'no-such-scope', SIZE)).resolves.toEqual([]);
+    await expect(bestQuizTime(QUIZ_ID, 'no-such-scope', SIZE)).resolves.toBeNull();
+  });
+
   it('importing the same old export twice still does not double a scope-less run', async () => {
     const payload = withRuns([preScopeRun({ timeMs: 47_000, at: 505 })]);
     await importAll(payload);

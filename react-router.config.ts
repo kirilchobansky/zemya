@@ -1,7 +1,7 @@
 import type { Config } from '@react-router/dev/config';
 import { readFileSync } from 'node:fs';
 
-import { poolForScope, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
+import { LEGACY_SCOPES, poolForScope, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
 
 /**
  * Every country page is prerendered to static HTML at build time, so `/country/bulgaria`
@@ -13,7 +13,7 @@ const slugs: string[] = JSON.parse(
   readFileSync('public/data/geography/slugs.json', 'utf8')
 );
 
-const countries: { region: string }[] = JSON.parse(
+const countries: { region: string; subregion: string }[] = JSON.parse(
   readFileSync('public/data/geography/countries.json', 'utf8')
 );
 
@@ -34,12 +34,21 @@ const quizRuns = QUIZ_IDS.flatMap(id =>
 );
 const legacyQuizRuns = QUIZ_IDS.flatMap(id => LEGACY_SIZES.map(size => `/quiz/${id}/${size}`));
 
+/** Pages that existed under a scope key that has since been removed (LEGACY_SCOPES) still
+ *  need a file on a static host; the route redirects them. "americas" was offered 10, 20,
+ *  30 and All. */
+const LEGACY_SCOPE_SIZES = ['10', '20', '30', 'all'];
+const legacyScopeRuns = Object.keys(LEGACY_SCOPES).flatMap(scope =>
+  QUIZ_IDS.flatMap(id => LEGACY_SCOPE_SIZES.map(size => `/quiz/${id}/${scope}/${size}`))
+);
+
 export default {
   ssr: true,
   prerender: () => [
     '/', '/study', '/quiz',
     ...quizRuns,
     ...legacyQuizRuns,
+    ...legacyScopeRuns,
     ...slugs.map(slug => `/country/${slug}`)
   ],
 

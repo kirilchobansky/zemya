@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
-import { isQuizScope, isQuizSize, poolForScope, QUIZ_SCOPES, QUIZ_SIZES, sizesForPool } from '~/lib/geography/scopes';
+import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, QUIZ_SCOPES, QUIZ_SIZES, sizesForPool } from '~/lib/geography/scopes';
 import { quizFillFor, quizStrokeFor, MASTERY_COLOURS, SELECTED, NEIGHBOUR, LAND } from '~/lib/geography/overlays';
 import type { Feature } from '~/lib/map/types';
 
@@ -23,22 +23,41 @@ describe('isQuizSize', () => {
   });
 });
 
-describe('sizesForPool — the ladder adapts to the pool', () => {
-  it('a pool of 14 (Oceania) yields exactly [10, All]', () => {
-    expect(sizesForPool(14)).toEqual(['10', 'all']);
+describe('sizesForPool — the ladder is computed from the pool by one rule', () => {
+  it('yields exactly the seven rows the catalogue promises, for the real pool sizes', () => {
+    const rows: [string, number, string[]][] = [
+      ['World', 197, ['20', '30', '50', '90', '120', 'all']],
+      ['Africa', 54, ['10', '20', '30', 'all']],
+      ['Asia', 48, ['10', '20', '30', 'all']],
+      ['Europe', 46, ['10', '20', '30', 'all']],
+      ['North America', 23, ['10', 'all']],
+      ['South America', 12, ['all']],
+      ['Oceania', 14, ['all']]
+    ];
+    for (const [name, pool, expected] of rows) {
+      expect(sizesForPool(pool), `${name} (${pool})`).toEqual(expected);
+    }
   });
 
-  it('a pool of 197 (World) yields exactly [20, 30, 50, 90, 120, All]', () => {
-    expect(sizesForPool(197)).toEqual(['20', '30', '50', '90', '120', 'all']);
+  it('a pool of 12 and a pool of 14 both yield All alone', () => {
+    expect(sizesForPool(12)).toEqual(['all']);
+    expect(sizesForPool(14)).toEqual(['all']);
   });
 
-  it('only offers a rung strictly smaller than the pool, and always offers All', () => {
-    expect(sizesForPool(10)).toEqual(['all']);
-    expect(sizesForPool(11)).toEqual(['10', 'all']);
-    expect(sizesForPool(100)).toEqual(['10', '20', '30', '50', '90', 'all']);
-    expect(sizesForPool(101)).toEqual(['20', '30', '50', '90', 'all']);
-    expect(sizesForPool(120)).toEqual(['20', '30', '50', '90', 'all']);
-    expect(sizesForPool(121)).toEqual(['20', '30', '50', '90', '120', 'all']);
+  it('always includes All, last, for every pool including a pool of 1', () => {
+    for (const pool of [0, 1, 2, 10, 11, 12, 100, 197, 500]) {
+      const sizes = sizesForPool(pool);
+      expect(sizes[sizes.length - 1], `pool ${pool}`).toBe('all');
+    }
+    expect(sizesForPool(1)).toEqual(['all']);
+  });
+
+  it('keeps a rung S only when 0.08 * N <= S <= 0.68 * N, boundaries inclusive', () => {
+    expect(sizesForPool(125)).toEqual(['10', '20', '30', '50', 'all']); // 10 = 0.08*125 exactly; 90 > 0.68*125 = 85
+    expect(sizesForPool(126)).not.toContain('10');
+    expect(sizesForPool(50)).toContain('30');                                 // 30 <= 0.68*50 = 34
+    expect(sizesForPool(44)).not.toContain('30');                             // 0.68*44 = 29.92 < 30
+    expect(sizesForPool(45)).toContain('30');                                 // 0.68*45 = 30.6
   });
 });
 
@@ -47,21 +66,31 @@ describe('quiz scopes against the real catalogue', () => {
   const counts = Object.fromEntries(QUIZ_SCOPES.map(s => [s, poolForScope(countries, s).length]));
 
   it('has the pool sizes the catalogue promises', () => {
-    expect(counts).toEqual({ world: 197, africa: 54, asia: 48, europe: 46, americas: 35, oceania: 14 });
+    expect(counts).toEqual({
+      world: 197, africa: 54, asia: 48, europe: 46, 'north-america': 23, 'south-america': 12, oceania: 14
+    });
   });
 
-  it('every continent pool partitions the world', () => {
+  it('the six continent pools partition the world, with no country in two', () => {
     const continents = QUIZ_SCOPES.filter(s => s !== 'world');
-    expect(continents.reduce((n, s) => n + counts[s], 0)).toBe(counts.world);
+    const iso = continents.flatMap(s => poolForScope(countries, s).map(c => c.iso3));
+    expect(iso).toHaveLength(counts.world);
+    expect(new Set(iso).size).toBe(counts.world);
   });
 
-  it('derives the ladder per scope from the pool size', () => {
+  it('South America is the subregion; North America is every other Americas country', () => {
+    expect(poolForScope(countries, 'south-america').every(c => c.subregion === 'South America')).toBe(true);
+    const north = poolForScope(countries, 'north-america');
+    expect(north.every(c => c.region === 'Americas' && c.subregion !== 'South America')).toBe(true);
+    expect(north.map(c => c.name)).toEqual(expect.arrayContaining(['Mexico', 'Cuba', 'Canada', 'Panama']));
+  });
+
+  it('derives the ladder per scope from the real pool sizes', () => {
     expect(sizesForPool(counts.world)).toEqual(['20', '30', '50', '90', '120', 'all']);
-    expect(sizesForPool(counts.oceania)).toEqual(['10', 'all']);
-    expect(sizesForPool(counts.africa)).toEqual(['10', '20', '30', '50', 'all']);
-    expect(sizesForPool(counts.asia)).toEqual(['10', '20', '30', 'all']);
-    expect(sizesForPool(counts.europe)).toEqual(['10', '20', '30', 'all']);
-    expect(sizesForPool(counts.americas)).toEqual(['10', '20', '30', 'all']);
+    expect(sizesForPool(counts.africa)).toEqual(['10', '20', '30', 'all']);
+    expect(sizesForPool(counts['north-america'])).toEqual(['10', 'all']);
+    expect(sizesForPool(counts['south-america'])).toEqual(['all']);
+    expect(sizesForPool(counts.oceania)).toEqual(['all']);
   });
 
   it('"top N" is the N most populous WITHIN the scope', () => {
@@ -74,9 +103,10 @@ describe('quiz scopes against the real catalogue', () => {
     for (const c of rest) expect(c.population).toBeLessThanOrEqual(cutoff);
   });
 
-  it('isQuizScope accepts only the six scopes', () => {
+  it('isQuizScope accepts only the seven scopes — "americas" is gone but has a redirect', () => {
     for (const s of QUIZ_SCOPES) expect(isQuizScope(s)).toBe(true);
-    for (const bad of ['World', 'antarctica', '', 'americas ']) expect(isQuizScope(bad)).toBe(false);
+    for (const bad of ['World', 'antarctica', '', 'americas', 'north america']) expect(isQuizScope(bad)).toBe(false);
+    expect(LEGACY_SCOPES.americas).toBe('world');
   });
 });
 

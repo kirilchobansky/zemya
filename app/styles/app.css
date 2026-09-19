@@ -964,9 +964,7 @@ a {
 
 /* ---------------------------------------------------------------- name-the-country */
 
-/* one row at the 370px panel width: the overlay rail's chips wrap, these must not */
 .quiz-scope {
-  flex-wrap: nowrap;
   gap: 4px;
   margin: 0 0 12px;
 }

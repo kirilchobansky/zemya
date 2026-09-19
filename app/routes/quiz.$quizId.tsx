@@ -18,7 +18,7 @@ import { useAtlasContext } from './atlas';
 import { useQuizEngine } from '~/lib/quiz/engine';
 import { formatDuration } from '~/lib/format';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
-import { isQuizScope, isQuizSize, poolForScope, SCOPE_LABELS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
+import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
 import { loadWorld } from '~/lib/geography/world';
 import type { CountryRecord, World } from '~/lib/map/types';
 
@@ -138,6 +138,12 @@ export default function QuizRun() {
       elapsedMs: engine.elapsedMs
     };
   }, [engine.target, engine.answeredCount, engine.phase, engine.elapsedMs]);
+
+  /* a scope key that has since been removed ("americas", split in two) lands on its
+     replacement rather than a Not found page — old links and bookmarks keep working */
+  if (definition && params.scope && Object.hasOwn(LEGACY_SCOPES, params.scope)) {
+    return <Navigate to={`/quiz/${definition.id}/${LEGACY_SCOPES[params.scope]}/${params.size ?? 'all'}`} replace />;
+  }
 
   if (!definition || !scope || !requestedSize) {
     return (

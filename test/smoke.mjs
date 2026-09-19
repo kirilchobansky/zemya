@@ -264,7 +264,7 @@ const ladderOf = async () =>
   );
 check((await ladderOf()).join(',') === '20,30,50,90,120,All', `world ladder is ${await ladderOf()}`);
 await page.click('.quiz-block >> nth=0 >> .chip:has-text("Oceania")');
-check((await ladderOf()).join(',') === '10,All', `oceania ladder is ${await ladderOf()}`);
+check((await ladderOf()).join(',') === 'All', `oceania ladder is ${await ladderOf()}`);
 check(
   (await page.getAttribute('.quiz-block >> nth=0 >> .chip:has-text("Oceania")', 'aria-pressed')) === 'true',
   'the Oceania chip does not show as selected'
