@@ -8,7 +8,8 @@ import {
   type CameraState, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
-import { hitOverlay, pick, pickPlace, render, scaleBar, type RenderContext, type Style } from './renderer';
+import { cameraForTarget, mainlandBox, pointTarget, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, QUIZ_WORLD_VIEW_FACTOR, type Insets } from './follow';
+import { drawsAsPin, hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 
@@ -21,6 +22,8 @@ export interface AtlasCallbacks {
   onCompareMove?(feature: Feature, over: Feature | null): void;
 }
 
+/** How long a new-target pulse lasts. Once, not a loop. */
+const PULSE_MS = 1000;
 const DRAG_THRESHOLD_PX = 3;
 const WHEEL_SENSITIVITY = 0.0016;
 const WHEEL_LINE_SENSITIVITY = 0.05;
@@ -44,6 +47,9 @@ export class Atlas {
   private pinch: { distance: number; zoom: number } | null = null;
 
   private compare: { feature: Feature; lon: number; lat: number; path: Path2D; dragging: boolean } | null = null;
+
+  private pulseAt: { ux: number; uy: number; start: number } | null = null;
+  private pulseHandle = 0;
 
   private resizeObserver: ResizeObserver;
 
@@ -75,6 +81,7 @@ export class Atlas {
   destroy(): void {
     this.resizeObserver.disconnect();
     cancelAnimationFrame(this.frameHandle);
+    cancelAnimationFrame(this.pulseHandle);
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
     c.removeEventListener('pointermove', this.onPointerMove);
@@ -137,6 +144,53 @@ export class Atlas {
       ),
       true
     );
+  }
+
+  /**
+   * A quiz question just changed: bring its target into view if — and only if — the player
+   * could not already see it (follow.ts has the rules: leave alone / pan at the current
+   * zoom / zoom out the minimum). `insets` is what covers the canvas, so a target under the
+   * docked input counts as hidden. Decided against where the camera is HEADING, so answers
+   * fired faster than the animation still chain correctly. Never called by START — that
+   * is atlas.home()'s job.
+   */
+  followTarget(request: { feature: Feature; place?: PlaceMark | null }, insets: Insets): void {
+    const { feature, place } = request;
+    const cam = this.target;
+    const asPoint = Boolean(place) || !feature.bbox || drawsAsPin(feature, cam);
+    const target = place
+      ? pointTarget(place.ux, place.uy, QUIZ_POINT_MARGIN_PX)
+      : asPoint
+        ? pointTarget(feature.ux, feature.uy, QUIZ_PIN_MARGIN_PX)
+        : mainlandBox(feature);
+    if (!target) return;
+    const next = cameraForTarget(cam, this.viewport, insets, target, {
+      sizeWaived: asPoint || cam.zoom <= homeZoom(this.viewport) * QUIZ_WORLD_VIEW_FACTOR
+    });
+    if (next) this.moveTo(next, true);
+  }
+
+  /** A single expanding ring on a new quiz target — see renderer.ts's Pulse. Skipped for
+   *  people who asked for reduced motion. */
+  pulse(ux: number, uy: number): void {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    cancelAnimationFrame(this.pulseHandle);
+    this.pulseAt = { ux, uy, start: performance.now() };
+    const tick = () => {
+      this.draw(); // draw() clears pulseAt once it has run its course
+      if (this.pulseAt) this.pulseHandle = requestAnimationFrame(tick);
+    };
+    this.pulseHandle = requestAnimationFrame(tick);
+  }
+
+  /** The camera as drawn right now, plus where a unit-space point lands on screen — the
+   *  test seam reads this to check a target really is in view after the camera settled. */
+  get view(): { x: number; y: number; zoom: number; home: number } {
+    return { ...this.camera, home: homeZoom(this.viewport) };
+  }
+
+  screenPosition(ux: number, uy: number): [number, number] {
+    return this.worldPointToScreen(ux, uy);
   }
 
   /** Frame several countries at once; falls back to the world view if they span it. */
@@ -236,7 +290,18 @@ export class Atlas {
     this.frameHandle = requestAnimationFrame(tick);
   }
 
+  private pulseFrame(): Pulse | undefined {
+    if (!this.pulseAt) return undefined;
+    const t = (performance.now() - this.pulseAt.start) / PULSE_MS;
+    if (t >= 1) {
+      this.pulseAt = null;
+      return undefined;
+    }
+    return { ux: this.pulseAt.ux, uy: this.pulseAt.uy, t };
+  }
+
   private draw = (): void => {
+    const pulse = this.pulseFrame(); // before the size guard, so a pulse can always end
     if (!this.viewport.width) return;
     const style: Style = this.compare
       ? {
@@ -248,7 +313,7 @@ export class Atlas {
           }
         }
       : { ...this.style, overlay: null };
-    render(this.renderContext, this.world, style, this.focus, this.uiFont);
+    render(this.renderContext, this.world, style, this.focus, this.uiFont, pulse);
     this.callbacks.onCameraChange?.(this.scale);
   };
 

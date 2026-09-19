@@ -49,6 +49,7 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     description: 'A flag fills the screen. Type the country before the timer runs out of flags to ask.',
     facet: 'flag',
     Stage: FlagsStage,
+    hidesMap: true,
     prepare: preloadFlags,
     match: matchFlag
   },

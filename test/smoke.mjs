@@ -661,6 +661,120 @@ try {
       }
     }
   }
+
+  /* --- 19. typing survives touching the canvas: the focus regression test -------------- */
+  await page.goto(`${devBase}quiz/countries/world/30`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(800);
+
+  const canvasBox = await page.locator('.stage__canvas').boundingBox();
+  const activeTag = () => page.evaluate(() => document.activeElement?.tagName ?? 'NONE');
+  /** Types `name` from an unfocused state, one key at a time like a person, and reports
+   *  whether the run advanced. NO fill(): fill() focuses the element itself, which is
+   *  exactly the thing being tested. */
+  async function typeFromUnfocused(label) {
+    const before = await page.evaluate(() => window.__zemyaQuiz);
+    check(await activeTag() !== 'INPUT', `${label}: the input still had focus, so this proves nothing`);
+    await page.keyboard.type(before.target, { delay: 25 });
+    await page.waitForTimeout(400);
+    const after = await page.evaluate(() => window.__zemyaQuiz);
+    check(
+      after.answeredCount === before.answeredCount + 1,
+      `${label}: typing "${before.target}" with no focus did not advance the run (first letter dropped?) — answered ${before.answeredCount} -> ${after.answeredCount}`
+    );
+  }
+
+  // a plain canvas click (pointerdown + pointerup)
+  await page.mouse.click(canvasBox.x + 120, canvasBox.y + 200);
+  await typeFromUnfocused('after a canvas click');
+
+  // a hard drag, then straight to typing
+  await page.mouse.move(canvasBox.x + 300, canvasBox.y + 300);
+  await page.mouse.down();
+  await page.mouse.move(canvasBox.x + 520, canvasBox.y + 180, { steps: 12 });
+  await page.mouse.up();
+  await typeFromUnfocused('after dragging the map');
+
+  // the reset-view button is the manual escape hatch: click it, carry on typing
+  await page.click('button[aria-label="Reset view"]');
+  await typeFromUnfocused('after clicking the reset-view button');
+
+  // shortcuts must still work with focus on a button, i.e. NOT inside the input
+  const beforeTab = await page.evaluate(() => window.__zemyaQuiz);
+  await page.click('button[aria-label="Reset view"]');
+  await page.keyboard.press('Tab');
+  await page.waitForTimeout(300);
+  const afterTab = await page.evaluate(() => window.__zemyaQuiz);
+  check(afterTab.target !== beforeTab.target && afterTab.answeredCount === beforeTab.answeredCount, 'Tab with focus outside the input did not skip');
+  await page.click('button[aria-label="Reset view"]');
+  check(!(await page.isVisible('.quiz-dock__answer')), 'the answer chip was already showing before Ctrl+Enter');
+  await page.keyboard.press('Control+Enter');
+  await page.waitForTimeout(300);
+  check(await page.isVisible('.quiz-dock__answer'), 'Ctrl+Enter with focus outside the input did not reveal');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  check((await page.evaluate(() => window.__zemyaQuiz)).phase === 'paused', 'Esc did not pause');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  check((await page.evaluate(() => window.__zemyaQuiz)).phase === 'running', 'Esc did not resume');
+
+  /* --- 20. the camera follows the player: zoomed into a region, every new target ends up
+          on screen, the camera pans rather than resetting, and it never zooms IN ------- */
+  await page.goto(`${devBase}quiz/countries/world/30`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(800);
+  const cb = await page.locator('.stage__canvas').boundingBox();
+  await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2);
+  await page.mouse.wheel(0, -Math.log(10) / 0.0016); // ~10x home, wherever the centre is
+  await page.waitForTimeout(600);
+  const view0 = await page.evaluate(() => window.__zemyaView());
+  check(view0.camera.zoom > view0.camera.home * 8, `the test's own zoom-in did not take — zoom ${view0.camera.zoom}`);
+  let moved = 0;
+  let prev = view0.camera;
+  const seen = [];
+  for (let i = 0; i < 14; i++) {
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(1500); // the fly-to has settled
+    const v = await page.evaluate(() => ({ view: window.__zemyaView(), quiz: window.__zemyaQuiz }));
+    const [tx, ty] = v.view.target;
+    const c = v.view.canvas;
+    const inView = tx >= 0 && tx <= c.right - c.left && ty >= 0 && ty <= v.view.dockTop - c.top;
+    check(inView, `after skipping to ${v.quiz.target} its anchor is off screen at (${Math.round(tx)}, ${Math.round(ty)})`);
+    check(v.view.camera.zoom <= view0.camera.zoom * 1.001, `the camera zoomed IN for ${v.quiz.target}: ${view0.camera.zoom} -> ${v.view.camera.zoom}`);
+    if (Math.abs(v.view.camera.x - prev.x) > 1e-4 || Math.abs(v.view.camera.y - prev.y) > 1e-4) moved += 1;
+    seen.push(v.quiz.target);
+    prev = v.view.camera;
+  }
+  check(moved >= 1, `across ${seen.length} skips at 10x the camera never moved (${seen.join(', ')}) — targets outside the region should have pulled it`);
+  // "leave it alone" is pinned deterministically (which random targets happen to be in view is
+  // luck): a wrong attempt and a pause/resume are not new questions and must not move the camera
+  /** Waits until the camera stops moving (two reads 350 ms apart agree) — a fly-to's ease
+   *  takes a variable time to fall under its settle threshold, so a fixed sleep is a guess. */
+  const settledCamera = async () => {
+    let last = (await page.evaluate(() => window.__zemyaView())).camera;
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(350);
+      const now = (await page.evaluate(() => window.__zemyaView())).camera;
+      if (Math.abs(now.x - last.x) < 1e-7 && Math.abs(now.y - last.y) < 1e-7 && now.zoom === last.zoom) return now;
+      last = now;
+    }
+    return last;
+  };
+  const settled = await settledCamera();
+  await page.keyboard.type('zzzz', { delay: 20 });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(600);
+  const stillCam = await settledCamera();
+  check(
+    Math.abs(stillCam.x - settled.x) < 1e-6 && Math.abs(stillCam.y - settled.y) < 1e-6 && stillCam.zoom === settled.zoom,
+    'a wrong attempt or a pause/resume moved the camera — only a NEW target may'
+  );
 } finally {
   if (devServer) {
     try {
@@ -683,5 +797,5 @@ console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
     'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best, ' +
-    'flags quiz (no leak), capitals quiz (no leak)'
+    'flags quiz (no leak), capitals quiz (no leak), typing survives canvas/drag/reset, quiz camera follows'
 );

@@ -61,6 +61,9 @@ export interface QuizDefinition {
    *  quiz). Read by routes/quiz.$quizId.tsx, which puts it on the QuizOverride the
    *  renderer reads — no other quiz has a capital to mark. */
   markCapital?: boolean;
+  /** The Stage covers the map (the flags quiz). The route then leaves the camera and the
+   *  new-target pulse alone — there is nothing on screen for them to help with. */
+  hidesMap?: boolean;
   /** Extra acceptance rule layered on top of the default name match (matchesCountry) —
    *  return null to fall through to it. The only current use is the flags quiz's
    *  confusable-pair exception; most quizzes omit this entirely. */

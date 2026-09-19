@@ -314,7 +314,12 @@ function AtlasShell() {
           <div className="zoomer glass">
             <button type="button" onClick={() => atlasRef.current?.zoomBy(1.7)} aria-label="Zoom in">+</button>
             <button type="button" onClick={() => atlasRef.current?.zoomBy(1 / 1.7)} aria-label="Zoom out">−</button>
-            <button type="button" onClick={() => { navigate('/'); atlasRef.current?.home(); }} aria-label="Reset view">⌂</button>
+            <button type="button" onClick={() => {
+              // during a run ⌂ is only a camera reset: navigating to '/' would unmount the
+              // quiz route and silently abandon the run (the same trap as a map click)
+              if (!quiz) navigate('/');
+              atlasRef.current?.home();
+            }} aria-label="Reset view">⌂</button>
           </div>
           <div className="scalebar glass">
             {scale.km ? `${scale.km.toLocaleString()} km` : '—'}

@@ -20,7 +20,20 @@ import { formatDuration } from '~/lib/format';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
 import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
 import { loadWorld } from '~/lib/geography/world';
+import { NO_INSETS, type Insets } from '~/lib/map/follow';
 import type { CountryRecord, World } from '~/lib/map/types';
+
+/** What the docked quiz input covers of the canvas, so a target hidden under it counts as
+ *  not visible. The right-hand panel is a grid column BESIDE the stage, not over it, so a
+ *  country "behind the panel" is simply off the canvas and needs no inset. */
+function measureInsets(): Insets {
+  const canvas = document.querySelector('.stage__canvas');
+  const dock = document.querySelector('.quiz-dock');
+  if (!canvas || !dock) return NO_INSETS;
+  const c = canvas.getBoundingClientRect();
+  const d = dock.getBoundingClientRect();
+  return { ...NO_INSETS, bottom: Math.max(0, c.bottom - d.top) };
+}
 
 export function meta({ params }: { params: { quizId?: string } }) {
   const definition = params.quizId ? quizDefinition(params.quizId) : undefined;
@@ -97,13 +110,35 @@ export default function QuizRun() {
   const prevPhaseRef = useRef(engine.phase);
   useEffect(() => {
     const prev = prevPhaseRef.current;
-    if (prev !== 'running' && engine.phase === 'running') atlas?.home();
+    // START only — idle/done -> running. Resuming from pause is ALSO "not running -> running",
+    // and used to reset the player's zoom to the world view.
+    if ((prev === 'idle' || prev === 'done') && engine.phase === 'running') atlas?.home();
     if (prev !== 'done' && engine.phase === 'done') {
       atlas?.home();
       atlas?.setFocus([]);
     }
     prevPhaseRef.current = engine.phase;
   }, [engine.phase, atlas]);
+
+  /* Each NEW question: bring the target into view if the player couldn't already see it
+     (pan at their zoom, zoom out only as far as fitting needs — never reset to world; see
+     follow.ts), then pulse it once so it can be found. Ordered after the START effect
+     above, so on the first question the camera is already home. Keyed on the target
+     changing, not on renders: a wrong attempt leaves the target alone, so it neither
+     moves the camera nor pulses, and resuming from pause doesn't either. */
+  const lastPulsedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (engine.phase === 'idle' || engine.phase === 'done') lastPulsedRef.current = null;
+    if (!world || !atlas || engine.phase !== 'running' || definition?.hidesMap) return;
+    const iso3 = engine.target?.iso3 ?? null;
+    if (!iso3 || iso3 === lastPulsedRef.current) return;
+    lastPulsedRef.current = iso3;
+    const feature = world.byIso3.get(iso3);
+    if (!feature) return;
+    const place = definition?.markCapital ? world.places.find(mark => mark.feature === feature) ?? null : null;
+    atlas.followTarget({ feature, place }, measureInsets());
+    atlas.pulse(place?.ux ?? feature.ux, place?.uy ?? feature.uy);
+  }, [engine.target, engine.phase, world, atlas, definition]);
 
   /* the target's pin/shape is marked "in focus" (renderer.ts draws a bigger, ringed pin
      for it under quizMode) purely from a Feature lookup — invisible, and harmless, for a
@@ -122,6 +157,25 @@ export default function QuizRun() {
         : prev
     );
   }, [engine.answered, engine.showNeighbours, engine.phase, setQuiz]);
+
+  /** Live camera + target position for test/smoke.mjs — a function, not a snapshot, so it
+   *  reads the camera as it is when called (after the fly-to has settled). DEV only. */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    (window as unknown as { __zemyaView?: unknown }).__zemyaView = () => {
+      const feature = engine.target && world ? world.byIso3.get(engine.target.iso3) : null;
+      const place = feature && definition?.markCapital ? world?.places.find(m => m.feature === feature) : null;
+      const view = atlas?.view;
+      const canvas = document.querySelector('.stage__canvas')?.getBoundingClientRect();
+      const dock = document.querySelector('.quiz-dock')?.getBoundingClientRect();
+      return {
+        camera: view ?? null,
+        target: feature && atlas ? atlas.screenPosition(place?.ux ?? feature.ux, place?.uy ?? feature.uy) : null,
+        canvas: canvas ? { left: canvas.left, top: canvas.top, right: canvas.right, bottom: canvas.bottom } : null,
+        dockTop: dock ? dock.top : null
+      };
+    };
+  }, [atlas, world, engine.target, definition]);
 
   /**
    * Test seam, mirroring ProgressProvider's `window.__zemya` — a separate global so it

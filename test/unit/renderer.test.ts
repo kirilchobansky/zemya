@@ -240,3 +240,40 @@ describe('capitals layer', () => {
     expect(ctx2.arc).not.toHaveBeenCalled();
   });
 });
+
+describe('the new-target pulse', () => {
+  const viewport = { width: 1000, height: 800 };
+  const plain = { fill: () => '#31485A', stroke: () => ['#000', 1] as [string, number], showLabels: true, showPins: false };
+
+  async function drawWith(pulse: { ux: number; uy: number; t: number } | undefined, quizMode = true) {
+    const { render } = await import('~/lib/map/renderer');
+    const { homeZoom } = await import('~/lib/map/camera');
+    const world = await loadRealWorld();
+    const ctx = mockCtx();
+    const camera = { x: 0.5, y: 0.46, zoom: homeZoom(viewport) };
+    render({ ctx, camera, viewport, dpr: 1 }, world, { ...plain, quizMode }, new Set(), 'sans-serif', pulse);
+    return ctx;
+  }
+
+  it('draws exactly one ring while pulsing, in brass, and nothing when there is no pulse', async () => {
+    expect((await drawWith(undefined)).arc).not.toHaveBeenCalled();
+    const ctx = await drawWith({ ux: 0.5, uy: 0.4, t: 0.5 });
+    expect(ctx.arc).toHaveBeenCalledTimes(1);
+    expect((ctx as unknown as { strokeStyle: string }).strokeStyle).toMatch(/^rgba\(232,163,61,/);
+  });
+
+  it('grows and fades: later in the pulse the ring is bigger and more transparent', async () => {
+    const radius = async (t: number) =>
+      ((await drawWith({ ux: 0.5, uy: 0.4, t })).arc as unknown as { mock: { calls: number[][] } }).mock.calls[0][2];
+    expect(await radius(0.8)).toBeGreaterThan(await radius(0.2));
+    const ctx = await drawWith({ ux: 0.5, uy: 0.4, t: 0.99 });
+    const alpha = Number(/,([\d.]+)\)$/.exec((ctx as unknown as { strokeStyle: string }).strokeStyle)![1]);
+    expect(alpha).toBeLessThan(0.05);
+  });
+
+  it('prints no text — a pulse is not a label', async () => {
+    const ctx = await drawWith({ ux: 0.5, uy: 0.4, t: 0.3 });
+    expect(ctx.fillText).not.toHaveBeenCalled();
+    expect(ctx.strokeText).not.toHaveBeenCalled();
+  });
+});

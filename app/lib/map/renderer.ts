@@ -57,6 +57,33 @@ export const COLORS = {
   capitalLabelText: 'rgba(159,179,192,1)'
 } as const;
 
+/**
+ * A one-shot ring that grows out of a point and fades, marking a NEW quiz target so it can
+ * be found among 197 shapes. `t` runs 0 -> 1 over the pulse. Purely a paint: it changes no
+ * layout, moves no camera and swallows no input. Anchored in map space, so it stays on its
+ * target while the camera pans.
+ */
+export interface Pulse {
+  ux: number;
+  uy: number;
+  t: number;
+}
+/** --brass, as the literal the canvas needs (see the tokens note in CLAUDE.md). */
+const PULSE_RGB = '232,163,61';
+const PULSE_START_RADIUS = 8;
+const PULSE_GROWTH = 90;
+
+function drawPulse(rc: RenderContext, pulse: Pulse): void {
+  const { ctx, camera, viewport } = rc;
+  const [x, y] = worldToScreen(camera, viewport, pulse.ux, pulse.uy);
+  const eased = 1 - Math.pow(1 - pulse.t, 3); // fast out, slow finish
+  ctx.beginPath();
+  ctx.arc(x, y, PULSE_START_RADIUS + PULSE_GROWTH * eased, 0, Math.PI * 2);
+  ctx.lineWidth = 3.5 - 2 * pulse.t;
+  ctx.strokeStyle = `rgba(${PULSE_RGB},${(0.9 * (1 - pulse.t)).toFixed(3)})`;
+  ctx.stroke();
+}
+
 export interface RenderContext {
   ctx: CanvasRenderingContext2D;
   camera: CameraState;
@@ -175,7 +202,7 @@ function onScreenWidth(feature: Feature, camera: CameraState): number {
 /** Whether this feature draws as a pin THIS FRAME. Never both a pin and a shape, and
  *  never neither — renderer, hit-testing and labelling all call this so they can't
  *  disagree with each other. */
-function drawsAsPin(feature: Feature, camera: CameraState): boolean {
+export function drawsAsPin(feature: Feature, camera: CameraState): boolean {
   if (!feature.path && !feature.fullPath) return true;
   return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
 }
@@ -438,7 +465,8 @@ export function render(
   world: World,
   style: Style,
   focus: Set<Feature>,
-  uiFont: string
+  uiFont: string,
+  pulse?: Pulse
 ): void {
   const { ctx, camera, viewport } = rc;
 
@@ -510,6 +538,7 @@ export function render(
   if (style.showPins) drawPins(rc, world, style, focus);
   drawCapitals(rc, world, style);
   if (style.showLabels) drawLabels(rc, world, uiFont, style);
+  if (pulse) drawPulse(rc, pulse);
 }
 
 /** Nearest round distance that fits in roughly 90 px, for the scale bar. */

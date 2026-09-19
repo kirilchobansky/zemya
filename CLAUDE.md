@@ -123,6 +123,11 @@ before reconstructing it from `git log`.
   card; accepts `capitalAliases` and never the country's own name. One `QuizDefinition`
   plus a 20-line Stage over the map Stage the countries quiz now shares
   (`components/quiz/MapStage.tsx`) — see "Name the Capital" under Quizzes.
+- The quiz camera and keyboard follow the player (and resuming from pause no longer resets the
+  camera to the world view — `home()` is START only): each new question pans (at the player's
+  zoom) or zooms out the minimum only when the target isn't already visible, typing is
+  captured document-wide so a canvas click/drag/⌂ can't kill it, and a new target pulses
+  once — see "Camera: follows the player", "New-target pulse" and "Typing capture".
 - Quiz layouts hold still: catalogue size grids reserve their tallest height, the flag
   quiz's flag sits in a fixed box, and answer/note slots are reserved — the typing field
   and the panel buttons stay at the same pixel for all 197 flags, reveal and twin notes
@@ -303,7 +308,8 @@ Rules that follow from this layout:
 
 > The camera moves only when the user could not already see the target. Clicking a country
 > on the map never moves the camera; arriving from search, a link, or a cold URL does.
-> Any new way of selecting a country must decide which of those two it is.
+> Any new way of selecting a country must decide which of those two it is. The quiz obeys the
+> same rule: a new question moves the camera only when the player couldn't already see the target.
 
 | What I do | Camera |
 | --- | --- |
@@ -315,6 +321,7 @@ Rules that follow from this layout:
 | Click a suggestion on the index panel | flies to it |
 | Open /country/<slug> cold (fresh load or shared link) | flies to it |
 | Press the ⌂ reset button | returns to world view |
+| A new quiz question | moves ONLY if the target isn't already visible — see "Camera: follows the player" |
 | Wheel, drag, pinch, double-click | unchanged |
 
 Intent travels as React Router location state: `state={{ fly: true }}` on a `Link`,
@@ -559,7 +566,58 @@ can produce (`--max-rows` from the data x `--card-h`), so a chip that shrinks on
 grid never shoves the quiz below it. Checked by clicking every chip and by skipping
 through all 197 flags and comparing the input's box.
 
-**Camera: little to no zoom, on purpose.** The first version of this flew the camera to
+**Camera: follows the player (supersedes "never moves again" below).** START still calls
+`atlas.home()` once and the owner likes that. After it, each NEW question runs
+`Atlas#followTarget` (`app/lib/map/follow.ts`, pure and unit-tested), which applies the
+Interaction-principles rule: (a) target already visible -> **camera untouched**; (b) not
+visible -> pan to it **at the player's current zoom**; (c) doesn't fit at that zoom -> zoom
+out the **minimum** to fit (`QUIZ_FRAME_PADDING` 0.8 of the visible area), never in, never
+to the world view unless fitting needs it. Decided against where the camera is *heading*
+(`Atlas#target`), so quick answers chain. Reuses the existing animated `moveTo`, so the
+usual zoom/vertical clamps apply. The route calls it from an effect keyed on the target
+changing, so a wrong attempt, a pause/resume and a re-render never move the camera.
+- **Visible** = all of: fully inside the *visible area* (the canvas minus what covers it),
+  clear of the edge by `QUIZ_EDGE_MARGIN_PX` (12), and >= `QUIZ_MIN_TARGET_WIDTH_PX` (24) wide.
+  A capital dot (capitals quiz) or a pin-drawn micro-state is a point: it needs
+  `QUIZ_POINT_MARGIN_PX` (60) / `QUIZ_PIN_MARGIN_PX` (48) of room and has no size test.
+- **What covers the canvas is only the docked quiz input** (`.quiz-dock`, measured by
+  `measureInsets()` in the route into a bottom inset). **The brief said the right panel sits
+  on top of the canvas; it doesn't** — it is a grid column beside the stage, so a country
+  "behind the panel" is simply off the canvas and is treated as not visible for that reason.
+  The bottom-left zoomer/scale bar are not modelled (a small corner).
+- **The 24 px size test is waived at/below `QUIZ_WORLD_VIEW_FACTOR` (1.25x home).** At the
+  world overview nothing is off screen and no pan can make a small country bigger, so
+  applying it would slide the world sideways for every small country and throw away the
+  still overview the run starts from. It only bites once the player has zoomed in. Constants
+  are named, in `follow.ts`; 24 was not tuned beyond a play-through.
+- The camera target is the country's **mainland cluster** (`mainlandBox`): largest polygon
+  plus any >= 2% of its size within 3 of its diagonals — France without Guiana, Indonesia
+  with Papua. (This is the same idea as the `mainBbox` removed earlier, kept to ~30 lines
+  and used only here.)
+- The flags quiz (`hidesMap: true`) skips follow and pulse; nothing on screen uses them.
+
+**New-target pulse.** `Atlas#pulse` draws one brass ring growing 8 -> ~98 px and fading over
+1000 ms (`renderer.ts`'s `Pulse`), anchored in map space on the country's anchor (or the
+capital dot) so it stays on target while the camera pans. Once, not a loop: the rAF loop
+ends when the pulse does, so it costs nothing in steady state (`npm run perf` unchanged,
+16.7 ms median). Purely a paint — no layout, no camera, no input handling. Skipped under
+`prefers-reduced-motion`.
+
+**Typing capture (engine.ts).** While `running`, a document-level `keydown` listener focuses
+the quiz input for any printable key or Backspace pressed with focus anywhere but a text
+field, and lets the keystroke land in it (it does NOT `preventDefault`; the browser delivers
+the character to the newly focused input, so the first letter isn't lost — verified by
+typing whole names from an unfocused state). Ctrl/Alt/Meta held: ignored. Tab (skip) and
+Ctrl+Enter (reveal) are handled there too, because with focus on a button they otherwise
+never reach the input's own handler; when the input has focus the listener returns first, so
+nothing fires twice. Esc/Ctrl+Backspace were already window-level. The old phase-change
+`focus()` stays only as initial focus. The canvas has no `tabindex` and never did — the bug
+was that clicking it blurs the input. **Consequence: ⌂ is the manual escape hatch** (click,
+keep typing), so there is deliberately no new reset shortcut. **⌂ used to `navigate('/')`,
+which unmounts the run and silently abandons it** (found by the smoke test); during a run it
+is now only a camera reset.
+
+**Camera: little to no zoom, on purpose (history — the START part still holds).** The first version of this flew the camera to
 each question with custom quarter-viewport-width framing (`camera.ts`'s `frameForQuiz`,
 reading a `feature.mainBbox` built from clustering a country's polygons so a remote
 exclave like Chile's Easter Island didn't drag the frame out over open ocean). The owner
@@ -567,8 +625,9 @@ overruled this after using it: the per-question zoom was too aggressive, and the
 to keep the sense of the whole world, not to be flown around it question by question. That
 whole mechanism (`frameForQuiz`, `Atlas#flyToQuiz`, `feature.mainBbox`, the polygon
 clustering in `topology.ts`) was removed rather than left dead. **A run now calls
-`atlas.home()` once, on START, and never moves the camera again on its own** — the map
-sits at (roughly) the world view for the whole run; the user's own pan/zoom is untouched.
+`atlas.home()` once, on START** — and, as first written, never moved the camera again; that
+second half is superseded by "follows the player" above (pan/zoom-out only when the target
+isn't already visible, never zoom in).
 The current target is marked with `Atlas#setFocus([target])` instead (pre-existing,
 previously-unused infrastructure) — `renderer.ts`'s `drawPins` gives a focused feature
 drawn as a pin a bigger radius, and under `quizMode` specifically, a much bigger radius
@@ -654,7 +713,8 @@ names the country, and nothing names the city until a reveal.
 - **The brief asked for "the countries-quiz camera framing… the target country framed with
   its continent around it". There is no such framing to reuse:** the per-question framing
   was removed on the owner's instruction (see "Camera: little to no zoom, on purpose"), so
-  the capitals quiz does what the countries quiz does — `home()` once on START, never moved.
+  the capitals quiz does what the countries quiz does — `home()` on START, then the shared
+  follow-the-player rule (its target is the capital DOT, with a 60 px margin).
   Framing a continent per question would be new behaviour that reverses that decision, so
   it was not built. Tell me if a continent-level frame (not the old quarter-viewport zoom)
   is actually wanted.
