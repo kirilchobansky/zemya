@@ -690,6 +690,12 @@ so nothing may depend on a webfont having loaded.
   hover. Reach for this instead of picking a source and asserting precision nobody has.
 - Hooks are written as fragments with an implied subject. Any surface that shows a hook
   outside the country's own page must supply the subject itself.
+- Accepted names in the quizzes are generated (world-countries' spellings), and corrected
+  per country with an `aliases:` block in that country's YAML — `add: [...]`, `remove:
+  [...]` and a mandatory `note` saying why. Applied after the ambiguity guard, so an added
+  alias may deliberately be shared ("Congo" is accepted for both Congos); `remove` must
+  name an alias that exists, so an upstream rename fails the build. Today: Thailand drops
+  "Thai" (the people, not the country), the UK adds "UK", both Congos add "Congo".
 - `content/geography/confusable-flags.yaml` is the one content file that isn't
   per-country — a hand-curated list of flag pairs the "Name the Flag" quiz accepts for
   each other (see Quizzes). Same rule as everywhere else in `content/`: plain YAML,

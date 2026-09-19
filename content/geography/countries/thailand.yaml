@@ -17,3 +17,6 @@ flag: Red, white, blue, white, red horizontal bands, the blue twice as tall.
 outline: An elephant's head with the trunk stretching down the Malay peninsula.
 hook: The only Southeast Asian country never colonised by a European power.
 population: 71668011
+aliases:
+  note: '"Thai" is what the people and language are called, not the country — accepting it would mark a wrong answer right.'
+  remove: [Thai]

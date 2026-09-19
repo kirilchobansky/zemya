@@ -17,3 +17,6 @@ flag: Green and red triangles split by a yellow diagonal band.
 outline: A narrow shape curling along the Congo river's western bank.
 hook: Brazzaville and Kinshasa face each other across the river — the closest pair of capitals on Earth.
 population: 6332961
+aliases:
+  note: '"Congo" is accepted for both Congos on purpose; the full official name is already accepted.'
+  add: [Congo]

@@ -17,3 +17,6 @@ flag: Overlaid red and white crosses and diagonals on blue — the Union Jack.
 outline: A witch riding a pig, facing west, with Ireland off to the side.
 hook: The UK has no written constitution — it simply never got around to it.
 population: 69138192
+aliases:
+  note: '"UK" is how the country is almost always written; the generated list drops it because it is two letters. The full official name is already accepted.'
+  add: [UK]

@@ -17,3 +17,6 @@ flag: Sky blue with a yellow star and a red diagonal stripe.
 outline: A huge blob straddling the Congo basin, with a needle-thin corridor to the sea.
 hook: The second-largest country in Africa but with only 37 km of coastline.
 population: 109276265
+aliases:
+  note: '"Congo" is accepted for both Congos on purpose (the generated list drops it as ambiguous); the full official name and "DR Congo" are already accepted.'
+  add: [Congo]

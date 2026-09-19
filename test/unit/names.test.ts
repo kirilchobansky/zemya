@@ -43,7 +43,11 @@ describe('matchesCountry', () => {
     expect(matchesCountry('kirgizstan', kyrgyzstan)).toBe(false);
   });
 
-  it('no alias of any country matches any other country', () => {
+  /** Aliases two countries deliberately share via an `aliases.add` in their YAML — see
+   *  build-content.mjs. "Congo" is a correct answer for either Congo. */
+  const SHARED_ON_PURPOSE = new Set(['congo']);
+
+  it('no alias of any country matches any other country, except those shared on purpose', () => {
     const countries = allCountries();
     const owner = new Map<string, string>();
     for (const country of countries) {
@@ -54,6 +58,7 @@ describe('matchesCountry', () => {
         // empty key here is inert, not a real collision between two such aliases.
         if (!key) continue;
         const existingOwner = owner.get(key);
+        if (existingOwner !== undefined && SHARED_ON_PURPOSE.has(key)) continue;
         if (existingOwner !== undefined) {
           expect(existingOwner).toBe(country.iso3);
         } else {
@@ -62,6 +67,40 @@ describe('matchesCountry', () => {
       }
     }
     expect(owner.size).toBeGreaterThan(0);
+  });
+});
+
+describe('per-country alias edits (aliases: in the YAML)', () => {
+  const accepts = (slug: string, typed: string) => matchesCountry(typed, countryBySlug(slug)!);
+
+  it('Thailand no longer accepts "Thai", but still accepts its own names', () => {
+    expect(accepts('thailand', 'Thai')).toBe(false);
+    expect(accepts('thailand', 'thailand')).toBe(true);
+    expect(accepts('thailand', 'Kingdom of Thailand')).toBe(true);
+  });
+
+  it('the United Kingdom accepts UK and its full name', () => {
+    expect(accepts('united-kingdom', 'UK')).toBe(true);
+    expect(accepts('united-kingdom', 'uk')).toBe(true);
+    expect(accepts('united-kingdom', 'United Kingdom of Great Britain and Northern Ireland')).toBe(true);
+  });
+
+  it('the United States accepts USA and its full name', () => {
+    expect(accepts('united-states', 'USA')).toBe(true);
+    expect(accepts('united-states', 'United States of America')).toBe(true);
+  });
+
+  it('both Congos accept their full names and plain "Congo"; DR Congo also accepts "DR Congo"', () => {
+    expect(accepts('dr-congo', 'Democratic Republic of the Congo')).toBe(true);
+    expect(accepts('dr-congo', 'DR Congo')).toBe(true);
+    expect(accepts('dr-congo', 'Congo')).toBe(true);
+    expect(accepts('republic-of-the-congo', 'Republic of the Congo')).toBe(true);
+    expect(accepts('republic-of-the-congo', 'Congo')).toBe(true);
+  });
+
+  it('the two Congos still do not accept each other\'s distinguishing names', () => {
+    expect(accepts('republic-of-the-congo', 'DR Congo')).toBe(false);
+    expect(accepts('dr-congo', 'Republic of the Congo')).toBe(false);
   });
 });
 

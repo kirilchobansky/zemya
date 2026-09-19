@@ -300,6 +300,41 @@ for (const country of countries) {
   totalAliases += kept.length;
 }
 
+/**
+ * Per-country alias edits, from the country's YAML:
+ *
+ *   aliases:
+ *     note: why the generated list is wrong or too narrow (mandatory)
+ *     add: [UK]        accepted in addition; skips the length and ambiguity filters above
+ *     remove: [Thai]   no longer accepted
+ *
+ * Applied AFTER the ambiguity guard, on purpose: an added alias may be shared by two
+ * countries ("Congo" is right for either Congo), which the guard would otherwise strip
+ * from both. The quiz only ever checks a typed name against the current target, so a
+ * shared alias is never resolved to "whichever country came first". `remove` must name an
+ * alias that is actually there, so an upstream rename fails the build instead of silently
+ * leaving the override doing nothing.
+ */
+const aliasOverrides = [];
+for (const country of countries) {
+  const spec = authored[country.iso3].aliases;
+  if (!spec) continue;
+  const where = `content/geography/countries/${authored[country.iso3].slug}.yaml`;
+  if (!String(spec.note ?? '').trim()) throw new Error(`${where}: aliases needs a non-empty note`);
+  const kept = [...country.aliases];
+  for (const alias of spec.remove ?? []) {
+    const at = kept.findIndex(a => normaliseAlias(a) === normaliseAlias(alias));
+    if (at < 0) throw new Error(`${where}: aliases.remove "${alias}" is not one of ${country.name}'s aliases`);
+    kept.splice(at, 1);
+    aliasOverrides.push(`${country.iso3}-${alias}`);
+  }
+  for (const alias of spec.add ?? []) {
+    if (!kept.some(a => normaliseAlias(a) === normaliseAlias(alias))) kept.push(alias);
+    aliasOverrides.push(`${country.iso3}+${alias}`);
+  }
+  country.aliases = kept;
+}
+
 /* ------------------------------------------------------------------ confusable flags */
 
 /**
@@ -724,6 +759,9 @@ console.log(
 console.log(
   `disputed       ${new Set(disputedFacets.map(f => f.split('.')[0])).size}` +
     (disputedFacets.length ? ` (${disputedFacets.join(', ')})` : '')
+);
+console.log(
+  `alias edits    ${aliasOverrides.length}${aliasOverrides.length ? ` (${aliasOverrides.join(', ')})` : ''}`
 );
 console.log(
   `aliases        ${totalAliases}` +
