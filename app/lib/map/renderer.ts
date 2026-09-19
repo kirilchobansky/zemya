@@ -242,24 +242,23 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
 }
 
 /**
- * Capitals appear at less zoom than micro-state SHAPES do, on purpose — the owner's
- * requirement. A micro-state turns from pin into shape only once its own width passes
- * PIN_MAX_WIDTH (7 px), i.e. at a zoom of 7 / (its width in unit space): Malta, Singapore
- * and Tuvalu-sized countries need roughly 3.5x-5x homeZoom (Monaco and San Marino far
- * more, Vatican City never — see CLAUDE.md). A capital's ring needs no shape to be
- * readable, so it shows at 2x, when Europe is a couple of screens wide, and its name at
- * 5x, when a country the size of Belgium is ~150 px across and there is room for text.
+ * Two gates, both must pass for a capital's ring:
+ *  1. zoom >= CAPITAL_DOT_ZOOM_FACTOR x homeZoom — 6x is where the scale bar first reads
+ *     500 km (measured at 1500x900: 2,000 km at 2-3x, 1,000 km at 4-5x, 500 km from 6x to
+ *     ~12x). Big countries get their ring here.
+ *  2. the capital's country is drawn as a real SHAPE this frame, not a pin (drawsAsPin).
+ *     Small and micro countries therefore get theirs later, when the country itself
+ *     appears — Malta near 5x, Luxembourg well before 6x, Monaco and San Marino far
+ *     deeper, Vatican City never (its own geometry is degenerate; the pin stands in).
+ * Names need more room than rings: from CAPITAL_LABEL_ZOOM_FACTOR.
  *
- * Chosen by eye, in a real browser at 1500x900, zooming slowly from the world view into
- * Central Europe: at 1.6x the map is still countries and micro-state pins, with no rings;
- * at 2.2x a ring per capital is legible and the Balkans is dense but not a smear; at
- * 4-5x the rings are clear with no names; from 5x a country the size of Belgium is wide
- * enough that a name beside its ring stops colliding with the country labels. Lower dot
- * or label thresholds were not tried below 2x/5x once those looked right, so treat them
- * as "good", not "optimal". Multiples of homeZoom, like LOD_ZOOM_FACTOR above.
+ * Both were raised from 2x / 5x (rings were a rash across Europe at 2x) after the owner
+ * asked for capitals to appear later. Chosen by measuring the scale bar and then looking,
+ * in a real browser, zooming into Central Europe. Multiples of homeZoom, like
+ * LOD_ZOOM_FACTOR above.
  */
-export const CAPITAL_DOT_ZOOM_FACTOR = 2;
-export const CAPITAL_LABEL_ZOOM_FACTOR = 5;
+export const CAPITAL_DOT_ZOOM_FACTOR = 6;
+export const CAPITAL_LABEL_ZOOM_FACTOR = 9;
 const CAPITAL_RING_RADIUS = 3.4;
 const CAPITAL_PICK_RADIUS = 7;
 
@@ -278,6 +277,11 @@ export function capitalsVisible(
   );
 }
 
+/** Second gate: the capital's country is a drawn shape right now, not a pin. */
+function capitalShapeShowing(mark: PlaceMark, camera: CameraState): boolean {
+  return !drawsAsPin(mark.feature, camera);
+}
+
 /** A small hollow ring — deliberately NOT the filled circle a micro-state pin is, so the
  *  map never has two dot languages that mean different things. */
 function drawCapitals(rc: RenderContext, world: World, style: Style): void {
@@ -290,11 +294,7 @@ function drawCapitals(rc: RenderContext, world: World, style: Style): void {
   for (const mark of world.places) {
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
     if (x < -10 || x > viewport.width + 10 || y < -10 || y > viewport.height + 10) continue;
-    // a city-state's pin already marks its capital; a ring on top would just be noise
-    if (style.showPins && drawsAsPin(mark.feature, camera)) {
-      const [px, py] = worldToScreen(camera, viewport, mark.feature.ux, mark.feature.uy);
-      if (Math.hypot(px - x, py - y) < 6) continue;
-    }
+    if (!capitalShapeShowing(mark, camera)) continue;
     ctx.beginPath();
     ctx.arc(x, y, CAPITAL_RING_RADIUS, 0, Math.PI * 2);
     ctx.lineWidth = 3.4;
@@ -405,7 +405,9 @@ function drawPlaceLabels(
   ctx.textBaseline = 'middle';
   ctx.font = `400 11px ${font}`;
 
-  const candidates = [...world.places].sort((a, b) => b.place.population - a.place.population);
+  const candidates = world.places
+    .filter(mark => capitalShapeShowing(mark, camera))
+    .sort((a, b) => b.place.population - a.place.population);
   for (const mark of candidates) {
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
     if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
@@ -587,6 +589,7 @@ export function pickPlace(
   let nearest: PlaceMark | null = null;
   let nearestDistance = CAPITAL_PICK_RADIUS;
   for (const mark of world.places) {
+    if (!capitalShapeShowing(mark, camera)) continue;
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
     const distance = Math.hypot(x - sx, y - sy);
     if (distance < nearestDistance) {

@@ -140,23 +140,46 @@ describe('capitals layer', () => {
   });
 
   it('draws no rings below the dot threshold and rings above it', async () => {
-    const below = await draw({ showCapitals: true }, 1.8);
+    const below = await draw({ showCapitals: true }, 5.5);
     expect(below.ctx.arc).not.toHaveBeenCalled();
-    const above = await draw({ showCapitals: true }, 2.2);
+    const above = await draw({ showCapitals: true }, 6.5);
     expect(above.ctx.arc).toHaveBeenCalled();
   });
 
   it('draws no rings with the layer toggled off', async () => {
-    const { ctx } = await draw({ showCapitals: false }, 3);
+    const { ctx } = await draw({ showCapitals: false }, 8);
     expect(ctx.arc).not.toHaveBeenCalled();
   });
 
   it('labels capitals only above the label threshold', async () => {
-    const dotsOnly = await draw({ showCapitals: true }, 3);
+    const dotsOnly = await draw({ showCapitals: true }, 7);
     const names = dotsOnly.world.places.map(m => m.place.name);
     expect(drawnText(dotsOnly.ctx, names)).toEqual([]);
-    const labelled = await draw({ showCapitals: true }, 8);
+    const labelled = await draw({ showCapitals: true }, 12);
     expect(drawnText(labelled.ctx, names).length).toBeGreaterThan(0);
+  });
+
+  it('a micro-state gets its ring only once its own shape shows, not at the global threshold', async () => {
+    const { render, pickPlace } = await import('~/lib/map/renderer');
+    const { homeZoom, worldToScreen } = await import('~/lib/map/camera');
+    const world = await loadRealWorld();
+    const monaco = world.places.find(m => m.place.iso3 === 'MCO')!;
+    const rings = (factor: number) => {
+      const ctx = mockCtx();
+      const camera = { x: monaco.ux, y: monaco.uy, zoom: homeZoom(viewport) * factor };
+      render({ ctx, camera, viewport, dpr: 1 }, world, { ...plain, showCapitals: true }, new Set(), 'sans-serif');
+      const [sx, sy] = worldToScreen(camera, viewport, monaco.ux, monaco.uy);
+      const hit = pickPlace({ ctx, camera, viewport, dpr: 1 }, world, { showCapitals: true }, sx, sy);
+      return { arcs: (ctx.arc as unknown as { mock: { calls: unknown[][] } }).mock.calls.length, hit };
+    };
+    // 12x is past the global threshold (big neighbours have rings) but Monaco is still a
+    // pin: no ring of its own, and not hittable
+    expect(rings(12).arcs).toBeGreaterThan(0);
+    expect(rings(12).hit).toBeNull();
+    // deep enough that Monaco is a real shape: its ring shows and can be picked
+    const deep = rings(200);
+    expect(deep.arcs).toBeGreaterThan(0);
+    expect(deep.hit?.place.name).toBe('Monaco');
   });
 
   it('quizMode draws no capital ring and no capital name, at a zoom where both would show', async () => {
@@ -172,7 +195,7 @@ describe('capitals layer', () => {
     const { pickPlace } = await import('~/lib/map/renderer');
     const { worldToScreen } = await import('~/lib/map/camera');
     const world = await loadRealWorld();
-    const camera = await europe(6);
+    const camera = await europe(8);
     const vienna = world.places.find(m => m.place.iso3 === 'AUT')!;
     const [sx, sy] = worldToScreen(camera, viewport, vienna.ux, vienna.uy);
     const rc = { ctx: mockCtx(), camera, viewport, dpr: 1 };
@@ -181,7 +204,7 @@ describe('capitals layer', () => {
     expect(pickPlace(rc, world, { showCapitals: true }, sx + 40, sy + 40)).toBeNull();
     expect(pickPlace(rc, world, { showCapitals: true, quizMode: true }, sx, sy)).toBeNull();
     expect(pickPlace(rc, world, { showCapitals: false }, sx, sy)).toBeNull();
-    expect(pickPlace({ ...rc, camera: await europe(1.5) }, world, { showCapitals: true }, sx, sy)).toBeNull();
+    expect(pickPlace({ ...rc, camera: await europe(5) }, world, { showCapitals: true }, sx, sy)).toBeNull();
   });
 
   it('quizMode draws ONLY the quiz target\'s ring, at world zoom, and still no text', async () => {

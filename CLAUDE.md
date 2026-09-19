@@ -45,8 +45,9 @@ before reconstructing it from `git log`.
   The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
 - Capital cities as a map layer: 197 `places` (`{ name, iso3, kind: 'capital', lon, lat,
   population }`) in both geometry payloads, drawn as a hollow ring (never the filled
-  circle micro-state pins use) above `CAPITAL_DOT_ZOOM_FACTOR` (2x homeZoom) with the
-  name beside it above `CAPITAL_LABEL_ZOOM_FACTOR` (5x), a "Capitals" toolbar toggle
+  circle micro-state pins use) above `CAPITAL_DOT_ZOOM_FACTOR` (6x homeZoom, the 500 km scale, and
+  only once the country itself is a shape) with the
+  name beside it above `CAPITAL_LABEL_ZOOM_FACTOR` (9x), a "Capitals" toolbar toggle
   (default on), hover tooltip with the city name, and click selecting the *country* (no
   city page). Suppressed entirely under `quizMode`. See "## Places and capitals".
 - Capital name matching (`capitalAliases` on every country record, `matchesCapital` in
@@ -352,22 +353,25 @@ Amsterdam (The Hague is the seat of government), Israel = Jerusalem and Palestin
 Ramallah (both politically contested — see the disputed-facet mechanism if it should stop
 being quizzed).
 
-**Zoom constants** (`renderer.ts`, multiples of `homeZoom`, chosen by eye in a real browser
-zooming from the world view into Central Europe): `CAPITAL_DOT_ZOOM_FACTOR = 2`,
-`CAPITAL_LABEL_ZOOM_FACTOR = 5`. Capitals appear at *less* zoom than micro-state shapes
-because a micro-state only turns from pin into shape once its own width passes
-`PIN_MAX_WIDTH` (7 px) — Malta/Singapore-sized countries need roughly 3.5x-5x, Monaco and
-San Marino far more, Vatican City never — whereas a ring needs no shape to be readable.
-At 1.6x the map is countries and pins only; at 2.2x rings are legible (the Balkans dense
-but not a smear); at 4-5x rings with no names; from 5x names fit beside their rings without
-touching country labels. Not tested below 2x/5x once those looked right — "good", not
-"optimal".
+**Visibility rule** (`renderer.ts`): a capital's ring needs BOTH (1) zoom >=
+`CAPITAL_DOT_ZOOM_FACTOR` x homeZoom = **6x**, and (2) its country drawn as a real shape this
+frame, not a pin (`capitalShapeShowing`, the same `drawsAsPin` the pins use). Names need
+`CAPITAL_LABEL_ZOOM_FACTOR` = **9x**. Rings, names, hover and click all share the rule, so a
+ring you can't see can't be hit. Why: 6x is where the scale bar first reads **500 km**
+(measured at 1500x900 in a real browser: 5,000 km at 1x, 2,000 at 2-3x, 1,000 at 4-5x, 500
+from 6x to ~12x, 200 at 15x) — big countries get their ring there. Rule (2) makes small
+countries wait for their own shape (Luxembourg-sized: before 6x, so they get it at 6x;
+Malta near 5x; Monaco/San Marino far deeper; Vatican City never — degenerate geometry, its
+pin stands in), which is the owner's "micro and small when the country itself appears".
+These replaced 2x / 5x (rings at 2x were a rash across Europe; the owner asked for later).
+Looked at 5x (none), 6.5x (rings, no names, bar 500 km), 9.5x (names, no collisions with
+country labels). Names at 9x were not tuned finer — "good", not "optimal". The old 2x/5x
+rationale ("capitals appear before micro-state shapes") no longer holds by design.
 
 **Labels compete with country labels** for one collision list (`drawLabels` fills it with
 country names first, larger claim, then `drawPlaceLabels` adds cities by descending
 population), so a city and a country name can never overlap; the loser is simply not drawn
-until there is room. A capital whose country is drawn as a pin within 6 px of the ring
-skips its ring (the pin already marks it).
+until there is room. 
 
 **`quizMode` suppresses place rings, place labels and place tooltips/hit-testing**, through
 the same one flag (`capitalsVisible()` is the single predicate drawing, labels and
@@ -635,7 +639,7 @@ player sees is the countries quiz's screen: the target country in `--brass`, the
 (roughly) the world view, an input docked at the bottom. `markCapital: true` on the
 definition puts `showCapital` on the `QuizOverride`, which `atlas.tsx` turns into the
 renderer's `Style.quizPlace` — the target's own capital, drawn as two concentric ink rings
-(`drawQuizPlace`) at **any** zoom, because the ordinary capital rings only exist above 2x
+(`drawQuizPlace`) at **any** zoom, because the ordinary capital rings only exist above 6x
 and the quiz stays near 1x. Every *other* capital ring, every place label and every place
 tooltip stay off under `quizMode`. **The highlight is the question** — nothing on screen
 names the country, and nothing names the city until a reveal.
