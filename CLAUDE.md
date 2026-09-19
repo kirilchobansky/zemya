@@ -189,7 +189,11 @@ the ones listed below, which are drawn as part of the country whose shape they a
 
 Somaliland, Northern Cyprus and a handful of smaller cases are not drawn as separate
 dim shapes: their geometry is merged into a real country's at build time, so the map
-never shows a hole where recognised territory should be. The full list, and the reason
+never shows a hole where recognised territory should be. "Merged" means the shared
+borders are dissolved (`topojson-client`'s `mergeArcs`, a devDependency — it was already
+installed transitively), so Somalia and Cyprus are each one polygon with no line through
+them and are clicked as one. Merely appending the neighbour as a second polygon used to
+leave its border arcs in place and the stroke pass drew them. The full list, and the reason
 for each, lives in `scripts/build-content.mjs`'s `ABSORB` map — Somaliland into Somalia,
 Baikonur into Kazakhstan, Northern Cyprus/the UN buffer zone/Akrotiri/Dhekelia into
 Cyprus, Guantanamo Bay into Cuba, the Siachen Glacier into India. If Somalia looks like

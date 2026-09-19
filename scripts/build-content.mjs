@@ -25,6 +25,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { parse } from 'yaml';
+import { mergeArcs } from 'topojson-client';
 import * as simplify from 'topojson-simplify';
 import { slugFor, slugify } from './lib/slug.mjs';
 
@@ -424,6 +425,8 @@ function buildGeometry(detail) {
     return out;
   });
 
+  // mergeArcs() only reads the arc pool (and transform, if any) to stitch rings
+  const topoForMerge = topo;
   const absorbedPolygons = new Map(); // target iso3 -> polygons to append
   const built = []; // { id, multi, arcs, polygons } — polygons kept alongside for merging
 
@@ -450,30 +453,17 @@ function buildGeometry(detail) {
     }
 
     /**
-     * Baikonur is cut out of Kazakhstan's own polygon as a hole, and Baikonur's polygon
-     * exactly re-fills that same hole (confirmed: both reference arc 903, one forward as
-     * the hole, one reversed as Baikonur's outer ring). Appending Baikonur as a NEW
-     * polygon on top of an unmodified Kazakhstan would leave both rings in place —
-     * invisible in the fill (same colour, so no visible seam there) but both still get
-     * traced in the stroke pass, drawing a circle where there should be seamless
-     * one-colour territory. Cancel the pair instead of stacking them: remove the
-     * target's hole, skip adding the absorbed polygon. Anything that ISN'T a hole-fill
-     * (Somaliland is a genuinely separate adjacent landmass, not a hole in Somalia)
-     * still gets appended as before.
+     * Dissolve the shared borders instead of stacking polygons. Somaliland sits beside
+     * Somalia, and Northern Cyprus, the buffer zone and the British bases sit beside the
+     * rest of Cyprus: each pair of neighbours references the SAME arcs (one forward, one
+     * reversed), so appending the absorbed polygon as a separate one left both rings in
+     * place, and the stroke pass drew the old border straight through what is now one
+     * country. topojson-client's mergeArcs() drops every arc that two polygons share and
+     * stitches what's left into one outline. That also covers Baikonur, which is a hole
+     * in Kazakhstan that its own polygon exactly re-fills — the pair cancels completely.
+     * Arcs left unused by this simply stay in the pool, unreferenced.
      */
-    const remaining = [];
-    for (const polygon of extra) {
-      const outerKey = arcKey(polygon[0]);
-      const targetPolygon = entry.polygons.find(p => p.slice(1).some(hole => arcKey(hole) === outerKey));
-      if (targetPolygon) {
-        const holeIndex = targetPolygon.findIndex((ring, i) => i > 0 && arcKey(ring) === outerKey);
-        targetPolygon.splice(holeIndex, 1);
-      } else {
-        remaining.push(polygon);
-      }
-    }
-
-    const merged = [...entry.polygons, ...remaining];
+    const merged = mergeArcs(topoForMerge, [{ type: 'MultiPolygon', arcs: [...entry.polygons, ...extra] }]).arcs;
     entry.polygons = merged;
     entry.multi = merged.length > 1;
     entry.arcs = merged.length > 1 ? merged : merged[0];
