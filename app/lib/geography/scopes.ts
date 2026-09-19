@@ -40,6 +40,20 @@ export const SCOPE_LABELS: Record<QuizScope, string> = {
   oceania: 'Oceania'
 };
 
+/** Where a continent's quiz keeps the camera — [minLon, minLat, maxLon, maxLat]. Hand-set
+ *  rather than derived from the pool: a derived box would let Russia's far east, Hawaii or
+ *  Kiribati's outliers drag the "continent view" out over open ocean. Oceania runs past
+ *  180 on purpose (the camera wraps), so Fiji and New Zealand are not cut off. World has no
+ *  entry: its view is the atlas's ordinary home. */
+export const SCOPE_VIEWS: Partial<Record<QuizScope, [number, number, number, number]>> = {
+  africa: [-20, -36, 52, 38],
+  asia: [25, -11, 146, 55],
+  europe: [-25, 34, 50, 72],
+  'north-america': [-170, 7, -50, 72],
+  'south-america': [-82, -56, -34, 13],
+  oceania: [110, -48, 195, 5]
+};
+
 export function isQuizScope(value: string): value is QuizScope {
   return (QUIZ_SCOPES as readonly string[]).includes(value);
 }

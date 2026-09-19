@@ -787,6 +787,36 @@ try {
     Math.abs(afterGuess.zoom - afterGuess.home) < 1,
     `answering "${toGuess}" while zoomed in left the camera at ${(afterGuess.zoom / afterGuess.home).toFixed(2)}x, not the world view`
   );
+
+  /* --- 21. a continent quiz treats the continent as home: START frames it, and a guess from
+          a zoomed-in view returns to it, not to the whole world --------------------- */
+  await page.goto(`${devBase}quiz/countries/europe/all`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  // before START the camera is already on the continent, behind the start dock
+  const europeIdle = (await page.evaluate(() => window.__zemyaView())).camera;
+  check(europeIdle.zoom > europeIdle.home * 1.5, `the Europe quiz page left the camera at ${(europeIdle.zoom / europeIdle.home).toFixed(2)}x, not the continent view`);
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(1500);
+  const europeHome = (await page.evaluate(() => window.__zemyaView())).camera;
+  check(europeHome.zoom > europeHome.home * 1.2, `Europe quiz START left the camera at ${(europeHome.zoom / europeHome.home).toFixed(2)}x, not the continent view`);
+  const eb = await page.locator('.stage__canvas').boundingBox();
+  await page.mouse.move(eb.x + eb.width / 2, eb.y + eb.height / 2);
+  await page.mouse.wheel(0, -Math.log(4) / 0.0016);
+  await page.waitForTimeout(800);
+  const europeIn = (await page.evaluate(() => window.__zemyaView())).camera;
+  check(europeIn.zoom > europeHome.zoom * 2, `the Europe test's own zoom-in did not take — ${europeIn.zoom / europeHome.zoom}x`);
+  const europeTarget = await page.evaluate(() => window.__zemyaQuiz.target);
+  await page.fill('.quiz-dock__input', '');
+  await page.keyboard.type(europeTarget, { delay: 25 });
+  await page.waitForTimeout(2500);
+  const europeAfter = (await page.evaluate(() => window.__zemyaView())).camera;
+  // back to the continent (a target that doesn't fit may zoom out a little further), never
+  // left zoomed in and never sent to the whole world
+  check(
+    europeAfter.zoom < europeIn.zoom * 0.5 && europeAfter.zoom > europeAfter.home * 1.2,
+    `answering "${europeTarget}" in a Europe quiz left the camera at ${(europeAfter.zoom / europeAfter.home).toFixed(2)}x home (zoomed-in was ${(europeIn.zoom / europeAfter.home).toFixed(2)}x)`
+  );
 } finally {
   if (devServer) {
     try {
@@ -809,5 +839,5 @@ console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
     'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best, ' +
-    'flags quiz (no leak), capitals quiz (no leak), typing survives canvas/drag/reset, quiz camera follows'
+    'flags quiz (no leak), capitals quiz (no leak), typing survives canvas/drag/reset, quiz camera follows, continent quiz home'
 );

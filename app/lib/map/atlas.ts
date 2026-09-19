@@ -119,8 +119,27 @@ export class Atlas {
     this.draw();
   }
 
+  /** [minLon, minLat, maxLon, maxLat] a continent quiz treats as "home", or null for the
+   *  world. Set by the quiz route for the run's lifetime and cleared on unmount. */
+  private regionView: [number, number, number, number] | null = null;
+
+  setRegionView(box: [number, number, number, number] | null): void {
+    this.regionView = box;
+  }
+
+  /** The camera `home()` returns to: the whole world, or the active continent. */
+  private homeView(): CameraState {
+    if (!this.regionView) return homeCamera(this.viewport);
+    const [minLon, minLat, maxLon, maxLat] = this.regionView;
+    return frame(
+      { x0: lonToX(minLon), x1: lonToX(maxLon), y0: latToY(maxLat), y1: latToY(minLat) },
+      this.viewport,
+      0.85
+    );
+  }
+
   home(animate = true): void {
-    this.moveTo(homeCamera(this.viewport), animate);
+    this.moveTo(this.homeView(), animate);
   }
 
   zoomBy(factor: number): void {
@@ -165,7 +184,7 @@ export class Atlas {
         : mainlandBox(feature);
     if (!target) return;
     const next = cameraForTarget(cam, this.viewport, insets, target, {
-      sizeWaived: asPoint || cam.zoom <= homeZoom(this.viewport) * QUIZ_WORLD_VIEW_FACTOR
+      sizeWaived: asPoint || cam.zoom <= this.homeView().zoom * QUIZ_WORLD_VIEW_FACTOR
     });
     if (next) this.moveTo(next, true);
   }
@@ -173,7 +192,7 @@ export class Atlas {
   /** Return to the world view, but only if the camera is (heading) zoomed in past it —
    *  a player already at the overview keeps their pan. Returns whether it moved. */
   homeIfZoomedIn(): boolean {
-    if (this.target.zoom <= homeZoom(this.viewport) * QUIZ_WORLD_VIEW_FACTOR) return false;
+    if (this.target.zoom <= this.homeView().zoom * QUIZ_WORLD_VIEW_FACTOR) return false;
     this.home();
     return true;
   }

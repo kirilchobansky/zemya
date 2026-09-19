@@ -18,7 +18,7 @@ import { useAtlasContext } from './atlas';
 import { useQuizEngine } from '~/lib/quiz/engine';
 import { formatDuration } from '~/lib/format';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
-import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
+import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, SCOPE_VIEWS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
 import { loadWorld } from '~/lib/geography/world';
 import { NO_INSETS, type Insets } from '~/lib/map/follow';
 import type { CountryRecord, World } from '~/lib/map/types';
@@ -107,6 +107,21 @@ export default function QuizRun() {
      the map at all, isn't found on the map at all) rather than the camera flying to it;
      see CLAUDE.md's Quizzes section. Watches phase transitions rather than running once
      per render. */
+  /* A continent quiz's "home" is that continent, not the world: START, a guess, the results
+     screen and ⌂ all return to it. Declared before the START effect below so the very first
+     home() already frames the continent. Cleared on unmount so the atlas is a world map
+     again. */
+  useEffect(() => {
+    if (!atlas) return;
+    const view = (scope && SCOPE_VIEWS[scope]) || null;
+    atlas.setRegionView(view);
+    if (view) atlas.home(); // show the continent behind the START dock, not the whole world
+    return () => {
+      atlas.setRegionView(null);
+      if (view) atlas.home();
+    };
+  }, [atlas, scope]);
+
   const prevPhaseRef = useRef(engine.phase);
   useEffect(() => {
     const prev = prevPhaseRef.current;

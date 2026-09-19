@@ -122,6 +122,17 @@ can produce (`--max-rows` from the data x `--card-h`), so a chip that shrinks on
 grid never shoves the quiz below it. Checked by clicking every chip and by skipping
 through all 197 flags and comparing the input's box.
 
+**Continent quizzes: the continent is "home".** In a continent scope the run's home view is
+that continent, not the world. `SCOPE_VIEWS` (`scopes.ts`) holds a hand-set lon/lat box per
+scope — hand-set, not derived from the pool, so Russia's far east or Kiribati's outliers
+can't drag the frame out over ocean; Oceania's runs past 180 on purpose. The route calls
+`Atlas#setRegionView(box)` on mount (and `home()` so the continent is framed behind the
+START dock) and clears it on unmount; `Atlas#home()`, `homeIfZoomedIn()`, the results
+screen, ⌂ and the follow rule's "at the overview" test (`QUIZ_WORLD_VIEW_FACTOR`) all read
+that one `homeView()`. World scope has no entry and behaves exactly as before. Boxes were
+looked at, not tuned; a target that doesn't fit (Russia in Europe) still zooms out the
+minimum. Smoke step 21 covers it.
+
 **Camera: follows the player (supersedes "never moves again" below).** START still calls
 `atlas.home()` once and the owner likes that. After it, each NEW question runs
 `Atlas#followTarget` (`app/lib/map/follow.ts`, pure and unit-tested), which applies the

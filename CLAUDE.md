@@ -34,7 +34,7 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
   study mode with 9 question kinds and `disputed:` facets.
 - Three quizzes on one shared engine (Countries, Flags, Capitals): continent scopes, a
   computed size ladder, personal bests and run history, a camera that follows the
-  player, layouts that hold still (`docs/quizzes.md`).
+  player with the continent as home, still layouts (`docs/quizzes.md`).
 
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
