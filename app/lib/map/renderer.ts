@@ -11,7 +11,7 @@
 import type { CameraState, Viewport } from './camera';
 import { homeZoom, worldToScreen } from './camera';
 import { kmPerPixel, wrapX, yToLat, lonToX, latToY } from './projection';
-import type { Feature, World } from './types';
+import type { Feature, PlaceMark, World } from './types';
 
 export interface Style {
   /** Fill for a country, or null to skip drawing it entirely. */
@@ -22,13 +22,17 @@ export interface Style {
   overlay?: { path: Path2D; fill: string; stroke: string } | null;
   showLabels: boolean;
   showPins: boolean;
+  /** The capitals layer: a ring per capital city once zoomed in past
+   *  CAPITAL_DOT_ZOOM_FACTOR, its name past CAPITAL_LABEL_ZOOM_FACTOR. Off if omitted. */
+  showCapitals?: boolean;
   /**
    * True for the whole lifetime of a quiz run. Suppresses every surface that could hand
-   * over the answer: no country labels here (see drawLabels below); the hover tooltip,
-   * the search box and the default neighbour-glow are suppressed at their call sites in
-   * app/routes/atlas.tsx, gated on this same flag. One name for all four, so a fifth
-   * surface that shows a country name has one obvious place to check — see CLAUDE.md's
-   * Quizzes section.
+   * over the answer: no country labels and no place (capital) labels or dots here (see
+   * drawLabels and capitalsVisible below); the hover tooltip — country AND place — the
+   * search box and the default neighbour-glow are suppressed at their call sites in
+   * app/routes/atlas.tsx and app/lib/map/atlas.ts, gated on this same flag. One name for
+   * all of them, so a further surface that shows a name has one obvious place to check —
+   * see CLAUDE.md's Quizzes section.
    */
   quizMode?: boolean;
 }
@@ -42,7 +46,10 @@ export const COLORS = {
   microPin: '#68889D',
   labelHalo: 'rgba(8,13,19,.85)',
   labelText: 'rgba(230,238,243,.9)',
-  pinEdge: 'rgba(8,13,19,.9)'
+  pinEdge: 'rgba(8,13,19,.9)',
+  capital: 'rgba(230,238,243,.95)',
+  capitalHalo: 'rgba(8,13,19,.85)',
+  capitalLabelText: 'rgba(159,179,192,1)'
 } as const;
 
 export interface RenderContext {
@@ -229,11 +236,72 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
   }
 }
 
+/**
+ * Capitals appear at less zoom than micro-state SHAPES do, on purpose — the owner's
+ * requirement. A micro-state turns from pin into shape only once its own width passes
+ * PIN_MAX_WIDTH (7 px), i.e. at a zoom of 7 / (its width in unit space): Malta, Singapore
+ * and Tuvalu-sized countries need roughly 3.5x-5x homeZoom (Monaco and San Marino far
+ * more, Vatican City never — see CLAUDE.md). A capital's ring needs no shape to be
+ * readable, so it shows at 2x, when Europe is a couple of screens wide, and its name at
+ * 5x, when a country the size of Belgium is ~150 px across and there is room for text.
+ *
+ * Chosen by eye, in a real browser at 1500x900, zooming slowly from the world view into
+ * Central Europe: at 1.6x the map is still countries and micro-state pins, with no rings;
+ * at 2.2x a ring per capital is legible and the Balkans is dense but not a smear; at
+ * 4-5x the rings are clear with no names; from 5x a country the size of Belgium is wide
+ * enough that a name beside its ring stops colliding with the country labels. Lower dot
+ * or label thresholds were not tried below 2x/5x once those looked right, so treat them
+ * as "good", not "optimal". Multiples of homeZoom, like LOD_ZOOM_FACTOR above.
+ */
+export const CAPITAL_DOT_ZOOM_FACTOR = 2;
+export const CAPITAL_LABEL_ZOOM_FACTOR = 5;
+const CAPITAL_RING_RADIUS = 3.4;
+const CAPITAL_PICK_RADIUS = 7;
+
+/** Whether the capitals layer draws (and can be hovered or clicked) this frame. quizMode
+ *  is a hard veto: a capital's ring is not an answer, but the hover tooltip and label that
+ *  come with it are, and one predicate for all three means they cannot disagree. */
+export function capitalsVisible(
+  style: Pick<Style, 'showCapitals' | 'quizMode'>,
+  camera: CameraState,
+  viewport: Viewport
+): boolean {
+  return (
+    Boolean(style.showCapitals) &&
+    !style.quizMode &&
+    camera.zoom >= homeZoom(viewport) * CAPITAL_DOT_ZOOM_FACTOR
+  );
+}
+
+/** A small hollow ring — deliberately NOT the filled circle a micro-state pin is, so the
+ *  map never has two dot languages that mean different things. */
+function drawCapitals(rc: RenderContext, world: World, style: Style): void {
+  const { ctx, camera, viewport } = rc;
+  if (!capitalsVisible(style, camera, viewport)) return;
+  for (const mark of world.places) {
+    const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+    if (x < -10 || x > viewport.width + 10 || y < -10 || y > viewport.height + 10) continue;
+    // a city-state's pin already marks its capital; a ring on top would just be noise
+    if (style.showPins && drawsAsPin(mark.feature, camera)) {
+      const [px, py] = worldToScreen(camera, viewport, mark.feature.ux, mark.feature.uy);
+      if (Math.hypot(px - x, py - y) < 6) continue;
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, CAPITAL_RING_RADIUS, 0, Math.PI * 2);
+    ctx.lineWidth = 3.4;
+    ctx.strokeStyle = COLORS.capitalHalo;
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = COLORS.capital;
+    ctx.stroke();
+  }
+}
+
 /** Minimum on-screen width, in pixels, before a country is worth labelling. */
 const LABEL_MIN_WIDTH = 46;
 
-function drawLabels(rc: RenderContext, world: World, font: string, quizMode: boolean): void {
-  if (quizMode) return; // a label at the quiz's framing would print the answer
+function drawLabels(rc: RenderContext, world: World, font: string, style: Style): void {
+  if (style.quizMode) return; // a label at the quiz's framing would print the answer — country OR capital
   const { ctx, camera, viewport } = rc;
   if (camera.zoom < homeZoom(viewport) * 1.4) return;
 
@@ -273,6 +341,56 @@ function drawLabels(rc: RenderContext, world: World, font: string, quizMode: boo
     ctx.strokeText(feature.country.name, x, y);
     ctx.fillStyle = COLORS.labelText;
     ctx.fillText(feature.country.name, x, y);
+  }
+
+  drawPlaceLabels(rc, world, font, style, placed);
+}
+
+/**
+ * Capital names, placed to the right of their ring through the SAME `placed` list the
+ * country labels just filled, so a city name and a country name compete for one pool of
+ * space and can never overlap. Countries go first (they are the bigger claim on the
+ * space); cities then fill in by population, so when two would collide the larger city
+ * keeps its name.
+ */
+function drawPlaceLabels(
+  rc: RenderContext,
+  world: World,
+  font: string,
+  style: Style,
+  placed: [number, number, number][]
+): void {
+  const { ctx, camera, viewport } = rc;
+  if (!capitalsVisible(style, camera, viewport)) return;
+  if (camera.zoom < homeZoom(viewport) * CAPITAL_LABEL_ZOOM_FACTOR) return;
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = `400 11px ${font}`;
+
+  const candidates = [...world.places].sort((a, b) => b.place.population - a.place.population);
+  for (const mark of candidates) {
+    const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+    if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
+
+    const textWidth = ctx.measureText(mark.place.name).width;
+    const left = x + CAPITAL_RING_RADIUS + 5;
+    const centre = left + textWidth / 2; // `placed` stores centres, like the country labels
+    let clashes = false;
+    for (const [px, py, pw] of placed) {
+      if (Math.abs(px - centre) < (pw + textWidth) / 2 + 6 && Math.abs(py - y) < 15) {
+        clashes = true;
+        break;
+      }
+    }
+    if (clashes) continue;
+    placed.push([centre, y, textWidth]);
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = COLORS.labelHalo;
+    ctx.strokeText(mark.place.name, left, y);
+    ctx.fillStyle = COLORS.capitalLabelText;
+    ctx.fillText(mark.place.name, left, y);
   }
 }
 
@@ -351,7 +469,8 @@ export function render(
 
   resetTransform(rc);
   if (style.showPins) drawPins(rc, world, style, focus);
-  if (style.showLabels) drawLabels(rc, world, uiFont, Boolean(style.quizMode));
+  drawCapitals(rc, world, style);
+  if (style.showLabels) drawLabels(rc, world, uiFont, style);
 }
 
 /** Nearest round distance that fits in roughly 90 px, for the scale bar. */
@@ -411,6 +530,34 @@ export function pick(
   }
   resetTransform(rc);
   return null;
+}
+
+/**
+ * The capital ring under this screen point, if the layer is showing. Tested before
+ * countries by the caller — the ring sits on top of whatever it overlaps, like a pin.
+ * Same predicate as the drawing (capitalsVisible), so a ring you can't see can't be hit,
+ * and nothing is hittable under quizMode.
+ */
+export function pickPlace(
+  rc: RenderContext,
+  world: World,
+  style: Pick<Style, 'showCapitals' | 'quizMode'>,
+  sx: number,
+  sy: number
+): PlaceMark | null {
+  const { camera, viewport } = rc;
+  if (!capitalsVisible(style, camera, viewport)) return null;
+  let nearest: PlaceMark | null = null;
+  let nearestDistance = CAPITAL_PICK_RADIUS;
+  for (const mark of world.places) {
+    const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+    const distance = Math.hypot(x - sx, y - sy);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = mark;
+    }
+  }
+  return nearest;
 }
 
 /** Is this screen point inside the dragged comparison outline? */

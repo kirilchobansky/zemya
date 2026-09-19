@@ -57,6 +57,21 @@ export interface CountryRecord {
 }
 
 /**
+ * A named point on the map, as scripts/build-content.mjs emits it. `kind` exists so that
+ * "the top 3 cities per country" later is more rows plus a filter, not a rewrite; today
+ * every row is a capital, one per country. `name` is the country's AUTHORED capital name
+ * (what its dossier and the capital quiz say), not GeoNames' spelling of it.
+ */
+export interface Place {
+  name: string;
+  iso3: string;
+  kind: 'capital';
+  lon: number;
+  lat: number;
+  population: number;
+}
+
+/**
  * The geometry half of a world payload — everything scripts/build-content.mjs emits at a
  * given simplification detail. Shared by both public/data/geography/world.json (detail 0,
  * full 1:10m) and world-coarse.json (detail 0.006, ~48,600 points) — see topology.ts's
@@ -74,6 +89,10 @@ export interface GeometryData {
    *  layer (see scripts/build-content.mjs), re-encoded into this file's own arc pool.
    *  Drawn as water, not clickable, not joined to any country. */
   lakes: { id: string; arcs: number[][] }[];
+  /** Capital-city points. Carried by BOTH payloads (a few KB), not just the full one, so
+   *  the capitals layer and the capital quiz's target dot exist from the very first paint
+   *  rather than after the 3.4 MB download. */
+  places: Place[];
 }
 
 /** The full payload: geometry plus everything non-geometric. Only world.json carries
@@ -121,6 +140,15 @@ export interface Feature {
   neighbours: Feature[];
 }
 
+/** A Place joined to its country's Feature and projected into the unit square, ready for
+ *  the renderer: `ux`/`uy` are what worldToScreen() takes, wrapped like Feature.ux. */
+export interface PlaceMark {
+  place: Place;
+  feature: Feature;
+  ux: number;
+  uy: number;
+}
+
 /** Landmasses with no country record — Greenland, Western Sahara, dependencies. */
 export interface ContextShape {
   path: Path2D;
@@ -140,4 +168,6 @@ export interface World {
   /** Full-detail counterparts to context/lakes, empty until attachFullDetail runs. */
   fullContext: ContextShape[];
   fullLakes: ContextShape[];
+  /** Every place that joined to a country in this dataset. */
+  places: PlaceMark[];
 }

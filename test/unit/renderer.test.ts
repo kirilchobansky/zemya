@@ -98,3 +98,89 @@ describe('render() — quiz mode never draws a country name', () => {
     expect(ctx.fillText).toHaveBeenCalled();
   });
 });
+
+describe('capitals layer', () => {
+  const viewport = { width: 1000, height: 800 };
+  const plain = { fill: () => '#31485A', stroke: () => ['#000', 1] as [string, number], showLabels: true, showPins: false };
+
+  /** A camera centred on Vienna at `factor` x homeZoom — Central Europe, where capitals are dense. */
+  async function europe(factor: number) {
+    const { homeZoom } = await import('~/lib/map/camera');
+    const { lonToX, latToY } = await import('~/lib/map/projection');
+    return { x: lonToX(16.37), y: latToY(48.2), zoom: homeZoom(viewport) * factor };
+  }
+
+  async function draw(style: Record<string, unknown>, factor: number) {
+    const { render } = await import('~/lib/map/renderer');
+    const world = await loadRealWorld();
+    const ctx = mockCtx();
+    render({ ctx, camera: await europe(factor), viewport, dpr: 1 }, world, { ...plain, ...style }, new Set(), 'sans-serif');
+    return { ctx, world };
+  }
+
+  const drawnText = (ctx: CanvasRenderingContext2D, names: string[]) =>
+    (ctx.fillText as unknown as { mock: { calls: unknown[][] } }).mock.calls
+      .map(c => c[0] as string)
+      .filter(t => names.includes(t));
+
+  it('ships one capital place per country, with real coordinates', async () => {
+    const { world } = await draw({ showCapitals: true }, 1);
+    expect(world.places).toHaveLength(world.features.length);
+    for (const mark of world.places) {
+      expect(mark.place.kind).toBe('capital');
+      expect(mark.place.name).toBe(mark.feature.country.capital);
+      expect(Math.abs(mark.place.lat)).toBeLessThanOrEqual(90);
+      expect(Math.abs(mark.place.lon)).toBeLessThanOrEqual(180);
+    }
+    // PPLC, not "biggest city": Brasília and Canberra
+    const by = (iso3: string) => world.places.find(m => m.place.iso3 === iso3)!.place;
+    expect(by('BRA').lat).toBeCloseTo(-15.8, 0);
+    expect(by('AUS').lon).toBeCloseTo(149.1, 0);
+    expect(by('BDI').name).toBe('Gitega');
+  });
+
+  it('draws no rings below the dot threshold and rings above it', async () => {
+    const below = await draw({ showCapitals: true }, 1.8);
+    expect(below.ctx.arc).not.toHaveBeenCalled();
+    const above = await draw({ showCapitals: true }, 2.2);
+    expect(above.ctx.arc).toHaveBeenCalled();
+  });
+
+  it('draws no rings with the layer toggled off', async () => {
+    const { ctx } = await draw({ showCapitals: false }, 3);
+    expect(ctx.arc).not.toHaveBeenCalled();
+  });
+
+  it('labels capitals only above the label threshold', async () => {
+    const dotsOnly = await draw({ showCapitals: true }, 3);
+    const names = dotsOnly.world.places.map(m => m.place.name);
+    expect(drawnText(dotsOnly.ctx, names)).toEqual([]);
+    const labelled = await draw({ showCapitals: true }, 8);
+    expect(drawnText(labelled.ctx, names).length).toBeGreaterThan(0);
+  });
+
+  it('quizMode draws no capital ring and no capital name, at a zoom where both would show', async () => {
+    const { ctx, world } = await draw({ showCapitals: true, quizMode: true }, 8);
+    expect(ctx.arc).not.toHaveBeenCalled();
+    expect(ctx.fillText).not.toHaveBeenCalled();
+    expect(ctx.strokeText).not.toHaveBeenCalled();
+    const names = world.places.map(m => m.place.name);
+    expect(drawnText(ctx, names)).toEqual([]);
+  });
+
+  it('pickPlace finds a ring, and returns nothing under quizMode or with the layer off', async () => {
+    const { pickPlace } = await import('~/lib/map/renderer');
+    const { worldToScreen } = await import('~/lib/map/camera');
+    const world = await loadRealWorld();
+    const camera = await europe(6);
+    const vienna = world.places.find(m => m.place.iso3 === 'AUT')!;
+    const [sx, sy] = worldToScreen(camera, viewport, vienna.ux, vienna.uy);
+    const rc = { ctx: mockCtx(), camera, viewport, dpr: 1 };
+
+    expect(pickPlace(rc, world, { showCapitals: true }, sx, sy)?.place.name).toBe('Vienna');
+    expect(pickPlace(rc, world, { showCapitals: true }, sx + 40, sy + 40)).toBeNull();
+    expect(pickPlace(rc, world, { showCapitals: true, quizMode: true }, sx, sy)).toBeNull();
+    expect(pickPlace(rc, world, { showCapitals: false }, sx, sy)).toBeNull();
+    expect(pickPlace({ ...rc, camera: await europe(1.5) }, world, { showCapitals: true }, sx, sy)).toBeNull();
+  });
+});

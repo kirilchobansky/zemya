@@ -8,12 +8,14 @@ import {
   type CameraState, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
-import { hitOverlay, pick, render, scaleBar, type RenderContext, type Style } from './renderer';
+import { hitOverlay, pick, pickPlace, render, scaleBar, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
-import type { Feature, World } from './types';
+import type { Feature, PlaceMark, World } from './types';
 
 export interface AtlasCallbacks {
-  onHover(feature: Feature | null, x: number, y: number): void;
+  /** `place` is set when the pointer is over a capital's ring — `feature` is then that
+   *  capital's country, so hovering a ring also lights up its country. */
+  onHover(feature: Feature | null, x: number, y: number, place?: PlaceMark | null): void;
   onSelect(feature: Feature | null): void;
   onCameraChange?(scale: { km: number; px: number }): void;
   onCompareMove?(feature: Feature, over: Feature | null): void;
@@ -340,8 +342,9 @@ export class Atlas {
       return;
     }
 
-    const feature = pick(this.renderContext, this.world, e.offsetX, e.offsetY);
-    this.callbacks.onHover(feature, e.offsetX, e.offsetY);
+    const mark = pickPlace(this.renderContext, this.world, this.style, e.offsetX, e.offsetY);
+    const feature = mark?.feature ?? pick(this.renderContext, this.world, e.offsetX, e.offsetY);
+    this.callbacks.onHover(feature, e.offsetX, e.offsetY, mark);
   };
 
   private onPointerUp = (e: PointerEvent): void => {
@@ -354,7 +357,10 @@ export class Atlas {
       return;
     }
     if (this.drag && !this.moved) {
-      this.callbacks.onSelect(pick(this.renderContext, this.world, e.offsetX, e.offsetY));
+      // a capital's ring selects its COUNTRY — there is no city page, and an empty panel
+      // is worse than nothing
+      const mark = pickPlace(this.renderContext, this.world, this.style, e.offsetX, e.offsetY);
+      this.callbacks.onSelect(mark?.feature ?? pick(this.renderContext, this.world, e.offsetX, e.offsetY));
     }
     this.drag = null;
   };

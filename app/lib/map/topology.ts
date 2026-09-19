@@ -6,7 +6,7 @@
  * a list of fills.
  */
 import type {
-  ContextShape, Feature, GeometryData, LonLat, Ring, World, WorldData
+  ContextShape, Feature, GeometryData, LonLat, PlaceMark, Ring, World, WorldData
 } from './types';
 import { latToY, lonToX, wrapX } from './projection';
 
@@ -205,7 +205,14 @@ export function buildWorld(data: WorldData): World {
       .filter((f): f is Feature => Boolean(f));
   }
 
-  return { data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [] };
+  const places: PlaceMark[] = [];
+  for (const place of data.places) {
+    const feature = byIso3.get(place.iso3);
+    if (!feature) continue;
+    places.push({ place, feature, ux: wrapX(lonToX(place.lon)), uy: latToY(place.lat) });
+  }
+
+  return { data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [], places };
 }
 
 /**

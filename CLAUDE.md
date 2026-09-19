@@ -43,6 +43,12 @@ before reconstructing it from `git log`.
 - The Caspian Sea renders as water, not a hole through to the page background — pulled
   from a hole already present in world-atlas's separate land layer, no new dependency.
   The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
+- Capital cities as a map layer: 197 `places` (`{ name, iso3, kind: 'capital', lon, lat,
+  population }`) in both geometry payloads, drawn as a hollow ring (never the filled
+  circle micro-state pins use) above `CAPITAL_DOT_ZOOM_FACTOR` (2x homeZoom) with the
+  name beside it above `CAPITAL_LABEL_ZOOM_FACTOR` (5x), a "Capitals" toolbar toggle
+  (default on), hover tooltip with the city name, and click selecting the *country* (no
+  city page). Suppressed entirely under `quizMode`. See "## Places and capitals".
 - Real flag images (`public/flags/`, from svg-country-flags, offline, emoji fallback on
   error) at their own true aspect ratio. `flag-icons`, which normalised everything to
   4:3, is gone. Every one of these SVGs' root element carries only a `viewBox`, no
@@ -290,6 +296,7 @@ Rules that follow from this layout:
 | What I do | Camera |
 | --- | --- |
 | Click a country on the map | does NOT move |
+| Click a capital's ring (zoomed in) | selects its country; does NOT move |
 | Click empty ocean (deselect) | does NOT move |
 | Pick a result from search | flies to it |
 | Click a neighbour chip in the dossier panel | flies to it |
@@ -302,6 +309,59 @@ Intent travels as React Router location state: `state={{ fly: true }}` on a `Lin
 `{ state: { fly: true } }` on `navigate()`. The map's own click handler passes nothing.
 `flyTo` and `home` on the Atlas controller are unchanged by this rule — it governs who
 calls them, not what they do.
+
+## Places and capitals
+
+`world.json` AND `world-coarse.json` both carry a top-level `places` array — a few KB,
+duplicated on purpose (the brief said world.json; putting it in coarse too means the layer
+and, later, the capital quiz's target dot exist from first paint instead of after the
+3.4 MB download). `kind` is there so "top 3 cities per country" is more rows plus a filter;
+**do not add non-capital cities without a decision.** `name` is the country's AUTHORED
+capital (what the dossier says), not GeoNames' spelling.
+
+**Source:** `all-the-cities` (devDependency, build time only, nothing ships; GeoNames).
+Joined on `featureCode === 'PPLC'` by ISO2 + normalised name of the authored capital — never
+on largest population (Brasília, Canberra, Abuja, Ottawa, Wellington aren't their
+country's biggest city). `build-content.mjs` **throws** if any shipped country ends up
+without coordinates. 179 of 197 match by exact string, 187 once diacritics/punctuation are
+normalised; ten need `GEONAMES_CAPITAL` (GeoNames' spelling, looked up among PPLC first,
+then any feature code): the six the brief listed (Micronesia, Grenada, Kazakhstan,
+Kiribati, Myanmar, San Marino) **plus four the brief missed** — Panama (PPLC is "Panamá";
+a different 0-population "Panama City" PPLA3 town exists and must not be used), Israel
+(Jerusalem is PPLA, no PPLC in GeoNames), Palestine (Ramallah is a plain PPL) and Eswatini
+(GeoNames' PPLC is Mbabane; the authored capital is Lobamba, a PPLG).
+
+**Authored capitals checked for currency, nothing changed:** Burundi = Gitega (correct,
+moved 2019), Tanzania = Dodoma, Côte d'Ivoire = Yamoussoukro, Kazakhstan = Astana (GeoNames
+still says Nur-Sultan; handled above), Palau = Ngerulmud, Myanmar = Naypyidaw. Judgement
+calls left to the owner, not changed: **Sri Lanka = Colombo** (the legislative capital is
+Sri Jayawardenepura Kotte), **Eswatini = Lobamba** (Mbabane is the administrative capital),
+Bolivia = Sucre (constitutional; La Paz is the seat of government), Netherlands =
+Amsterdam (The Hague is the seat of government), Israel = Jerusalem and Palestine =
+Ramallah (both politically contested — see the disputed-facet mechanism if it should stop
+being quizzed).
+
+**Zoom constants** (`renderer.ts`, multiples of `homeZoom`, chosen by eye in a real browser
+zooming from the world view into Central Europe): `CAPITAL_DOT_ZOOM_FACTOR = 2`,
+`CAPITAL_LABEL_ZOOM_FACTOR = 5`. Capitals appear at *less* zoom than micro-state shapes
+because a micro-state only turns from pin into shape once its own width passes
+`PIN_MAX_WIDTH` (7 px) — Malta/Singapore-sized countries need roughly 3.5x-5x, Monaco and
+San Marino far more, Vatican City never — whereas a ring needs no shape to be readable.
+At 1.6x the map is countries and pins only; at 2.2x rings are legible (the Balkans dense
+but not a smear); at 4-5x rings with no names; from 5x names fit beside their rings without
+touching country labels. Not tested below 2x/5x once those looked right — "good", not
+"optimal".
+
+**Labels compete with country labels** for one collision list (`drawLabels` fills it with
+country names first, larger claim, then `drawPlaceLabels` adds cities by descending
+population), so a city and a country name can never overlap; the loser is simply not drawn
+until there is room. A capital whose country is drawn as a pin within 6 px of the ring
+skips its ring (the pin already marks it).
+
+**`quizMode` suppresses place rings, place labels and place tooltips/hit-testing**, through
+the same one flag (`capitalsVisible()` is the single predicate drawing, labels and
+`pickPlace()` all share, so they cannot disagree). A capital label at quiz zoom prints the
+answer next to the dot.
 
 ## Progress and scheduling
 
@@ -438,9 +498,10 @@ home without `QuizStageProps` growing a bespoke field per future quiz.
 map through `useAtlasContext()` (exported from `routes/atlas.tsx`) and writes a `quiz:
 QuizOverride | null` there for the whole lifetime of the route (set on mount, torn down on
 unmount), for every quiz alike — `quiz.tsx`'s catalogue never touches it. Setting it
-non-null does four things, all gated on that one value: the renderer's `Style.quizMode`
-suppresses `drawLabels()` entirely (`renderer.ts`); `atlas.tsx` stops rendering the search
-box and the hover `.tip`; and the neighbour glow defaults off, driven by
+non-null does these things, all gated on that one value: the renderer's `Style.quizMode`
+suppresses `drawLabels()` entirely — country AND capital names — and the capital rings and
+their hit-testing (`renderer.ts`); `atlas.tsx` stops rendering the search box and the hover
+`.tip` (which is also where a capital's tooltip would show); and the neighbour glow defaults off, driven by
 `quiz.showNeighbours` rather than the normal toolbar's `showNeighbours` state (only the
 countries quiz's Stage renders a toggle for it — see the engine/presenter split above).
 Fill/stroke while active come from `quizFillFor`/`quizStrokeFor` (`geography/overlays.ts`)

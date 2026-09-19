@@ -14,7 +14,7 @@ import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
-import type { CountryRecord, Feature, World } from '~/lib/map/types';
+import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
 import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import {
@@ -71,7 +71,9 @@ function AtlasShell() {
   const [overlay, setOverlay] = useState<OverlayId>('terrain');
   const [showNeighbours, setShowNeighbours] = useState(true);
   const [showPins, setShowPins] = useState(true);
+  const [showCapitals, setShowCapitals] = useState(true);
   const [hovered, setHovered] = useState<Feature | null>(null);
+  const [hoveredPlace, setHoveredPlace] = useState<PlaceMark | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState({ km: 0, px: 0 });
   const [comparing, setComparing] = useState<{ feature: Feature; over: Feature | null } | null>(null);
@@ -151,8 +153,9 @@ function AtlasShell() {
       canvasRef.current,
       world,
       {
-        onHover: (feature, x, y) => {
+        onHover: (feature, x, y, place) => {
           setHovered(feature);
+          setHoveredPlace(place ?? null);
           setTip(feature ? { x, y } : null);
         },
         onSelect: f => handleSelectRef.current(f),
@@ -163,7 +166,8 @@ function AtlasShell() {
         fill: f => fillFor(f, styleRef.current),
         stroke: f => strokeFor(f, styleRef.current),
         showLabels: true,
-        showPins: true
+        showPins: true,
+        showCapitals: true
       }
     );
     atlas.setUiFont(
@@ -193,6 +197,7 @@ function AtlasShell() {
             stroke: f => quizStrokeFor(f, quiz),
             showLabels: true,
             showPins,
+            showCapitals: false,
             quizMode: true
           }
         : {
@@ -200,10 +205,11 @@ function AtlasShell() {
             stroke: f => strokeFor(f, styleRef.current),
             showLabels: true,
             showPins,
+            showCapitals,
             quizMode: false
           }
     );
-  }, [styleInputs, showPins, quiz]);
+  }, [styleInputs, showPins, showCapitals, quiz]);
 
   /**
    * Move the camera only when the user could not already have seen the target. A map click
@@ -286,6 +292,14 @@ function AtlasShell() {
               >
                 Micro-states
               </button>
+              <button
+                type="button"
+                className="tool"
+                aria-pressed={showCapitals}
+                onClick={() => setShowCapitals(v => !v)}
+              >
+                Capitals
+              </button>
             </div>
           </div>
         )}
@@ -305,7 +319,7 @@ function AtlasShell() {
         {!quiz && hovered && tip && (
           <div className="tip glass" style={{ left: tip.x, top: tip.y }}>
             <span>{hovered.country.emoji}</span>
-            <span>{hovered.country.name}</span>
+            <span>{hoveredPlace ? hoveredPlace.place.name : hovered.country.name}</span>
           </div>
         )}
 
