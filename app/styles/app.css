@@ -242,7 +242,29 @@ a {
   text-transform: uppercase;
   color: var(--ink-3);
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  row-gap: 6px;
+}
+
+.rail__credit {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+
+.rail__credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 2px;
+}
+
+.rail__credit a:hover,
+.rail__credit a:focus-visible {
+  color: var(--ink-2);
 }
 
 /* ---------------------------------------------------------------- stage */

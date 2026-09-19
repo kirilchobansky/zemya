@@ -184,6 +184,9 @@ summary; the per-feature narrative behind it is the first section below.
   ("before this repo is made public"); the Locked decisions table in CLAUDE.md already
   settled that the repo is public now. Left alone deliberately — visibility and
   licensing are different decisions, and only the first is actually locked.
+  **Resolved:** the licensing section was replaced by the LICENSE file (code MIT, data
+  ODbL-1.0) and README's "Data sources" / "Licence" sections. The data is ODbL because
+  `countries.json` derives from world-countries, which is share-alike.
 
 ## Absorbed territories
 

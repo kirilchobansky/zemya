@@ -3,9 +3,9 @@
 Read this before touching anything. It records decisions already made so they don't get
 relitigated each session.
 
-**`docs/` is reference — read the file that matches the area you're touching. This file is
-the part that always applies.** Files: `docs/architecture.md`, `docs/quizzes.md`,
-`docs/performance.md`, `docs/decisions.md`. (Four, not three: quizzes alone was ~300 lines.)
+**`docs/` is reference — read the file for the area you're touching (`architecture.md`,
+`quizzes.md`, `performance.md`, `decisions.md`); this file is the part that always
+applies.** (Four files, not three: quizzes alone was ~300 lines.)
 
 ## What this is
 
@@ -18,25 +18,25 @@ Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, ear
 
 ## Where this is
 
-Updated every commit. One place that answers "what works, what's next" — read this
-before reconstructing it from `git log`. The per-feature narrative behind each line (what
-went wrong, how it was measured, what was decided) is in `docs/decisions.md`.
+Updated every commit: what works, what's next — read it before reconstructing from `git
+log`. The per-feature narrative behind each line is in `docs/decisions.md`.
 
 **Working:**
 - The atlas: canvas map at full 1:10m coastline, search, neighbour highlight, true-size
-  compare, 5 choropleth overlays plus mastery; culled drawing and a coarse-then-full
-  geometry load (`docs/performance.md`). Real flags at true aspect ratio, offline.
+  compare, 5 overlays plus mastery; culled drawing, coarse-then-full geometry load
+  (`docs/performance.md`). Real flags at true aspect ratio, offline.
 - 197 countries (see below) hand-authored in `content/`, joined with `world-countries` +
   Natural Earth at build time; antimeridian countries and absorbed territories render
   correctly. Vatican City stays a pin (degenerate source geometry). The Caspian is water;
   the Great Lakes, Victoria and Baikal are not.
-- Capitals as a map layer (rings above 6x, names above 9x, off under quiz mode) with
-  `capitalAliases` matching — `docs/architecture.md`.
-- FSRS card per (country, facet), mastery derived, IndexedDB via Dexie, export/import/
-  reset. Study mode: 9 question kinds, due-first policy, a `disputed:` mechanism.
+- Capitals as a map layer (rings 6x, names 9x, off in quizzes) — `docs/architecture.md`.
+- FSRS card per (country, facet), mastery derived, Dexie/IndexedDB, export/import/reset;
+  study mode with 9 question kinds and `disputed:` facets.
 - Three quizzes on one shared engine (Countries, Flags, Capitals): continent scopes, a
   computed size ladder, personal bests and run history, a camera that follows the
   player, layouts that hold still (`docs/quizzes.md`).
+
+- Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
 **Next:**
 - The `location` facet has no question kind yet (needs map-click interaction), which is why
@@ -47,8 +47,8 @@ went wrong, how it was measured, what was decided) is in `docs/decisions.md`.
   Shapefile dependency or a build-time fetch — an owner decision (full note in
   `docs/decisions.md`).
 
-**Known rough edges** — `docs/decisions.md`, including the no-root recipe for running
-`npm test` here (Chromium's shared libraries are missing) and the Vatican City data gap.
+**Known rough edges** — `docs/decisions.md`, incl. the no-root recipe for running `npm test`
+here (Chromium's shared libraries are missing) and the Vatican City data gap.
 
 ## What counts as a country
 
@@ -259,6 +259,9 @@ so nothing may depend on a webfont having loaded.
 - Quiz only on falsifiable facts: dates, places, actors, sequence. Never quiz causation.
 - Overrides exist only to close upstream data gaps, each with a `note`; a disputed fact is
   not quizzed — mark it `disputed:` with a reason. Mechanisms: `docs/decisions.md`.
+- A new dataset has its licence checked and recorded in README's "Data sources" before it
+  is used; anything requiring attribution (GeoNames, CC BY 4.0) is credited in the app, not
+  only in the repo. Code is MIT, `content/` + `public/data/` ODbL-1.0 — see `LICENSE`.
 - Hooks are written as fragments with an implied subject. Any surface that shows a hook
   outside the country's own page must supply the subject itself.
 - Accepted names in the quizzes are generated (world-countries' spellings), and corrected

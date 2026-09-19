@@ -58,23 +58,30 @@ Commit both the YAML and the regenerated `public/data/geography/*.json` in the s
 commit — there is no CI here to catch a drift between them (see CLAUDE.md's Git
 conventions).
 
-## Data provenance
+## Data sources
 
-| Data | Source | Licence |
+Every dataset the project uses, what it is for, and its licence. Licences were read from
+each package's own `package.json` / `LICENSE` in `node_modules`, not from memory.
+
+| Data | Used for | Licence |
 | --- | --- | --- |
-| Country polygons | Natural Earth 1:10m via `world-atlas`, unsimplified | Public domain |
-| Capitals, currencies, languages, borders, flags | `world-countries` (ISO 3166) | MPL-2.0 |
-| Population | 2025 estimates for the ~200 largest states; `country-json` (World Bank 2018) below that | ODbL / see package |
-| Religion, flag descriptions, outline descriptions, memory hooks | Hand-authored for this project | see Licensing |
+| [world-countries](https://github.com/mledoze/countries) 5.1 (mledoze/countries) | Country names and spellings, capitals, currencies, languages, borders, ISO codes | **ODbL-1.0** (share-alike; why `public/data/` is ODbL — see [LICENSE](LICENSE)). Its flag images are not part of that licence; we do not use them. |
+| [Natural Earth](https://www.naturalearthdata.com/) 1:10m, via [world-atlas](https://github.com/topojson/world-atlas) 2.0 | Country polygons and the land layer | Natural Earth: public domain. world-atlas packaging: ISC. |
+| [GeoNames](https://www.geonames.org/), via [all-the-cities](https://github.com/zeke/all-the-cities) 3.1 (build time only) | Capital-city coordinates and populations | **CC BY 4.0** (GeoNames' published licence) — **attribution required, credited in the app** (left rail footer). The npm package itself is MIT. |
+| [svg-country-flags](https://github.com/hjnilsson/country-flags) 1.2 | The flag images in `public/flags/` | Public domain (the package's own declaration; national flags are not under copyright protection, though some countries restrict their use as emblems) |
+| [country-json](https://github.com/samayo/country-json) 2.3 | Population fallback for countries without an authored figure | MIT (the package; it does not state a separate licence for its figures) |
+| Hand-authored: memory hooks, flag and outline descriptions, religion, population overrides, aliases | Everything under `content/` | ODbL-1.0 with the rest of the data ([LICENSE](LICENSE)) |
+| [Fraunces](https://fonts.google.com/specimen/Fraunces), [Archivo](https://fonts.google.com/specimen/Archivo), [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | Type, loaded from Google Fonts | SIL Open Font License 1.1 |
 
-## Licensing
+Runtime and build dependencies, from their own `package.json`: dexie Apache-2.0 ·
+ts-fsrs MIT · react, react-dom, react-router MIT · isbot Unlicense · topojson-client,
+topojson-simplify, yaml ISC · dev tooling (vite, vitest, TypeScript, Playwright,
+fake-indexeddb, @react-router/*) MIT or Apache-2.0.
 
-**Undecided, and deliberately so.** No `LICENSE` file means default copyright — all rights
-reserved — which is the correct posture for a private repository. Before this repo is made
-public, two separate decisions are needed:
+A new dataset gets its licence checked and recorded in this table **before** it is used,
+and anything requiring attribution is credited in the app, not only here.
 
-- **Code** — MIT is the obvious choice.
-- **Content** (`content/`, the authored hooks and descriptions) — this is the moat. It may
-  warrant a different licence, or none.
+## Licence
 
-Do not add a `LICENSE` file until both are settled.
+Dual-licensed: code **MIT**, data (`content/` and `public/data/`) **ODbL-1.0**. See
+[LICENSE](LICENSE) for the split and the reason for it.

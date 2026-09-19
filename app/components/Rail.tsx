@@ -185,6 +185,10 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
       <div className="rail__foot">
         <span>{countryCount || '—'} states</span>
         <span>Pre-alpha</span>
+        <p className="rail__credit">
+          Capitals: <a href="https://www.geonames.org/">GeoNames</a>, CC BY 4.0 ·{' '}
+          <a href="https://github.com/kirilchobansky/zemya#data-sources">All sources</a>
+        </p>
       </div>
     </aside>
   );
