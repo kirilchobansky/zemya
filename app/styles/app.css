@@ -469,14 +469,14 @@ a {
   display: block;
   flex: 0 0 auto;
   object-fit: contain;
-  border: 1px solid var(--rule);
   border-radius: 3px;
   /* width/height are set inline per flag (Flag.tsx), as two explicit pixel numbers
      computed from its own true viewBox — not assumed 4:3, and deliberately not
      width:auto/height:auto, which renders at zero size once the source SVG has no
      intrinsic dimensions of its own (see Flag.tsx's own comment). No background colour
-     either: a flag that isn't a plain rectangle (Nepal's pennant) has transparent
-     corners, and a background would draw a false one. */
+     either, and no border: a flag that isn't a plain rectangle (Nepal's pennant) has
+     transparent corners, and a background or border would draw a false rectangle round
+     it. White flags don't bleed into --chart; they out-contrast a coloured one. */
 }
 .flag--emoji {
   display: inline-flex;
