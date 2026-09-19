@@ -1,7 +1,7 @@
 /**
  * "Name the Flag"'s Stage: no map. The flag takes over the whole stage area — dark
- * background, the flag centred and large, the typed-answer input directly underneath it,
- * focused. Nothing else on screen names a country. The right panel (timer, count,
+ * background, the flag centred and large in a FIXED-size box, the typed-answer input below
+ * it at a constant position, focused. Nothing else on screen names a country. The right panel (timer, count,
  * skip/reveal/pause/abandon, and the accepted-confusable-pair note) is entirely the
  * generic engine/route scaffold — this Stage renders nothing into the panel slot. See
  * CLAUDE.md's Quizzes section.
@@ -27,7 +27,9 @@ export function FlagsStage(props: QuizStageProps) {
           <div className="quiz-flag-stage__flag">
             <Flag iso2={target.iso2} emoji={target.emoji} flagRatio={target.flagRatio} size="xl" alt="" />
           </div>
-          {revealed && <div className="quiz-dock__answer">{target.name}</div>}
+          <div className="quiz-feedback">
+            {revealed && <div className="quiz-dock__answer">{target.name}</div>}
+          </div>
           <input
             ref={inputRef}
             // NOT the `disabled` attribute while paused — see CountriesStage's own note;

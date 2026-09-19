@@ -3,7 +3,7 @@
  * (app/lib/geography/quizzes.ts) so a new quiz is one entry in that registry, not a new
  * route tree. See CLAUDE.md's Quizzes section.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router';
 
 import { bestQuizTime, deleteQuizRun, listQuizRuns, type QuizRunEntry } from '~/lib/core/progress';
@@ -34,7 +34,16 @@ export function meta() {
 
 const bestKey = (quizId: string, scope: QuizScope, size: QuizSize) => `${quizId}:${scope}:${size}`;
 
+/** Must match .quiz-sizes' column count in app.css — passed in as --cols so the CSS
+ *  min-height and this row count are computed from the same number. */
+const SIZE_COLUMNS = 3;
+
 export default function QuizCatalogue({ loaderData: scopeCounts }: Route.ComponentProps) {
+  /** Rows in the tallest size grid any scope can produce — every quiz's grid reserves this
+   *  much height, so choosing a smaller scope never moves the quiz below it. */
+  const maxRows = Math.max(
+    ...QUIZ_SCOPES.map(scope => Math.ceil(sizesForPool(scopeCounts[scope]).length / SIZE_COLUMNS))
+  );
   /** Chosen scope per quiz; every quiz block has its own chip row. */
   const [scopes, setScopes] = useState<Record<string, QuizScope>>({});
   const scopeOf = (quizId: string): QuizScope => scopes[quizId] ?? 'world';
@@ -106,7 +115,10 @@ export default function QuizCatalogue({ loaderData: scopeCounts }: Route.Compone
               ))}
             </div>
 
-            <div className="quiz-sizes">
+            <div
+              className="quiz-sizes"
+              style={{ '--cols': SIZE_COLUMNS, '--max-rows': maxRows } as CSSProperties}
+            >
               {sizesForPool(poolSize).map(size => {
                 const best = bestTimes[bestKey(quiz.id, scope, size)];
                 return (

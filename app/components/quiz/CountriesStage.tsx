@@ -42,7 +42,9 @@ export function CountriesStage(props: QuizStageProps) {
       )}
       {(phase === 'running' || phase === 'paused') && (
         <>
-          {target && revealed && <div className="quiz-dock__answer">{target.name}</div>}
+          <div className="quiz-feedback">
+            {target && revealed && <div className="quiz-dock__answer">{target.name}</div>}
+          </div>
           <input
             ref={inputRef}
             // NOT the `disabled` attribute while paused — a disabled element can't hold

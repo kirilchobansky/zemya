@@ -217,7 +217,11 @@ export default function QuizRun() {
               {engine.answeredCount} / {engine.totalCount}
             </div>
 
-            {engine.lastNote && <div className="note">{engine.lastNote}</div>}
+            {/* always present, empty when there is nothing to say — the buttons below it
+                must not jump when a note appears or clears */}
+            <div className="quiz-run__note-slot">
+              {engine.lastNote && <div className="note">{engine.lastNote}</div>}
+            </div>
 
             <div className="actions">
               <button type="button" className="action" onClick={engine.skip} disabled={engine.remainingCount < 2}>

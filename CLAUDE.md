@@ -104,6 +104,10 @@ before reconstructing it from `git log`.
   titles are 28px Fraunces in `--sea`, the whole size card is the link (hover and
   keyboard focus show a `--sea` border), and the flag no longer has a hairline border
   (it drew a false rectangle round Nepal's pennant).
+- Quiz layouts hold still: catalogue size grids reserve their tallest height, the flag
+  quiz's flag sits in a fixed box, and answer/note slots are reserved — the typing field
+  and the panel buttons stay at the same pixel for all 197 flags, reveal and twin notes
+  included (see Quizzes).
 
 **Next:**
 - The `location` facet still has no question kind — it needs map-click interaction,
@@ -435,6 +439,17 @@ instead of the normal `fillFor`/`strokeFor` — answered-correct green, answered
 amber, the current target brass, everything else plain land; no overlay, hover or mastery
 colouring applies mid-quiz. Anyone adding a fifth surface that could show a country's name
 should gate it on this same `quiz`/`quizMode` value rather than inventing a new flag.
+
+**Nothing moves when content changes size.** The player's eyes and hands are anchored on
+the input, so no Stage may change its position, ever. The flag lives in a fixed 460x300
+box (`.quiz-flag-stage__flag`) — only the flag inside it changes size (Qatar fits by
+width, Nepal by height) — and the revealed-answer chip and the panel's accepted-twin note
+each have a slot of reserved height (`.quiz-feedback`, `.quiz-run__note-slot`) that is
+always present and simply empty. New quiz Stages follow the same rule. The catalogue
+follows it too: each quiz's size grid reserves the height of the tallest grid any scope
+can produce (`--max-rows` from the data x `--card-h`), so a chip that shrinks one quiz's
+grid never shoves the quiz below it. Checked by clicking every chip and by skipping
+through all 197 flags and comparing the input's box.
 
 **Camera: little to no zoom, on purpose.** The first version of this flew the camera to
 each question with custom quarter-viewport-width framing (`camera.ts`'s `frameForQuiz`,
