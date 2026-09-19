@@ -3,9 +3,10 @@
  * routes/quiz.$quizId.tsx) run. A second quiz is one entry in QUIZ_DEFINITIONS, never a
  * new route tree — see CLAUDE.md's Quizzes section.
  */
+import { CapitalsStage } from '~/components/quiz/CapitalsStage';
 import { CountriesStage } from '~/components/quiz/CountriesStage';
 import { FlagsStage } from '~/components/quiz/FlagsStage';
-import { normaliseName } from '~/lib/geography/names';
+import { matchesCapital, normaliseName } from '~/lib/geography/names';
 import type { QuizSize } from '~/lib/geography/scopes';
 import type { MatchOutcome, QuizDefinition } from '~/lib/quiz/types';
 import type { CountryRecord } from '~/lib/map/types';
@@ -50,6 +51,17 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     Stage: FlagsStage,
     prepare: preloadFlags,
     match: matchFlag
+  },
+  {
+    id: 'capitals',
+    title: 'Name the Capital',
+    description: 'A country lights up and its capital gets a marker. Type the city before the timer runs out of capitals to ask.',
+    facet: 'capital',
+    Stage: CapitalsStage,
+    markCapital: true,
+    // Always returns an outcome — never null — so the engine's fallback to the plain
+    // COUNTRY-name match never runs: typing "France" must not answer "capital of France".
+    match: (typed, target) => ({ accepted: matchesCapital(typed, target) })
   }
 ];
 

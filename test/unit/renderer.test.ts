@@ -183,4 +183,37 @@ describe('capitals layer', () => {
     expect(pickPlace(rc, world, { showCapitals: false }, sx, sy)).toBeNull();
     expect(pickPlace({ ...rc, camera: await europe(1.5) }, world, { showCapitals: true }, sx, sy)).toBeNull();
   });
+
+  it('quizMode draws ONLY the quiz target\'s ring, at world zoom, and still no text', async () => {
+    const { render } = await import('~/lib/map/renderer');
+    const world = await loadRealWorld();
+    const bulgaria = world.places.find(m => m.place.iso3 === 'BGR')!;
+    const ctx = mockCtx();
+    render(
+      { ctx, camera: await europe(1), viewport, dpr: 1 },
+      world,
+      { ...plain, showCapitals: true, quizMode: true, quizPlace: bulgaria },
+      new Set(),
+      'sans-serif'
+    );
+    // two concentric rings (ring + halo), each stroked twice — and nothing else
+    expect(ctx.arc).toHaveBeenCalledTimes(2);
+    expect(ctx.fillText).not.toHaveBeenCalled();
+    expect(ctx.strokeText).not.toHaveBeenCalled();
+  });
+
+  it('a quizPlace outside quizMode is ignored — the ring is a quiz surface only', async () => {
+    const { ctx, world } = await draw({ showCapitals: false, quizPlace: null }, 1);
+    expect(ctx.arc).not.toHaveBeenCalled();
+    const { render } = await import('~/lib/map/renderer');
+    const ctx2 = mockCtx();
+    render(
+      { ctx: ctx2, camera: await europe(1), viewport, dpr: 1 },
+      world,
+      { ...plain, showCapitals: false, quizPlace: world.places[0] },
+      new Set(),
+      'sans-serif'
+    );
+    expect(ctx2.arc).not.toHaveBeenCalled();
+  });
 });

@@ -198,6 +198,9 @@ export interface QuizOverride {
   /** Off by default, per the owner's explicit request — a manual toggle in the quiz HUD
    *  turns it on for the current target only. */
   showNeighbours: boolean;
+  /** Mark the target country's capital with the quiz-target ring (the capitals quiz — see
+   *  QuizDefinition.markCapital). atlas.tsx resolves it to the renderer's Style.quizPlace. */
+  showCapital: boolean;
   /** True while the run is paused (Esc). Doesn't change fill/stroke — the map is blurred
    *  via a CSS class in app/routes/atlas.tsx instead — but travels with the rest of the
    *  quiz state since it's the same "what is this run doing right now" object. */

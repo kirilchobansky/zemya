@@ -190,6 +190,11 @@ function AtlasShell() {
      rather than folding into fillFor/strokeFor, since none of the normal overlay/
      selection/mastery logic applies mid-quiz (see quizFillFor's own doc comment) */
   useEffect(() => {
+    // the capitals quiz's target ring — the target country's own place, or nothing
+    const quizPlace =
+      quiz?.showCapital && quiz.target
+        ? world?.places.find(mark => mark.feature === quiz.target) ?? null
+        : null;
     atlasRef.current?.setStyle(
       quiz
         ? {
@@ -198,6 +203,7 @@ function AtlasShell() {
             showLabels: true,
             showPins,
             showCapitals: false,
+            quizPlace,
             quizMode: true
           }
         : {
@@ -209,7 +215,7 @@ function AtlasShell() {
             quizMode: false
           }
     );
-  }, [styleInputs, showPins, showCapitals, quiz]);
+  }, [styleInputs, showPins, showCapitals, quiz, world]);
 
   /**
    * Move the camera only when the user could not already have seen the target. A map click

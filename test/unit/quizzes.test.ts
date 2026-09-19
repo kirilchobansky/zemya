@@ -222,3 +222,42 @@ describe('the flags quiz\'s confusable-pair match', () => {
     expect(match('Romania', bulgaria)).toBeNull();
   });
 });
+
+describe('the capitals quiz', () => {
+  const definition = quizDefinition('capitals')!;
+  const match = (typed: string, slug: string) => definition.match!(typed, countryBySlug(slug)!);
+
+  it('is registered, grades the existing capital facet, and marks the target capital', () => {
+    expect(definition.title).toBe('Name the Capital');
+    expect(definition.facet).toBe('capital');
+    expect(definition.markCapital).toBe(true);
+  });
+
+  it('accepts the capital, its curated alternates and diacritic-free spellings', () => {
+    expect(match('Sofia', 'bulgaria')?.accepted).toBe(true);
+    expect(match('kiev', 'ukraine')?.accepted).toBe(true);
+    expect(match('Brasilia', 'brazil')?.accepted).toBe(true);
+    expect(match('Cape Town', 'south-africa')?.accepted).toBe(true);
+  });
+
+  it('never accepts the COUNTRY name as the answer, and never falls through to the country matcher', () => {
+    // a null return would make the engine fall back to matchesCountry — "France" answering
+    // "capital of France" — so every input must produce a real outcome
+    expect(match('France', 'france')).toEqual({ accepted: false });
+    expect(match('Bulgaria', 'bulgaria')).toEqual({ accepted: false });
+    expect(match('', 'bulgaria')).toEqual({ accepted: false });
+  });
+
+  it('does not accept another country\'s capital, or a typo', () => {
+    expect(match('Bucharest', 'bulgaria')?.accepted).toBe(false);
+    expect(match('Sofya', 'bulgaria')?.accepted).toBe(false);
+  });
+
+  it('the size ladder and scopes are the shared ones — every scope/size the others have', () => {
+    // nothing quiz-specific to assert about sizes: the route derives them from the pool,
+    // not the definition. This pins that a definition carries no size list of its own.
+    expect(Object.keys(definition).sort()).toEqual(
+      ['Stage', 'description', 'facet', 'id', 'markCapital', 'match', 'title']
+    );
+  });
+});

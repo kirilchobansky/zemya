@@ -57,6 +57,10 @@ export interface QuizDefinition {
    *  advances, so a presenter can preload something heavier than a name — e.g. the flags
    *  quiz preloading SVGs so a 200+ KB flag never hitches mid-run. */
   prepare?(targets: CountryRecord[]): void;
+  /** The map marks the target country's capital with the quiz-target ring (the capitals
+   *  quiz). Read by routes/quiz.$quizId.tsx, which puts it on the QuizOverride the
+   *  renderer reads — no other quiz has a capital to mark. */
+  markCapital?: boolean;
   /** Extra acceptance rule layered on top of the default name match (matchesCountry) —
    *  return null to fall through to it. The only current use is the flags quiz's
    *  confusable-pair exception; most quizzes omit this entirely. */

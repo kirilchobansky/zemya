@@ -25,6 +25,11 @@ export interface Style {
   /** The capitals layer: a ring per capital city once zoomed in past
    *  CAPITAL_DOT_ZOOM_FACTOR, its name past CAPITAL_LABEL_ZOOM_FACTOR. Off if omitted. */
   showCapitals?: boolean;
+  /** The one capital the capitals quiz is asking about: drawn with the quiz-target ring at
+   *  ANY zoom, and only under quizMode (every other capital ring stays hidden there). It
+   *  carries no name — labels and tooltips stay suppressed, so the ring is a question, not
+   *  an answer. */
+  quizPlace?: PlaceMark | null;
   /**
    * True for the whole lifetime of a quiz run. Suppresses every surface that could hand
    * over the answer: no country labels and no place (capital) labels or dots here (see
@@ -277,6 +282,10 @@ export function capitalsVisible(
  *  map never has two dot languages that mean different things. */
 function drawCapitals(rc: RenderContext, world: World, style: Style): void {
   const { ctx, camera, viewport } = rc;
+  if (style.quizMode) {
+    if (style.quizPlace) drawQuizPlace(rc, style.quizPlace, style);
+    return;
+  }
   if (!capitalsVisible(style, camera, viewport)) return;
   for (const mark of world.places) {
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
@@ -292,6 +301,34 @@ function drawCapitals(rc: RenderContext, world: World, style: Style): void {
     ctx.strokeStyle = COLORS.capitalHalo;
     ctx.stroke();
     ctx.lineWidth = 1.5;
+    ctx.strokeStyle = COLORS.capital;
+    ctx.stroke();
+  }
+}
+
+/** The quiz-target ring for a capital: bigger than a normal ring plus an outer halo, for
+ *  the same reason the target's pin gets one (QUIZ_FOCUS_PIN_RADIUS) — the quiz keeps the
+ *  camera near the world view, where a normal 3 px ring would be nearly invisible. Drawn
+ *  in ink, not brass: the target country underneath is already brass. */
+const QUIZ_RING_RADIUS = 5;
+const QUIZ_RING_HALO_GAP = 6;
+
+function drawQuizPlace(rc: RenderContext, mark: PlaceMark, style: Style): void {
+  const { ctx, camera, viewport } = rc;
+  const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+  if (x < -20 || x > viewport.width + 20 || y < -20 || y > viewport.height + 20) return;
+  // a city-state's target pin already carries its own ring and halo, at the same spot
+  if (style.showPins && drawsAsPin(mark.feature, camera)) {
+    const [px, py] = worldToScreen(camera, viewport, mark.feature.ux, mark.feature.uy);
+    if (Math.hypot(px - x, py - y) < 6) return;
+  }
+  for (const [radius, width] of [[QUIZ_RING_RADIUS + QUIZ_RING_HALO_GAP, 2], [QUIZ_RING_RADIUS, 2.4]] as const) {
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.lineWidth = width + 2.4;
+    ctx.strokeStyle = COLORS.capitalHalo;
+    ctx.stroke();
+    ctx.lineWidth = width;
     ctx.strokeStyle = COLORS.capital;
     ctx.stroke();
   }

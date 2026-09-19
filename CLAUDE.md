@@ -53,7 +53,7 @@ before reconstructing it from `git log`.
   `names.ts`): the authored capital plus a curated list in
   `content/geography/capital-aliases.yaml`, exact after the unchanged `normaliseName`, with
   a build-time collision check — see "## Places and capitals". Nothing consumes it yet
-  beyond the tests until the capital quiz lands.
+  beyond the tests and the capital quiz.
 - Real flag images (`public/flags/`, from svg-country-flags, offline, emoji fallback on
   error) at their own true aspect ratio. `flag-icons`, which normalised everything to
   4:3, is gone. Every one of these SVGs' root element carries only a `viewBox`, no
@@ -116,6 +116,12 @@ before reconstructing it from `git log`.
   titles are 28px Fraunces in `--sea`, the whole size card is the link (hover and
   keyboard focus show a `--sea` border), and the flag no longer has a hairline border
   (it drew a false rectangle round Nepal's pennant).
+- "Name the Capital", the third quiz: the target country lights up brass with the
+  quiz-target ring on its capital, you type the city. Same engine, scopes, size ladder,
+  keyboard rules, results and personal best; grades the existing `geo:<ISO3>:capital`
+  card; accepts `capitalAliases` and never the country's own name. One `QuizDefinition`
+  plus a 20-line Stage over the map Stage the countries quiz now shares
+  (`components/quiz/MapStage.tsx`) — see "Name the Capital" under Quizzes.
 - Quiz layouts hold still: catalogue size grids reserve their tallest height, the flag
   quiz's flag sits in a fixed box, and answer/note slots are reserved — the typing field
   and the panel buttons stay at the same pixel for all 197 flags, reveal and twin notes
@@ -443,7 +449,7 @@ feature alongside the atlas and study mode.
 `app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`/`QUIZ_SIZES`. Every run, of any quiz,
 is served by one route: `/quiz/:quizId/:size` (`routes/quiz.$quizId.tsx`), which looks the
 id up in `QUIZ_DEFINITIONS` and renders that definition's `Stage`. A second quiz ("Name
-the Capital", say) is one new `QuizDefinition` entry, never a new route tree or a rewrite
+the Capital" — since built) is one new `QuizDefinition` entry, never a new route tree or a rewrite
 of the catalogue page — this is what let "Name the Flag" arrive as a ~50-line presenter
 (`components/quiz/FlagsStage.tsx`) plus a registry entry, reusing everything else. Sizes
 come from `app/lib/geography/scopes.ts` (see Scopes below), ranked by population within
@@ -496,7 +502,7 @@ pause/resume, abandon, per-answer outcome, completion, the results payload, the
 personal-best write and FSRS grading — and is deliberately ignorant of maps, flag images
 or anything else a Stage renders; it knows a list of countries and a callback per answer.
 A `QuizDefinition` (`app/lib/quiz/types.ts`) is `{ id, title, description, facet, Stage,
-prepare?, match? }`: `facet` says which FSRS card an answer grades
+prepare?, match?, markCapital? }`: `facet` says which FSRS card an answer grades
 (`geo:<ISO3>:<facet>`), `Stage` is the component that renders what the player sees,
 `prepare(targets)` is an optional lookahead hook for preloading something heavier than a
 name (the flags quiz preloads SVGs three questions ahead — the heaviest are 200+ KB and a
@@ -623,6 +629,43 @@ accept the twin's name and explain the real difference (`"Accepted — that one 
 <target>. <note>"`) without a second catalogue lookup at match time. Keep this list short
 and only grow it from real play.
 
+**"Name the Capital".** Third `QuizDefinition` (`quizzes.ts`), route
+`/quiz/capitals/:scope/:size` (22 prerendered combinations, from the same ladder). What the
+player sees is the countries quiz's screen: the target country in `--brass`, the map at
+(roughly) the world view, an input docked at the bottom. `markCapital: true` on the
+definition puts `showCapital` on the `QuizOverride`, which `atlas.tsx` turns into the
+renderer's `Style.quizPlace` — the target's own capital, drawn as two concentric ink rings
+(`drawQuizPlace`) at **any** zoom, because the ordinary capital rings only exist above 2x
+and the quiz stays near 1x. Every *other* capital ring, every place label and every place
+tooltip stay off under `quizMode`. **The highlight is the question** — nothing on screen
+names the country, and nothing names the city until a reveal.
+- `match` always returns an outcome (`{ accepted: matchesCapital(...) }`), never `null`,
+  because `null` makes the engine fall back to the *country*-name matcher and "France"
+  would answer "capital of France". (Countries whose accepted capital names include their
+  own name — Mexico, Panama, Guatemala, Kuwait, Andorra, Luxembourg — accept it on purpose.)
+- `MapStage.tsx` is the shared map Stage; `CountriesStage`/`CapitalsStage` are one config
+  each (placeholder, aria-label, what a reveal shows, whether the neighbour-glow toggle
+  exists). The capitals quiz has **no** neighbour-glow toggle — the country is already
+  lit, so it has no job there. Say so if you want it.
+- **The brief asked for "the countries-quiz camera framing… the target country framed with
+  its continent around it". There is no such framing to reuse:** the per-question framing
+  was removed on the owner's instruction (see "Camera: little to no zoom, on purpose"), so
+  the capitals quiz does what the countries quiz does — `home()` once on START, never moved.
+  Framing a continent per question would be new behaviour that reverses that decision, so
+  it was not built. Tell me if a continent-level frame (not the old quarter-viewport zoom)
+  is actually wanted.
+- Where the target's capital sits under a pin-drawn city-state (Vatican, Monaco, Singapore),
+  the target pin's own ring is the marker and the quiz ring is skipped (same 6 px rule as
+  `drawCapitals`).
+- `test/smoke.mjs` step 18 is the label-leak test: START on `/quiz/capitals/world/20`, read
+  the target from `window.__zemyaQuiz` (now with `targetCapital`), then scan **every text
+  node and every `aria-label`/`title`/`alt`/`placeholder`/`value`** — whole-word,
+  case- and diacritic-insensitive, `<script>`/`<style>` skipped — for the target's capital
+  and country name, before and after answering. It also has a **positive control**: after a
+  Ctrl+Enter reveal the same scan must find the capital, or the "not visible" checks prove
+  nothing. Typing the country's name must not advance the run (skipped for the handful of
+  countries whose capital names include their own).
+
 **Personal best.** Every finished run is appended (never overwritten) to a `quizRuns`
 table in the same Dexie database as `cards`/`reviews` (`app/lib/core/progress.ts`) —
 `bestQuizTime()` reads the fastest for a given quiz+size, shown on the catalogue's size
@@ -642,7 +685,7 @@ as a dossier link — "the ones worth another look", the actual point of the scr
 ```bash
 npm install
 npm run dev             # dev server on :5173
-npm run build           # build:content, then prerender 262 static pages
+npm run build           # build:content, then prerender 286 static pages
 npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
@@ -651,7 +694,8 @@ npm run perf            # serves build/client, drives a real browser, reports fr
 ```
 
 Prerendered pages: 197 countries, the atlas/study/quiz index pages, and every valid
-`/quiz/:id/:scope/:size` (25 per quiz today) plus the legacy `/quiz/:id/:size` redirects.
+`/quiz/:id/:scope/:size` (22 per quiz today, three quizzes) plus the legacy `/quiz/:id/:size`
+and removed-scope redirects, prerendered for the two quizzes that predate scopes only.
 
 `npm test` requires a completed `npm run build`. In this sandbox pass
 `CHROMIUM_PATH=/opt/pw-browsers/chromium`.

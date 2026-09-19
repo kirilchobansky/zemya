@@ -564,6 +564,103 @@ try {
       );
     }
   }
+
+  /* --- 18. capitals quiz: answering advances, the country name is not an answer, and no
+          text anywhere on the page contains a capital's name (the label-leak test) ---- */
+  /** Every text node and human-facing attribute value on the page that contains `name` as
+   *  a whole word, case-insensitive, diacritic-insensitive. Text nodes only tell half the
+   *  story — an aria-label or title would leak just as well — and <script>/<style> are
+   *  skipped, since a bundled data blob is not something a player can read. Returns the
+   *  offending snippets, so a failure says WHERE the name leaked. */
+  const findNameOnPage = (name) =>
+    page.evaluate(wanted => {
+      const fold = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const escaped = fold(wanted).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'u');
+      const hits = [];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const tag = node.parentElement?.tagName;
+        if (tag === 'SCRIPT' || tag === 'STYLE') continue;
+        if (re.test(fold(node.data))) hits.push(`text: ${node.data.trim().slice(0, 80)}`);
+      }
+      for (const el of document.body.querySelectorAll('*')) {
+        for (const attr of ['aria-label', 'title', 'alt', 'placeholder', 'value']) {
+          const v = el.getAttribute(attr);
+          if (v && re.test(fold(v))) hits.push(`${el.tagName.toLowerCase()}[${attr}]: ${v.slice(0, 80)}`);
+        }
+      }
+      return hits;
+    }, name);
+
+  await page.goto(`${devBase}quiz/capitals/world/20`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  check(await page.isVisible('.quiz-dock__start'), 'the capitals quiz has no START control');
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(600);
+
+  const firstCapitalState = await page.evaluate(() => window.__zemyaQuiz);
+  check(Boolean(firstCapitalState?.targetCapital), 'capitals quiz exposed no current target capital after START');
+
+  if (firstCapitalState?.targetCapital) {
+    for (const name of [firstCapitalState.targetCapital, firstCapitalState.target]) {
+      const leaks = await findNameOnPage(name);
+      check(leaks.length === 0, `"${name}" is visible on the capitals quiz before it was answered — ${leaks.join(' | ')}`);
+    }
+
+    // the COUNTRY's name is not the answer — unless the country deliberately shares its
+    // name with its capital's accepted names (Mexico, Panama, Luxembourg, ...), in which
+    // case it IS one, and the unit tests are what pin that
+    const countryNameIsAlsoACapitalName = await page.evaluate(async ({ target, capital }) => {
+      const fold = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’‘ʼ`]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      const all = await (await fetch('/data/geography/countries.json')).json();
+      const country = all.find(c => c.name === target && c.capital === capital);
+      return Boolean(country && country.capitalAliases.some(a => fold(a) === fold(target)));
+    }, { target: firstCapitalState.target, capital: firstCapitalState.targetCapital });
+    if (!countryNameIsAlsoACapitalName) {
+      await page.fill('.quiz-dock__input', firstCapitalState.target);
+      await page.waitForTimeout(300);
+      const afterCountryName = await page.evaluate(() => window.__zemyaQuiz);
+      check(
+        afterCountryName?.answeredCount === firstCapitalState.answeredCount &&
+          afterCountryName?.target === firstCapitalState.target,
+        `typing the country's name ("${firstCapitalState.target}") advanced the capitals quiz`
+      );
+      await page.fill('.quiz-dock__input', '');
+    }
+
+    // positive control — the detector above must be able to FAIL. A reveal legitimately
+    // shows the answer, so the same scan has to find the capital now; if it doesn't, the
+    // "not visible" checks around it prove nothing.
+    await page.keyboard.press('Control+Enter');
+    await page.waitForTimeout(300);
+    check(
+      (await findNameOnPage(firstCapitalState.targetCapital)).length > 0,
+      'the leak detector found nothing after a reveal — it cannot be trusted to catch a real leak'
+    );
+
+    await page.fill('.quiz-dock__input', firstCapitalState.targetCapital);
+    await page.waitForTimeout(400);
+    const afterCapitalState = await page.evaluate(() => window.__zemyaQuiz);
+    check(
+      afterCapitalState?.target !== firstCapitalState.target,
+      `typing the capital ("${firstCapitalState.targetCapital}") did not advance the capitals quiz`
+    );
+    check(
+      afterCapitalState?.answeredCount === firstCapitalState.answeredCount + 1,
+      `capitals quiz answered count did not increase — ${firstCapitalState.answeredCount} -> ${afterCapitalState?.answeredCount}`
+    );
+
+    // and again for what is on screen NOW: the next target's capital, and the one just
+    // answered (nothing on the map may keep its name after it is done with)
+    if (afterCapitalState?.targetCapital) {
+      for (const name of [afterCapitalState.targetCapital, afterCapitalState.target, firstCapitalState.targetCapital]) {
+        const leaks = await findNameOnPage(name);
+        check(leaks.length === 0, `"${name}" is visible on the capitals quiz after advancing — ${leaks.join(' | ')}`);
+      }
+    }
+  }
 } finally {
   if (devServer) {
     try {
@@ -586,5 +683,5 @@ console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
     'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best, ' +
-    'flags quiz (no leak)'
+    'flags quiz (no leak), capitals quiz (no leak)'
 );

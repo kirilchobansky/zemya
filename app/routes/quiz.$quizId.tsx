@@ -80,13 +80,14 @@ export default function QuizRun() {
      mounted and the user had started answering. */
   const atlasRef = useRef(atlas);
   atlasRef.current = atlas;
+  const markCapital = Boolean(definition?.markCapital);
   useEffect(() => {
-    setQuiz({ target: null, answered: new Map(), showNeighbours: false, paused: false });
+    setQuiz({ target: null, answered: new Map(), showNeighbours: false, showCapital: markCapital, paused: false });
     return () => {
       setQuiz(null);
       atlasRef.current?.setFocus([]); // don't leave a random country's pin permanently enlarged
     };
-  }, [setQuiz]);
+  }, [setQuiz, markCapital]);
 
   /* little to no zoom, on purpose — the run stays at (roughly) the world view the whole
      time, so a target is found by its highlight (or, for a quiz whose Stage doesn't use
@@ -127,12 +128,14 @@ export default function QuizRun() {
    * never clobbers that one. `import.meta.env.DEV` makes this dead code in a production
    * build. test/smoke.mjs reads the current target's name from here rather than guessing
    * it from pixels, then asserts the NEXT target's name appears nowhere in the page — the
-   * regression test for a quiz leaking an answer.
+   * regression test for a quiz leaking an answer. `targetCapital` is the same for the
+   * capitals quiz, whose answer is a city.
    */
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as unknown as { __zemyaQuiz?: unknown }).__zemyaQuiz = {
       target: engine.target?.name ?? null,
+      targetCapital: engine.target?.capital ?? null,
       answeredCount: engine.answeredCount,
       phase: engine.phase,
       elapsedMs: engine.elapsedMs

@@ -21,7 +21,11 @@ const countries: { region: string; subregion: string }[] = JSON.parse(
  *  because quizzes.ts imports React Stage components and this file is loaded outside the
  *  app's bundler. Scopes and the size ladder come from scopes.ts, which is dependency-free
  *  for exactly this reason, so the prerendered set is derived from the data. */
-const QUIZ_IDS = ['countries', 'flags'];
+const QUIZ_IDS = ['countries', 'flags', 'capitals'];
+
+/** The quizzes that existed before scopes did — only these have old bookmarks to keep
+ *  alive, so the legacy redirect pages are prerendered for these and not for newer quizzes. */
+const LEGACY_QUIZ_IDS = ['countries', 'flags'];
 
 /** Sizes the pre-scope route /quiz/:quizId/:size accepted. That route now only redirects
  *  to the world scope, but the old URLs still need a file to exist on a static host. */
@@ -32,14 +36,14 @@ const quizRuns = QUIZ_IDS.flatMap(id =>
     sizesForPool(poolForScope(countries, scope).length).map(size => `/quiz/${id}/${scope}/${size}`)
   )
 );
-const legacyQuizRuns = QUIZ_IDS.flatMap(id => LEGACY_SIZES.map(size => `/quiz/${id}/${size}`));
+const legacyQuizRuns = LEGACY_QUIZ_IDS.flatMap(id => LEGACY_SIZES.map(size => `/quiz/${id}/${size}`));
 
 /** Pages that existed under a scope key that has since been removed (LEGACY_SCOPES) still
  *  need a file on a static host; the route redirects them. "americas" was offered 10, 20,
  *  30 and All. */
 const LEGACY_SCOPE_SIZES = ['10', '20', '30', 'all'];
 const legacyScopeRuns = Object.keys(LEGACY_SCOPES).flatMap(scope =>
-  QUIZ_IDS.flatMap(id => LEGACY_SCOPE_SIZES.map(size => `/quiz/${id}/${scope}/${size}`))
+  LEGACY_QUIZ_IDS.flatMap(id => LEGACY_SCOPE_SIZES.map(size => `/quiz/${id}/${scope}/${size}`))
 );
 
 export default {
