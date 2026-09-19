@@ -238,14 +238,13 @@ special case in `topology.ts`.
 | Hosting | Cloudflare Pages, fully static | No server needed. Free. Preview URL per PR. |
 | Backend | **None for now** | Ship without accounts. Local-first from day one so adding sync later costs nothing in perceived speed. |
 | Storage | IndexedDB via **Dexie 4.4.6**, local-first | Every interaction must be 0 ms. Never block UI on network. |
-| Scheduling | **ts-fsrs 5.4.2** (FSRS), not SM-2, not the prototype's 3-in-a-row toy | Modern open algorithm, real intervals and due dates. MIT, open-spaced-repetition org, actively maintained — checked before pinning. |
+| Scheduling | **ts-fsrs 5.4.2** (FSRS), not SM-2, not a 3-in-a-row toy | Modern open algorithm, real intervals and due dates. MIT, open-spaced-repetition org, actively maintained — checked before pinning. |
 | Map engine | Custom canvas renderer, **not** Leaflet/MapLibre. Coastlines are **1:10m, unsimplified** (~3.4 MB raw, 687 KB gzipped) | Tiles need a network; a vector-only engine gives true-size re-projection and exact hit-testing for free, and does the pedagogical things a general-purpose library makes harder. Revisit only when city/street detail is actually wanted. Measured before shipping unsimplified: paints in ~585 ms, pans at a solid 60 fps. |
 | Repo visibility | Public | Made public so this sandbox can read it. Secrets still never enter the repo. |
 
 ## Structure
 
 ```
-prototype/              frozen reference build — read it, port from it, never develop in it
 content/geography/      hand-authored YAML, one file per country. THE MOAT.
 scripts/                content/ + upstream datasets -> public/data/
 app/root.tsx            the HTML document itself + the top-level App
@@ -776,8 +775,6 @@ one exception that needs a real IndexedDB to exercise `progress.ts`'s actual Dex
 (rather than the `available() === false` no-op path) — it pulls in `fake-indexeddb`
 (devDependency only, `fake-indexeddb/auto` imported at the top of that file) rather than
 mocking Dexie by hand.
-
-(In `prototype/`: `npm install && npm run build`.)
 
 ## Performance
 

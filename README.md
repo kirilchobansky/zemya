@@ -26,7 +26,6 @@ current state in more detail.
 | `public/data/geography/` | Generated data, committed deliberately so deploys can't break from an upstream dataset shifting. |
 | `app/lib/map/` | The map engine — projection, topology, camera, canvas renderer, interaction. No React in it. |
 | `app/routes/` | `atlas.tsx` owns the canvas; the child routes render only the right-hand panel. |
-| `prototype/` | The frozen single-file reference build. Self-contained, own `package.json`. |
 
 `content/` is the part of this project with actual value. The canvas renderer can be
 rewritten in a weekend; 197 hand-written memory hooks cannot.
@@ -58,14 +57,6 @@ npm run build:content
 Commit both the YAML and the regenerated `public/data/geography/*.json` in the same
 commit — there is no CI here to catch a drift between them (see CLAUDE.md's Git
 conventions).
-
-### The prototype
-
-```bash
-cd prototype && npm install && npm run build
-```
-
-Open `prototype/dist/zemya-prototype.html`. No server, no network.
 
 ## Data provenance
 
