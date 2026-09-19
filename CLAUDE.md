@@ -594,6 +594,11 @@ changing, so a wrong attempt, a pause/resume and a re-render never move the came
   plus any >= 2% of its size within 3 of its diagonals — France without Guiana, Indonesia
   with Papua. (This is the same idea as the `mainBbox` removed earlier, kept to ~30 lines
   and used only here.)
+- **A guess returns you to the world view.** When a new target follows an *answer* (correct
+  or revealed — `answeredCount` changed) and the player is zoomed in past
+  `QUIZ_WORLD_VIEW_FACTOR`, the route calls `Atlas#homeIfZoomedIn()` before `followTarget`.
+  A skip is not a guess and keeps the follow rule; a player already at the overview keeps
+  their pan. Owner's request after playing the follow-only version.
 - The flags quiz (`hidesMap: true`) skips follow and pulse; nothing on screen uses them.
 
 **New-target pulse.** `Atlas#pulse` draws one brass ring growing 8 -> ~98 px and fading over

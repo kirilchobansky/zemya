@@ -775,6 +775,18 @@ try {
     Math.abs(stillCam.x - settled.x) < 1e-6 && Math.abs(stillCam.y - settled.y) < 1e-6 && stillCam.zoom === settled.zoom,
     'a wrong attempt or a pause/resume moved the camera — only a NEW target may'
   );
+
+  // a GUESS from a zoomed-in view sends the camera back to the world view
+  check(stillCam.zoom > stillCam.home * 2, `the test's zoom did not survive to the guess — ${stillCam.zoom / stillCam.home}x`);
+  const toGuess = await page.evaluate(() => window.__zemyaQuiz.target);
+  await page.fill('.quiz-dock__input', ''); // the wrong attempt above is still in the field
+  await page.keyboard.type(toGuess, { delay: 25 });
+  await page.waitForTimeout(600);
+  const afterGuess = await settledCamera();
+  check(
+    Math.abs(afterGuess.zoom - afterGuess.home) < 1,
+    `answering "${toGuess}" while zoomed in left the camera at ${(afterGuess.zoom / afterGuess.home).toFixed(2)}x, not the world view`
+  );
 } finally {
   if (devServer) {
     try {

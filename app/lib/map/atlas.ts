@@ -170,6 +170,14 @@ export class Atlas {
     if (next) this.moveTo(next, true);
   }
 
+  /** Return to the world view, but only if the camera is (heading) zoomed in past it —
+   *  a player already at the overview keeps their pan. Returns whether it moved. */
+  homeIfZoomedIn(): boolean {
+    if (this.target.zoom <= homeZoom(this.viewport) * QUIZ_WORLD_VIEW_FACTOR) return false;
+    this.home();
+    return true;
+  }
+
   /** A single expanding ring on a new quiz target — see renderer.ts's Pulse. Skipped for
    *  people who asked for reduced motion. */
   pulse(ux: number, uy: number): void {
