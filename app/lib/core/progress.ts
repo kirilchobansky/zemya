@@ -48,6 +48,9 @@ interface MetaRow {
 export interface QuizRunEntry {
   id?: number;
   quizId: string;
+  /** Which pool the run drew from (world, africa, ...). Absent on every row written
+   *  before scopes existed — those are all world runs, see runScope. */
+  scope?: string;
   size: string;
   timeMs: number;
   totalCount: number;
@@ -97,7 +100,7 @@ function database(): ProgressDb | null {
  *  to record a run faster than MIN_MS_PER_COUNTRY per country: this is a guard against a
  *  broken timer, not a substitute for the delete control on the quiz catalogue — it only
  *  catches runs that are outright impossible. */
-export function saveQuizRun(entry: Omit<QuizRunEntry, 'id'>): void {
+export function saveQuizRun(entry: Omit<QuizRunEntry, 'id' | 'scope'> & { scope: string }): void {
   const store = database();
   if (!store) return;
   const floorMs = entry.totalCount * MIN_MS_PER_COUNTRY;
@@ -111,25 +114,35 @@ export function saveQuizRun(entry: Omit<QuizRunEntry, 'id'>): void {
   store.quizRuns.add(entry as QuizRunEntry).catch(shrug('quiz run write'));
 }
 
-/** The fastest recorded time for this quiz size, or null if none are left. Always reads
- *  the live table, so it self-corrects after deleteQuizRun with no extra bookkeeping. */
-export async function bestQuizTime(quizId: string, size: string): Promise<number | null> {
-  const matching = await quizRunsFor(quizId, size);
+/** Rows written before continent scopes existed have no `scope` field, and every one of
+ *  them was a run over the whole world. Read a missing scope as 'world' at read time rather
+ *  than migrating old rows: filtering on scope strictly would silently hide every personal
+ *  best recorded so far, and rewriting rows would touch data the user owns for no gain. */
+function runScope(run: Pick<QuizRunEntry, 'scope'>): string {
+  return run.scope ?? 'world';
+}
+
+/** The fastest recorded time for this quiz, scope and size, or null if none are left.
+ *  Always reads the live table, so it self-corrects after deleteQuizRun with no extra
+ *  bookkeeping. */
+export async function bestQuizTime(quizId: string, scope: string, size: string): Promise<number | null> {
+  const matching = await quizRunsFor(quizId, scope, size);
   return matching.length ? Math.min(...matching.map(r => r.timeMs)) : null;
 }
 
-/** Every recorded run for a quiz size, most recent first — the catalogue's history list. */
-export async function listQuizRuns(quizId: string, size: string): Promise<QuizRunEntry[]> {
-  const matching = await quizRunsFor(quizId, size);
+/** Every recorded run for a quiz scope and size, most recent first — the catalogue's
+ *  history list. */
+export async function listQuizRuns(quizId: string, scope: string, size: string): Promise<QuizRunEntry[]> {
+  const matching = await quizRunsFor(quizId, scope, size);
   return matching.sort((a, b) => b.at - a.at);
 }
 
-async function quizRunsFor(quizId: string, size: string): Promise<QuizRunEntry[]> {
+async function quizRunsFor(quizId: string, scope: string, size: string): Promise<QuizRunEntry[]> {
   const store = database();
   if (!store) return [];
   try {
     const runs = await store.quizRuns.where('quizId').equals(quizId).toArray();
-    return runs.filter(r => r.size === size);
+    return runs.filter(r => r.size === size && runScope(r) === scope);
   } catch (error) {
     shrug('run history read')(error);
     return [];
@@ -247,7 +260,7 @@ export function parseExport(text: string): ExportPayload {
 }
 
 /** Replaces cards and reviews entirely. quizRuns is MERGED instead, deduplicated on
- *  (quizId, size, at) — a run is an immutable historical fact, so importing an older
+ *  (quizId, scope, size, at) — a run is an immutable historical fact, so importing an older
  *  backup must not delete runs recorded since it was taken. The caller has already
  *  confirmed with the user. */
 export async function importAll(payload: ExportPayload): Promise<ProgressCard[]> {

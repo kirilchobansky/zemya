@@ -89,7 +89,7 @@ before reconstructing it from `git log`.
   `quizRuns` too — see the new note under Progress and scheduling.
 - The quiz run screen (queue, timer, pause/resume, abandon, grading, results, personal
   best) is a shared, subject-agnostic engine (`app/lib/quiz/engine.ts`) behind one route
-  (`routes/quiz.$quizId.tsx`, `/quiz/:quizId/:size`) — a second quiz is one
+  (`routes/quiz.$quizId.tsx`, `/quiz/:quizId/:scope/:size`) — a second quiz is one
   `QuizDefinition` entry in `app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`, not a new
   route tree. "Name the Flag" is that second quiz: a flag fills the whole stage area (no
   map), typing the country grades `geo:<ISO3>:flag`, and a small curated list
@@ -97,6 +97,13 @@ before reconstructing it from `git log`.
   genuinely hard to tell apart (Romania/Chad) for each other, with a note on the real
   difference — see Quizzes below for the mechanism and the design calls made along the
   way.
+- Continent scopes on every quiz: a row of chips (World · Africa · Asia · Europe ·
+  Americas · Oceania, from each country's `region`) in each quiz's block on the catalogue,
+  a size ladder derived from the pool, personal bests keyed by (quiz, scope, size) with
+  every pre-scope run still counting as World — see Quizzes below. The catalogue's quiz
+  titles are 28px Fraunces in `--sea`, the whole size card is the link (hover and
+  keyboard focus show a `--sea` border), and the flag no longer has a hairline border
+  (it drew a false rectangle round Nepal's pennant).
 
 **Next:**
 - The `location` facet still has no question kind — it needs map-click interaction,
@@ -342,10 +349,41 @@ id up in `QUIZ_DEFINITIONS` and renders that definition's `Stage`. A second quiz
 the Capital", say) is one new `QuizDefinition` entry, never a new route tree or a rewrite
 of the catalogue page — this is what let "Name the Flag" arrive as a ~50-line presenter
 (`components/quiz/FlagsStage.tsx`) plus a registry entry, reusing everything else. Sizes
-are `20 | 30 | 50 | 90 | 120 | all`, ranked by population for the countries quiz
-(`topByPopulation` — kept behind one function so ranking by a different axis later is a
-one-line change); a quiz that shouldn't rank by population would pass its own list into
-the shared engine instead.
+come from `app/lib/geography/scopes.ts` (see Scopes below), ranked by population within
+the selected pool (`topByPopulation` — kept behind one function so ranking by a different
+axis later is a one-line change); a quiz that shouldn't rank by population would pass its
+own list into the shared engine instead.
+
+**Scopes.** Every quiz has a continent filter, in the shared catalogue and engine, not
+per quiz. Route: `/quiz/:quizId/:scope/:size`, scope one of `world | africa | asia |
+europe | americas | oceania`; the pool is `poolForScope(countries, scope)` (the `region`
+field on the country record — 197 / 54 / 48 / 46 / 35 / 14), and "top N" means the N most
+populous *within* that pool. The old `/quiz/:quizId/:size` still exists as
+`routes/quiz.legacy.tsx`, a redirect to the world scope, and is prerendered for the old
+sizes so bookmarks to a static host still resolve. A size the pool can't offer (typed
+into the URL by hand) redirects to `/quiz`.
+`scopes.ts` is deliberately dependency-free (no `~` alias, no React): `react-router.config.ts`
+imports it directly to derive the prerendered `/quiz/:id/:scope/:size` set from
+`countries.json`, so adding a country changes both the offered sizes and the prerendered
+pages with no list to edit. The catalogue reads the same pool sizes from a build-time
+route loader.
+
+**The size ladder** is `10, 20, 30, 50, 90, 120, All`; a rung is offered only if it is
+strictly smaller than the pool, and All always is (`sizesForPool`). **One deviation from
+that rule, a judgement call:** the 10 rung is only offered for pools of 100 or fewer
+(`SMALLEST_RUNG_MAX_POOL`), because the strictly-smaller rule alone would have given the
+World row a 10 — and the specified World row, and its unit test, are `20 30 50 90 120 All`
+(the ladder before scopes existed). The spec's own rule and its own table disagreed
+there; the table and test were treated as the intent. Continents get 10 (Oceania: `10,
+All`). If World should get a 10 after all, delete that one condition.
+
+**Personal bests are keyed by (quizId, scope, size).** `quizRuns` rows written before
+scopes existed have no `scope` field. They are read as `'world'` at read time
+(`runScope` in `progress.ts`), never migrated or rewritten: filtering strictly on scope
+would silently hide every existing best time, and every one of those runs really was a
+world run. New rows always write `scope`; the export/import dedupe key includes it (with
+the same missing-means-world default). `useQuizEngine` therefore takes a `scope` argument
+alongside `size` — the one engine change this needed.
 
 **The engine/presenter split.** `app/lib/quiz/engine.ts`'s `useQuizEngine()` hook owns a
 run end-to-end — question order, the current target, attempt state, timer accumulation,
@@ -487,13 +525,16 @@ as a dossier link — "the ones worth another look", the actual point of the scr
 ```bash
 npm install
 npm run dev             # dev server on :5173
-npm run build           # build:content, then prerender 212 static pages
+npm run build           # build:content, then prerender 262 static pages
 npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
 npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no browser
 npm run perf            # serves build/client, drives a real browser, reports frame time
 ```
+
+Prerendered pages: 197 countries, the atlas/study/quiz index pages, and every valid
+`/quiz/:id/:scope/:size` (25 per quiz today) plus the legacy `/quiz/:id/:size` redirects.
 
 `npm test` requires a completed `npm run build`. In this sandbox pass
 `CHROMIUM_PATH=/opt/pw-browsers/chromium`.

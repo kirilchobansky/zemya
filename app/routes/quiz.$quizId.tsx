@@ -1,5 +1,5 @@
 /**
- * One route for every quiz — /quiz/:quizId/:size — looked up by id in
+ * One route for every quiz — /quiz/:quizId/:scope/:size — looked up by id in
  * app/lib/geography/quizzes.ts's QUIZ_DEFINITIONS. All the run logic (queue, timer,
  * pause/resume, abandon, grading, results, personal best) lives in the shared engine
  * (app/lib/quiz/engine.ts), which knows nothing about the map. This file is the "atlas
@@ -12,16 +12,15 @@
  * Stage component. See CLAUDE.md's Quizzes section.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 
 import { useAtlasContext } from './atlas';
 import { useQuizEngine } from '~/lib/quiz/engine';
 import { formatDuration } from '~/lib/format';
-import { isQuizSize, quizDefinition, topByPopulation, type QuizSize } from '~/lib/geography/quizzes';
+import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
+import { isQuizScope, isQuizSize, poolForScope, SCOPE_LABELS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
 import { loadWorld } from '~/lib/geography/world';
 import type { CountryRecord, World } from '~/lib/map/types';
-
-const DEFAULT_SIZE: QuizSize = '20';
 
 export function meta({ params }: { params: { quizId?: string } }) {
   const definition = params.quizId ? quizDefinition(params.quizId) : undefined;
@@ -34,9 +33,10 @@ export function meta({ params }: { params: { quizId?: string } }) {
 
 export default function QuizRun() {
   const navigate = useNavigate();
-  const params = useParams<{ quizId: string; size: string }>();
+  const params = useParams<{ quizId: string; scope: string; size: string }>();
   const definition = params.quizId ? quizDefinition(params.quizId) : undefined;
-  const size: QuizSize = params.size && isQuizSize(params.size) ? params.size : DEFAULT_SIZE;
+  const scope = params.scope && isQuizScope(params.scope) ? params.scope : null;
+  const requestedSize = params.size && isQuizSize(params.size) ? params.size : null;
 
   const { atlas, setQuiz } = useAtlasContext();
 
@@ -47,16 +47,27 @@ export default function QuizRun() {
     return () => { cancelled = true; };
   }, []);
 
+  /** The whole scope's pool, before any Top-N cut — its length decides which sizes exist. */
+  const pool = useMemo(
+    () => (world && scope ? poolForScope(world.data.countries, scope) : []),
+    [world, scope]
+  );
+  /** A size the pool can't offer (e.g. 50 of Oceania's 14, or a hand-typed URL) is not a
+   *  run — the catalogue is the only thing that should be linking here. */
+  const size: QuizSize | null =
+    requestedSize && pool.length && sizesForPool(pool.length).includes(requestedSize) ? requestedSize : null;
+
   const countries = useMemo(
-    () => (world && definition ? topByPopulation(world.data.countries, size) : []),
-    [world, definition, size]
+    () => (definition && size ? topByPopulation(pool, size) : []),
+    [definition, pool, size]
   );
 
   const abandon = () => navigate('/quiz');
   const engine = useQuizEngine(
     definition ?? { id: 'unknown', facet: 'location' },
     countries,
-    size,
+    scope ?? 'world',
+    requestedSize ?? 'all',
     abandon
   );
 
@@ -128,7 +139,7 @@ export default function QuizRun() {
     };
   }, [engine.target, engine.answeredCount, engine.phase, engine.elapsedMs]);
 
-  if (!definition) {
+  if (!definition || !scope || !requestedSize) {
     return (
       <>
         <header className="panel__head">
@@ -138,7 +149,11 @@ export default function QuizRun() {
         <div className="panel__body">
           <div className="empty">
             <div className="empty__icon">?</div>
-            <p>There is no quiz called "{params.quizId}".</p>
+            <p>
+              {!definition
+                ? <>There is no quiz called "{params.quizId}".</>
+                : <>There is no such scope or size: "{params.scope}/{params.size}".</>}
+            </p>
           </div>
           <Link to="/quiz" className="action">Back to quizzes</Link>
         </div>
@@ -163,6 +178,8 @@ export default function QuizRun() {
     );
   }
 
+  if (!size) return <Navigate to="/quiz" replace />;
+
   const { Stage } = definition;
   const revealed = engine.target ? engine.revealedSet.has(engine.target.iso3) : false;
   const stageProps = {
@@ -181,7 +198,7 @@ export default function QuizRun() {
   return (
     <>
       <header className="panel__head">
-        <span className="panel__eyebrow">{definition.title}</span>
+        <span className="panel__eyebrow">{definition.title} · {SCOPE_LABELS[scope]}</span>
         <h2>{countries.length} rounds</h2>
       </header>
 

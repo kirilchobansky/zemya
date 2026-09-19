@@ -964,6 +964,17 @@ a {
 
 /* ---------------------------------------------------------------- name-the-country */
 
+/* one row at the 370px panel width: the overlay rail's chips wrap, these must not */
+.quiz-scope {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0 0 12px;
+}
+.quiz-scope .chip {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
 .quiz-sizes {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

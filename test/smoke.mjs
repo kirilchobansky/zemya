@@ -249,12 +249,29 @@ if (await page.isVisible('.quiz__option')) {
 }
 
 /* --- 12. quiz mode hides the search box and the map's own hover tooltip ----------- */
-await page.goto(`${base}/quiz/countries/20`, { waitUntil: 'networkidle' });
+await page.goto(`${base}/quiz/countries/world/20`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1000);
 check(!(await page.isVisible('.search')), 'the search box is visible during a quiz run');
 await page.mouse.move(700, 430);
 await page.waitForTimeout(200);
 check(!(await page.isVisible('.tip')), 'the hover tooltip is visible during a quiz run');
+
+/* --- 12b. catalogue scopes: chips re-derive the size ladder; the old URL redirects -- */
+await page.goto(`${base}/quiz`, { waitUntil: 'networkidle' });
+const ladderOf = async () =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('.quiz-block')[0].querySelectorAll('.quiz-size-card__n')].map(e => e.textContent)
+  );
+check((await ladderOf()).join(',') === '20,30,50,90,120,All', `world ladder is ${await ladderOf()}`);
+await page.click('.quiz-block >> nth=0 >> .chip:has-text("Oceania")');
+check((await ladderOf()).join(',') === '10,All', `oceania ladder is ${await ladderOf()}`);
+check(
+  (await page.getAttribute('.quiz-block >> nth=0 >> .chip:has-text("Oceania")', 'aria-pressed')) === 'true',
+  'the Oceania chip does not show as selected'
+);
+await page.goto(`${base}/quiz/flags/50`, { waitUntil: 'networkidle' });
+await page.waitForURL(/\/quiz\/flags\/world\/50$/, { timeout: 5000 }).catch(() => {});
+check(/\/quiz\/flags\/world\/50$/.test(page.url()), `the pre-scope URL did not redirect to world — at ${page.url()}`);
 
 /* --- 13. grading a facet updates the rail and repaints the mastery overlay -------- */
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
@@ -412,7 +429,7 @@ try {
   }
 
   /* --- 14. quiz mode: answering advances and never leaks the next country's name --- */
-  await page.goto(`${devBase}quiz/countries/20`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quiz/countries/world/20`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   await page.click('.quiz-dock__start');
   await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
@@ -502,7 +519,7 @@ try {
   }
 
   /* --- 17. flags quiz: no map, answering advances, and no leaked country name ------ */
-  await page.goto(`${devBase}quiz/flags/20`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quiz/flags/world/20`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   check(await page.isVisible('.quiz-dock__start'), 'the flags quiz has no START control');
   await page.click('.quiz-dock__start');

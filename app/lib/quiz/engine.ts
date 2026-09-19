@@ -76,6 +76,7 @@ function resolveMatch(
 export function useQuizEngine(
   definition: Pick<QuizDefinition, 'id' | 'facet' | 'match' | 'prepare'>,
   countries: CountryRecord[],
+  scope: string,
   size: string,
   onAbandon: () => void
 ): QuizEngine {
@@ -108,13 +109,13 @@ export function useQuizEngine(
 
   useEffect(() => {
     let cancelled = false;
-    bestQuizTime(definition.id, size).then(best => { if (!cancelled) setPriorBest(best); });
+    bestQuizTime(definition.id, scope, size).then(best => { if (!cancelled) setPriorBest(best); });
     return () => { cancelled = true; };
-  }, [definition.id, size]);
+  }, [definition.id, scope, size]);
 
   const target = queue.length ? queue[0] : null;
 
-  /* a different :size (or quiz) while this route stays mounted is a fresh run, not a
+  /* a different :scope, :size (or quiz) while this route stays mounted is a fresh run, not a
      continuation of the old one */
   useEffect(() => {
     setPhase('idle');
@@ -128,7 +129,7 @@ export function useQuizEngine(
     segmentStartRef.current = null;
     shownAtRef.current = new Map();
     skippedRef.current = new Set();
-  }, [definition.id, size]);
+  }, [definition.id, scope, size]);
 
   const start = useCallback(() => {
     if (!countries.length) return;
@@ -301,6 +302,7 @@ export function useQuizEngine(
       setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
       saveQuizRun({
         quizId: definition.id,
+        scope,
         size,
         timeMs: finalElapsedMs,
         totalCount: countries.length,
@@ -309,7 +311,7 @@ export function useQuizEngine(
         at: Date.now()
       });
     },
-    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, size, lastNote]
+    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, lastNote]
   );
 
   /* Escape is deliberately not handled here — it's a window-level listener above, so

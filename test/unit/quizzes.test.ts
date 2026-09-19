@@ -8,7 +8,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
-import { isQuizSize, quizDefinition, QUIZ_SIZES, topByPopulation } from '~/lib/geography/quizzes';
+import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
+import { isQuizScope, isQuizSize, poolForScope, QUIZ_SCOPES, QUIZ_SIZES, sizesForPool } from '~/lib/geography/scopes';
 import { quizFillFor, quizStrokeFor, MASTERY_COLOURS, SELECTED, NEIGHBOUR, LAND } from '~/lib/geography/overlays';
 import type { Feature } from '~/lib/map/types';
 
@@ -19,6 +20,63 @@ describe('isQuizSize', () => {
 
   it('rejects anything else', () => {
     for (const bad of ['0', '20 ', 'All', '', '19', 'twenty']) expect(isQuizSize(bad)).toBe(false);
+  });
+});
+
+describe('sizesForPool — the ladder adapts to the pool', () => {
+  it('a pool of 14 (Oceania) yields exactly [10, All]', () => {
+    expect(sizesForPool(14)).toEqual(['10', 'all']);
+  });
+
+  it('a pool of 197 (World) yields exactly [20, 30, 50, 90, 120, All]', () => {
+    expect(sizesForPool(197)).toEqual(['20', '30', '50', '90', '120', 'all']);
+  });
+
+  it('only offers a rung strictly smaller than the pool, and always offers All', () => {
+    expect(sizesForPool(10)).toEqual(['all']);
+    expect(sizesForPool(11)).toEqual(['10', 'all']);
+    expect(sizesForPool(100)).toEqual(['10', '20', '30', '50', '90', 'all']);
+    expect(sizesForPool(101)).toEqual(['20', '30', '50', '90', 'all']);
+    expect(sizesForPool(120)).toEqual(['20', '30', '50', '90', 'all']);
+    expect(sizesForPool(121)).toEqual(['20', '30', '50', '90', '120', 'all']);
+  });
+});
+
+describe('quiz scopes against the real catalogue', () => {
+  const countries = allCountries();
+  const counts = Object.fromEntries(QUIZ_SCOPES.map(s => [s, poolForScope(countries, s).length]));
+
+  it('has the pool sizes the catalogue promises', () => {
+    expect(counts).toEqual({ world: 197, africa: 54, asia: 48, europe: 46, americas: 35, oceania: 14 });
+  });
+
+  it('every continent pool partitions the world', () => {
+    const continents = QUIZ_SCOPES.filter(s => s !== 'world');
+    expect(continents.reduce((n, s) => n + counts[s], 0)).toBe(counts.world);
+  });
+
+  it('derives the ladder per scope from the pool size', () => {
+    expect(sizesForPool(counts.world)).toEqual(['20', '30', '50', '90', '120', 'all']);
+    expect(sizesForPool(counts.oceania)).toEqual(['10', 'all']);
+    expect(sizesForPool(counts.africa)).toEqual(['10', '20', '30', '50', 'all']);
+    expect(sizesForPool(counts.asia)).toEqual(['10', '20', '30', 'all']);
+    expect(sizesForPool(counts.europe)).toEqual(['10', '20', '30', 'all']);
+    expect(sizesForPool(counts.americas)).toEqual(['10', '20', '30', 'all']);
+  });
+
+  it('"top N" is the N most populous WITHIN the scope', () => {
+    const africa = poolForScope(countries, 'africa');
+    const top10 = topByPopulation(africa, '10');
+    expect(top10).toHaveLength(10);
+    expect(top10.every(c => c.region === 'Africa')).toBe(true);
+    const cutoff = top10[top10.length - 1].population;
+    const rest = africa.filter(c => !top10.includes(c));
+    for (const c of rest) expect(c.population).toBeLessThanOrEqual(cutoff);
+  });
+
+  it('isQuizScope accepts only the six scopes', () => {
+    for (const s of QUIZ_SCOPES) expect(isQuizScope(s)).toBe(true);
+    for (const bad of ['World', 'antarctica', '', 'americas ']) expect(isQuizScope(bad)).toBe(false);
   });
 });
 
@@ -65,6 +123,7 @@ function fakeFeature(iso3: string, neighbours: Feature[] = []): Feature {
     uy: 0,
     tiny: false,
     path: null,
+    fullPath: null,
     neighbours
   };
 }

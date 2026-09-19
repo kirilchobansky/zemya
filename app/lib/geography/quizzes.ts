@@ -1,21 +1,14 @@
 /**
- * The quiz catalogue: the size ladder every quiz shares, and the registry of
- * QuizDefinitions the shared engine/route (app/lib/quiz/engine.ts,
+ * The quiz catalogue: the registry of QuizDefinitions the shared engine/route (app/lib/quiz/engine.ts,
  * routes/quiz.$quizId.tsx) run. A second quiz is one entry in QUIZ_DEFINITIONS, never a
  * new route tree — see CLAUDE.md's Quizzes section.
  */
 import { CountriesStage } from '~/components/quiz/CountriesStage';
 import { FlagsStage } from '~/components/quiz/FlagsStage';
 import { normaliseName } from '~/lib/geography/names';
+import type { QuizSize } from '~/lib/geography/scopes';
 import type { MatchOutcome, QuizDefinition } from '~/lib/quiz/types';
 import type { CountryRecord } from '~/lib/map/types';
-
-export const QUIZ_SIZES = ['20', '30', '50', '90', '120', 'all'] as const;
-export type QuizSize = (typeof QUIZ_SIZES)[number];
-
-export function isQuizSize(value: string): value is QuizSize {
-  return (QUIZ_SIZES as readonly string[]).includes(value);
-}
 
 /**
  * Accepts the target's confusable twin (see content/geography/confusable-flags.yaml) as
@@ -64,7 +57,8 @@ export function quizDefinition(id: string): QuizDefinition | undefined {
   return QUIZ_DEFINITIONS.find(q => q.id === id);
 }
 
-/** The N most populous countries — the axis "Name the Country" ranks by. Kept behind one
+/** The N most populous countries of the pool passed in (a whole scope, see scopes.ts) —
+ *  the axis the quizzes rank by. Kept behind one
  *  function so ranking by a different axis (area, alphabetical, ...) for a future quiz is
  *  a one-line change here, not a rewrite of the run screen. */
 export function topByPopulation(countries: CountryRecord[], size: QuizSize): CountryRecord[] {
