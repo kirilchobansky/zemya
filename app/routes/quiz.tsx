@@ -60,17 +60,15 @@ export default function QuizCatalogue() {
 
   return (
     <>
-      <header className="panel__head">
+      <header className="panel__head panel__head--quiet">
         <span className="panel__eyebrow">Quizzes</span>
         <h2>Pick a quiz</h2>
       </header>
       <div className="panel__body">
         {QUIZ_DEFINITIONS.map(quiz => (
-          <section key={quiz.id}>
-            <h3 className="subhead">{quiz.title}</h3>
-            <p style={{ color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5, margin: '0 0 10px' }}>
-              {quiz.description}
-            </p>
+          <section key={quiz.id} className="quiz-block">
+            <h3 className="quiz-title">{quiz.title}</h3>
+            <p className="quiz-desc">{quiz.description}</p>
             <div className="quiz-sizes">
               {QUIZ_SIZES.map(size => {
                 const best = bestTimes[`${quiz.id}:${size}`];
