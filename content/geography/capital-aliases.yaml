@@ -105,8 +105,8 @@ aliases:
     add: [Panama]
     note: The city and country share a name; a bare "Panama" is what people type.
   - country: Mexico
-    add: [Mexico, Ciudad de Mexico]
-    note: A bare "Mexico" is what people type, and the Spanish name.
+    add: [Ciudad de Mexico]
+    note: The Spanish name. A bare "Mexico" is not accepted — the answer is "Mexico City".
   - country: Guatemala
     add: [Guatemala]
     note: The city and country share a name.

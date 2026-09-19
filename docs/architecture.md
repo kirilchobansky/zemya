@@ -100,7 +100,7 @@ knowing before editing it:
   through this same list — no special case anywhere. The dot sits on Pretoria.
 - **Deliberate additions worth a second look** (all in the YAML with notes): Eswatini also
   accepts Mbabane, Sri Lanka also accepts Kotte / Sri Jayawardenepura Kotte, Palau accepts
-  Melekeok, and bare `Mexico`/`Panama`/`Guatemala`/`Kuwait`/`Andorra` are accepted for their
+  Melekeok, and bare `Panama`/`Guatemala`/`Kuwait`/`Andorra` are accepted for their
   same-named capitals. **Burundi does not accept Bujumbura**: Gitega is the capital since
   2019 and accepting the old one would teach the wrong answer.
 - **The collision check throws, it does not drop.** Country aliases silently strip an

@@ -17,3 +17,6 @@ flag: Green field with the Shahada in white script above a sword.
 outline: A large shield filling most of the Arabian Peninsula.
 hook: The flag is never flown at half-mast — it bears the name of God.
 population: 33962757
+aliases:
+  note: '"Saudi" alone is an adjective, not the country name; the answer has to be "Saudi Arabia".'
+  remove: [Saudi]

@@ -266,7 +266,7 @@ names the country, and nothing names the city until a reveal.
 - `match` always returns an outcome (`{ accepted: matchesCapital(...) }`), never `null`,
   because `null` makes the engine fall back to the *country*-name matcher and "France"
   would answer "capital of France". (Countries whose accepted capital names include their
-  own name — Mexico, Panama, Guatemala, Kuwait, Andorra, Luxembourg — accept it on purpose.)
+  own name — Panama, Guatemala, Kuwait, Andorra, Luxembourg — accept it on purpose.)
 - `MapStage.tsx` is the shared map Stage; `CountriesStage`/`CapitalsStage` are one config
   each (placeholder, aria-label, what a reveal shows, whether the neighbour-glow toggle
   exists). The capitals quiz has **no** neighbour-glow toggle — the country is already
