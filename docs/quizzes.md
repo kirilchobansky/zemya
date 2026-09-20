@@ -106,8 +106,8 @@ their hit-testing (`renderer.ts`); `atlas.tsx` stops rendering the search box an
 `quiz.showNeighbours` rather than the normal toolbar's `showNeighbours` state (only the
 countries quiz's Stage renders a toggle for it — see the engine/presenter split above).
 Fill/stroke while active come from `quizFillFor`/`quizStrokeFor` (`geography/overlays.ts`)
-instead of the normal `fillFor`/`strokeFor` — answered-correct green, answered-revealed
-amber, the current target brass, everything else plain land; no overlay, hover or mastery
+instead of the normal `fillFor`/`strokeFor` — answered-correct green (`--master`), answered-revealed
+red (`--new`), the current target brass (`--brass`), everything else plain land; no overlay, hover or mastery
 colouring applies mid-quiz. Anyone adding a fifth surface that could show a country's name
 should gate it on this same `quiz`/`quizMode` value rather than inventing a new flag.
 
@@ -133,40 +133,57 @@ that one `homeView()`. World scope has no entry and behaves exactly as before. B
 looked at, not tuned; a target that doesn't fit (Russia in Europe) still zooms out the
 minimum. Smoke step 21 covers it.
 
-**Camera: follows the player (supersedes "never moves again" below).** START still calls
-`atlas.home()` once and the owner likes that. After it, each NEW question runs
-`Atlas#followTarget` (`app/lib/map/follow.ts`, pure and unit-tested), which applies the
-Interaction-principles rule: (a) target already visible -> **camera untouched**; (b) not
-visible -> pan to it **at the player's current zoom**; (c) doesn't fit at that zoom -> zoom
-out the **minimum** to fit (`QUIZ_FRAME_PADDING` 0.8 of the visible area), never in, never
-to the world view unless fitting needs it. Decided against where the camera is *heading*
-(`Atlas#target`), so quick answers chain. Reuses the existing animated `moveTo`, so the
-usual zoom/vertical clamps apply. The route calls it from an effect keyed on the target
-changing, so a wrong attempt, a pause/resume and a re-render never move the camera.
-- **Visible** = all of: fully inside the *visible area* (the canvas minus what covers it),
-  clear of the edge by `QUIZ_EDGE_MARGIN_PX` (12), and >= `QUIZ_MIN_TARGET_WIDTH_PX` (24) wide.
-  A capital dot (capitals quiz) or a pin-drawn micro-state is a point: it needs
-  `QUIZ_POINT_MARGIN_PX` (60) / `QUIZ_PIN_MARGIN_PX` (48) of room and has no size test.
+**Colours: three meanings, three colours.** Brass = the question, red = "you didn't know this
+one" (revealed), green = got it. Revealed used to be `--learn` amber, which is the *same value*
+as brass (`#E8A33D`), so mid-run a revealed country looked like the current question. Red is
+the mastery colour for "new / not known", so it is right semantically, not just a different hue.
+One function (`quizFillFor`) paints all three quizzes, so they cannot disagree; the flags quiz
+has no map, and its revealed-answer chip carries the same red outline. Pinned by a unit test.
+
+**Camera: one path for every new question (supersedes "follows the player" and "never moves
+again" below).** START still calls `atlas.home()` once. After it, every NEW question — a correct
+answer, a skip, a reveal-then-answer — runs `Atlas#followTarget`, and that is the *only* place the
+quiz camera decides (`follow.ts` is the pure maths under it). Earlier, the route called
+`homeIfZoomedIn()` for a guess and not for a skip, so the two behaved differently; that decision
+now lives in one function, and the route just calls it when the target changes. Two steps, one
+animation, decided against where the camera is *heading* (`Atlas#target`), so quick answers chain:
+1. Zoomed past `QUIZ_WORLD_VIEW_FACTOR` (1.25x home)? Start from the home view (the continent, in a
+   continent scope), else from where the camera is.
+2. `cameraForTarget` from there: **(a)** comfortably inside the visible area and big enough -> leave
+   it; **(b)** too small -> zoom **in** until legible, even off the overview; **(c)** too big ->
+   zoom out the minimum to fit; **(d)** otherwise centre it (only the axis that failed).
+- **Comfortable** = inside the visible area by `QUIZ_COMFORT_MARGIN` (10%) of each dimension, or the
+  floor for the target kind (12 px shape, 48 px pin, 60 px capital dot). `QUIZ_FRAME_PADDING` is
+  *derived* (`1 - 2 x margin`), so a country zoomed out to fit is comfortable by construction.
+  Touching the edge, or a 12 px margin, was "visible" before — a sliver you had to squint at.
+- **Legible** = at least `QUIZ_MIN_TARGET_PX` (12) wide, the same measure the renderer uses to
+  decide pin vs shape (`PIN_MAX_WIDTH` 7 in `thresholds.ts`), so a target is never left as a pin.
+  The capitals quiz needs `CAPITAL_MIN_SHAPE_WIDTH` (17.2) so its ring has an outline to sit on.
+  **Tuned by playing all 197**: at 24 px, 63% of questions zoomed and the near-world view (which the
+  owner asked to keep) was gone; at 12, ~37% do and only ~13 (the micro-states) go past 10x.
+  Measured, not guessed — but a judgement; raise it and more mid-size countries zoom.
+- A country whose minimum width is **unreachable even at max zoom** (Vatican City: degenerate
+  geometry, a pin at every zoom) has no width to guarantee; it gets neighbourhood zoom
+  (`NO_SHAPE_ZOOM_FACTOR`, 34x) rather than the 320x cap, which showed a pin on empty ground.
 - **What covers the canvas is only the docked quiz input** (`.quiz-dock`, measured by
   `measureInsets()` in the route into a bottom inset). **The brief said the right panel sits
-  on top of the canvas; it doesn't** — it is a grid column beside the stage, so a country
-  "behind the panel" is simply off the canvas and is treated as not visible for that reason.
-  The bottom-left zoomer/scale bar are not modelled (a small corner).
-- **The 24 px size test is waived at/below `QUIZ_WORLD_VIEW_FACTOR` (1.25x home).** At the
-  world overview nothing is off screen and no pan can make a small country bigger, so
-  applying it would slide the world sideways for every small country and throw away the
-  still overview the run starts from. It only bites once the player has zoomed in. Constants
-  are named, in `follow.ts`; 24 was not tuned beyond a play-through.
+  on top of the canvas; it doesn't** — it is a grid column beside the stage (confirmed again by a
+  screenshot), so "behind the panel" is simply off the canvas, and the comfort margin from the
+  canvas edge covers it. The bottom-left zoomer/scale bar are not modelled (a small corner).
 - The camera target is the country's **mainland cluster** (`mainlandBox`): largest polygon
   plus any >= 2% of its size within 3 of its diagonals — France without Guiana, Indonesia
-  with Papua. (This is the same idea as the `mainBbox` removed earlier, kept to ~30 lines
-  and used only here.)
-- **A guess returns you to the world view.** When a new target follows an *answer* (correct
-  or revealed — `answeredCount` changed) and the player is zoomed in past
-  `QUIZ_WORLD_VIEW_FACTOR`, the route calls `Atlas#homeIfZoomedIn()` before `followTarget`.
-  A skip is not a guess and keeps the follow rule; a player already at the overview keeps
-  their pan. Owner's request after playing the follow-only version.
+  with Papua. In the capitals quiz only the capital's dot has to be comfortably in view (Russia's
+  capital is findable without fitting Russia), but the size rule still applies to the country.
+- At the overview y is clamped, so a target near the top or bottom can't be centred vertically;
+  only x is recentred. A country hugging the side of the world slides the map sideways to centre.
 - The flags quiz (`hidesMap: true`) skips follow and pulse; nothing on screen uses them.
+
+**Capital dot vs outline.** A capital ring, its name and its hit-test all go through one
+predicate (`capitalShapeShowing`): the country must be drawn as a shape *and* at least
+`CAPITAL_MIN_SHAPE_WIDTH` wide — `PIN_MAX_WIDTH` plus the ring's own diameter, derived in
+`thresholds.ts`, so the two cannot drift. Before, a 10 px ring appeared on a 7 px sliver: a dot
+floating beside a country that hadn't formed yet. In the quiz, the target ring is not drawn beside
+a pin at all (the pin carries its own). Sweep-tested in `renderer.test.ts` across every zoom.
 
 **New-target pulse.** `Atlas#pulse` draws one brass ring growing 8 -> ~98 px and fading over
 1000 ms (`renderer.ts`'s `Pulse`), anchored in map space on the country's anchor (or the
@@ -198,8 +215,7 @@ to keep the sense of the whole world, not to be flown around it question by ques
 whole mechanism (`frameForQuiz`, `Atlas#flyToQuiz`, `feature.mainBbox`, the polygon
 clustering in `topology.ts`) was removed rather than left dead. **A run now calls
 `atlas.home()` once, on START** — and, as first written, never moved the camera again; that
-second half is superseded by "follows the player" above (pan/zoom-out only when the target
-isn't already visible, never zoom in).
+second half is superseded by "one path for every new question" above.
 The current target is marked with `Atlas#setFocus([target])` instead (pre-existing,
 previously-unused infrastructure) — `renderer.ts`'s `drawPins` gives a focused feature
 drawn as a pin a bigger radius, and under `quizMode` specifically, a much bigger radius
@@ -311,7 +327,7 @@ progress, and folding it in would force `SCHEMA_VERSION` to move over an additiv
 Revisit if the owner wants best times to survive a device move.
 
 **Results screen.** On the last correct answer the camera pulls back to the world view
-(`atlas.home()`) while the finished map stays coloured (green/amber, from the `quiz`
+(`atlas.home()`) while the finished map stays coloured (green/red, from the `quiz`
 override, which is only cleared on unmounting the route) and the panel shows the time,
 the personal-best comparison, a first-try-vs-revealed tally, and every revealed country
 as a dossier link — "the ones worth another look", the actual point of the screen.

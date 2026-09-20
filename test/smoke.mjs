@@ -135,7 +135,7 @@ await page.waitForURL('**/country/bulgaria', { timeout: 5000 });
 await page.waitForTimeout(1400);
 
 const dossier = await page.textContent('.panel__body');
-for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Bulgarian lev', 'Romania', 'Cyrillic']) {
+for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Euro', 'Romania', 'Cyrillic']) {
   check(dossier.includes(probe), `dossier missing "${probe}"`);
 }
 
@@ -720,8 +720,8 @@ try {
   await page.waitForTimeout(200);
   check((await page.evaluate(() => window.__zemyaQuiz)).phase === 'running', 'Esc did not resume');
 
-  /* --- 20. the camera follows the player: zoomed into a region, every new target ends up
-          on screen, the camera pans rather than resetting, and it never zooms IN ------- */
+  /* --- 20. ONE camera path for every new question: from a zoomed-in view a skip returns to the
+          overview exactly as an answer does, and every new target ends up on screen ------- */
   await page.goto(`${devBase}quiz/countries/world/30`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   await page.click('.quiz-dock__start');
@@ -744,12 +744,18 @@ try {
     const c = v.view.canvas;
     const inView = tx >= 0 && tx <= c.right - c.left && ty >= 0 && ty <= v.view.dockTop - c.top;
     check(inView, `after skipping to ${v.quiz.target} its anchor is off screen at (${Math.round(tx)}, ${Math.round(ty)})`);
-    check(v.view.camera.zoom <= view0.camera.zoom * 1.001, `the camera zoomed IN for ${v.quiz.target}: ${view0.camera.zoom} -> ${v.view.camera.zoom}`);
+    // a skip goes through the same code as an answer: back to (near) the overview, not left zoomed in.
+    // (world/30 is the 30 most populous countries — none micro — so "near" is well under 3x.)
+    check(v.view.camera.zoom < v.view.camera.home * 3, `skipping to ${v.quiz.target} left the camera zoomed in: ${(v.view.camera.zoom / v.view.camera.home).toFixed(2)}x`);
     if (Math.abs(v.view.camera.x - prev.x) > 1e-4 || Math.abs(v.view.camera.y - prev.y) > 1e-4) moved += 1;
     seen.push(v.quiz.target);
     prev = v.view.camera;
   }
-  check(moved >= 1, `across ${seen.length} skips at 10x the camera never moved (${seen.join(', ')}) — targets outside the region should have pulled it`);
+  check(moved >= 1, `across ${seen.length} skips at 10x the camera never moved (${seen.join(', ')}) — the first should have returned it to the overview`);
+  // zoom back in by hand for the wrong-attempt / pause checks and the guess below
+  await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2);
+  await page.mouse.wheel(0, -Math.log(10) / 0.0016);
+  await page.waitForTimeout(600);
   // "leave it alone" is pinned deterministically (which random targets happen to be in view is
   // luck): a wrong attempt and a pause/resume are not new questions and must not move the camera
   /** Waits until the camera stops moving (two reads 350 ms apart agree) — a fly-to's ease
@@ -784,8 +790,21 @@ try {
   await page.waitForTimeout(600);
   const afterGuess = await settledCamera();
   check(
-    Math.abs(afterGuess.zoom - afterGuess.home) < 1,
+    afterGuess.zoom < afterGuess.home * 3,
     `answering "${toGuess}" while zoomed in left the camera at ${(afterGuess.zoom / afterGuess.home).toFixed(2)}x, not the world view`
+  );
+  // ...and a SKIP from the same zoomed-in view lands in the same place (one code path)
+  await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2);
+  await page.mouse.wheel(0, -Math.log(10) / 0.0016);
+  await page.waitForTimeout(600);
+  const zoomedForSkip = await settledCamera();
+  check(zoomedForSkip.zoom > zoomedForSkip.home * 2, `the test's zoom before the skip did not take — ${zoomedForSkip.zoom / zoomedForSkip.home}x`);
+  await page.keyboard.press('Tab');
+  await page.waitForTimeout(600);
+  const afterSkip = await settledCamera();
+  check(
+    afterSkip.zoom < afterSkip.home * 3,
+    `skipping while zoomed in left the camera at ${(afterSkip.zoom / afterSkip.home).toFixed(2)}x — a skip must return the view exactly as an answer does`
   );
 
   /* --- 21. a continent quiz treats the continent as home: START frames it, and a guess from
@@ -813,8 +832,13 @@ try {
   const europeAfter = (await page.evaluate(() => window.__zemyaView())).camera;
   // back to the continent (a target that doesn't fit may zoom out a little further), never
   // left zoomed in and never sent to the whole world
+  // a micro-state target legitimately zooms IN past the continent view (its size is guaranteed)
+  const microNext = await page.evaluate(() => {
+    const t = window.__zemyaQuiz.target;
+    return ['Andorra', 'Liechtenstein', 'Monaco', 'Malta', 'San Marino', 'Vatican City', 'Luxembourg'].includes(t);
+  });
   check(
-    europeAfter.zoom < europeIn.zoom * 0.5 && europeAfter.zoom > europeAfter.home * 1.2,
+    (microNext || europeAfter.zoom < europeIn.zoom * 0.5) && europeAfter.zoom > europeAfter.home * 1.2,
     `answering "${europeTarget}" in a Europe quiz left the camera at ${(europeAfter.zoom / europeAfter.home).toFixed(2)}x home (zoomed-in was ${(europeIn.zoom / europeAfter.home).toFixed(2)}x)`
   );
 } finally {

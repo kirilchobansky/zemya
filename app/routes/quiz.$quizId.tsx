@@ -135,18 +135,16 @@ export default function QuizRun() {
     prevPhaseRef.current = engine.phase;
   }, [engine.phase, atlas]);
 
-  /* Each NEW question: bring the target into view if the player couldn't already see it
-     (pan at their zoom, zoom out only as far as fitting needs — never reset to world; see
-     follow.ts), then pulse it once so it can be found. Ordered after the START effect
-     above, so on the first question the camera is already home. Keyed on the target
-     changing, not on renders: a wrong attempt leaves the target alone, so it neither
-     moves the camera nor pulses, and resuming from pause doesn't either. */
+  /* Each NEW question — however we got to it: correct, skipped, revealed-then-answered — goes
+     through Atlas#followTarget, the one place the quiz camera decides (return home if zoomed in,
+     then centre / fit / zoom in until legible; see follow.ts), then pulses the target once so it
+     can be found. Ordered after the START effect above, so on the first question the camera is
+     already home. Keyed on the target changing, not on renders: a wrong attempt leaves the
+     target alone, so it neither moves the camera nor pulses, and resuming from pause doesn't. */
   const lastPulsedRef = useRef<string | null>(null);
-  const lastAnsweredRef = useRef(0);
   useEffect(() => {
     if (engine.phase === 'idle' || engine.phase === 'done') {
       lastPulsedRef.current = null;
-      lastAnsweredRef.current = 0;
     }
     if (!world || !atlas || engine.phase !== 'running' || definition?.hidesMap) return;
     const iso3 = engine.target?.iso3 ?? null;
@@ -154,17 +152,10 @@ export default function QuizRun() {
     lastPulsedRef.current = iso3;
     const feature = world.byIso3.get(iso3);
     if (!feature) return;
-    // A GUESS (answered, or revealed and then answered) that lands you on a new target
-    // sends a zoomed-in player back to the world view; a skip is not a guess and keeps
-    // the follow-the-player rule below. Either way followTarget still runs, so at the
-    // overview it only ever confirms the target is in view.
-    const guessed = engine.answeredCount !== lastAnsweredRef.current;
-    lastAnsweredRef.current = engine.answeredCount;
-    if (guessed) atlas.homeIfZoomedIn();
     const place = definition?.markCapital ? world.places.find(mark => mark.feature === feature) ?? null : null;
-    atlas.followTarget({ feature, place }, measureInsets());
+    atlas.followTarget({ feature, place }, measureInsets()); // the one camera decision, however we got here
     atlas.pulse(place?.ux ?? feature.ux, place?.uy ?? feature.uy);
-  }, [engine.target, engine.phase, engine.answeredCount, world, atlas, definition]);
+  }, [engine.target, engine.phase, world, atlas, definition]);
 
   /* the target's pin/shape is marked "in focus" (renderer.ts draws a bigger, ringed pin
      for it under quizMode) purely from a Feature lookup — invisible, and harmless, for a

@@ -169,9 +169,12 @@ describe('quizFillFor / quizStrokeFor', () => {
     expect(quizFillFor(neighbour, quiz)).toBe(MASTERY_COLOURS.mastered);
   });
 
-  it('paints an answered-revealed country learning-amber', () => {
-    const quiz = { target, answered: new Map([['CCC', 'revealed' as const]]), showNeighbours: false, paused: false };
-    expect(quizFillFor(stranger, quiz)).toBe(MASTERY_COLOURS.learning);
+  it('paints an answered-revealed country red — never the target\'s brass, which is the same value as amber', () => {
+    const quiz = { target, answered: new Map([['CCC', 'revealed' as const]]), showNeighbours: false, showCapital: false, paused: false };
+    expect(quizFillFor(stranger, quiz)).toBe(MASTERY_COLOURS.new);
+    // the three meanings never share a colour: question / didn't know / got it
+    const meanings = [SELECTED, MASTERY_COLOURS.new, MASTERY_COLOURS.mastered];
+    expect(new Set(meanings).size).toBe(3);
   });
 
   it('paints the current target brass, and everything unanswered/unrelated plain land', () => {

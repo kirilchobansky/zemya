@@ -213,7 +213,9 @@ export interface QuizOverride {
 export function quizFillFor(feature: Feature, quiz: QuizOverride): string {
   const outcome = quiz.answered.get(feature.country.iso3);
   if (outcome === 'correct') return MASTERY_COLOURS.mastered;
-  if (outcome === 'revealed') return MASTERY_COLOURS.learning;
+  // red ("not known"), NOT amber: the target is brass and amber is the same value, so a revealed
+  // country was indistinguishable from the question. Red is the mastery colour for "new".
+  if (outcome === 'revealed') return MASTERY_COLOURS.new;
   if (quiz.target === feature) return SELECTED;
   if (quiz.showNeighbours && quiz.target?.neighbours.includes(feature)) return NEIGHBOUR;
   return LAND;

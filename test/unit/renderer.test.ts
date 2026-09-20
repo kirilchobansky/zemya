@@ -182,6 +182,47 @@ describe('capitals layer', () => {
     expect(deep.hit?.place.name).toBe('Monaco');
   });
 
+  it('a capital ring never shows before its country is wide enough to carry it — swept over every zoom', async () => {
+    const { pickPlace } = await import('~/lib/map/renderer');
+    const { homeZoom, worldToScreen } = await import('~/lib/map/camera');
+    const { lonToX } = await import('~/lib/map/projection');
+    const { CAPITAL_MIN_SHAPE_WIDTH } = await import('~/lib/map/thresholds');
+    const world = await loadRealWorld();
+    for (const iso3 of ['MCO', 'SMR', 'LIE', 'MLT', 'LUX', 'AND', 'SGP', 'BHR', 'MDV', 'KNA']) {
+      const mark = world.places.find(m => m.place.iso3 === iso3)!;
+      const bbox = mark.feature.bbox;
+      let firstRingWidth: number | null = null;
+      for (let factor = 1; factor <= 320; factor *= 1.15) {
+        const camera = { x: mark.ux, y: mark.uy, zoom: homeZoom(viewport) * factor };
+        const [sx, sy] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+        const shows = pickPlace({ ctx: mockCtx(), camera, viewport, dpr: 1 }, world, { showCapitals: true }, sx, sy) !== null;
+        const width = bbox ? (lonToX(bbox[2]) - lonToX(bbox[0])) * camera.zoom : 0;
+        if (shows) {
+          firstRingWidth ??= width;
+          expect(width, `${iso3} at ${factor.toFixed(1)}x`).toBeGreaterThanOrEqual(CAPITAL_MIN_SHAPE_WIDTH);
+        }
+      }
+      // (a country with no geometry, or one that never reaches the width at 320x, simply never shows a ring)
+      if (firstRingWidth !== null) expect(firstRingWidth).toBeGreaterThanOrEqual(CAPITAL_MIN_SHAPE_WIDTH);
+    }
+  });
+
+  it('the quiz target ring is not drawn beside a country that is still a pin', async () => {
+    const { render } = await import('~/lib/map/renderer');
+    const { homeZoom } = await import('~/lib/map/camera');
+    const world = await loadRealWorld();
+    const monaco = world.places.find(m => m.place.iso3 === 'MCO')!;
+    const ctx = mockCtx();
+    render(
+      { ctx, camera: { x: monaco.ux, y: monaco.uy, zoom: homeZoom(viewport) * 6 }, viewport, dpr: 1 },
+      world,
+      { ...plain, showCapitals: true, quizMode: true, quizPlace: monaco, showPins: false },
+      new Set(),
+      'sans-serif'
+    );
+    expect(ctx.arc).not.toHaveBeenCalled();
+  });
+
   it('quizMode draws no capital ring and no capital name, at a zoom where both would show', async () => {
     const { ctx, world } = await draw({ showCapitals: true, quizMode: true }, 8);
     expect(ctx.arc).not.toHaveBeenCalled();

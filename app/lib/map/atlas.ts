@@ -4,12 +4,12 @@
  * for hover and click.
  */
 import {
-  clamp, frame, homeCamera, homeZoom, screenToWorld, settled, shortestX, step,
+  clamp, clampZoom, frame, homeCamera, homeZoom, screenToWorld, settled, shortestX, step,
   type CameraState, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
-import { cameraForTarget, mainlandBox, pointTarget, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, QUIZ_WORLD_VIEW_FACTOR, type Insets } from './follow';
-import { drawsAsPin, hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
+import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget, type Insets } from './follow';
+import { hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 
@@ -149,7 +149,7 @@ export class Atlas {
   flyTo(feature: Feature, padding = 0.55): void {
     if (!feature.bbox) {
       this.moveTo(
-        clamp({ x: feature.ux, y: feature.uy, zoom: homeZoom(this.viewport) * 34 }, this.viewport),
+        clamp({ x: feature.ux, y: feature.uy, zoom: homeZoom(this.viewport) * NO_SHAPE_ZOOM_FACTOR }, this.viewport),
         true
       );
       return;
@@ -166,35 +166,47 @@ export class Atlas {
   }
 
   /**
-   * A quiz question just changed: bring its target into view if — and only if — the player
-   * could not already see it (follow.ts has the rules: leave alone / pan at the current
-   * zoom / zoom out the minimum). `insets` is what covers the canvas, so a target under the
-   * docked input counts as hidden. Decided against where the camera is HEADING, so answers
-   * fired faster than the animation still chain correctly. Never called by START — that
-   * is atlas.home()'s job.
+   * A quiz question just changed: put the player where they can SEE its target. This is the
+   * ONE place the quiz camera decides, and it runs for every way of reaching a new question —
+   * a correct answer, a skip, a reveal-then-answer — so they cannot drift apart (they had:
+   * only a guess used to return the view). Two steps, in one animation:
+   *   1. if the player is (heading) zoomed in past the overview, start from the home view;
+   *   2. from there follow.ts decides — leave alone / centre / zoom out to fit / zoom IN until
+   *      the target is legible — and only moves if the result differs from where we are.
+   * Decided against where the camera is HEADING, so answers fired faster than the animation
+   * still chain correctly. Never called by START or the results screen — that is home()'s job.
    */
   followTarget(request: { feature: Feature; place?: PlaceMark | null }, insets: Insets): void {
     const { feature, place } = request;
     const cam = this.target;
-    const asPoint = Boolean(place) || !feature.bbox || drawsAsPin(feature, cam);
-    const target = place
-      ? pointTarget(place.ux, place.uy, QUIZ_POINT_MARGIN_PX)
-      : asPoint
-        ? pointTarget(feature.ux, feature.uy, QUIZ_PIN_MARGIN_PX)
-        : mainlandBox(feature);
-    if (!target) return;
-    const next = cameraForTarget(cam, this.viewport, insets, target, {
-      sizeWaived: asPoint || cam.zoom <= this.homeView().zoom * QUIZ_WORLD_VIEW_FACTOR
-    });
-    if (next) this.moveTo(next, true);
-  }
+    const home = this.homeView();
+    const base = cam.zoom > home.zoom * QUIZ_WORLD_VIEW_FACTOR ? home : cam;
 
-  /** Return to the world view, but only if the camera is (heading) zoomed in past it —
-   *  a player already at the overview keeps their pan. Returns whether it moved. */
-  homeIfZoomedIn(): boolean {
-    if (this.target.zoom <= this.homeView().zoom * QUIZ_WORLD_VIEW_FACTOR) return false;
-    this.home();
-    return true;
+    // A country whose minimum width can't be reached even at maximum zoom (Vatican City: degenerate
+    // geometry, drawn as a pin at every zoom) has no width to guarantee — zooming to the cap
+    // would only show a pin on empty ground. It gets neighbourhood zoom instead (cameraForTarget's
+    // `box: null` path). Same idea as drawsAsPin, which is what keeps it a pin.
+    const minWidthPx = quizMinTargetPx(Boolean(place));
+    const mainland = feature.bbox && (feature.path || feature.fullPath) ? mainlandBox(feature) : null;
+    const reachable =
+      mainland && (mainland.x1 - mainland.x0) * clampZoom(minWidthPx / Math.max(mainland.x1 - mainland.x0, 1e-9), this.viewport) >= minWidthPx * 0.999;
+    const box = reachable ? mainland : null;
+    const target: FollowTarget = place
+      ? { box, focus: { x: place.ux, y: place.uy }, fit: false, marginPx: QUIZ_POINT_MARGIN_PX, minWidthPx }
+      : box
+        ? { box, focus: { x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 }, fit: true, marginPx: QUIZ_EDGE_MARGIN_PX, minWidthPx }
+        : { box: null, focus: { x: feature.ux, y: feature.uy }, fit: false, marginPx: QUIZ_PIN_MARGIN_PX, minWidthPx };
+    const next = cameraForTarget(base, this.viewport, insets, target, {
+      noShapeZoom: homeZoom(this.viewport) * NO_SHAPE_ZOOM_FACTOR
+    });
+
+    const dest = clamp(next ?? base, this.viewport);
+    const now = clamp(cam, this.viewport);
+    const moved =
+      Math.abs(dest.zoom - now.zoom) > now.zoom * 1e-6 ||
+      Math.abs(dest.x - now.x) > 1e-9 ||
+      Math.abs(dest.y - now.y) > 1e-9;
+    if (moved) this.moveTo(dest, true);
   }
 
   /** A single expanding ring on a new quiz target — see renderer.ts's Pulse. Skipped for

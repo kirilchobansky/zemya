@@ -1272,7 +1272,7 @@ kbd {
   padding: 6px 14px;
   border-radius: 999px;
   background: rgb(14 23 32 / 92%);
-  border: 1px solid var(--learn);
+  border: 1px solid var(--new);
   color: var(--brass-2);
   font-size: 13px;
   font-weight: 600;

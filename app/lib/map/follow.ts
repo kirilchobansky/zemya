@@ -1,21 +1,23 @@
 /**
- * Camera intent for a quiz question: where should the camera go so the player can see the
+ * Camera intent for a quiz question: where should the camera go so the player can SEE the
  * new target, and — first — does it need to go anywhere at all?
  *
  * Pure maths, no DOM and no Atlas: Atlas#followTarget builds the inputs and animates the
- * result. This is CLAUDE.md's Interaction principle ("the camera moves only when the user
- * could not already see the target") applied to a quiz run:
+ * result. It is CLAUDE.md's Interaction principle ("the camera moves only when the user could
+ * not already see the target") applied to a quiz run, with one addition the quiz needs:
  *
- *   a) target already visible  -> null, leave the camera completely alone
- *   b) not visible             -> pan to it at the player's CURRENT zoom
- *   c) doesn't fit at that zoom-> zoom out the MINIMUM needed, never in, never past the
- *                                 world view unless fitting genuinely needs it
+ *   a) target comfortably inside the visible area AND big enough -> null, leave it alone
+ *   b) too small to read as a shape       -> zoom IN until it is, even off the world view
+ *   c) too big for the view               -> zoom out the MINIMUM needed
+ *   d) otherwise, not comfortably inside  -> centre it, at the same zoom
  *
- * "Visible" is measured against the map area actually in view — the canvas minus whatever
- * sits on top of it (`Insets`: today the quiz's docked input) — not the raw canvas.
+ * Seeing the question matters more than keeping the overview, so (b) beats staying zoomed out.
+ * "Visible" is measured against the map area actually in view — the canvas minus whatever sits
+ * on top of it (`Insets`: today the quiz's docked input) — not the raw canvas.
  */
 import { wrapX, latToY, lonToX } from './projection';
 import type { CameraState, Viewport } from './camera';
+import { CAPITAL_MIN_SHAPE_WIDTH } from './thresholds';
 import type { Feature, Ring } from './types';
 
 /** Pixels of the canvas covered by something on top of it, per side. */
@@ -27,40 +29,57 @@ export interface Insets {
 }
 export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
 
-/** A target in unit-square map space. A point has x0 === x1 and y0 === y1. */
+/**
+ * A quiz target as the camera sees it, in unit-square map space. `box` is the country's
+ * mainland box (null for a country with no geometry at all — Vatican City — which has only a
+ * pin); `focus` is what must be comfortably in view and what gets centred: the box's middle,
+ * or a capital's dot in the capitals quiz.
+ */
 export interface FollowTarget {
-  x0: number;
-  x1: number;
-  y0: number;
-  y1: number;
-  /** A capital dot or a pin-drawn micro-state: has no size to judge, only a position. */
-  point: boolean;
-  /** How far in from the edge of the visible area the target must sit to count as visible. */
+  box: { x0: number; x1: number; y0: number; y1: number } | null;
+  focus: { x: number; y: number };
+  /** Zoom out to fit the whole box. False when only `focus` matters (a capital dot: Russia's
+   *  capital is findable without fitting Russia). The minimum-size rule applies either way. */
+  fit: boolean;
+  /** Floor, in px, for the comfort margin below — for a target that carries a big halo. */
   marginPx: number;
+  /** The smallest the country may be on screen — see quizMinTargetPx. */
+  minWidthPx: number;
 }
 
 /**
  * All chosen to be tuned by looking (see CLAUDE.md's Where this is).
- * A country narrower than this on screen is too small to identify by its shape alone.
+ *
+ * How far in from each edge of the visible area a target must sit to count as visible, as a
+ * share of that dimension. Merely intersecting the viewport is not enough — a sliver at the
+ * edge is not "seen". The frame padding is derived from it so the two can't disagree: a
+ * country zoomed out to fit is, by construction, comfortably inside.
  */
-export const QUIZ_MIN_TARGET_WIDTH_PX = 24;
-/** A country must clear the edge of the visible area by this much, or it counts as clipped. */
-export const QUIZ_EDGE_MARGIN_PX = 12;
-/** A capital dot needs room around it: a "comfortable" margin, not touching an edge. */
-export const QUIZ_POINT_MARGIN_PX = 60;
-/** A pin-drawn micro-state carries a big halo ring; it needs room for that too. */
-export const QUIZ_PIN_MARGIN_PX = 48;
+export const QUIZ_COMFORT_MARGIN = 0.1;
 /** When zooming out to fit, the target may take up this share of the visible area. */
-export const QUIZ_FRAME_PADDING = 0.8;
-/** At or below this multiple of homeZoom the whole world is on screen: nothing is
- *  "off screen" to reveal and no pan can make a small country bigger, so the size test is
- *  waived — the brass highlight/pin is the marker there, and a world that slid sideways on
- *  every small country would throw away the still overview the run starts from. */
+export const QUIZ_FRAME_PADDING = 1 - 2 * QUIZ_COMFORT_MARGIN;
+/** The smallest a target country may be on screen, in px of WIDTH (the measure the renderer
+ *  uses to decide pin vs shape). Below it the camera zooms in until it isn't. About twice
+ *  PIN_MAX_WIDTH: a shape you can tell is a shape, not a dot to hunt for. Tuned by playing over
+ *  all 197 targets: at 24 px, 63% of questions zoomed and the near-world view was gone; at 12,
+ *  38% do and only the ~25 genuine micro-states zoom far. */
+export const QUIZ_MIN_TARGET_PX = 12;
+/** The capitals quiz draws a ring on the capital, which needs a real outline to sit on
+ *  (thresholds.ts's CAPITAL_MIN_SHAPE_WIDTH), so its minimum is the larger of the two. */
+export const quizMinTargetPx = (withCapitalRing: boolean): number =>
+  withCapitalRing ? Math.max(QUIZ_MIN_TARGET_PX, CAPITAL_MIN_SHAPE_WIDTH) : QUIZ_MIN_TARGET_PX;
+/** Floors on the comfort margin for a target that isn't a plain box. */
+export const QUIZ_POINT_MARGIN_PX = 60; // a capital dot: room around it
+export const QUIZ_PIN_MARGIN_PX = 48; // a country with no shape: its pin carries a big halo
+export const QUIZ_EDGE_MARGIN_PX = 12; // a shape: at least this even in a tiny view
+/** At or below this multiple of the home zoom the player is at the overview. Above it, a new
+ *  question first returns to the home view (Atlas#followTarget) — for every way of getting to
+ *  the next question. */
 export const QUIZ_WORLD_VIEW_FACTOR = 1.25;
-
-export function pointTarget(ux: number, uy: number, marginPx: number): FollowTarget {
-  return { x0: ux, x1: ux, y0: uy, y1: uy, point: true, marginPx };
-}
+/** Zoom (x homeZoom) for a country with no geometry, where there is no width to guarantee:
+ *  neighbourhood scale, so the pin and its ring sit on a recognisable patch of map. The same
+ *  factor flyTo uses for such a feature. */
+export const NO_SHAPE_ZOOM_FACTOR = 34;
 
 /**
  * A country's box for camera purposes: its MAINLAND cluster, not every polygon. The whole
@@ -72,7 +91,8 @@ export function pointTarget(ux: number, uy: number, marginPx: number): FollowTar
  */
 const MAINLAND_MIN_SHARE = 0.02;
 const MAINLAND_REACH = 3;
-const boxCache = new WeakMap<object, Omit<FollowTarget, 'marginPx' | 'point'> | null>();
+type Box = { x0: number; x1: number; y0: number; y1: number };
+const boxCache = new WeakMap<object, Box | null>();
 
 function ringBox(ring: Ring): [number, number, number, number] {
   let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
@@ -85,7 +105,7 @@ function ringBox(ring: Ring): [number, number, number, number] {
   return [minLon, minLat, maxLon, maxLat];
 }
 
-export function mainlandBox(feature: Feature): FollowTarget | null {
+export function mainlandBox(feature: Feature): Box | null {
   // keyed on the polygons array, which attachFullDetail replaces — a stale coarse box is
   // never reused once full geometry arrives
   let box = boxCache.get(feature.polygons);
@@ -110,18 +130,18 @@ export function mainlandBox(feature: Feature): FollowTarget | null {
     }
     boxCache.set(feature.polygons, box);
   }
-  return box ? { ...box, point: false, marginPx: QUIZ_EDGE_MARGIN_PX } : null;
+  return box;
 }
 
 export interface FollowOptions {
-  /** Skip the "big enough to identify" test — see QUIZ_WORLD_VIEW_FACTOR. */
-  sizeWaived: boolean;
+  /** The zoom to use for a target with no shape (`box` null). */
+  noShapeZoom: number;
 }
 
 /**
- * The camera to move to, or null to leave it alone. Never zooms in. The caller clamps the
- * result (camera.ts's clamp) — that is where the min/max zoom and vertical limits live, so
- * a tiny country cannot drive the camera anywhere the player couldn't zoom to themselves.
+ * The camera to move to, or null to leave it alone. The caller clamps the result
+ * (camera.ts's clamp) — that is where the min/max zoom and vertical limits live, so a
+ * micro-state cannot drive the camera anywhere the player couldn't zoom to themselves.
  */
 export function cameraForTarget(
   camera: CameraState,
@@ -134,34 +154,45 @@ export function cameraForTarget(
   const top = insets.top, bottom = viewport.height - insets.bottom;
   const visibleW = Math.max(1, right - left), visibleH = Math.max(1, bottom - top);
 
-  // the target's screen box, taking the short way round the antimeridian like worldToScreen
-  const cx = (target.x0 + target.x1) / 2, cy = (target.y0 + target.y1) / 2;
-  let dx = cx - wrapX(camera.x);
-  dx -= Math.round(dx);
-  const sx = viewport.width / 2 + dx * camera.zoom;
-  const sy = viewport.height / 2 + (cy - camera.y) * camera.zoom;
-  const halfW = ((target.x1 - target.x0) / 2) * camera.zoom;
-  const halfH = ((target.y1 - target.y0) / 2) * camera.zoom;
-
-  const m = target.marginPx;
-  const inside =
-    sx - halfW >= left + m && sx + halfW <= right - m &&
-    sy - halfH >= top + m && sy + halfH <= bottom - m;
-  const bigEnough = target.point || options.sizeWaived || halfW * 2 >= QUIZ_MIN_TARGET_WIDTH_PX;
-  if (inside && bigEnough) return null;
-
-  // (c) zoom out only as far as fitting needs; never in
+  // the zoom this target needs: out to fit (c), then in until legible (b)
   let zoom = camera.zoom;
-  if (!target.point) {
-    const w = Math.max(target.x1 - target.x0, 0.0002), h = Math.max(target.y1 - target.y0, 0.0002);
-    zoom = Math.min(zoom, (visibleW * QUIZ_FRAME_PADDING) / w, (visibleH * QUIZ_FRAME_PADDING) / h);
+  if (target.box) {
+    const w = Math.max(target.box.x1 - target.box.x0, 1e-9), h = Math.max(target.box.y1 - target.box.y0, 1e-9);
+    if (target.fit) {
+      zoom = Math.min(zoom, (visibleW * QUIZ_FRAME_PADDING) / w, (visibleH * QUIZ_FRAME_PADDING) / h);
+    }
+    zoom = Math.max(zoom, target.minWidthPx / w);
+  } else {
+    zoom = Math.max(zoom, options.noShapeZoom);
   }
+  const rezoomed = Math.abs(zoom - camera.zoom) > camera.zoom * 1e-6;
 
-  // (b) put the target in the middle of the VISIBLE area, not of the canvas
+  // where the target's box (or point) lands on screen, the short way round the antimeridian
+  const box = target.box ?? { x0: target.focus.x, x1: target.focus.x, y0: target.focus.y, y1: target.focus.y };
+  const shortDx = (x: number) => {
+    const d = x - wrapX(camera.x);
+    return d - Math.round(d);
+  };
+  const sx = viewport.width / 2 + shortDx(target.focus.x) * zoom;
+  const sy = viewport.height / 2 + (target.focus.y - camera.y) * zoom;
+  // a box-fitting target must have the whole box inside; a point target just its focus
+  const halfW = target.fit ? ((box.x1 - box.x0) / 2) * zoom : 0;
+  const halfH = target.fit ? ((box.y1 - box.y0) / 2) * zoom : 0;
+
+  const mx = Math.max(target.marginPx, QUIZ_COMFORT_MARGIN * visibleW);
+  const my = Math.max(target.marginPx, QUIZ_COMFORT_MARGIN * visibleH);
+  const insideX = sx - halfW >= left + mx && sx + halfW <= right - mx;
+  const insideY = sy - halfH >= top + my && sy + halfH <= bottom - my;
+  if (!rezoomed && insideX && insideY) return null;
+
+  // (d) centre — only the axis that failed, unless the zoom changed and both must follow. The
+  // focus goes in the middle of the VISIBLE area, not of the canvas.
   const visibleCx = (left + right) / 2, visibleCy = (top + bottom) / 2;
+  const centredX = target.focus.x - (visibleCx - viewport.width / 2) / zoom;
+  const centredY = target.focus.y - (visibleCy - viewport.height / 2) / zoom;
   return {
-    x: cx - (visibleCx - viewport.width / 2) / zoom,
-    y: cy - (visibleCy - viewport.height / 2) / zoom,
+    x: rezoomed || !insideX ? centredX : camera.x,
+    y: rezoomed || !insideY ? centredY : camera.y,
     zoom
   };
 }

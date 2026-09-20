@@ -12,6 +12,7 @@ import type { CameraState, Viewport } from './camera';
 import { homeZoom, worldToScreen } from './camera';
 import { kmPerPixel, wrapX, yToLat, lonToX, latToY } from './projection';
 import type { Feature, PlaceMark, World } from './types';
+import { CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, PIN_MAX_WIDTH } from './thresholds';
 
 export interface Style {
   /** Fill for a country, or null to skip drawing it entirely. */
@@ -183,12 +184,8 @@ function isFeatureVisible(rc: RenderContext, feature: Feature, copy: number): bo
   );
 }
 
-/** Below this on-screen width, in CSS pixels, a country draws as a pin instead of its
- *  real shape — a per-frame decision from the current zoom, not a fixed property of the
- *  country. Tune by looking at the result: too low and micro-states are unclickable
- *  slivers before they're worth drawing as shapes; too high and mid-size islands stay
- *  pins longer than they should. */
-const PIN_MAX_WIDTH = 7;
+/* PIN_MAX_WIDTH, the capital ring's size and CAPITAL_MIN_SHAPE_WIDTH live in thresholds.ts,
+   shared with the quiz camera (follow.ts) and tied to each other there. */
 
 /** A feature's on-screen width in CSS pixels at the current zoom, from its (unwrapped,
  *  already-consistent — see topology.ts) bbox. A feature with no bbox at all has no
@@ -273,7 +270,8 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
  *  1. zoom >= CAPITAL_DOT_ZOOM_FACTOR x homeZoom — 6x is where the scale bar first reads
  *     500 km (measured at 1500x900: 2,000 km at 2-3x, 1,000 km at 4-5x, 500 km from 6x to
  *     ~12x). Big countries get their ring here.
- *  2. the capital's country is drawn as a real SHAPE this frame, not a pin (drawsAsPin).
+ *  2. the capital's country is drawn as a real SHAPE this frame, at least
+ *     CAPITAL_MIN_SHAPE_WIDTH wide (thresholds.ts; a pin's width plus the ring's own).
  *     Small and micro countries therefore get theirs later, when the country itself
  *     appears — Malta near 5x, Luxembourg well before 6x, Monaco and San Marino far
  *     deeper, Vatican City never (its own geometry is degenerate; the pin stands in).
@@ -286,7 +284,6 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
  */
 export const CAPITAL_DOT_ZOOM_FACTOR = 6;
 export const CAPITAL_LABEL_ZOOM_FACTOR = 9;
-const CAPITAL_RING_RADIUS = 3.4;
 const CAPITAL_PICK_RADIUS = 7;
 
 /** Whether the capitals layer draws (and can be hovered or clicked) this frame. quizMode
@@ -304,9 +301,12 @@ export function capitalsVisible(
   );
 }
 
-/** Second gate: the capital's country is a drawn shape right now, not a pin. */
+/** Second gate: the capital's country is a drawn shape right now, and wide enough that the
+ *  ring sits on an outline rather than floating beside it (CAPITAL_MIN_SHAPE_WIDTH, derived
+ *  from PIN_MAX_WIDTH in thresholds.ts — which also means it can never pass while the
+ *  country is still a pin). Rings, names and hit-testing all go through this. */
 function capitalShapeShowing(mark: PlaceMark, camera: CameraState): boolean {
-  return !drawsAsPin(mark.feature, camera);
+  return !drawsAsPin(mark.feature, camera) && onScreenWidth(mark.feature, camera) >= CAPITAL_MIN_SHAPE_WIDTH;
 }
 
 /** A small hollow ring — deliberately NOT the filled circle a micro-state pin is, so the
@@ -324,7 +324,7 @@ function drawCapitals(rc: RenderContext, world: World, style: Style): void {
     if (!capitalShapeShowing(mark, camera)) continue;
     ctx.beginPath();
     ctx.arc(x, y, CAPITAL_RING_RADIUS, 0, Math.PI * 2);
-    ctx.lineWidth = 3.4;
+    ctx.lineWidth = CAPITAL_RING_HALO * 2;
     ctx.strokeStyle = COLORS.capitalHalo;
     ctx.stroke();
     ctx.lineWidth = 1.5;
@@ -344,11 +344,9 @@ function drawQuizPlace(rc: RenderContext, mark: PlaceMark, style: Style): void {
   const { ctx, camera, viewport } = rc;
   const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
   if (x < -20 || x > viewport.width + 20 || y < -20 || y > viewport.height + 20) return;
-  // a city-state's target pin already carries its own ring and halo, at the same spot
-  if (style.showPins && drawsAsPin(mark.feature, camera)) {
-    const [px, py] = worldToScreen(camera, viewport, mark.feature.ux, mark.feature.uy);
-    if (Math.hypot(px - x, py - y) < 6) return;
-  }
+  // a country still drawn as a pin carries its own ring and halo (drawPins); a second ring
+  // beside it is a dot floating before its country has a shape
+  if (drawsAsPin(mark.feature, camera)) return;
   for (const [radius, width] of [[QUIZ_RING_RADIUS + QUIZ_RING_HALO_GAP, 2], [QUIZ_RING_RADIUS, 2.4]] as const) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);

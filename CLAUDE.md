@@ -33,13 +33,24 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
 - FSRS card per (country, facet), mastery derived, Dexie/IndexedDB, export/import/reset;
   study mode with 9 question kinds and `disputed:` facets.
 - Three quizzes on one shared engine (Countries, Flags, Capitals): continent scopes, a
-  computed size ladder, personal bests and run history, a camera that follows the
-  player with the continent as home, still layouts (`docs/quizzes.md`).
+  computed size ladder, personal bests and run history, still layouts (`docs/quizzes.md`).
+  One camera path for every new question (skip = answer): centres a target that isn't
+  comfortably inside, zooms in until it is legible (12 px wide; micro-states go far),
+  continent as home. Brass = question, red = revealed, green = correct. A capital ring never
+  shows before its country's outline (thresholds are derived in `app/lib/map/thresholds.ts`).
+- A capital alias may not be the country's own name (build throws; Monaco-style capital == name
+  is the exception). `npm run audit` (stale data) and `npm run audit:flags` (flag vs description)
+  exist; Bulgaria ships EUR; Syria's flag is a `content/flags/` override.
 
 - Deployment-ready as static files on Vercel (`vercel.json`, `public/404.html`); not yet deployed.
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
 **Next:**
+- `npm run audit` reports, not yet fixed (owner to approve each): Sierra Leone still `SLL`
+  (SLE since 2022), Zimbabwe ships Botswana pula (ZWG), Cuba `CUC` (abolished 2021), Palestine
+  `EGP` (a wrong currency; ILS is the usual), and the name "Cape Verde" vs the official Cabo Verde
+  (bare "Cabo Verde" is already an accepted answer). Indonesia's capital stays Jakarta until a
+  presidential decree moves it (Nusantara targeted 2028; re-check before release).
 - The `location` facet has no question kind yet (needs map-click interaction), which is why
   `ASKABLE_FACETS` filters it out. The next piece of study mode, not a bug.
 - The study-mode hint (drops one wrong option, grades a correct answer Hard) was a
@@ -154,7 +165,7 @@ Rules that follow from this layout:
 | Click a suggestion on the index panel | flies to it |
 | Open /country/<slug> cold (fresh load or shared link) | flies to it |
 | Press the ⌂ reset button | returns to world view |
-| A new quiz question | moves ONLY if the target isn't already visible — see "Camera: follows the player" |
+| A new quiz question (answer, skip or reveal alike) | returns the view if zoomed in, then moves ONLY if the target isn't comfortably visible and legible — one path, `Atlas#followTarget`; see `docs/quizzes.md` |
 | Wheel, drag, pinch, double-click | unchanged |
 
 Intent travels as React Router location state: `state={{ fly: true }}` on a `Link`,
@@ -167,7 +178,7 @@ calls them, not what they do.
 - **Places / capitals** (`docs/architecture.md`): do not add non-capital cities without a
   decision. Rings, labels and hit-testing all go through the one `capitalsVisible()`
   predicate, which `quizMode` turns off. Capital aliases are exact after `normaliseName`;
-  a collision throws at build time, and so does an alias equal to the country's own name or aliases (the capital being the name — Monaco — is the only exception).
+  a collision throws at build time, and so does an alias equal to the country's own name or aliases (the capital being the name — Monaco — is the only exception; San Marino's capital is overridden to "San Marino" so it fits that exception).
 - **Cards** (`docs/architecture.md`): one card per (country, facet), id `geo:BGR:capital`,
   lazy, mastery derived never stored, writes never awaited by the UI. **Every table the app
   writes must be covered by reset, export and import** — all three, same commit.
