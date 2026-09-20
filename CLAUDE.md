@@ -186,6 +186,7 @@ npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
 npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no browser
+npm run audit           # stale-data report: shipped fields vs a second dataset + a watchlist. Read-only. RUN BEFORE ANY RELEASE
 npm run audit:flags     # rasterises every flag, checks it against its authored description (needs Chromium)
 npm run perf            # serves build/client, drives a real browser, reports frame time
 ```
@@ -285,6 +286,11 @@ so nothing may depend on a webfont having loaded.
   why (`docs/decisions.md`). The build throws on an SVG with no note, a note with no SVG, or
   an ISO2 that isn't shipped, and prints `flag overrides N (XX)` so a fixed-upstream override
   gets noticed and deleted. Same rule as data overrides: closes gaps, never expresses an opinion.
+- Upstream data goes stale (Bulgaria's euro, Sierra Leone's leone). `npm run audit`
+  (`scripts/audit-freshness.mjs`) compares currency, capital and name against countries-list, a
+  second independent dataset, and checks a hand-kept watchlist of recent changes. It changes
+  nothing; a human decides each case and fixes it with an `override:` + note. Extend the
+  watchlist when the world changes something. Population is excluded on purpose.
 - `content/geography/confusable-flags.yaml` is the one content file that isn't
   per-country — a hand-curated list of flag pairs the "Name the Flag" quiz accepts for
   each other (see Quizzes). Same rule as everywhere else in `content/`: plain YAML,

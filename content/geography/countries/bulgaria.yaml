@@ -17,3 +17,11 @@ flag: "Three horizontal bands: white, green, red."
 outline: A blunt fist punching east toward the Black Sea.
 hook: Bulgaria gave the world the Cyrillic alphabet — every Russian letter traces back here.
 population: 6714560
+override:
+  currencyCode: EUR
+  currencyName: Euro
+  currencySymbol: "€"
+  note: >
+    Bulgaria adopted the euro on 1 January 2026 and the lev is no longer legal tender.
+    world-countries 5.1 still ships the Bulgarian lev (BGN); countries-list has EUR.
+    Delete this block once upstream catches up (npm run audit will show them agreeing).

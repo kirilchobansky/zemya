@@ -9,6 +9,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "node test/smoke.mjs",
+    "audit": "node scripts/audit-freshness.mjs",
     "audit:flags": "node scripts/audit-flags.mjs",
     "test:unit": "vitest run",
     "perf": "node test/perf.mjs"
@@ -36,6 +37,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "all-the-cities": "^3.1.0",
+    "countries-list": "^3.4.1",
     "country-json": "^2.3.0",
     "fake-indexeddb": "^6.2.5",
     "playwright": "^1.62.1",
