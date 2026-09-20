@@ -92,6 +92,7 @@ country at build time — the fix for a hole is a map entry in `ABSORB` in
 
 ```
 content/geography/      hand-authored YAML, one file per country. THE MOAT.
+content/flags/          flag overrides: <iso2>.svg + mandatory <iso2>.note.md. Empty unless upstream is wrong.
 scripts/                content/ + upstream datasets -> public/data/
 app/root.tsx            the HTML document itself + the top-level App
 app/routes.ts           the route table
@@ -278,6 +279,11 @@ so nothing may depend on a webfont having loaded.
   alias may deliberately be shared ("Congo" is accepted for both Congos); `remove` must
   name an alias that exists, so an upstream rename fails the build. Today: Thailand drops
   "Thai" (the people, not the country), the UK adds "UK", both Congos add "Congo".
+- Flag images come from svg-country-flags, which mirrors Wikimedia and lags it. When one is
+  stale, drop the corrected file in `content/flags/<iso2>.svg` with `<iso2>.note.md` saying
+  why (`docs/decisions.md`). The build throws on an SVG with no note, a note with no SVG, or
+  an ISO2 that isn't shipped, and prints `flag overrides N (XX)` so a fixed-upstream override
+  gets noticed and deleted. Same rule as data overrides: closes gaps, never expresses an opinion.
 - `content/geography/confusable-flags.yaml` is the one content file that isn't
   per-country — a hand-curated list of flag pairs the "Name the Flag" quiz accepts for
   each other (see Quizzes). Same rule as everywhere else in `content/`: plain YAML,

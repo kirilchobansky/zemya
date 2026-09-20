@@ -809,8 +809,43 @@ function withIntrinsicSize(svg, w, h, iso2) {
   return svg.slice(0, rootTag.index) + injectedTag + svg.slice(rootTag.index + rootTag[0].length);
 }
 
+/**
+ * content/flags/<iso2>.svg replaces the upstream file, and content/flags/<iso2>.note.md says
+ * why upstream is wrong. svg-country-flags mirrors Wikimedia and lags it (Syria's pre-2024
+ * flag was still shipping in 2026). Same rule as the `override:` block on a country: this
+ * closes an upstream gap and is never a place to express an opinion, so a file without a
+ * note, a note without a file, or an override for a country that doesn't ship all fail the
+ * build. The summary line lists the overrides so one that upstream has since fixed stays
+ * visible and can be deleted.
+ */
+const flagOverridesDir = join(root, 'content', 'flags');
+const flagOverrides = new Map(); // iso2 -> path of the replacement svg
+if (existsSync(flagOverridesDir)) {
+  const where = 'content/flags';
+  const files = readdirSync(flagOverridesDir);
+  const stems = new Set();
+  for (const file of files) {
+    const m = file.match(/^([a-z]{2})\.(svg|note\.md)$/);
+    if (!m) throw new Error(`${where}/${file}: expected <iso2>.svg or <iso2>.note.md (lower-case ISO 3166-1 alpha-2)`);
+    stems.add(m[1]);
+  }
+  for (const iso2 of [...stems].sort()) {
+    if (!wantedFlags.has(iso2)) {
+      throw new Error(`${where}/${iso2}.*: "${iso2}" is not a shipped country — remove the override`);
+    }
+    if (!files.includes(`${iso2}.svg`)) {
+      throw new Error(`${where}/${iso2}.note.md has no ${iso2}.svg beside it`);
+    }
+    const notePath = join(flagOverridesDir, `${iso2}.note.md`);
+    if (!existsSync(notePath) || !readFileSync(notePath, 'utf8').trim()) {
+      throw new Error(`${where}/${iso2}.svg needs a non-empty ${iso2}.note.md explaining why upstream is wrong`);
+    }
+    flagOverrides.set(iso2, join(flagOverridesDir, `${iso2}.svg`));
+  }
+}
+
 for (const iso2 of wantedFlags) {
-  const svgPath = join(flagsSrcDir, `${iso2}.svg`);
+  const svgPath = flagOverrides.get(iso2) ?? join(flagsSrcDir, `${iso2}.svg`);
   const svg = readFileSync(svgPath, 'utf8');
   const { w, h } = viewBoxSize(svg, iso2);
   byIso2.get(iso2).flagRatio = w / h;
@@ -914,6 +949,10 @@ console.log(`geometries     ${full.geometries.length}`);
 console.log(`lakes          ${full.lakes.length} (${full.lakes.map(l => l.id).join(', ')})`);
 console.log(`places         ${places.length} (capitals)`);
 console.log(`capital aliases ${totalCapitalAliases} extra across ${capitalAliasEntries.size} countries`);
+console.log(
+  `flag overrides ${flagOverrides.size}` +
+    (flagOverrides.size ? ` (${[...flagOverrides.keys()].map(k => k.toUpperCase()).join(', ')})` : '')
+);
 console.log(`no polygon     ${noPolygon.length ? noPolygon.join(', ') : 'none'}`);
 console.log(`world.json     ${(json.length / 1024).toFixed(0)} KB`);
 console.log(`world-coarse   ${(coarseJson.length / 1024).toFixed(0)} KB`);

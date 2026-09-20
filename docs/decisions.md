@@ -222,3 +222,18 @@ Moved from CLAUDE.md's Content conventions (the short rule stays there).
   religion). A disputed facet is excluded from the question rotation and from that
   country's mastery denominator; the dossier still shows the value, with the reason on
   hover. Reach for this instead of picking a source and asserting precision nobody has.
+
+## Flag overrides
+
+`content/flags/<iso2>.svg` replaces the svg-country-flags file of the same ISO2 at build
+time; `<iso2>.note.md` is mandatory and says what upstream got wrong. Shape and rules mirror
+the country `override:` block above. First use: Syria, whose upstream file was still the
+pre-2024 Ba'athist flag (the authored `flag:` description was already right).
+
+Colours are not officially specified. Article 6 of Syria's 2025 Constitutional Declaration
+fixes band order, the 2:3 ratio and "three red stars" in the white band, and nothing else;
+Wikipedia's colour table is annotated "do not revise until flag is officially standardized"
+and cites third-party colour sites. `sy.svg` therefore uses the conventional values
+Wikimedia's own SVG uses (#007a3d, #ce1126) and its geometry (stars centred on the white
+band at 1/4, 1/2, 3/4, bounding height 150 of 900x600). Say so in the note; revisit if an
+official specification is published.
