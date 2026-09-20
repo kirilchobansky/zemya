@@ -9,6 +9,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "node test/smoke.mjs",
+    "audit:flags": "node scripts/audit-flags.mjs",
     "test:unit": "vitest run",
     "perf": "node test/perf.mjs"
   },

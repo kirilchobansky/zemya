@@ -186,6 +186,7 @@ npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
 npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no browser
+npm run audit:flags     # rasterises every flag, checks it against its authored description (needs Chromium)
 npm run perf            # serves build/client, drives a real browser, reports frame time
 ```
 
