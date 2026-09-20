@@ -45,3 +45,13 @@ browser at 1500x900, waits for the map to paint, then simulates a pan (90 synthe
 reports time-to-painted-map and median/p95/worst frame time. **Any change touching
 `app/lib/map/` runs `npm run perf` and reports the number in the commit message** — "it
 feels smoother" is not evidence.
+
+## Next step: content-addressed data URLs (noted, not built)
+
+On Vercel, `/data/*` and `/flags/*` keep the same filename every build, so they can only be
+served `must-revalidate` (an immutable cache would serve stale content after a content
+update). That costs a conditional round trip per asset on every visit. The real fix:
+`scripts/build-content.mjs` emits a build hash, the client fetches `world.json?v=<hash>`
+(and the flags likewise), and those responses can then be `immutable` like `/assets/*`.
+Not built yet. Revalidation on a warm cache is a 304 with no body, so the cost is latency,
+not bandwidth; do it when repeat-visit load time is measured to matter.

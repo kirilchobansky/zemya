@@ -58,6 +58,35 @@ Commit both the YAML and the regenerated `public/data/geography/*.json` in the s
 commit — there is no CI here to catch a drift between them (see CLAUDE.md's Git
 conventions).
 
+## Deploying
+
+Zemya deploys to Vercel as pure static files; `build/server` is emitted but never used,
+because every route is prerendered. `vercel.json` carries the settings:
+
+- **Build command** `npm run build`, **output directory** `build/client`, framework
+  preset none (so Vercel doesn't try to run the server build). Nothing serverless.
+- **URLs** have no trailing slash (`cleanUrls`, `trailingSlash: false`); `/country/bulgaria/`
+  redirects to `/country/bulgaria`. Deep links are the only acquisition channel.
+- **`*.data`** is served as `text/x-script`, what React Router's own server sends. These
+  are fetched on client-side navigation, and the wrong type fails silently.
+- **Caching**: `/assets/*` is `immutable` for a year (Vite hashes the filenames); everything
+  else, including `/data/*`, `/flags/*`, HTML and `.data`, must revalidate because those
+  filenames don't change between builds. Making the data URLs content-addressed is the
+  planned fix — `docs/performance.md`.
+- **404**: `public/404.html`, a static page with no dependency on the app bundle.
+
+Note: Vercel's Hobby tier forbids commercial use.
+
+Verify before deploying:
+
+```bash
+npm run typecheck
+npm run build:content
+npx react-router build   # or npm run build, which runs build:content first
+npm run test:unit
+npm test                 # needs the build above; CHROMIUM_PATH in the sandbox
+```
+
 ## Data sources
 
 Every dataset the project uses, what it is for, and its licence. Licences were read from

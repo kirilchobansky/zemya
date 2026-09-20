@@ -36,6 +36,7 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
   computed size ladder, personal bests and run history, a camera that follows the
   player with the continent as home, still layouts (`docs/quizzes.md`).
 
+- Deployment-ready as static files on Vercel (`vercel.json`, `public/404.html`); not yet deployed.
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
 **Next:**
@@ -80,7 +81,7 @@ country at build time — the fix for a hole is a map entry in `ABSORB` in
 | --- | --- | --- |
 | Platform | Web, PWA-installable | Install friction kills education tools. Deep links are the only free acquisition channel. |
 | Framework | React 19 + Vite 8 + TypeScript + React Router **v8** (framework mode) | Owner already knows React. The perf-critical part is canvas, which is framework-agnostic. Framework mode pre-renders, so `/country/bulgaria` is a crawlable document. (v8, not the v7 first discussed — v8 is current and the config is the same shape.) |
-| Hosting | Cloudflare Pages, fully static | No server needed. Free. Preview URL per PR. |
+| Hosting | **Vercel**, static only (`vercel.json`; output `build/client`, nothing serverless) | Owner already knows it, and deploy friction is the bigger risk than the bandwidth difference. Originally Cloudflare Pages (free, unmetered bandwidth, preview URL per PR); changed before first deploy, so no migration happened. **Hobby tier forbids commercial use** — if Zemya is ever monetised, hosting must move or be paid for. A real constraint, not a footnote. |
 | Backend | **None for now** | Ship without accounts. Local-first from day one so adding sync later costs nothing in perceived speed. |
 | Storage | IndexedDB via **Dexie 4.4.6**, local-first | Every interaction must be 0 ms. Never block UI on network. |
 | Scheduling | **ts-fsrs 5.4.2** (FSRS), not SM-2, not a 3-in-a-row toy | Modern open algorithm, real intervals and due dates. MIT, open-spaced-repetition org, actively maintained — checked before pinning. |
@@ -125,6 +126,13 @@ Rules that follow from this layout:
 - Anything reading `public/data/*.json` from disk lives in a `*.server.ts` file, so the
   bundler strips it from the client. A 154 KB catalogue must never ship to a browser
   twice.
+- Hosting config is `vercel.json` plus `public/404.html`. Decisions made there: no trailing
+  slash (`trailingSlash: false`, `cleanUrls: true`; the build emits `x/index.html` beside
+  `x.data`); `/*.data` is served as `text/x-script`, matching what React Router's own server
+  sends — a wrong type breaks client navigation silently; everything except `/assets/` must
+  revalidate; `framework: null` so Vercel doesn't try to deploy `build/server`; the 404 page
+  is a hand-written static file with its tokens inlined (no route renders for unknown URLs
+  on a static host). Unhashed data caching: `docs/performance.md`.
 - Route loaders run at **build time** — every page is prerendered. Node APIs are fine in
   them; `window` is not.
 
