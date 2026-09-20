@@ -303,7 +303,7 @@ export function capitalsVisible(
 function capitalShapeShowing(mark: PlaceMark, camera: CameraState, viewport: Viewport): boolean {
   if (drawsAsPin(mark.feature, camera) || onScreenWidth(mark.feature, camera) < CAPITAL_MIN_SHAPE_WIDTH) return false;
   const home = homeZoom(viewport);
-  return camera.zoom >= home * capitalRevealFactor(mark.feature.country.area, mark.place.lat, home);
+  return camera.zoom >= home * capitalRevealFactor(mark.feature.country.area, mark.place.lat, home, mark.place.iso3);
 }
 
 /** A small hollow ring — deliberately NOT the filled circle a micro-state pin is, so the

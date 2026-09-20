@@ -186,6 +186,12 @@ describe('capitals layer', () => {
     }
     for (const tiny of ['LIE', 'MDV', 'BRB', 'KNA']) expect(first[tiny], tiny).toBeGreaterThan(first.BGR * 4);
     expect(first.LIE).toBeGreaterThan(first.LUX);
+    // hand-set to 200x: Liechtenstein, Saint Vincent, Antigua (within one sweep step of it)
+    for (const iso3 of ['LIE', 'VCT', 'ATG']) {
+      const f = iso3 in first ? first[iso3] : firstFactor(iso3).factor;
+      expect(f, iso3).toBeGreaterThanOrEqual(200);
+      expect(f, iso3).toBeLessThan(200 * 1.06);
+    }
 
     // and the NAME arrives at that same zoom, not after it: one step before, neither; at it, both
     for (const iso3 of ['LIE', 'CYP', 'MDV']) {

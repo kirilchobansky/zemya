@@ -67,7 +67,7 @@ as a real shape, at least `CAPITAL_MIN_SHAPE_WIDTH` wide (a pin's width plus the
 (3) zoom >= `capitalRevealFactor(area, lat)`: the capital waits until the country's equivalent
 square (side = sqrt(area), Mercator-corrected) is `CAPITAL_REVEAL_SIDE_PX` (60) across, capped at
 200x. Big countries are past that at 9x; Cyprus/Jamaica come ~24-26x, Luxembourg 36x, Malta,
-Liechtenstein, the Maldives and the Caribbean islands 100-170x, Monaco/San Marino/Tuvalu at the cap.
+the Maldives and the Caribbean islands 100-170x, Monaco/San Marino/Tuvalu at the cap. Liechtenstein, Saint Vincent and Antigua are hand-set to 200x (`CAPITAL_REVEAL_OVERRIDES`, owner request after playing).
 A calculation from area, not a per-country list, so a new country needs nothing. Area rather than
 bbox width, because an archipelago's bbox is wide and its land isn't. Names try beside the ring,
 then left, below, above before giving up, because a tiny country's own name sits on its capital.

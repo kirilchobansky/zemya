@@ -46,6 +46,13 @@ export const CAPITAL_REVEAL_SIDE_PX = 60;
 /** ...but never asking for more zoom than this (x homeZoom): the smallest states hit the
  *  CAPITAL_MIN_SHAPE_WIDTH outline gate first, and the camera's own cap is 320x. */
 export const CAPITAL_REVEAL_MAX_FACTOR = 200;
+/** Hand-set exceptions to the area rule, by ISO3, in x homeZoom: countries the owner found still too
+ *  early after playing. Data, not code — add a line to push another one later. */
+export const CAPITAL_REVEAL_OVERRIDES: Record<string, number> = {
+  LIE: CAPITAL_REVEAL_MAX_FACTOR, // Liechtenstein
+  VCT: CAPITAL_REVEAL_MAX_FACTOR, // Saint Vincent and the Grenadines
+  ATG: CAPITAL_REVEAL_MAX_FACTOR // Antigua and Barbuda
+};
 const EQUATOR_KM = 40075;
 
 /**
@@ -53,7 +60,9 @@ const EQUATOR_KM = 40075;
  * big, later for small ones. `homePx` is homeZoom(viewport): world-width in px at factor 1.
  * Mercator stretches by 1/cos(lat), so a high-latitude country needs less zoom for the same side.
  */
-export function capitalRevealFactor(areaKm2: number, latDeg: number, homePx: number): number {
+export function capitalRevealFactor(areaKm2: number, latDeg: number, homePx: number, iso3?: string): number {
+  const fixed = iso3 ? CAPITAL_REVEAL_OVERRIDES[iso3] : undefined;
+  if (fixed !== undefined) return fixed;
   const side = Math.sqrt(Math.max(areaKm2, 1));
   const cos = Math.max(0.05, Math.cos((latDeg * Math.PI) / 180));
   const pxWorld = (CAPITAL_REVEAL_SIDE_PX * EQUATOR_KM * cos) / side;
