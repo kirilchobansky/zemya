@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/kirilchobansky/zemya#readme",
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "dexie": "4.4.6",
     "isbot": "^5",
     "react": "^19.2.8",
