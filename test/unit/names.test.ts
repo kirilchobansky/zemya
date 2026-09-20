@@ -125,6 +125,38 @@ describe('matchesCapital', () => {
     }
   });
 
+  it("rejects the country's own name as its capital, except where the capital IS the name", () => {
+    const by = (slug: string) => countryBySlug(slug)!;
+    // the city and the country share a prefix, not a name — typing the country must not score
+    for (const [typed, slug] of [
+      ['Andorra', 'andorra'], ['Guatemala', 'guatemala'], ['Kuwait', 'kuwait'],
+      ['Panama', 'panama'], ['Mexico', 'mexico'], ['Saudi Arabia', 'saudi-arabia']
+    ]) {
+      expect(matchesCapital(typed, by(slug)), typed).toBe(false);
+    }
+    expect(matchesCapital('Andorra la Vella', by('andorra'))).toBe(true);
+    // the capital IS the country's name: nothing to do about it, and it must keep working
+    for (const [typed, slug] of [
+      ['Monaco', 'monaco'], ['Singapore', 'singapore'], ['San Marino', 'san-marino'],
+      ['Vatican City', 'vatican-city'], ['Luxembourg', 'luxembourg'], ['Djibouti', 'djibouti']
+    ]) {
+      expect(matchesCapital(typed, by(slug)), typed).toBe(true);
+    }
+    // real short forms and other-language spellings stay
+    expect(matchesCapital('Washington', by('united-states'))).toBe(true);
+    expect(matchesCapital('Brussel', by('belgium'))).toBe(true);
+  });
+
+  it('no capital alias equals its country\'s name or aliases unless the capital is the name', () => {
+    for (const c of allCountries()) {
+      if (normaliseName(c.capital!) === normaliseName(c.name)) continue;
+      const own = new Set([c.name, ...c.aliases].map(normaliseName));
+      for (const alias of c.capitalAliases) {
+        expect(own.has(normaliseName(alias)), `${c.iso3}: ${alias}`).toBe(false);
+      }
+    }
+  });
+
   it('normalisation alone handles diacritics, apostrophes and punctuation', () => {
     expect(ownersOf('Bogota')).toEqual(['COL']);
     expect(ownersOf('sao tome')).toEqual(['STP']);

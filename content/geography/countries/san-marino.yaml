@@ -17,3 +17,10 @@ flag: White over light blue with the three-towered coat of arms.
 outline: A pinprick on an Italian mountaintop.
 hook: The world's oldest surviving republic — founded in the year 301.
 population: 33642
+override:
+  capital: San Marino
+  note: >
+    world-countries lists the official long form "City of San Marino". The city is San Marino
+    everywhere else, including GeoNames, and the country shares the name, so this makes the
+    capital the same string as the country like Monaco and Singapore. "City of San Marino" is
+    still accepted as a capital alias.

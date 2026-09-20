@@ -12,6 +12,9 @@
 #   - there is NO fuzzy matching. A typo is wrong, on purpose.
 #
 # Every entry needs a `note` saying why the extra name is a real alternative, not a guess.
+# A capital alias may not be the country's own name or one of its aliases ("Guatemala" for
+# Guatemala City would let the player score by typing the country) — the build throws. The one
+# exception is a capital that IS the country's name (Monaco, Singapore, Vatican City).
 # A normalised name may belong to only ONE country: build-content.mjs throws if two
 # countries claim the same one. GeoNames' own `altName` field was investigated as a seed
 # and is empty for 196 of the 197 capitals (the 197th is the junk value "IT"), so this
@@ -66,8 +69,8 @@ aliases:
     add: [Bloemfontein, Cape Town]
     note: Three official capitals — Pretoria (executive), Bloemfontein (judicial), Cape Town (legislative).
   - country: San Marino
-    add: [San Marino]
-    note: The authored capital is "City of San Marino"; the city is universally just "San Marino".
+    add: [City of San Marino]
+    note: The official long form; the authored capital is the city's everyday name (see san-marino.yaml).
   - country: Kiribati
     add: [Tarawa]
     note: The atoll; the authored "South Tarawa" is the part of it that holds the government.
@@ -101,21 +104,9 @@ aliases:
   - country: Algeria
     add: [Alger]
     note: The French name.
-  - country: Panama
-    add: [Panama]
-    note: The city and country share a name; a bare "Panama" is what people type.
   - country: Mexico
     add: [Ciudad de Mexico]
     note: The Spanish name. A bare "Mexico" is not accepted — the answer is "Mexico City".
-  - country: Guatemala
-    add: [Guatemala]
-    note: The city and country share a name.
-  - country: Kuwait
-    add: [Kuwait]
-    note: The city and country share a name.
-  - country: Andorra
-    add: [Andorra]
-    note: Usually shortened.
   - country: Czechia
     add: [Praha]
     note: The Czech name.

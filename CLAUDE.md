@@ -167,7 +167,7 @@ calls them, not what they do.
 - **Places / capitals** (`docs/architecture.md`): do not add non-capital cities without a
   decision. Rings, labels and hit-testing all go through the one `capitalsVisible()`
   predicate, which `quizMode` turns off. Capital aliases are exact after `normaliseName`;
-  a collision throws at build time.
+  a collision throws at build time, and so does an alias equal to the country's own name or aliases (the capital being the name — Monaco — is the only exception).
 - **Cards** (`docs/architecture.md`): one card per (country, facet), id `geo:BGR:capital`,
   lazy, mastery derived never stored, writes never awaited by the UI. **Every table the app
   writes must be covered by reset, export and import** — all three, same commit.

@@ -479,9 +479,33 @@ for (const entry of capitalAliasDoc.aliases ?? []) {
   capitalAliasEntries.set(country.iso3, entry.add.map(String));
 }
 
+/**
+ * THE COUNTRY-NAME RULE: a capital alias may not equal the country's own name, or any of its
+ * own aliases, after normalisation — typing the country in a capitals quiz must never score.
+ * The exception is a capital that genuinely IS the country's name (Monaco, Singapore, San
+ * Marino, Vatican City, Luxembourg, Djibouti): there the answer and the name coincide and there
+ * is nothing to do about it. Throws, like the collision check below, because a capital alias
+ * is hand-written and a violation is a mistake to fix. "Guatemala" for Guatemala City fails
+ * this; "Washington" for the United States and "Brussel" for Belgium do not.
+ */
+const capitalIsCountryName = country => normaliseAlias(country.capital) === normaliseAlias(country.name);
+function assertNotCountryName(country, name) {
+  if (capitalIsCountryName(country)) return;
+  const key = normaliseAlias(name);
+  const own = [country.name, ...country.aliases].some(n => normaliseAlias(n) === key);
+  if (own) {
+    throw new Error(
+      `content/geography/capital-aliases.yaml: "${name}" is ${country.name}'s own name or alias, so ` +
+        `it can't also be accepted as its capital ("${country.capital}") — typing the country would score`
+    );
+  }
+}
+
 const capitalClaimedBy = new Map(); // normalised name -> Set of iso3
 for (const country of countries) {
-  const names = [country.capital, ...(capitalAliasEntries.get(country.iso3) ?? [])];
+  const extras = capitalAliasEntries.get(country.iso3) ?? [];
+  for (const name of extras) assertNotCountryName(country, name);
+  const names = [country.capital, ...extras];
   const kept = [];
   for (const name of names) {
     const key = normaliseAlias(name);
