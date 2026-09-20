@@ -139,10 +139,10 @@ describe('capitals layer', () => {
     expect(by('BDI').name).toBe('Gitega');
   });
 
-  it('draws no rings below the dot threshold and rings above it', async () => {
-    const below = await draw({ showCapitals: true }, 5.5);
+  it('draws no rings below the capital threshold (9x) and rings above it', async () => {
+    const below = await draw({ showCapitals: true }, 8);
     expect(below.ctx.arc).not.toHaveBeenCalled();
-    const above = await draw({ showCapitals: true }, 6.5);
+    const above = await draw({ showCapitals: true }, 10);
     expect(above.ctx.arc).toHaveBeenCalled();
   });
 
@@ -151,12 +151,54 @@ describe('capitals layer', () => {
     expect(ctx.arc).not.toHaveBeenCalled();
   });
 
-  it('labels capitals only above the label threshold', async () => {
-    const dotsOnly = await draw({ showCapitals: true }, 7);
-    const names = dotsOnly.world.places.map(m => m.place.name);
-    expect(drawnText(dotsOnly.ctx, names)).toEqual([]);
-    const labelled = await draw({ showCapitals: true }, 12);
-    expect(drawnText(labelled.ctx, names).length).toBeGreaterThan(0);
+  it('a ring and its name appear together — never a ring alone', async () => {
+    const early = await draw({ showCapitals: true }, 8);
+    const names = early.world.places.map(m => m.place.name);
+    expect(early.ctx.arc).not.toHaveBeenCalled();
+    expect(drawnText(early.ctx, names)).toEqual([]);
+    const late = await draw({ showCapitals: true }, 12);
+    expect(late.ctx.arc).toHaveBeenCalled();
+    expect(drawnText(late.ctx, names).length).toBeGreaterThan(0);
+  });
+
+  it('small countries wait longer, by area — Liechtenstein, the Maldives and the Caribbean much later', async () => {
+    const { render, pickPlace } = await import('~/lib/map/renderer');
+    const { homeZoom, worldToScreen } = await import('~/lib/map/camera');
+    const world = await loadRealWorld();
+    /** The first zoom factor (x home) at which this capital's ring can be picked, centred on it. */
+    const firstFactor = (iso3: string) => {
+      const mark = world.places.find(m => m.place.iso3 === iso3)!;
+      for (let factor = 1; factor <= 320; factor *= 1.06) {
+        const camera = { x: mark.ux, y: mark.uy, zoom: homeZoom(viewport) * factor };
+        const [sx, sy] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+        if (pickPlace({ ctx: mockCtx(), camera, viewport, dpr: 1 }, world, { showCapitals: true }, sx, sy)) return { factor, mark };
+      }
+      return { factor: Infinity, mark };
+    };
+    const first: Record<string, number> = {};
+    for (const iso3 of ['BGR', 'CYP', 'JAM', 'LUX', 'MLT', 'LIE', 'MDV', 'BRB', 'KNA']) first[iso3] = firstFactor(iso3).factor;
+
+    for (const factor of Object.values(first)) expect(factor).toBeGreaterThanOrEqual(9);
+    expect(first.BGR).toBeLessThan(first.CYP);
+    // "one or two zooms" (doublings) after a mid-size country, and much later for the tiny ones
+    for (const small of ['LUX', 'MLT', 'LIE', 'MDV', 'BRB', 'KNA']) {
+      expect(first[small], small).toBeGreaterThan(first.CYP);
+    }
+    for (const tiny of ['LIE', 'MDV', 'BRB', 'KNA']) expect(first[tiny], tiny).toBeGreaterThan(first.BGR * 4);
+    expect(first.LIE).toBeGreaterThan(first.LUX);
+
+    // and the NAME arrives at that same zoom, not after it: one step before, neither; at it, both
+    for (const iso3 of ['LIE', 'CYP', 'MDV']) {
+      const { factor, mark } = firstFactor(iso3);
+      const at = (f: number) => {
+        const ctx = mockCtx();
+        const camera = { x: mark.ux, y: mark.uy, zoom: homeZoom(viewport) * f };
+        render({ ctx, camera, viewport, dpr: 1 }, world, { ...plain, showCapitals: true }, new Set(), 'sans-serif');
+        return drawnText(ctx, [mark.place.name]).length;
+      };
+      expect(at(factor / 1.06 / 1.02), `${iso3} name just before`).toBe(0);
+      expect(at(factor * 1.001), `${iso3} name with its ring`).toBeGreaterThan(0);
+    }
   });
 
   it('a micro-state gets its ring only once its own shape shows, not at the global threshold', async () => {
@@ -177,7 +219,7 @@ describe('capitals layer', () => {
     expect(rings(12).arcs).toBeGreaterThan(0);
     expect(rings(12).hit).toBeNull();
     // deep enough that Monaco is a real shape: its ring shows and can be picked
-    const deep = rings(200);
+    const deep = rings(320);
     expect(deep.arcs).toBeGreaterThan(0);
     expect(deep.hit?.place.name).toBe('Monaco');
   });
@@ -224,7 +266,7 @@ describe('capitals layer', () => {
   });
 
   it('quizMode draws no capital ring and no capital name, at a zoom where both would show', async () => {
-    const { ctx, world } = await draw({ showCapitals: true, quizMode: true }, 8);
+    const { ctx, world } = await draw({ showCapitals: true, quizMode: true }, 12);
     expect(ctx.arc).not.toHaveBeenCalled();
     expect(ctx.fillText).not.toHaveBeenCalled();
     expect(ctx.strokeText).not.toHaveBeenCalled();
@@ -236,7 +278,7 @@ describe('capitals layer', () => {
     const { pickPlace } = await import('~/lib/map/renderer');
     const { worldToScreen } = await import('~/lib/map/camera');
     const world = await loadRealWorld();
-    const camera = await europe(8);
+    const camera = await europe(12);
     const vienna = world.places.find(m => m.place.iso3 === 'AUT')!;
     const [sx, sy] = worldToScreen(camera, viewport, vienna.ux, vienna.uy);
     const rc = { ctx: mockCtx(), camera, viewport, dpr: 1 };
@@ -245,7 +287,7 @@ describe('capitals layer', () => {
     expect(pickPlace(rc, world, { showCapitals: true }, sx + 40, sy + 40)).toBeNull();
     expect(pickPlace(rc, world, { showCapitals: true, quizMode: true }, sx, sy)).toBeNull();
     expect(pickPlace(rc, world, { showCapitals: false }, sx, sy)).toBeNull();
-    expect(pickPlace({ ...rc, camera: await europe(5) }, world, { showCapitals: true }, sx, sy)).toBeNull();
+    expect(pickPlace({ ...rc, camera: await europe(8) }, world, { showCapitals: true }, sx, sy)).toBeNull();
   });
 
   it('quizMode draws ONLY the quiz target\'s ring, at world zoom, and still no text', async () => {

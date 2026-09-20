@@ -29,7 +29,7 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
   Natural Earth at build time; antimeridian countries and absorbed territories render
   correctly. Vatican City stays a pin (degenerate source geometry). The Caspian is water;
   the Great Lakes, Victoria and Baikal are not.
-- Capitals as a map layer (rings 6x, names 9x, off in quizzes) — `docs/architecture.md`.
+- Capitals as a map layer (ring + name together from 9x, later for small countries by area, off in quizzes) — `docs/architecture.md`.
 - FSRS card per (country, facet), mastery derived, Dexie/IndexedDB, export/import/reset;
   study mode with 9 question kinds and `disputed:` facets.
 - Three quizzes on one shared engine (Countries, Flags, Capitals): continent scopes, a

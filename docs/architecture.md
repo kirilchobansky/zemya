@@ -60,20 +60,19 @@ Amsterdam (The Hague is the seat of government), Israel = Jerusalem and Palestin
 Ramallah (both politically contested — see the disputed-facet mechanism if it should stop
 being quizzed).
 
-**Visibility rule** (`renderer.ts`): a capital's ring needs BOTH (1) zoom >=
-`CAPITAL_DOT_ZOOM_FACTOR` x homeZoom = **6x**, and (2) its country drawn as a real shape this
-frame, not a pin (`capitalShapeShowing`, the same `drawsAsPin` the pins use). Names need
-`CAPITAL_LABEL_ZOOM_FACTOR` = **9x**. Rings, names, hover and click all share the rule, so a
-ring you can't see can't be hit. Why: 6x is where the scale bar first reads **500 km**
-(measured at 1500x900 in a real browser: 5,000 km at 1x, 2,000 at 2-3x, 1,000 at 4-5x, 500
-from 6x to ~12x, 200 at 15x) — big countries get their ring there. Rule (2) makes small
-countries wait for their own shape (Luxembourg-sized: before 6x, so they get it at 6x;
-Malta near 5x; Monaco/San Marino far deeper; Vatican City never — degenerate geometry, its
-pin stands in), which is the owner's "micro and small when the country itself appears".
-These replaced 2x / 5x (rings at 2x were a rash across Europe; the owner asked for later).
-Looked at 5x (none), 6.5x (rings, no names, bar 500 km), 9.5x (names, no collisions with
-country labels). Names at 9x were not tuned finer — "good", not "optimal". The old 2x/5x
-rationale ("capitals appear before micro-state shapes") no longer holds by design.
+**Visibility rule** (`renderer.ts`, `thresholds.ts`): a capital's **ring and name appear together** —
+never a ring alone. All must hold: (1) zoom >= `CAPITAL_ZOOM_FACTOR` x homeZoom = **9x** (the old
+name threshold; the ring used to come at 6x and read as an unlabelled dot); (2) its country is drawn
+as a real shape, at least `CAPITAL_MIN_SHAPE_WIDTH` wide (a pin's width plus the ring's diameter);
+(3) zoom >= `capitalRevealFactor(area, lat)`: the capital waits until the country's equivalent
+square (side = sqrt(area), Mercator-corrected) is `CAPITAL_REVEAL_SIDE_PX` (60) across, capped at
+200x. Big countries are past that at 9x; Cyprus/Jamaica come ~24-26x, Luxembourg 36x, Malta,
+Liechtenstein, the Maldives and the Caribbean islands 100-170x, Monaco/San Marino/Tuvalu at the cap.
+A calculation from area, not a per-country list, so a new country needs nothing. Area rather than
+bbox width, because an archipelago's bbox is wide and its land isn't. Names try beside the ring,
+then left, below, above before giving up, because a tiny country's own name sits on its capital.
+Rings, names, hover and click all share `capitalShapeShowing`, so a ring you can't see can't be
+hit. Tuned by playing (zoom sweeps into Liechtenstein, Cyprus, Monaco); the unit tests sweep it.
 
 **Labels compete with country labels** for one collision list (`drawLabels` fills it with
 country names first, larger claim, then `drawPlaceLabels` adds cities by descending

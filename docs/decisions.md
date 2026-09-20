@@ -34,9 +34,8 @@ summary; the per-feature narrative behind it is the first section below.
   The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
 - Capital cities as a map layer: 197 `places` (`{ name, iso3, kind: 'capital', lon, lat,
   population }`) in both geometry payloads, drawn as a hollow ring (never the filled
-  circle micro-state pins use) above `CAPITAL_DOT_ZOOM_FACTOR` (6x homeZoom, the 500 km scale, and
-  only once the country itself is a shape) with the
-  name beside it above `CAPITAL_LABEL_ZOOM_FACTOR` (9x), a "Capitals" toolbar toggle
+  circle micro-state pins use) together with its name from `CAPITAL_ZOOM_FACTOR` (9x homeZoom, later for small
+  countries by area, and only once the country itself is a shape — see architecture.md), a "Capitals" toolbar toggle
   (default on), hover tooltip with the city name, and click selecting the *country* (no
   city page). Suppressed entirely under `quizMode`. See "Places and capitals" in architecture.md.
 - Capital name matching (`capitalAliases` on every country record, `matchesCapital` in

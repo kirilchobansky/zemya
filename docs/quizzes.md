@@ -286,7 +286,7 @@ player sees is the countries quiz's screen: the target country in `--brass`, the
 (roughly) the world view, an input docked at the bottom. `markCapital: true` on the
 definition puts `showCapital` on the `QuizOverride`, which `atlas.tsx` turns into the
 renderer's `Style.quizPlace` — the target's own capital, drawn as two concentric ink rings
-(`drawQuizPlace`) at **any** zoom, because the ordinary capital rings only exist above 6x
+(`drawQuizPlace`) at **any** zoom, because the ordinary capital rings only exist above 9x
 and the quiz stays near 1x. Every *other* capital ring, every place label and every place
 tooltip stay off under `quizMode`. **The highlight is the question** — nothing on screen
 names the country, and nothing names the city until a reveal.

@@ -12,7 +12,9 @@ import type { CameraState, Viewport } from './camera';
 import { homeZoom, worldToScreen } from './camera';
 import { kmPerPixel, wrapX, yToLat, lonToX, latToY } from './projection';
 import type { Feature, PlaceMark, World } from './types';
-import { CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, PIN_MAX_WIDTH } from './thresholds';
+import {
+  CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, PIN_MAX_WIDTH
+} from './thresholds';
 
 export interface Style {
   /** Fill for a country, or null to skip drawing it entirely. */
@@ -24,7 +26,7 @@ export interface Style {
   showLabels: boolean;
   showPins: boolean;
   /** The capitals layer: a ring per capital city once zoomed in past
-   *  CAPITAL_DOT_ZOOM_FACTOR, its name past CAPITAL_LABEL_ZOOM_FACTOR. Off if omitted. */
+   *  CAPITAL_ZOOM_FACTOR (or later, for a small country), together with its name. Off if omitted. */
   showCapitals?: boolean;
   /** The one capital the capitals quiz is asking about: drawn with the quiz-target ring at
    *  ANY zoom, and only under quizMode (every other capital ring stays hidden there). It
@@ -266,24 +268,16 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
 }
 
 /**
- * Two gates, both must pass for a capital's ring:
- *  1. zoom >= CAPITAL_DOT_ZOOM_FACTOR x homeZoom — 6x is where the scale bar first reads
- *     500 km (measured at 1500x900: 2,000 km at 2-3x, 1,000 km at 4-5x, 500 km from 6x to
- *     ~12x). Big countries get their ring here.
- *  2. the capital's country is drawn as a real SHAPE this frame, at least
- *     CAPITAL_MIN_SHAPE_WIDTH wide (thresholds.ts; a pin's width plus the ring's own).
- *     Small and micro countries therefore get theirs later, when the country itself
- *     appears — Malta near 5x, Luxembourg well before 6x, Monaco and San Marino far
- *     deeper, Vatican City never (its own geometry is degenerate; the pin stands in).
- * Names need more room than rings: from CAPITAL_LABEL_ZOOM_FACTOR.
- *
- * Both were raised from 2x / 5x (rings were a rash across Europe at 2x) after the owner
- * asked for capitals to appear later. Chosen by measuring the scale bar and then looking,
- * in a real browser, zooming into Central Europe. Multiples of homeZoom, like
- * LOD_ZOOM_FACTOR above.
+ * A capital's ring AND its name appear together, when all of these hold (thresholds.ts):
+ *  1. zoom >= CAPITAL_ZOOM_FACTOR x homeZoom (9x) — the old label threshold; the ring used to
+ *     come earlier (6x) and read as an unlabelled dot.
+ *  2. the country is drawn as a real SHAPE this frame, at least CAPITAL_MIN_SHAPE_WIDTH wide.
+ *  3. zoom >= capitalRevealFactor(area, lat): small countries wait until their equivalent square
+ *     is CAPITAL_REVEAL_SIDE_PX across — Cyprus and Jamaica a few doublings after 9x, Liechtenstein,
+ *     Malta, the Maldives and the Caribbean islands much later, Vatican City never (its geometry
+ *     is degenerate; the pin stands in).
+ * Chosen by looking, zooming into Central Europe and the Caribbean in a real browser.
  */
-export const CAPITAL_DOT_ZOOM_FACTOR = 6;
-export const CAPITAL_LABEL_ZOOM_FACTOR = 9;
 const CAPITAL_PICK_RADIUS = 7;
 
 /** Whether the capitals layer draws (and can be hovered or clicked) this frame. quizMode
@@ -297,16 +291,19 @@ export function capitalsVisible(
   return (
     Boolean(style.showCapitals) &&
     !style.quizMode &&
-    camera.zoom >= homeZoom(viewport) * CAPITAL_DOT_ZOOM_FACTOR
+    camera.zoom >= homeZoom(viewport) * CAPITAL_ZOOM_FACTOR
   );
 }
 
-/** Second gate: the capital's country is a drawn shape right now, and wide enough that the
- *  ring sits on an outline rather than floating beside it (CAPITAL_MIN_SHAPE_WIDTH, derived
- *  from PIN_MAX_WIDTH in thresholds.ts — which also means it can never pass while the
- *  country is still a pin). Rings, names and hit-testing all go through this. */
-function capitalShapeShowing(mark: PlaceMark, camera: CameraState): boolean {
-  return !drawsAsPin(mark.feature, camera) && onScreenWidth(mark.feature, camera) >= CAPITAL_MIN_SHAPE_WIDTH;
+/** Second gate, per capital: its country is a drawn shape right now, wide enough that the ring sits
+ *  on an outline rather than floating beside it (CAPITAL_MIN_SHAPE_WIDTH, derived from
+ *  PIN_MAX_WIDTH — so it can never pass while the country is a pin), AND we are past the zoom its
+ *  AREA calls for (capitalRevealFactor: small countries wait longer). Rings, names and
+ *  hit-testing all go through this, so a ring, its name and its hover cannot disagree. */
+function capitalShapeShowing(mark: PlaceMark, camera: CameraState, viewport: Viewport): boolean {
+  if (drawsAsPin(mark.feature, camera) || onScreenWidth(mark.feature, camera) < CAPITAL_MIN_SHAPE_WIDTH) return false;
+  const home = homeZoom(viewport);
+  return camera.zoom >= home * capitalRevealFactor(mark.feature.country.area, mark.place.lat, home);
 }
 
 /** A small hollow ring — deliberately NOT the filled circle a micro-state pin is, so the
@@ -321,7 +318,7 @@ function drawCapitals(rc: RenderContext, world: World, style: Style): void {
   for (const mark of world.places) {
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
     if (x < -10 || x > viewport.width + 10 || y < -10 || y > viewport.height + 10) continue;
-    if (!capitalShapeShowing(mark, camera)) continue;
+    if (!capitalShapeShowing(mark, camera, viewport)) continue;
     ctx.beginPath();
     ctx.arc(x, y, CAPITAL_RING_RADIUS, 0, Math.PI * 2);
     ctx.lineWidth = CAPITAL_RING_HALO * 2;
@@ -424,37 +421,43 @@ function drawPlaceLabels(
 ): void {
   const { ctx, camera, viewport } = rc;
   if (!capitalsVisible(style, camera, viewport)) return;
-  if (camera.zoom < homeZoom(viewport) * CAPITAL_LABEL_ZOOM_FACTOR) return;
 
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.font = `400 11px ${font}`;
 
   const candidates = world.places
-    .filter(mark => capitalShapeShowing(mark, camera))
+    .filter(mark => capitalShapeShowing(mark, camera, viewport))
     .sort((a, b) => b.place.population - a.place.population);
   for (const mark of candidates) {
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
     if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
 
     const textWidth = ctx.measureText(mark.place.name).width;
-    const left = x + CAPITAL_RING_RADIUS + 5;
-    const centre = left + textWidth / 2; // `placed` stores centres, like the country labels
-    let clashes = false;
-    for (const [px, py, pw] of placed) {
-      if (Math.abs(px - centre) < (pw + textWidth) / 2 + 6 && Math.abs(py - y) < 15) {
-        clashes = true;
-        break;
-      }
-    }
-    if (clashes) continue;
-    placed.push([centre, y, textWidth]);
+    // Beside the ring first; if a country name (which sits on a tiny country's centre, right where
+    // its capital is) or another capital is in the way, left, then below, then above. A ring
+    // without its name is the one thing this layer must not show, so it tries before giving up.
+    const gap = CAPITAL_RING_RADIUS + 5;
+    const spots: [number, number][] = [
+      [x + gap, y],
+      [x - gap - textWidth, y],
+      [x - textWidth / 2, y + 17],
+      [x - textWidth / 2, y - 17]
+    ];
+    const clashesAt = (left: number, ly: number) => {
+      const centre = left + textWidth / 2; // `placed` stores centres, like the country labels
+      return placed.some(([px, py, pw]) => Math.abs(px - centre) < (pw + textWidth) / 2 + 6 && Math.abs(py - ly) < 15);
+    };
+    const spot = spots.find(([left, ly]) => !clashesAt(left, ly));
+    if (!spot) continue;
+    const [left, labelY] = spot;
+    placed.push([left + textWidth / 2, labelY, textWidth]);
 
     ctx.lineWidth = 3;
     ctx.strokeStyle = COLORS.labelHalo;
-    ctx.strokeText(mark.place.name, left, y);
+    ctx.strokeText(mark.place.name, left, labelY);
     ctx.fillStyle = COLORS.capitalLabelText;
-    ctx.fillText(mark.place.name, left, y);
+    ctx.fillText(mark.place.name, left, labelY);
   }
 }
 
@@ -616,7 +619,7 @@ export function pickPlace(
   let nearest: PlaceMark | null = null;
   let nearestDistance = CAPITAL_PICK_RADIUS;
   for (const mark of world.places) {
-    if (!capitalShapeShowing(mark, camera)) continue;
+    if (!capitalShapeShowing(mark, camera, viewport)) continue;
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
     const distance = Math.hypot(x - sx, y - sy);
     if (distance < nearestDistance) {
