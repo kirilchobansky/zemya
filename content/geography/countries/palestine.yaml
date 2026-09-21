@@ -17,3 +17,12 @@ flag: Black, white and green bands with a red triangle at the hoist.
 outline: "Two separated pieces: the West Bank and the Gaza Strip."
 hook: Recognised by most of the world's countries but not by all — a state in fragments.
 population: 5495443
+override:
+  currencyCode: ILS
+  currencyName: Israeli new shekel
+  currencySymbol: "₪"
+  note: >
+    Palestine has no currency of its own (the ISO 4217 list one has "No universal currency"
+    for it). The Israeli new shekel (ILS) is the main one in use and the Jordanian dinar also
+    circulates, so ILS is shown as the primary. world-countries 5.1 ships the Egyptian pound
+    (EGP), which is wrong: Egypt's pound does not circulate in the territories.

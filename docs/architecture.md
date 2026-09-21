@@ -203,3 +203,33 @@ npx react-router build   # or npm run build, which runs build:content first
 npm run test:unit
 npm test                 # needs the build above; CHROMIUM_PATH in the sandbox
 ```
+
+## Repository layout
+
+Moved from CLAUDE.md's Structure section (the rules that follow from it stay there).
+
+
+```
+content/geography/      hand-authored YAML, one file per country. THE MOAT.
+content/flags/          flag overrides: <iso2>.svg + mandatory <iso2>.note.md. Empty unless upstream is wrong.
+scripts/                content/ + upstream datasets -> public/data/
+app/root.tsx            the HTML document itself + the top-level App
+app/routes.ts           the route table
+app/entry.client.tsx    hydrates the prerendered document
+app/entry.server.tsx    renders each route to HTML at build time
+app/lib/core/           scheduler + Dexie store. subject-agnostic; no geography imports.
+app/lib/map/            projection, topology, camera, renderer, controller. no React.
+app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers,
+                        mastery derivation
+app/lib/format.ts       shared formatting and normalisation
+app/components/         Rail, SearchBox, and future panels
+app/routes/             atlas.tsx (layout, owns the canvas) + panel routes
+app/styles/             tokens.css then app.css
+public/data/geography/  generated, committed on purpose
+public/flags/           generated from flag-icons, committed on purpose
+test/smoke.mjs          end-to-end browser test against the production build
+```
+
+Framework mode replaces `index.html`/`main.tsx`/`App.tsx` with `root.tsx`,
+`entry.client.tsx` and `routes.ts`; nothing is missing. See `docs/architecture.md`.
+

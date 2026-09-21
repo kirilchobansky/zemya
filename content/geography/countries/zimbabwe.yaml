@@ -17,3 +17,11 @@ flag: Seven coloured stripes with a white triangle and the Zimbabwe Bird.
 outline: A landlocked shape like a teapot, bordered by the Zambezi and Limpopo.
 hook: Once printed a 100 trillion dollar note during hyperinflation.
 population: 16634373
+override:
+  currencyCode: ZWG
+  currencyName: Zimbabwe Gold
+  currencySymbol: ZiG
+  note: >
+    world-countries 5.1 ships the Botswana pula (BWP) for Zimbabwe, which is simply wrong.
+    The Reserve Bank of Zimbabwe replaced the Zimbabwe dollar with Zimbabwe Gold (ZiG) in
+    April 2024. Confirmed against the ISO 4217 list one (ZWG "Zimbabwe Gold").

@@ -17,3 +17,11 @@ flag: "Three horizontal bands: green, white, blue."
 outline: A small rounded shape with a mountainous peninsula at Freetown.
 hook: Named "lion mountains" by a Portuguese sailor who heard thunder in the hills.
 population: 8642022
+override:
+  currencyCode: SLE
+  currencyName: Sierra Leonean leone
+  currencySymbol: Le
+  note: >
+    Sierra Leone redenominated the leone (1,000 old = 1 new) on 1 April 2022 and the old
+    SLL code was replaced by SLE. world-countries 5.1 still ships SLL. Confirmed against
+    the ISO 4217 list one (SLE "Leone"; no SLL entry).

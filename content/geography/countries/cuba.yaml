@@ -17,3 +17,11 @@ flag: Five blue and white stripes with a red triangle and white star.
 outline: A long crocodile-shaped island guarding the Gulf entrance.
 hook: Cubans call their island "el cocodrilo" — the crocodile.
 population: 10979783
+override:
+  currencyCode: CUP
+  currencyName: Cuban peso
+  currencySymbol: "$"
+  note: >
+    Cuba abolished the convertible peso (CUC) on 1 January 2021 and the Cuban peso (CUP) is
+    the national currency; world-countries 5.1 still ships CUC. Confirmed against the ISO 4217
+    list one (CUP "Cuban Peso"; no CUC entry).

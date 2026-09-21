@@ -80,7 +80,8 @@ const WATCH = [
   ['SZ', 'name', 'Eswatini', 'Swaziland renamed Eswatini in 2018', '2026-09'],
   ['MK', 'name', 'North Macedonia', 'Renamed in 2019', '2026-09'],
   ['CZ', 'name', 'Czechia', 'Official short form since 2016', '2026-09'],
-  ['CV', 'name', 'Cabo Verde', 'Government-requested official short name since 2013 (UN uses it)', '2026-09'],
+  // Cape Verde: the shipped name stays "Cape Verde" on purpose (owner decision, 2026-09); "Cabo Verde"
+  // is an accepted answer via an alias — so it is not watched.
   ['MM', 'name', 'Myanmar', 'Name in current use', '2026-09']
 ];
 const watchRows = WATCH.map(([iso2, field, expected, why, checked]) => {

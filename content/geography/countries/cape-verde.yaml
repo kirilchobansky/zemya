@@ -17,3 +17,6 @@ flag: Blue with white and red stripes and a ring of ten yellow stars.
 outline: A scatter of ten islands far out in the Atlantic.
 hook: The ten stars are the ten islands, arranged as they actually sit in the ocean.
 population: 524877
+aliases:
+  note: 'Cabo Verde is the official short name (government-requested since 2013, used by the UN). The shipped name stays "Cape Verde"; only the long forms were accepted, so the bare name is added.'
+  add: [Cabo Verde]
