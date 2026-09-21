@@ -238,6 +238,21 @@ it replaces the desktop toolbar, which is `display: none` on phones. ⌂ is a sm
 under it; the scale bar is hidden on phones. Icons are inline SVG (glyph characters fall back to
 tofu on some fonts).
 
+**Touch map** (`app/lib/map/atlas.ts`): `touch-action: none` on the canvas; one finger pans, two
+fingers pinch about their midpoint (the world point that started under the fingers stays under
+them, so a two-finger drag also pans). No hover for `pointerType === 'touch'` (no tooltip, no
+hover highlight); a tap selects. Hit areas on touch are 24 px radius for capital rings and
+micro-state pins (`TOUCH_HIT_RADIUS_PX`) — drawing unchanged. The canvas DPR cap of 2 in
+`Atlas#resize` already applies at every width. Phone perf at 4x CPU throttle **misses** the
+target in this sandbox — numbers and cause in `docs/performance.md`.
+
+**Visible map area** (`Insets` in `camera.ts`): whatever covers the canvas is subtracted from
+the viewport everywhere the camera frames something — `Atlas#setInsets`, then `frame`,
+`homeCamera`, `flyTo`, `fit`, `home` and the clamp all respect it (`Viewport.insets`), and
+`followTarget` takes the same insets. On phones the shell sets `{ top: below the search pill,
+bottom: what the sheet covers at its snap }`; a full sheet is treated as half (nobody frames a
+country in a 10% strip). Desktop has none — the panel is a grid column, not an overlay.
+
 **`position: fixed` inside the sheet is a trap:** a transformed ancestor becomes the containing
 block, so anything fixed that a panel route renders (the quiz dock, the flag stage) is
 **portalled to `<body>`** (`createPortal` in `MapStage` / `FlagsStage`). Do the same for anything

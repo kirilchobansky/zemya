@@ -4,11 +4,11 @@
  * for hover and click.
  */
 import {
-  clamp, clampZoom, frame, homeCamera, homeZoom, screenToWorld, settled, shortestX, step,
-  type CameraState, type Viewport
+  centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, NO_INSETS, screenToWorld, settled,
+  shortestX, step, type CameraState, type Insets, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
-import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget, type Insets } from './follow';
+import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
 import { hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
@@ -27,6 +27,9 @@ const PULSE_MS = 1000;
 const DRAG_THRESHOLD_PX = 3;
 const WHEEL_SENSITIVITY = 0.0016;
 const WHEEL_LINE_SENSITIVITY = 0.05;
+/** Touch is imprecise: a pin or capital ring is drawn at 4-9 px but must be hittable from a
+ *  44 px target (24 px radius) — a bigger HIT area only, the drawing is unchanged. */
+const TOUCH_HIT_RADIUS_PX = 24;
 
 export class Atlas {
   private ctx: CanvasRenderingContext2D;
@@ -44,7 +47,12 @@ export class Atlas {
   private drag: { x: number; y: number; camX: number; camY: number } | null = null;
   private moved = false;
   private pointers = new Map<number, [number, number]>();
-  private pinch: { distance: number; zoom: number } | null = null;
+  /** Two-finger gesture: the world point under the fingers' midpoint stays under it, so a pinch
+   *  zooms about where you are pinching and a two-finger drag pans. */
+  private pinch: { distance: number; zoom: number; world: [number, number] } | null = null;
+  /** What covers the canvas (the phone's sheet and tab bar, a quiz's HUD and input) — set by
+   *  the shell, and subtracted from the viewport wherever the camera frames something. */
+  private insets: Insets = NO_INSETS;
 
   private compare: { feature: Feature; lon: number; lat: number; path: Path2D; dragging: boolean } | null = null;
 
@@ -127,14 +135,22 @@ export class Atlas {
     this.regionView = box;
   }
 
+  /** Tell the camera what covers the canvas. Nothing moves until the next framing decision. */
+  setInsets(insets: Insets): void {
+    this.insets = insets;
+    this.viewport = { ...this.viewport, insets }; // clamping keeps the visible area inside the map
+  }
+
   /** The camera `home()` returns to: the whole world, or the active continent. */
   private homeView(): CameraState {
-    if (!this.regionView) return homeCamera(this.viewport);
+    if (!this.regionView) return homeCamera(this.viewport, this.insets);
     const [minLon, minLat, maxLon, maxLat] = this.regionView;
     return frame(
       { x0: lonToX(minLon), x1: lonToX(maxLon), y0: latToY(maxLat), y1: latToY(minLat) },
       this.viewport,
-      0.85
+      0.85,
+      Infinity,
+      this.insets
     );
   }
 
@@ -148,8 +164,9 @@ export class Atlas {
 
   flyTo(feature: Feature, padding = 0.55): void {
     if (!feature.bbox) {
+      const zoom = homeZoom(this.viewport) * NO_SHAPE_ZOOM_FACTOR;
       this.moveTo(
-        clamp({ x: feature.ux, y: feature.uy, zoom: homeZoom(this.viewport) * NO_SHAPE_ZOOM_FACTOR }, this.viewport),
+        clamp({ ...centreInVisible(feature.ux, feature.uy, zoom, this.insets), zoom }, this.viewport),
         true
       );
       return;
@@ -159,7 +176,9 @@ export class Atlas {
       frame(
         { x0: lonToX(minLon), x1: lonToX(maxLon), y0: latToY(maxLat), y1: latToY(minLat) },
         this.viewport,
-        padding
+        padding,
+        Infinity,
+        this.insets
       ),
       true
     );
@@ -246,7 +265,7 @@ export class Atlas {
     const x0 = Math.min(...xs), x1 = Math.max(...xs);
     if (x1 - x0 > 0.75) return this.home();
     this.moveTo(
-      frame({ x0, x1, y0: Math.min(...ys), y1: Math.max(...ys) }, this.viewport, padding, 12),
+      frame({ x0, x1, y0: Math.min(...ys), y1: Math.max(...ys) }, this.viewport, padding, 12, this.insets),
       true
     );
   }
@@ -288,13 +307,13 @@ export class Atlas {
     const rect = host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.viewport = { width: rect.width, height: rect.height };
+    this.viewport = { width: rect.width, height: rect.height, insets: this.insets };
     this.canvas.width = Math.round(rect.width * this.dpr);
     this.canvas.height = Math.round(rect.height * this.dpr);
     this.canvas.style.width = `${rect.width}px`;
     this.canvas.style.height = `${rect.height}px`;
     if (this.camera.zoom <= 1) {
-      this.camera = homeCamera(this.viewport);
+      this.camera = homeCamera(this.viewport, this.insets);
       this.target = { ...this.camera };
     } else {
       this.camera = clamp(this.camera, this.viewport);
@@ -387,8 +406,10 @@ export class Atlas {
 
     if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()];
-      this.pinch = { distance: Math.hypot(a[0] - b[0], a[1] - b[1]), zoom: this.camera.zoom };
+      const world = screenToWorld(this.camera, this.viewport, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+      this.pinch = { distance: Math.hypot(a[0] - b[0], a[1] - b[1]), zoom: this.camera.zoom, world };
       this.drag = null;
+      this.canvas.classList.remove('is-dragging');
       return;
     }
 
@@ -409,8 +430,15 @@ export class Atlas {
     if (this.pointers.size === 2 && this.pinch) {
       const [a, b] = [...this.pointers.values()];
       const distance = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      const zoom = clampZoom(this.pinch.zoom * (distance / Math.max(this.pinch.distance, 1)), this.viewport);
+      const [mx, my] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      // hold the world point that started under the fingers' midpoint under it now
       this.camera = clamp(
-        { ...this.camera, zoom: this.pinch.zoom * (distance / this.pinch.distance) },
+        {
+          zoom,
+          x: this.pinch.world[0] - (mx - this.viewport.width / 2) / zoom,
+          y: this.pinch.world[1] - (my - this.viewport.height / 2) / zoom
+        },
         this.viewport
       );
       this.target = { ...this.camera };
@@ -446,6 +474,9 @@ export class Atlas {
       return;
     }
 
+    // There is no hover on a touch screen: a finger that isn't down isn't anywhere, and the
+    // tooltip/highlight that hover drives would only flash under a tap. A tap selects instead.
+    if (e.pointerType === 'touch') return;
     const mark = pickPlace(this.renderContext, this.world, this.style, e.offsetX, e.offsetY);
     const feature = mark?.feature ?? pick(this.renderContext, this.world, e.offsetX, e.offsetY);
     this.callbacks.onHover(feature, e.offsetX, e.offsetY, mark);
@@ -463,8 +494,15 @@ export class Atlas {
     if (this.drag && !this.moved) {
       // a capital's ring selects its COUNTRY — there is no city page, and an empty panel
       // is worse than nothing
-      const mark = pickPlace(this.renderContext, this.world, this.style, e.offsetX, e.offsetY);
-      this.callbacks.onSelect(mark?.feature ?? pick(this.renderContext, this.world, e.offsetX, e.offsetY));
+      const touch = e.pointerType === 'touch';
+      const mark = pickPlace(
+        this.renderContext, this.world, this.style, e.offsetX, e.offsetY,
+        touch ? TOUCH_HIT_RADIUS_PX : undefined
+      );
+      this.callbacks.onSelect(
+        mark?.feature ??
+          pick(this.renderContext, this.world, e.offsetX, e.offsetY, touch ? TOUCH_HIT_RADIUS_PX : undefined)
+      );
     }
     this.drag = null;
   };

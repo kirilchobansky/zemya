@@ -13,10 +13,24 @@
  */
 import { wrapX } from './projection';
 
+/** Pixels of the canvas covered by something on top of it, per side — the phone's bottom
+ *  sheet and tab bar, a quiz's docked input. The "visible map area" is the viewport minus these. */
+export interface Insets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+
 export interface Viewport {
   width: number;
   height: number;
+  /** What covers the canvas, if anything — the camera keeps the VISIBLE area inside the map. */
+  insets?: Insets;
 }
+
+const hasInsets = (i: Insets | undefined): i is Insets => Boolean(i && (i.top || i.right || i.bottom || i.left));
 
 export interface CameraState {
   x: number;
@@ -42,10 +56,14 @@ export function clampZoom(zoom: number, v: Viewport): number {
  * the viewport, so both bounds collapse to 0.5 and the map simply centres.
  */
 export function clampY(y: number, zoom: number, v: Viewport): number {
-  const half = v.height / 2 / zoom;
+  // The rule applies to the visible area's centre: with a sheet covering the bottom, the
+  // visible area is centred (top - bottom) / 2 px below the camera's own y.
+  const ins = v.insets ?? NO_INSETS;
+  const shift = (ins.top - ins.bottom) / 2 / zoom;
+  const half = (v.height - ins.top - ins.bottom) / 2 / zoom;
   const low = Math.min(0.5, half);
   const high = Math.max(0.5, 1 - half);
-  return Math.max(low, Math.min(high, y));
+  return Math.max(low, Math.min(high, y + shift)) - shift;
 }
 
 export function clamp(state: CameraState, v: Viewport): CameraState {
@@ -69,8 +87,27 @@ export function worldToScreen(
 
 export const HOME: Omit<CameraState, 'zoom'> = { x: 0.5, y: 0.46 };
 
-export function homeCamera(v: Viewport): CameraState {
-  return { ...HOME, zoom: homeZoom(v) };
+/**
+ * Where a camera must look so that map point (wx, wy) appears in the middle of the VISIBLE area
+ * rather than of the whole viewport: the camera centre is the screen centre, and the visible
+ * area's centre sits (left - right) / 2, (top - bottom) / 2 px away from it. A no-op without insets.
+ */
+export function centreInVisible(wx: number, wy: number, zoom: number, insets: Insets): { x: number; y: number } {
+  return {
+    x: wx - (insets.left - insets.right) / 2 / zoom,
+    y: wy - (insets.top - insets.bottom) / 2 / zoom
+  };
+}
+
+/** The world view. With insets the world is fitted to, and centred in, the visible area. */
+export function homeCamera(v: Viewport, insets: Insets | undefined = v.insets): CameraState {
+  if (!hasInsets(insets)) return { ...HOME, zoom: homeZoom(v) };
+  const inner = {
+    width: Math.max(1, v.width - insets.left - insets.right),
+    height: Math.max(1, v.height - insets.top - insets.bottom)
+  };
+  const zoom = clampZoom(homeZoom(inner), v);
+  return clamp({ ...centreInVisible(HOME.x, HOME.y, zoom, insets), zoom }, { ...v, insets });
 }
 
 /** Frame a bounding box in unit space, with padding, without exceeding the zoom limits. */
@@ -78,7 +115,8 @@ export function frame(
   box: { x0: number; y0: number; x1: number; y1: number },
   v: Viewport,
   padding = 0.55,
-  maxFactor = Infinity
+  maxFactor = Infinity,
+  insets: Insets = v.insets ?? NO_INSETS
 ): CameraState {
   // The floor below matters for the smallest states: 0.004 units (~160 km) used to leave
   // Vatican City (~1 km across) at about 5 px on screen however hard you tried to zoom in
@@ -86,14 +124,16 @@ export function frame(
   const width = Math.max(box.x1 - box.x0, 0.0002);
   const height = Math.max(box.y1 - box.y0, 0.0002);
   const home = homeZoom(v);
-  const fit = Math.min((v.width / width) * padding, (v.height / height) * padding);
+  const visibleW = Math.max(1, v.width - insets.left - insets.right);
+  const visibleH = Math.max(1, v.height - insets.top - insets.bottom);
+  const fit = Math.min((visibleW / width) * padding, (visibleH / height) * padding);
+  const zoom = Math.min(fit, home * maxFactor);
   return clamp(
     {
-      x: (box.x0 + box.x1) / 2,
-      y: (box.y0 + box.y1) / 2,
-      zoom: Math.min(fit, home * maxFactor)
+      ...centreInVisible((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2, clampZoom(zoom, v), insets),
+      zoom
     },
-    v
+    { ...v, insets }
   );
 }
 

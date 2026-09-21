@@ -15,8 +15,9 @@ import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
-import { isPhoneLayout, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
-import { stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
+import { COARSE_QUERY, isPhoneLayout, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
+import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
+import { NO_INSETS, type Insets } from '~/lib/map/camera';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
 import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
@@ -95,7 +96,33 @@ function AtlasShell() {
   const [overlaySheet, setOverlaySheet] = useState<OverlayName>(null);
   const panelRef = useRef<HTMLElement>(null);
   const phone = useMediaQuery(PHONE_QUERY);
+  const coarse = useMediaQuery(COARSE_QUERY);
   useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive });
+
+  /* What the sheet and tab bar cover, for the camera — read through refs so an effect that
+     fires in the same commit as a snap change (a cold load flying to its country) sees the
+     snap it is about to have, not the last render's. */
+  const snapRef = useRef(snap);
+  snapRef.current = snap;
+  const immersiveRef = useRef(immersive);
+  immersiveRef.current = immersive;
+  const applyInsets = useCallback((atlas: Atlas) => {
+    // Desktop: the panel is a grid column beside the map, so nothing covers the canvas.
+    // A quiz run on a phone sets its own insets (HUD above, input below) — not this.
+    if (!isPhoneLayout()) return atlas.setInsets(NO_INSETS);
+    if (immersiveRef.current) return;
+    const vh = window.innerHeight;
+    const tab = document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0;
+    const top = document.querySelector<HTMLElement>('.hud--top')?.getBoundingClientRect().bottom ?? 0;
+    // A full sheet leaves a strip too thin to frame anything in, and whoever is reading the
+    // dossier is not looking at the map: frame as if it were at half.
+    const covered = Math.min(sheetVisible(snapRef.current, vh, tab), vh * 0.5);
+    const insets: Insets = { top: top ? top + 8 : 0, right: 0, bottom: covered, left: 0 };
+    atlas.setInsets(insets);
+  }, []);
+  useEffect(() => {
+    if (atlasInstance) applyInsets(atlasInstance);
+  }, [atlasInstance, applyInsets, snap, immersive, phone]);
 
   const slug = COUNTRY_PATH.exec(location.pathname)?.[1] ?? null;
   const selected = slug && world ? world.bySlug.get(slug) ?? null : null;
@@ -191,6 +218,8 @@ function AtlasShell() {
       getComputedStyle(document.body).getPropertyValue('--font-ui') || 'system-ui, sans-serif'
     );
     atlasRef.current = atlas;
+    applyInsets(atlas);
+    if (isPhoneLayout()) atlas.home(false); // reframe now that it knows what covers it
     setAtlasInstance(atlas);
     // The map has been painting from coarse geometry since `world` first resolved (see
     // loadWorld) — repaint once the full 1:10m payload attaches in place, so a country
@@ -201,7 +230,7 @@ function AtlasShell() {
       atlasRef.current = null;
       setAtlasInstance(null);
     };
-  }, [world]);
+  }, [world, applyInsets]);
 
   /* restyle whenever anything visual changes — quiz mode takes over the whole style
      rather than folding into fillFor/strokeFor, since none of the normal overlay/
@@ -246,9 +275,12 @@ function AtlasShell() {
     const first = firstNavigationRef.current;
     firstNavigationRef.current = false;
     if (!isPhoneLayout()) return;
-    const asked = (location.state as { sheet?: SheetSnap } | null)?.sheet;
-    if (asked) setSnap(asked);
-    else if (first && location.pathname !== '/') setSnap('half');
+    const asked =
+      (location.state as { sheet?: SheetSnap } | null)?.sheet ??
+      (first && location.pathname !== '/' ? 'half' : undefined);
+    if (!asked) return;
+    snapRef.current = asked; // the fly effect below runs in this same flush
+    setSnap(asked);
   }, [location.key, location.pathname, location.state]);
 
   /**
@@ -263,8 +295,11 @@ function AtlasShell() {
     if (!atlas || !selected) return;
     const cold = coldSlugRef.current === selected.country.slug;
     coldSlugRef.current = null;
-    if (cold || (location.state as { fly?: boolean } | null)?.fly === true) atlas.flyTo(selected);
-  }, [selected, location.state]);
+    if (cold || (location.state as { fly?: boolean } | null)?.fly === true) {
+      applyInsets(atlas); // frame in what the sheet leaves visible, at the snap it is about to have
+      atlas.flyTo(selected);
+    }
+  }, [selected, location.state, applyInsets]);
 
   const toggleCompare = () => {
     if (comparing || armingCompare) {
@@ -370,7 +405,7 @@ function AtlasShell() {
           </div>
         </div>
 
-        {!quiz && hovered && tip && (
+        {!quiz && hovered && tip && !coarse && (
           <div className="tip glass" style={{ left: tip.x, top: tip.y }}>
             <span>{hovered.country.emoji}</span>
             <span>{hoveredPlace ? hoveredPlace.place.name : hovered.country.name}</span>

@@ -40,11 +40,35 @@ the effect of a specific payload rather than the real content, build with
 ## The measuring tool
 
 `npm run perf` (`test/perf.mjs`) checks this: it serves `build/client`, opens a real
-browser at 1500x900, waits for the map to paint, then simulates a pan (90 synthetic
+browser at 1500x900 (or `PERF_DEVICE`/`PERF_CPU`, below), waits for the map to paint, then simulates a pan (90 synthetic
 `pointermove` events across the canvas) while sampling `requestAnimationFrame` deltas. It
 reports time-to-painted-map and median/p95/worst frame time. **Any change touching
 `app/lib/map/` runs `npm run perf` and reports the number in the commit message** — "it
 feels smoother" is not evidence.
+
+## Phone numbers (measured 2026-09-21, this sandbox)
+
+`PERF_DEVICE="iPhone 13" PERF_CPU=4 npm run perf` — the iPhone 13 profile (390x664, DPR 3, so a
+780x1328 canvas after the DPR-2 cap in `Atlas#resize`, which applies at every width), a real
+one-finger touch pan, CPU throttled 4x.
+
+| what | median | p95 |
+| --- | --- | --- |
+| desktop 1500x900, 4x | 16.7 ms | 16.8 ms |
+| iPhone 13, 1x | 16.7 ms | 33.3 ms |
+| **iPhone 13, 4x (the target case)** | **116.6 ms (9 fps)** | 133.3 ms |
+| iPhone 13, 4x, DPR 1 (390x664 canvas) | 16.7 ms | 16.7 ms |
+| iPhone 13, 4x, DPR 1.5 | 100 ms | 116.7 ms |
+
+**The 4x phone target is MISSED here.** Headless Chromium in this sandbox rasterises canvas on
+the CPU, and the time is almost all the border stroke pass: with `stroke()` stubbed out the same
+run is 16.7 ms median; with `fill()` stubbed it is 83 ms; round -> bevel/miter joins buys ~30%
+(116 -> 83 ms) and is not enough alone. So on a CPU rasteriser the cost scales with canvas pixels,
+and a phone's canvas is bigger than the desktop's. Whether a real phone GPU shows the same is
+unknown — this number is not evidence about one, only that it didn't get worse than the sandbox
+can measure. The obvious lever, NOT built because it visibly changes the map (borders vanish
+while the finger is down): skip the stroke pass while the camera is moving and stroke once on
+release (the "commit 3" scoped above). An owner decision, and worth checking on a real phone first.
 
 ## Next step: content-addressed data URLs (noted, not built)
 

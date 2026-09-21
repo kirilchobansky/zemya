@@ -612,12 +612,13 @@ export function pickPlace(
   world: World,
   style: Pick<Style, 'showCapitals' | 'quizMode'>,
   sx: number,
-  sy: number
+  sy: number,
+  radius = CAPITAL_PICK_RADIUS
 ): PlaceMark | null {
   const { camera, viewport } = rc;
   if (!capitalsVisible(style, camera, viewport)) return null;
   let nearest: PlaceMark | null = null;
-  let nearestDistance = CAPITAL_PICK_RADIUS;
+  let nearestDistance = radius;
   for (const mark of world.places) {
     if (!capitalShapeShowing(mark, camera, viewport)) continue;
     const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);

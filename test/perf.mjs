@@ -14,8 +14,14 @@
  *
  *   npm run build && npm run perf
  *   CHROMIUM_PATH=/path/to/chrome npm run perf   (see CLAUDE.md's Known rough edges)
+ *
+ * Phone mode: PERF_DEVICE names a Playwright device profile ("iPhone 13") — its viewport, DPR
+ * and touch — and the pan is then a real one-finger touch drag (CDP touch events, pointer type
+ * "touch"), not a mouse. PERF_CPU throttles the CPU (4 = a mid-range phone is roughly 4x
+ * slower than a dev machine):
+ *   PERF_DEVICE="iPhone 13" PERF_CPU=4 npm run perf
  */
-import { chromium } from 'playwright';
+import { chromium, devices } from 'playwright';
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, resolve } from 'node:path';
@@ -64,7 +70,13 @@ await new Promise(done => server.listen(PORT, done));
 const base = `http://127.0.0.1:${PORT}`;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
-const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+const device = process.env.PERF_DEVICE ? devices[process.env.PERF_DEVICE] : null;
+if (process.env.PERF_DEVICE && !device) throw new Error(`unknown PERF_DEVICE "${process.env.PERF_DEVICE}"`);
+const cpuRate = Number(process.env.PERF_CPU || 1);
+const context = await browser.newContext(device ? { ...device } : { viewport: { width: 1500, height: 900 } });
+const page = await context.newPage();
+const cdp = await context.newCDPSession(page);
+if (cpuRate > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuRate });
 
 /** Polls the canvas for real content (>= 3 distinct sampled colours — same threshold
  *  test/smoke.mjs uses), timing from just before navigation to the first passing poll. */
@@ -111,13 +123,21 @@ const y = canvasBox.top + canvasBox.height / 2;
 const xStart = canvasBox.left + canvasBox.width * 0.15;
 const xEnd = canvasBox.left + canvasBox.width * 0.85;
 
-await page.mouse.move(xStart, y);
-await page.mouse.down();
-for (let i = 1; i <= PAN_STEPS; i++) {
-  const x = xStart + ((xEnd - xStart) * i) / PAN_STEPS;
-  await page.mouse.move(x, y);
+if (device) {
+  const touch = (type, x) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  await touch('touchStart', xStart);
+  for (let i = 1; i <= PAN_STEPS; i++) await touch('touchMove', xStart + ((xEnd - xStart) * i) / PAN_STEPS);
+  await touch('touchEnd', xEnd);
+} else {
+  await page.mouse.move(xStart, y);
+  await page.mouse.down();
+  for (let i = 1; i <= PAN_STEPS; i++) {
+    const x = xStart + ((xEnd - xStart) * i) / PAN_STEPS;
+    await page.mouse.move(x, y);
+  }
+  await page.mouse.up();
 }
-await page.mouse.up();
 
 await page.waitForTimeout(50); // let the last frame or two land
 const frames = await page.evaluate(() => {
@@ -125,6 +145,10 @@ const frames = await page.evaluate(() => {
   return window.__perfFrames;
 });
 
+const dpr = await page.evaluate(() => {
+  const c = document.querySelector('canvas');
+  return `${window.devicePixelRatio} (canvas ${c.width}x${c.height})`;
+});
 await browser.close();
 server.close();
 
@@ -142,6 +166,7 @@ const p95 = deltas[Math.floor(deltas.length * 0.95)];
 const worst = deltas[deltas.length - 1];
 const fps = (ms) => (1000 / ms).toFixed(0);
 
+console.log(`profile               ${device ? process.env.PERF_DEVICE : 'desktop 1500x900'}, CPU ${cpuRate}x, DPR ${dpr}`);
 console.log(`time-to-painted-map   ${paintMs} ms`);
 console.log(`frame time (median)   ${median.toFixed(1)} ms  (${fps(median)} fps)`);
 console.log(`frame time (p95)      ${p95.toFixed(1)} ms  (${fps(p95)} fps)`);

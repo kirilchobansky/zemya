@@ -16,18 +16,11 @@
  * on top of it (`Insets`: today the quiz's docked input) — not the raw canvas.
  */
 import { wrapX, latToY, lonToX } from './projection';
-import type { CameraState, Viewport } from './camera';
+import { NO_INSETS, type CameraState, type Insets, type Viewport } from './camera';
 import { CAPITAL_MIN_SHAPE_WIDTH } from './thresholds';
 import type { Feature, Ring } from './types';
 
-/** Pixels of the canvas covered by something on top of it, per side. */
-export interface Insets {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+export { NO_INSETS, type Insets };
 
 /**
  * A quiz target as the camera sees it, in unit-square map space. `box` is the country's
