@@ -14,6 +14,7 @@ import { Link } from 'react-router';
 import { Flag } from '~/components/Flag';
 import { useProgress } from '~/lib/core/ProgressProvider';
 import { makeRng, type Question } from '~/lib/core/questions';
+import { pageMeta } from '~/lib/seo';
 import { buildCatalogue, generateSession, type Catalogue } from '~/lib/geography/questions';
 import { parseCardId } from '~/lib/geography/mastery';
 import { loadWorld } from '~/lib/geography/world';
@@ -25,10 +26,11 @@ const SESSION_SIZE = 12;
 const EASY_MS = 6000;
 
 export function meta() {
-  return [
-    { title: 'Study — Zemya' },
-    { name: 'description', content: 'A spaced-repetition quiz session over what you have and have not learned yet.' }
-  ];
+  return pageMeta({
+    title: 'Study — Zemya',
+    description: 'A spaced-repetition quiz session over what you have and have not learned yet.',
+    path: '/study'
+  });
 }
 
 interface Answer {

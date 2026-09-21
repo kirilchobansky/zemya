@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useMatch } from 'react-router';
 
 import { useProgress } from '~/lib/core/ProgressProvider';
 import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
@@ -13,6 +13,10 @@ interface RailProps {
 }
 
 export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailProps) {
+  // A page's h1 is its subject: on a country page that is the country's name, so the
+  // wordmark steps down to a plain block there and is the h1 everywhere else.
+  const onCountry = useMatch('/country/:slug') !== null;
+  const Wordmark = onCountry ? 'div' : 'h1';
   const legend = legendFor(overlay);
   const { exportJson, importJson, reset } = useProgress();
   const [status, setStatus] = useState<string | null>(null);
@@ -57,9 +61,9 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
       <div className="brand">
         <div className="brand__mark" aria-hidden="true" />
         <div>
-          <h1>
+          <Wordmark className="brand__name">
             <Link to="/">Zemya</Link>
-          </h1>
+          </Wordmark>
           <p>Cognitive Geography</p>
         </div>
       </div>

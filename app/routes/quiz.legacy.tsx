@@ -5,6 +5,19 @@
  */
 import { Link, Navigate, useParams } from 'react-router';
 
+import { pageMeta } from '~/lib/seo';
+import type { Route } from './+types/quiz.legacy';
+
+/** A redirect page: canonical points at where it lands, and it stays out of the index. */
+export function meta({ params }: Route.MetaArgs) {
+  return pageMeta({
+    title: 'Quiz moved — Zemya',
+    description: 'This quiz has moved.',
+    path: `/quiz/${params.quizId}/world/${params.size}`,
+    noindex: true
+  });
+}
+
 export default function LegacyQuizRedirect() {
   const { quizId = '', size = '' } = useParams();
   const to = `/quiz/${quizId}/world/${size}`;

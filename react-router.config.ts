@@ -1,6 +1,8 @@
 import type { Config } from '@react-router/dev/config';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
+import { siteUrl } from './scripts/lib/site.mjs';
 import { LEGACY_SCOPES, poolForScope, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
 
 /**
@@ -46,15 +48,42 @@ const legacyScopeRuns = Object.keys(LEGACY_SCOPES).flatMap(scope =>
   LEGACY_QUIZ_IDS.flatMap(id => LEGACY_SCOPE_SIZES.map(size => `/quiz/${id}/${scope}/${size}`))
 );
 
+/** Every real page, in one list, so the sitemap can never drift from what is prerendered.
+ *  The legacy redirect pages are prerendered (a static host needs a file) but are not
+ *  content, so they are prerendered and left out of the sitemap. */
+const indexable = [
+  '/', '/study', '/quiz',
+  ...quizRuns,
+  ...slugs.map(slug => `/country/${slug}`)
+];
+
+/** robots.txt: allow everything and point at the sitemap — except on a Vercel preview
+ *  build, which must not compete with the real domain for the same content. (The
+ *  X-Robots-Tag header in vercel.json covers the *.vercel.app hosts of every deployment,
+ *  production included; this covers the crawlers that only read robots.txt.) */
+function robotsTxt(origin: string): string {
+  if (process.env.VERCEL_ENV === 'preview') return 'User-agent: *\nDisallow: /\n';
+  return `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`;
+}
+
+function sitemapXml(origin: string): string {
+  const urls = indexable.map(path => `  <url><loc>${origin}${path === '/' ? '/' : path}</loc></url>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+}
+
 export default {
   ssr: true,
-  prerender: () => [
-    '/', '/study', '/quiz',
-    ...quizRuns,
-    ...legacyQuizRuns,
-    ...legacyScopeRuns,
-    ...slugs.map(slug => `/country/${slug}`)
-  ],
+  prerender: () => [...indexable, ...legacyQuizRuns, ...legacyScopeRuns],
+
+  /** robots.txt and sitemap.xml are generated here, from the same lists that were just
+   *  prerendered, and written next to the pages. Never hand-maintained. */
+  buildEnd({ reactRouterConfig }) {
+    const out = join(reactRouterConfig.buildDirectory, 'client');
+    const origin = siteUrl();
+    writeFileSync(join(out, 'robots.txt'), robotsTxt(origin));
+    writeFileSync(join(out, 'sitemap.xml'), sitemapXml(origin));
+  },
 
   /**
    * Ship the whole route manifest with the first document. The default, lazy discovery,

@@ -8,6 +8,7 @@ import { Link } from 'react-router';
 
 import { bestQuizTime, deleteQuizRun, listQuizRuns, type QuizRunEntry } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
+import { pageMeta } from '~/lib/seo';
 import { QUIZ_DEFINITIONS } from '~/lib/geography/quizzes';
 import { poolForScope, QUIZ_SCOPES, SCOPE_LABELS, sizesForPool, type QuizScope, type QuizSize } from '~/lib/geography/scopes';
 import { allCountries } from '~/lib/geography/catalog.server';
@@ -23,13 +24,11 @@ export function loader() {
 }
 
 export function meta() {
-  return [
-    { title: 'Quizzes — Zemya' },
-    {
-      name: 'description',
-      content: 'Timed quizzes built from the same country catalogue as the atlas and study mode.'
-    }
-  ];
+  return pageMeta({
+    title: 'Quizzes — Zemya',
+    description: 'Timed quizzes built from the same country catalogue as the atlas and study mode.',
+    path: '/quiz'
+  });
 }
 
 const bestKey = (quizId: string, scope: QuizScope, size: QuizSize) => `${quizId}:${scope}:${size}`;

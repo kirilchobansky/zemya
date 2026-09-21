@@ -42,6 +42,11 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
   is the exception). `npm run audit` (stale data) and `npm run audit:flags` (flag vs description)
   exist; Bulgaria ships EUR; Syria's flag is a `content/flags/` override.
 
+- Search and sharing metadata on every page: canonical, Open Graph, Twitter card, per-(quiz, scope,
+  size) quiz titles, JSON-LD (`Country` per dossier, `WebSite` on `/`), generated `robots.txt` +
+  `sitemap.xml`. The origin is `SITE_URL` (`.env.example`; one edit, or a Vercel env var) — the
+  committed default `https://zemya.example` is a placeholder until the domain is attached.
+  `npm run check:seo` audits `build/client` (run after `npm run build`). `docs/decisions.md`.
 - Deployment-ready as static files on Vercel (`vercel.json`, `public/404.html`); not yet deployed.
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
@@ -197,6 +202,7 @@ npm run build:content   # content/ -> public/data/geography/
 npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
 npm run test:unit       # vitest — pure-logic tests (scheduler, mastery), no browser
+npm run check:seo       # audits build/client: sitemap, unique titles, one absolute canonical, JSON-LD parses
 npm run audit           # stale-data report: shipped fields vs a second dataset + a watchlist. Read-only. RUN BEFORE ANY RELEASE
 npm run audit:flags     # rasterises every flag, checks it against its authored description (needs Chromium)
 npm run perf            # serves build/client, drives a real browser, reports frame time

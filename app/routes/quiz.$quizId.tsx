@@ -15,6 +15,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 
 import { useAtlasContext } from './atlas';
+import { allCountries } from '~/lib/geography/catalog.server';
+import { quizPageSeo } from '~/lib/geography/quizSeo';
+import { pageMeta } from '~/lib/seo';
+import type { Route } from './+types/quiz.$quizId';
 import { useQuizEngine } from '~/lib/quiz/engine';
 import { formatDuration } from '~/lib/format';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
@@ -35,13 +39,23 @@ function measureInsets(): Insets {
   return { ...NO_INSETS, bottom: Math.max(0, c.bottom - d.top) };
 }
 
-export function meta({ params }: { params: { quizId?: string } }) {
+/** Build-time only: the size of the scope's pool, which the title says ("All 46 Countries")
+ *  and which only the catalogue knows. */
+export function loader({ params }: Route.LoaderArgs) {
+  const scope = params.scope ?? '';
+  return { poolSize: isQuizScope(scope) ? poolForScope(allCountries(), scope).length : 0 };
+}
+
+export function meta({ params, loaderData, location }: Route.MetaArgs) {
   const definition = params.quizId ? quizDefinition(params.quizId) : undefined;
-  if (!definition) return [{ title: 'Quiz — Zemya' }];
-  return [
-    { title: `${definition.title} — Zemya` },
-    { name: 'description', content: definition.description }
-  ];
+  const { scope = '', size = '' } = params;
+  if (!definition || !isQuizScope(scope) || !isQuizSize(size)) {
+    return pageMeta({ title: 'Quiz — Zemya', description: 'A timed geography quiz.', path: location.pathname, noindex: true });
+  }
+  return pageMeta({
+    ...quizPageSeo(definition, scope, size, loaderData?.poolSize ?? 0),
+    path: location.pathname
+  });
 }
 
 export default function QuizRun() {

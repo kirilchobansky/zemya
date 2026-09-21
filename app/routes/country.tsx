@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { CountryProgress } from '~/components/CountryProgress';
 import { Flag } from '~/components/Flag';
 import { formatNumber } from '~/lib/format';
+import { countryJsonLd, pageMeta } from '~/lib/seo';
 import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
 import type { Route } from './+types/country';
 
@@ -12,17 +13,19 @@ export function loader({ params }: Route.LoaderArgs) {
   return { country, neighbours: neighbourLinks(country) };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export function meta({ loaderData, location }: Route.MetaArgs) {
   if (!loaderData) return [{ title: 'Zemya' }];
   const { country } = loaderData;
   return [
-    { title: `${country.name} — Zemya` },
-    {
-      name: 'description',
-      content:
+    ...pageMeta({
+      title: `${country.name} — Zemya`,
+      description:
         `${country.name}: capital ${country.capital ?? '—'}, ` +
-        `${formatNumber(country.population)} people, ${country.language ?? '—'}. ${country.hook}`
-    }
+        `${formatNumber(country.population)} people, ${country.language ?? '—'}. ${country.hook}`,
+      path: location.pathname,
+      type: 'article'
+    }),
+    { 'script:ld+json': countryJsonLd(country) }
   ];
 }
 
@@ -42,7 +45,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
             <Flag iso2={country.iso2} emoji={country.emoji} flagRatio={country.flagRatio} size="md" />
           </div>
           <div>
-            <h3>{country.name}</h3>
+            <h1>{country.name}</h1>
             <div className="dossier__official">{country.officialName}</div>
           </div>
         </div>

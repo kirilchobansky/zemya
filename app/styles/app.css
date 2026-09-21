@@ -131,7 +131,7 @@ a {
   transform: translateY(-0.5px);
 }
 
-.brand h1 {
+.brand__name {
   font-family: var(--font-display);
   font-size: 19px;
   font-weight: 600;
@@ -566,7 +566,7 @@ a {
 .dossier__flag {
   flex: 0 0 auto;
 }
-.dossier__hero h3 {
+.dossier__hero h1 {
   margin: 0;
   font-family: var(--font-display);
   font-size: 25px;

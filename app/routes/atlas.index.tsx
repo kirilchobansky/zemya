@@ -1,17 +1,17 @@
 import { Link } from 'react-router';
 
 import { allCountries } from '~/lib/geography/catalog.server';
+import { pageMeta, websiteJsonLd } from '~/lib/seo';
 import type { Route } from './+types/atlas.index';
+
+const DESCRIPTION =
+  'An interactive world map built for learning geography: country dossiers, ' +
+  'neighbour highlighting, choropleth overlays and true-size comparison.';
 
 export function meta() {
   return [
-    { title: 'Zemya — an atlas you can learn from' },
-    {
-      name: 'description',
-      content:
-        'An interactive world map built for learning geography: country dossiers, ' +
-        'neighbour highlighting, choropleth overlays and true-size comparison.'
-    }
+    ...pageMeta({ title: 'Zemya — an atlas you can learn from', description: DESCRIPTION, path: '/' }),
+    { 'script:ld+json': websiteJsonLd(DESCRIPTION) }
   ];
 }
 

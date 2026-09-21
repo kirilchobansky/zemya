@@ -49,6 +49,11 @@ export interface QuizDefinition {
   id: string;
   title: string;
   description: string;
+  /** What the quiz is called in a search result: "<Scope> <seoName> Quiz" — "Map", "Flags",
+   *  "Capitals". See app/lib/geography/quizSeo.ts. */
+  seoName: string;
+  /** What the player does, as one sentence for the page description. */
+  seoTask: string;
   /** Which FSRS card grade() writes to: geo:<ISO3>:<facet>. */
   facet: Facet;
   /** Renders what the player sees for the current target — see QuizSlot above. */

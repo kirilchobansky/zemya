@@ -236,3 +236,30 @@ and cites third-party colour sites. `sy.svg` therefore uses the conventional val
 Wikimedia's own SVG uses (#007a3d, #ce1126) and its geometry (stars centred on the white
 band at 1/4, 1/2, 3/4, bounding height 150 of 900x600). Say so in the note; revisit if an
 official specification is published.
+
+## Search and sharing metadata
+
+- **One origin.** `SITE_URL` lives in `.env.example` (committed default) and is overridden by a
+  real env var or `.env`; `scripts/lib/site.mjs` resolves it, `vite.config.ts` injects it as
+  `__SITE_URL__`, `app/lib/site.ts` exposes `absoluteUrl()`. Nothing else contains a domain.
+  The default `https://zemya.example` is a reserved placeholder, not a real site — set the real
+  one before deploying.
+- **Every route's `meta` goes through `pageMeta()`** (`app/lib/seo.ts`): title, description,
+  canonical, og:*, twitter:*. The prerenderer passes `/x/`; canonicals strip the slash to match
+  `trailingSlash: false`. Legacy redirect pages are `noindex` and stay out of the sitemap.
+- **Quiz titles** come from `quizPageSeo()` (`app/lib/geography/quizSeo.ts`) plus `seoName` /
+  `seoTask` on each `QuizDefinition`: "Africa Capitals Quiz — Top 30 Countries | Zemya". Numeric
+  sizes say "Top N" because they are the N most populous (`topByPopulation`); "All N" for the
+  rest. Pool size comes from a build-time loader.
+- **Sitemap and robots.txt** are written by `buildEnd` in `react-router.config.ts` from the same
+  list that `prerender` uses. A `VERCEL_ENV=preview` build gets a disallow-all robots.txt, and
+  `vercel.json` sends `X-Robots-Tag: noindex, nofollow` on every `*.vercel.app` host (production
+  included, since each deployment is also reachable there). **If `SITE_URL` were ever a
+  `*.vercel.app` host, that header would deindex it** — use a custom domain.
+- **JSON-LD.** schema.org `Country` has no capital, population or currency properties, so those
+  go in `additionalProperty` `PropertyValue`s rather than invented fields. Google has no rich
+  result for Country; this is valid structured data, not a promised rich snippet. `WebSite` on `/`.
+- **Headings.** A page's h1 is its subject: the dossier's country name is the h1 and the rail's
+  wordmark drops to a `div` on `/country/*`; it is the h1 elsewhere.
+- **og:image** is one committed 1200x630 card (`public/og-image.png`, from
+  `scripts/build-og-image.mjs`). Later idea, not built: per-country cards.

@@ -11,6 +11,7 @@
     "test": "node test/smoke.mjs",
     "audit": "node scripts/audit-freshness.mjs",
     "audit:flags": "node scripts/audit-flags.mjs",
+    "check:seo": "node scripts/check-seo.mjs",
     "test:unit": "vitest run",
     "perf": "node test/perf.mjs"
   },

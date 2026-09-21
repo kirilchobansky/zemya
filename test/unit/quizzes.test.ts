@@ -260,7 +260,7 @@ describe('the capitals quiz', () => {
     // nothing quiz-specific to assert about sizes: the route derives them from the pool,
     // not the definition. This pins that a definition carries no size list of its own.
     expect(Object.keys(definition).sort()).toEqual(
-      ['Stage', 'description', 'facet', 'id', 'markCapital', 'match', 'title']
+      ['Stage', 'description', 'facet', 'id', 'markCapital', 'match', 'seoName', 'seoTask', 'title']
     );
   });
 });
