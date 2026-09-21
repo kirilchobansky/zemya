@@ -757,48 +757,6 @@ a {
   line-height: 1.5;
 }
 
-/* ---------------------------------------------------------------- mobile */
-
-@media (max-width: 900px) {
-  body {
-    overflow: auto;
-  }
-  .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: 44vh auto auto;
-    height: auto;
-    min-height: 100dvh;
-  }
-  .stage {
-    order: 1;
-    min-height: 44vh;
-  }
-  .panel {
-    order: 2;
-    border-left: none;
-    border-top: 1px solid var(--rule-soft);
-  }
-  .rail {
-    order: 3;
-    border-right: none;
-    border-top: 1px solid var(--rule-soft);
-  }
-  .brand {
-    padding: 14px 16px 12px;
-  }
-  .rail__scroll,
-  .panel__body {
-    padding: 14px;
-  }
-  .search {
-    width: min(58vw, 220px);
-  }
-  .tool {
-    padding: 6px 9px;
-    font-size: 11.5px;
-  }
-}
-
 /* --- progress ------------------------------------------------------------------- */
 
 .tally {
@@ -1337,17 +1295,421 @@ kbd {
   object-fit: contain;
 }
 
-@media (max-width: 900px) {
-  .quiz-flag-stage {
-    left: 0;
-    right: 0;
-    bottom: auto;
-    height: 44vh;
+/* ================================================================ mobile
+   Two rules, kept apart (CLAUDE.md "Mobile"):
+     LAYOUT follows viewport WIDTH   — `max-width: 819px` is the phone layout (mirrors
+                                        PHONE_MAX_WIDTH in app/lib/viewport.ts).
+     INPUT follows the POINTER       — `(pointer: coarse)` decides touch-sized targets and
+                                        hides hover/keyboard hints, at any width (an iPad in
+                                        landscape is desktop layout with touch controls).
+   The phone furniture below is in the DOM on every viewport and hidden here, so desktop and
+   the prerendered HTML never differ. */
+
+.tabbar,
+.ovl,
+.layers-btn,
+.sheet__grip,
+.peek,
+.only-coarse {
+  display: none;
+}
+
+/* tighter columns between the phone breakpoint and a full desktop, so the map keeps some room */
+@media (max-width: 1000px) {
+  :root {
+    --rail-width: 208px;
+    --panel-width: 300px;
   }
 }
 
-@media (max-width: 900px) {
+/* ---- input affordances: by pointer ------------------------------------------------- */
+
+@media (pointer: coarse) {
+  .only-coarse {
+    display: inline;
+  }
+  .only-fine,
+  kbd {
+    display: none;
+  }
+  /* no hover on touch, and pinch already zooms */
+  .tip,
+  .zoomer .zoom-step {
+    display: none;
+  }
+  .zoomer button {
+    width: 44px;
+    height: 44px;
+  }
+  .chip,
+  .tool,
+  .neighbour,
+  .action {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chip {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  /* iOS zooms the page when a focused input's text is under 16px */
+  .search input {
+    font-size: 16px;
+  }
+}
+
+/* ---- layout: by width --------------------------------------------------------------- */
+
+@media (max-width: 819px) {
+  :root {
+    --tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
+  /* The shell is exactly one viewport: dvh, not vh — mobile browser toolbars change the
+     height and vh is wrong on every phone. The page body never scrolls; only sheet content. */
+  .shell {
+    display: block;
+    position: relative;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .rail {
+    display: none;
+  }
+  .stage {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* --- top: search pill, layers button --- */
+  .hud--top {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: 12px;
+    right: 12px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar {
+    display: none;
+  }
+  .search {
+    width: 250px;
+    flex: 0 1 auto;
+    transition: width 0.2s ease;
+  }
+  .search:focus-within {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+  .search input {
+    height: 44px;
+    padding: 0 16px 0 38px;
+    border-radius: 999px;
+    font-size: 15px;
+  }
+  .search input::placeholder {
+    text-overflow: ellipsis;
+  }
+  .search__icon {
+    left: 15px;
+    font-size: 15px;
+  }
+  .search__results {
+    max-height: min(280px, 42dvh);
+  }
+  .layers-btn {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    border-radius: 50%;
+    font-size: 20px;
+    color: var(--ink-2);
+    background: rgb(14 23 32 / 86%);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--rule);
+    box-shadow: var(--shadow);
+  }
+  .layers-btn[aria-expanded='true'] {
+    color: var(--brass-2);
+    border-color: var(--brass-dim);
+  }
+  .hud--top:has(.search:focus-within) .layers-btn {
+    display: none;
+  }
+
+  /* --- ⌂ as a small floating button under the layers button; the scale bar goes --- */
+  .hud--bottom {
+    top: calc(10px + env(safe-area-inset-top, 0px) + 54px);
+    right: 12px;
+    bottom: auto;
+    left: auto;
+  }
+  .zoomer {
+    border-radius: 50%;
+    padding: 2px;
+  }
+  .zoomer button {
+    width: 40px;
+    height: 40px;
+  }
+  .zoomer button:not(.zoom-step) {
+    border-radius: 50%;
+  }
+  .scalebar {
+    display: none;
+  }
+  .compare-hud {
+    bottom: auto;
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    max-width: calc(100% - 24px);
+  }
+
+  /* --- the bottom sheet: the right-hand panel, on phones ---
+     90dvh tall and parked with a transform (never height) so snapping stays on the compositor.
+     Snap points are measured from the viewport's bottom edge and mirrored in app/lib/sheet.ts:
+     peek = tab bar + 88px, half = 50%, full = 90%. */
+  .panel {
+    position: fixed;
+    z-index: 5;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90dvh;
+    padding-bottom: var(--tabbar-h);
+    border-left: none;
+    border-top: 1px solid var(--rule);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -18px 44px -20px rgb(0 0 0 / 85%);
+    transform: translateY(calc(90dvh - 88px - var(--tabbar-h)));
+    transition: transform 0.3s cubic-bezier(0.2, 0.85, 0.25, 1), visibility 0s;
+    will-change: transform;
+  }
+  .panel[data-snap='half'] {
+    transform: translateY(40dvh);
+  }
+  .panel[data-snap='full'] {
+    transform: translateY(0);
+  }
+  .panel[data-hidden='true'] {
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 0.3s ease, visibility 0s 0.3s;
+  }
+
+  .sheet__grip {
+    display: flex;
+    position: relative;
+    flex: 0 0 30px;
+    width: 100%;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sheet__pill {
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--rule);
+  }
+  .sheet__arrow {
+    position: absolute;
+    right: 8px;
+    top: 0;
+    width: 44px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    font-size: 17px;
+    color: var(--ink-3);
+    transition: transform 0.25s ease;
+  }
+  .sheet__grip[data-snap='full'] .sheet__arrow {
+    transform: rotate(180deg);
+  }
+
+  .panel__head {
+    flex: 0 0 auto;
+    min-height: 58px;
+    padding: 2px 18px 8px;
+    touch-action: none;
+  }
+  .panel__head--peek {
+    height: 58px;
+    overflow: hidden;
+  }
+  .panel__head--peek > :not(.peek) {
+    display: none;
+  }
+  .peek {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 100%;
+    min-width: 0;
+  }
+  .peek__text {
+    min-width: 0;
+  }
+  .peek__title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .peek__sub {
+    margin-top: 1px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .peek__search {
+    display: block;
+    margin-top: 2px;
+    padding: 0;
+    font-size: 13px;
+    color: var(--sea);
+  }
+  .panel__body {
+    padding: 14px 16px 28px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* --- bottom tab bar (the rail's contents, on phones) --- */
+  .tabbar {
+    display: flex;
+    position: fixed;
+    z-index: 7;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--tabbar-h);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--chart);
+    border-top: 1px solid var(--rule);
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 44px;
+    color: var(--ink-3);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab[aria-current='page'] {
+    color: var(--brass);
+  }
+  .tab__icon {
+    display: block;
+  }
+  .tab__label {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* --- Layers / Progress: small sheets over the map, above the tab bar --- */
+  .ovl {
+    display: block;
+    position: fixed;
+    z-index: 6;
+    inset: 0 0 var(--tabbar-h) 0;
+    pointer-events: none;
+  }
+  .ovl[data-open='true'] {
+    pointer-events: auto;
+  }
+  .ovl__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(4 8 12 / 55%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .ovl[data-open='true'] .ovl__backdrop {
+    opacity: 1;
+  }
+  .ovl__sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 72dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--chart);
+    border-top: 1px solid var(--rule);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -18px 44px -20px rgb(0 0 0 / 85%);
+    transform: translateY(105%);
+    transition: transform 0.28s cubic-bezier(0.2, 0.85, 0.25, 1);
+  }
+  .ovl[data-open='true'] .ovl__sheet {
+    transform: none;
+  }
+  .ovl__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 6px 0 18px;
+  }
+  .ovl__head h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .ovl__close {
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--ink-3);
+  }
+  .ovl__body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 4px 16px 22px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* --- a quiz run takes the whole screen: no sheet, no tab bar, no overlays --- */
+  .is-immersive .tabbar,
+  .is-immersive .ovl {
+    display: none;
+  }
+
+  /* interim placement of the run's own controls (replaced by the phone quiz layout) */
   .quiz-dock {
     left: 50%;
+  }
+  .quiz-flag-stage {
+    left: 0;
+    right: 0;
   }
 }

@@ -87,9 +87,16 @@ export default function QuizCatalogue({ loaderData: scopeCounts }: Route.Compone
 
   return (
     <>
-      <header className="panel__head panel__head--quiet">
+      <header className="panel__head panel__head--quiet panel__head--peek">
         <span className="panel__eyebrow">Quizzes</span>
         <h2>Pick a quiz</h2>
+        {/* phone layout only: the sheet's lowest snap point */}
+        <div className="peek">
+          <div className="peek__text">
+            <div className="peek__title">Quizzes</div>
+            <div className="peek__sub">Timed rounds on flags, capitals and the map</div>
+          </div>
+        </div>
       </header>
       <div className="panel__body">
         {QUIZ_DEFINITIONS.map(quiz => {

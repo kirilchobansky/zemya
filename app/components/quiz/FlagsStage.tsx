@@ -6,6 +6,8 @@
  * generic engine/route scaffold — this Stage renders nothing into the panel slot. See
  * CLAUDE.md's Quizzes section.
  */
+import { createPortal } from 'react-dom';
+
 import { Flag } from '~/components/Flag';
 import type { QuizStageProps } from '~/lib/quiz/types';
 
@@ -15,7 +17,9 @@ export function FlagsStage(props: QuizStageProps) {
   if (slot === 'panel') return null;
   if (phase === 'done') return null;
 
-  return (
+  // Portalled to <body> for the same reason as MapStage's dock: a transformed sheet ancestor
+  // would trap this `position: fixed` stage inside the panel on phones.
+  return createPortal(
     <div className="quiz-flag-stage">
       {phase === 'idle' && (
         <button type="button" className="quiz-dock__start" onClick={onStart}>
@@ -48,6 +52,7 @@ export function FlagsStage(props: QuizStageProps) {
           />
         </>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

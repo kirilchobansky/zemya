@@ -13,6 +13,8 @@
  * panel slot — the one piece of "today's behaviour" that is genuinely this quiz's own,
  * since no other quiz has a notion of map neighbours.
  */
+import { createPortal } from 'react-dom';
+
 import type { CountryRecord } from '~/lib/map/types';
 import type { QuizStageProps } from '~/lib/quiz/types';
 
@@ -54,7 +56,10 @@ export function MapStage(props: QuizStageProps & { config: MapStageConfig }) {
 
   if (phase === 'done') return null;
 
-  return (
+  // Portalled to <body>: on phones the panel that renders this route is a transformed bottom
+  // sheet, and a transformed ancestor becomes the containing block of `position: fixed`
+  // descendants — the dock would be pinned inside the sheet instead of to the screen.
+  return createPortal(
     <div className="quiz-dock">
       {phase === 'idle' && (
         <button type="button" className="quiz-dock__start" onClick={onStart}>
@@ -85,6 +90,7 @@ export function MapStage(props: QuizStageProps & { config: MapStageConfig }) {
           />
         </>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -65,7 +65,7 @@ export default function QuizRun() {
   const scope = params.scope && isQuizScope(params.scope) ? params.scope : null;
   const requestedSize = params.size && isQuizSize(params.size) ? params.size : null;
 
-  const { atlas, setQuiz } = useAtlasContext();
+  const { atlas, setQuiz, setImmersive, setSheetSnap } = useAtlasContext();
 
   const [world, setWorld] = useState<World | null>(null);
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function QuizRun() {
     [definition, pool, size]
   );
 
-  const abandon = () => navigate('/quiz');
+  const abandon = () => navigate('/quiz', { state: { sheet: 'half' } });
   const engine = useQuizEngine(
     definition ?? { id: 'unknown', facet: 'location' },
     countries,
@@ -135,6 +135,21 @@ export default function QuizRun() {
       if (view) atlas.home();
     };
   }, [atlas, scope]);
+
+  /* Phone layout: a run owns the whole screen — no sheet, no tab bar — from the START screen
+     until its results, which open the sheet at full height. Only for a valid run: the
+     "not found" and "preparing" states keep the tab bar, so nobody is stranded. No effect on
+     desktop, where the shell has no such state. */
+  const validRun = Boolean(definition && scope && requestedSize && world && size);
+  const runOwnsScreen = validRun && engine.phase !== 'done';
+  useEffect(() => {
+    setImmersive(runOwnsScreen);
+    return () => setImmersive(false);
+  }, [runOwnsScreen, setImmersive]);
+  const finished = validRun && engine.phase === 'done';
+  useEffect(() => {
+    if (finished) setSheetSnap('full');
+  }, [finished, setSheetSnap]);
 
   const prevPhaseRef = useRef(engine.phase);
   useEffect(() => {
@@ -384,7 +399,7 @@ export default function QuizRun() {
               <button type="button" className="action action--primary" onClick={engine.start}>
                 Run it again
               </button>
-              <Link to="/quiz" className="action">
+              <Link to="/quiz" state={{ sheet: 'half' }} className="action">
                 Back to quizzes
               </Link>
             </div>

@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 
 import { CountryProgress } from '~/components/CountryProgress';
 import { Flag } from '~/components/Flag';
-import { formatNumber } from '~/lib/format';
+import { formatCompact, formatNumber } from '~/lib/format';
 import { countryJsonLd, pageMeta } from '~/lib/seo';
 import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
 import type { Route } from './+types/country';
@@ -34,9 +34,21 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <header className="panel__head">
+      <header className="panel__head panel__head--peek">
         <span className="panel__eyebrow">Dossier</span>
         <h2>{country.subregion || country.region}</h2>
+        {/* phone layout only: what the sheet shows at its lowest snap point */}
+        <div className="peek">
+          <Flag iso2={country.iso2} emoji={country.emoji} flagRatio={country.flagRatio} size="sm" />
+          <div className="peek__text">
+            <div className="peek__title">{country.name}</div>
+            <div className="peek__sub">
+              {[country.capital, country.population ? formatCompact(country.population) : null, country.currencyCode]
+                .filter(Boolean)
+                .join(' · ')}
+            </div>
+          </div>
+        </div>
       </header>
 
       <div className="panel__body">

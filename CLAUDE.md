@@ -47,6 +47,8 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
   `sitemap.xml`. The origin is `SITE_URL` (`.env.example`; one edit, or a Vercel env var) — the
   committed default `https://zemya.example` is a placeholder until the domain is attached.
   `npm run check:seo` audits `build/client` (run after `npm run build`). `docs/decisions.md`.
+- Phone layout (below 820px wide): full-screen map, the right-hand panel as a bottom sheet with
+  three snap points, a bottom tab bar, a Layers button. Desktop unchanged. See "## Mobile".
 - Deployment-ready as static files on Vercel (`vercel.json`, `public/404.html`); not yet deployed.
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
@@ -191,6 +193,58 @@ calls them, not what they do.
   plus its id in `react-router.config.ts`'s `QUIZ_IDS`. Anything that could show a
   country's name is gated on the single `quiz`/`quizMode` value. No Stage may move when its
   content changes size. Never `disabled` the run input.
+
+## Mobile
+
+Two switches, deliberately independent:
+
+- **LAYOUT follows viewport WIDTH.** `max-width: 819px` (`PHONE_MAX_WIDTH` in
+  `app/lib/viewport.ts`, mirrored in `app.css` — change both) is the phone layout. An iPad in
+  landscape is the desktop layout. Between 820 and 1000px the rail/panel columns are tighter.
+- **INPUT AFFORDANCES follow the POINTER.** `@media (pointer: coarse)` / `isCoarsePointer()`:
+  44px touch targets, no hover tooltip, no +/- zoom buttons (pinch exists), no `<kbd>` hints,
+  16px input text (iOS zooms the page under that). `.only-fine` / `.only-coarse` swap copy
+  ("Click" / "Tap") in CSS, so prerendered HTML never differs by device.
+
+The phone furniture (tab bar, sheet handle, peek content, Layers button, overlay sheets) is in
+the DOM at every width and `display: none` above the breakpoint. Do not gate markup on a JS media
+query — it would mismatch the prerendered HTML. JS is for behaviour only (`useSheetDrag`, camera
+insets), always read at event/effect time.
+
+**The shell.** One viewport tall, `100dvh` (never `vh`); the body never scrolls, only sheet
+content (`overscroll-behavior: contain`). The canvas fills the screen behind everything.
+Every bottom-pinned thing pads with `env(safe-area-inset-bottom)` (`--tabbar-h` carries it).
+
+**The sheet** is the ordinary `.panel` (`<aside>` in `routes/atlas.tsx`), restyled: 90dvh tall,
+parked with `transform: translateY(...)` — snapping animates transform only, never height.
+Snaps (`app/lib/sheet.ts`, mirrored in CSS `.panel[data-snap]`), measured from the viewport
+bottom: **peek** = tab bar + 88px (handle + the route's `.peek` line), **half** 50%, **full**
+90%. The header/handle drag the sheet; inside the scrolling body a drag moves the sheet only when
+the body is scrolled to the top (down always, up only below full), otherwise it scrolls. Tap the
+handle/arrow to step peek -> half -> full -> half. Snap state lives in `AtlasShell`; a route
+asks for one with `state={{ sheet: 'peek' | 'half' }}` (map tap and search pick: peek; tabs:
+half). A link that says nothing (a neighbour chip in the sheet) leaves it where it is. **Decision:**
+a cold load of anything but `/` opens at half (the page is why they came).
+Each panel route's `<header className="panel__head panel__head--peek">` holds a `.peek` block —
+what shows at the lowest snap (country: flag + name + capital · population · currency; home:
+"Explore the map" + a search prompt; catalogue: "Quizzes"). Routes without one show their
+ordinary eyebrow + h2.
+
+**Tab bar:** Map · Quizzes · Study · Progress. Progress is not a route: it opens the Progress
+overlay sheet (`ProgressSheet`, the same `ProgressSection` + `DataSection` the desktop rail
+uses, so Export/Import/Reset stay one implementation). The Layers button (top right) opens
+`LayersSheet` (overlay chips + legend from `LayerControls`, the three toggles, Compare size) —
+it replaces the desktop toolbar, which is `display: none` on phones. ⌂ is a small floating button
+under it; the scale bar is hidden on phones. Icons are inline SVG (glyph characters fall back to
+tofu on some fonts).
+
+**`position: fixed` inside the sheet is a trap:** a transformed ancestor becomes the containing
+block, so anything fixed that a panel route renders (the quiz dock, the flag stage) is
+**portalled to `<body>`** (`createPortal` in `MapStage` / `FlagsStage`). Do the same for anything
+new.
+
+**Quiz runs** (`setImmersive` in the atlas context): on a valid run the phone shell hides the
+sheet, tab bar and overlays from START to the results; results open the sheet at `full`.
 
 ## Commands
 

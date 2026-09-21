@@ -10,10 +10,13 @@ import {
 } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 
+import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName } from '~/components/MobileChrome';
 import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
+import { isPhoneLayout, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
+import { stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
 import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
@@ -36,6 +39,10 @@ interface AtlasContextValue {
   atlas: Atlas | null;
   quiz: QuizOverride | null;
   setQuiz: Dispatch<SetStateAction<QuizOverride | null>>;
+  /** Phone layout only (no effect on desktop): a quiz run takes the whole screen — no sheet,
+   *  no tab bar, no search — until its results, which open the sheet at `full`. */
+  setImmersive: Dispatch<SetStateAction<boolean>>;
+  setSheetSnap: Dispatch<SetStateAction<SheetSnap>>;
 }
 
 const AtlasContext = createContext<AtlasContextValue | null>(null);
@@ -80,6 +87,15 @@ function AtlasShell() {
   const [armingCompare, setArmingCompare] = useState(false);
   const [atlasInstance, setAtlasInstance] = useState<Atlas | null>(null);
   const [quiz, setQuiz] = useState<QuizOverride | null>(null);
+
+  /* phone layout: where the bottom sheet rests, what covers the map, and which overlay
+     sheet (Layers / Progress) is open. Meaningless — and never rendered — on desktop. */
+  const [snap, setSnap] = useState<SheetSnap>('peek');
+  const [immersive, setImmersive] = useState(false);
+  const [overlaySheet, setOverlaySheet] = useState<OverlayName>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const phone = useMediaQuery(PHONE_QUERY);
+  useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive });
 
   const slug = COUNTRY_PATH.exec(location.pathname)?.[1] ?? null;
   const selected = slug && world ? world.bySlug.get(slug) ?? null : null;
@@ -135,7 +151,8 @@ function AtlasShell() {
         }
         return;
       }
-      navigate(feature ? `/country/${feature.country.slug}` : '/');
+      // `sheet: 'peek'` (phone layout only): the map stays visible behind a selection
+      navigate(feature ? `/country/${feature.country.slug}` : '/', { state: { sheet: 'peek' } });
     },
     [armingCompare, navigate, quiz]
   );
@@ -218,6 +235,23 @@ function AtlasShell() {
   }, [styleInputs, showPins, showCapitals, quiz, world]);
 
   /**
+   * Where the phone sheet rests after a navigation. Links and navigate() say so with
+   * `state.sheet` (a map tap or a search pick: peek; a tab: half); a link that says nothing —
+   * a neighbour chip inside the sheet — leaves it where the reader had it. A cold load has no
+   * state: home rests at peek, every other page (a shared country link, /quiz) opens at half,
+   * because the page is the reason they came.
+   */
+  const firstNavigationRef = useRef(true);
+  useEffect(() => {
+    const first = firstNavigationRef.current;
+    firstNavigationRef.current = false;
+    if (!isPhoneLayout()) return;
+    const asked = (location.state as { sheet?: SheetSnap } | null)?.sheet;
+    if (asked) setSnap(asked);
+    else if (first && location.pathname !== '/') setSnap('half');
+  }, [location.key, location.pathname, location.state]);
+
+  /**
    * Move the camera only when the user could not already have seen the target. A map click
    * navigates without state, so it never flies — the country was on screen and under the
    * cursor, and moving the map out from under it destroys the sense of place. Search, the
@@ -253,8 +287,8 @@ function AtlasShell() {
   ].filter(Boolean).join(' ');
 
   return (
-    <AtlasContext.Provider value={{ atlas: atlasInstance, quiz, setQuiz }}>
-    <div className="shell">
+    <AtlasContext.Provider value={{ atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap }}>
+    <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
       <Rail
         overlay={overlay}
         onOverlayChange={setOverlay}
@@ -270,9 +304,18 @@ function AtlasShell() {
             <SearchBox
               world={world}
               onPick={feature =>
-                navigate(`/country/${feature.country.slug}`, { state: { fly: true } })
+                navigate(`/country/${feature.country.slug}`, { state: { fly: true, sheet: 'peek' } })
               }
             />
+            <button
+              type="button"
+              className="layers-btn"
+              aria-label="Layers"
+              aria-expanded={overlaySheet === 'layers'}
+              onClick={() => setOverlaySheet(o => (o === 'layers' ? null : 'layers'))}
+            >
+              <LayersIcon />
+            </button>
             <div className="toolbar glass">
               <button
                 type="button"
@@ -312,8 +355,8 @@ function AtlasShell() {
 
         <div className="hud hud--bottom">
           <div className="zoomer glass">
-            <button type="button" onClick={() => atlasRef.current?.zoomBy(1.7)} aria-label="Zoom in">+</button>
-            <button type="button" onClick={() => atlasRef.current?.zoomBy(1 / 1.7)} aria-label="Zoom out">−</button>
+            <button type="button" className="zoom-step" onClick={() => atlasRef.current?.zoomBy(1.7)} aria-label="Zoom in">+</button>
+            <button type="button" className="zoom-step" onClick={() => atlasRef.current?.zoomBy(1 / 1.7)} aria-label="Zoom out">−</button>
             <button type="button" onClick={() => {
               // during a run ⌂ is only a camera reset: navigating to '/' would unmount the
               // quiz route and silently abandon the run (the same trap as a map click)
@@ -338,7 +381,10 @@ function AtlasShell() {
           <div className="compare-hud glass">
             <p>
               {armingCompare ? (
-                'Click any country to lift its outline off the map.'
+                <>
+                  <span className="only-fine">Click</span>
+                  <span className="only-coarse">Tap</span> any country to lift its outline off the map.
+                </>
               ) : comparing ? (
                 <>
                   <b>{comparing.feature.country.emoji} {comparing.feature.country.name}</b> —{' '}
@@ -367,9 +413,33 @@ function AtlasShell() {
         )}
       </main>
 
-      <aside className="panel">
+      <aside
+        className="panel"
+        ref={panelRef}
+        data-snap={snap}
+        data-hidden={immersive}
+        aria-hidden={phone && immersive ? true : undefined}
+      >
+        <SheetGrip snap={snap} onStep={() => setSnap(stepSnap(snap))} />
         <Outlet />
       </aside>
+
+      <TabBar overlay={overlaySheet} onOverlay={setOverlaySheet} />
+      <LayersSheet
+        open={overlaySheet === 'layers'}
+        onClose={() => setOverlaySheet(null)}
+        overlay={overlay}
+        onOverlayChange={setOverlay}
+        showNeighbours={showNeighbours}
+        onNeighbours={() => setShowNeighbours(v => !v)}
+        showPins={showPins}
+        onPins={() => setShowPins(v => !v)}
+        showCapitals={showCapitals}
+        onCapitals={() => setShowCapitals(v => !v)}
+        comparing={Boolean(comparing) || armingCompare}
+        onCompare={toggleCompare}
+      />
+      <ProgressSheet open={overlaySheet === 'progress'} onClose={() => setOverlaySheet(null)} totals={totals} />
     </div>
     </AtlasContext.Provider>
   );

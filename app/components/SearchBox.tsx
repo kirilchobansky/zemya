@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Flag } from '~/components/Flag';
 import { normalise } from '~/lib/format';
+import { isCoarsePointer } from '~/lib/viewport';
 import type { Feature, World } from '~/lib/map/types';
 
 const MAX_RESULTS = 8;
@@ -16,6 +17,7 @@ export function SearchBox({ world, onPick }: SearchBoxProps) {
   const [active, setActive] = useState(-1);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   /** Pre-normalised once per payload; typing then costs one includes() per country. */
   const index = useMemo(() => {
@@ -56,6 +58,9 @@ export function SearchBox({ world, onPick }: SearchBoxProps) {
     setQuery('');
     setOpen(false);
     setActive(-1);
+    // on a touch screen the keyboard has done its job; leaving it up would cover the map the
+    // camera is about to fly to (and the pill would stay expanded)
+    if (isCoarsePointer()) inputRef.current?.blur();
   }
 
   return (
@@ -64,6 +69,7 @@ export function SearchBox({ world, onPick }: SearchBoxProps) {
         ⌕
       </span>
       <input
+        ref={inputRef}
         type="search"
         value={query}
         placeholder="Search countries, capitals…"

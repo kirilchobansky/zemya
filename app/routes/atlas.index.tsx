@@ -30,16 +30,30 @@ export function loader() {
 export default function AtlasIndex({ loaderData }: Route.ComponentProps) {
   return (
     <>
-      <header className="panel__head">
+      <header className="panel__head panel__head--peek">
         <span className="panel__eyebrow">Dossier</span>
         <h2>Select a country</h2>
+        {/* phone layout only: the sheet's lowest snap point */}
+        <div className="peek">
+          <div className="peek__text">
+            <div className="peek__title">Explore the map</div>
+            <button
+              type="button"
+              className="peek__search"
+              onClick={() => document.querySelector<HTMLInputElement>('.search input')?.focus()}
+            >
+              ⌕ Search a country or capital
+            </button>
+          </div>
+        </div>
       </header>
       <div className="panel__body">
         <div className="empty">
           <div className="empty__icon">🧭</div>
           <p>
-            Click any country to open its dossier. Its land neighbours light up in blue so
-            you learn the shape of the region, not just the country.
+            <span className="only-fine">Click</span>
+            <span className="only-coarse">Tap</span> any country to open its dossier. Its land
+            neighbours light up in blue so you learn the shape of the region, not just the country.
           </p>
         </div>
         <section>
