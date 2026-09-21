@@ -1,93 +1,79 @@
+<div align="center">
+
+<img src="public/icon.svg" alt="Zemya logo" width="96" height="96" />
+
 # Zemya
 
-An interactive atlas built for learning, not for looking things up.
+**Typed geography quizzes for every country, flag and capital.**
 
-The premise: every subject has one natural spatial index, and learning should happen by
-navigating that index rather than by flipping cards. Geography's index is the map.
-History's is the timeline. Zemya starts with geography and is structured so history can
-share the same data model rather than sit beside it as a separate app.
+<a href="https://zemya.study" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.shields.io/badge/Live%20Site-zemya.study-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live site" />
+</a>
 
-## Status
+<br />
 
-Pre-alpha, and buildable.
+[![License](https://img.shields.io/badge/License-MIT%20%2B%20ODbL-000000?style=for-the-badge&logo=opensourceinitiative&logoColor=3DA639)](LICENSE)
+[![React](https://img.shields.io/badge/React_19-000000?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-000000?style=for-the-badge&logo=typescript&logoColor=3178C6)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-000000?style=for-the-badge&logo=vite&logoColor=646CFF)](https://vitejs.dev)
+[![React Router](https://img.shields.io/badge/React_Router_8-000000?style=for-the-badge&logo=reactrouter&logoColor=CA4245)](https://reactrouter.com)
 
-The production app is React 19 + Vite + TypeScript on React Router v8, prerendered to 199
-static pages. It does the atlas half — the map, country dossiers, neighbour highlighting,
-five choropleth overlays, search, and true-size comparison — plus a first study mode
-(nine question kinds over FSRS-scheduled cards). See CLAUDE.md's "Where this is" for the
-current state in more detail.
+### [🧭 Open the atlas → zemya.study](https://zemya.study)
 
-## Repository layout
+<br />
 
-| Path | What it is |
-| --- | --- |
-| `content/geography/countries/` | Hand-authored source of truth — one YAML file per country holding its memory hook, flag description, outline description and religion. Editable without touching code. |
-| `scripts/` | Build pipeline turning `content/` plus two upstream datasets into shipped JSON. |
-| `public/data/geography/` | Generated data, committed deliberately so deploys can't break from an upstream dataset shifting. |
-| `app/lib/map/` | The map engine — projection, topology, camera, canvas renderer, interaction. No React in it. |
-| `app/routes/` | `atlas.tsx` owns the canvas; the child routes render only the right-hand panel. |
+<img src="docs/images/map.png" alt="Zemya: the world map with search, overlays and a dossier panel" width="100%" />
 
-`content/` is the part of this project with actual value. The canvas renderer can be
-rewritten in a weekend; 197 hand-written memory hooks cannot.
+</div>
 
-## Running it
+---
+
+## 📖 About
+
+Zemya is an interactive atlas built for learning, not for looking things up. Every subject has one natural spatial index, and you learn by navigating it: geography's is the map (history's will be the timeline). You type the answer, the clock runs, and the app schedules what to show you next.
+
+## ✨ Features
+
+- 🎯 **Three quizzes** — name the country on the map, name the flag, name the capital.
+- 🌍 **Every continent** — quiz the world or one continent, with sizes that adapt to the pool.
+- ⌨️ **Typed and timed** — no multiple choice; personal bests and run history.
+- 🧠 **Spaced repetition** — an FSRS card per country and fact decides what you see next.
+- 📐 **True-size comparison** — drag a country over another and Mercator's distortion becomes visible.
+- 📖 **197 country dossiers** — real flags, facts and a hand-written memory hook for each.
+- 📴 **Offline-first, no account** — your progress lives in your browser; nothing is uploaded.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/dossier.png" alt="A country dossier: Bulgaria with neighbours highlighted" /><br /><sub><b>Dossiers</b> — facts, memory hook, neighbours</sub></td>
+    <td width="50%"><img src="docs/images/quiz-countries.png" alt="A countries-quiz question mid-run" /><br /><sub><b>Name the Country</b> — find it on the map, type its name</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/quiz-flags.png" alt="A flag quiz question" /><br /><sub><b>Name the Flag</b> — real flags at true aspect ratio</sub></td>
+    <td width="50%"><img src="docs/images/quiz-catalogue.png" alt="The quiz catalogue with continent scopes and sizes" /><br /><sub><b>Quiz catalogue</b> — pick a continent and a size</sub></td>
+  </tr>
+</table>
+
+## 🛠️ Tech Stack
+
+| Layer            | Technologies                                                  |
+| ---------------- | ------------------------------------------------------------- |
+| **Frontend**     | React 19 · TypeScript · React Router 8 (prerendered)          |
+| **Map**          | Custom canvas renderer (full 1:10m coastlines)                |
+| **Storage**      | Dexie (IndexedDB) · ts-fsrs (spaced repetition)               |
+| **Build & test** | Vite · Vitest · Playwright                                    |
+| **Hosting**      | Vercel (static files)                                         |
+
+## 🚀 Getting Started
 
 ```bash
+git clone https://github.com/kirilchobansky/zemya.git && cd zemya
 npm install
-npm run dev        # http://localhost:5173
+npm run dev
 ```
 
-To build the static site exactly as it deploys:
+Opens at `http://localhost:5173` (Node 20+). Project rules and decisions are in [CLAUDE.md](CLAUDE.md); architecture, quizzes, performance and deployment notes are in [docs/](docs/).
 
-```bash
-npm run build      # regenerates public/data, then prerenders 199 pages
-npm test           # serves build/client and drives a real browser over it
-```
-
-Output lands in `build/client/` — plain files, no server required.
-
-### Editing content
-
-Change a memory hook in `content/geography/countries/<slug>.yaml`, then:
-
-```bash
-npm run build:content
-```
-
-Commit both the YAML and the regenerated `public/data/geography/*.json` in the same
-commit — there is no CI here to catch a drift between them (see CLAUDE.md's Git
-conventions).
-
-## Deploying
-
-Zemya deploys to Vercel as pure static files; `build/server` is emitted but never used,
-because every route is prerendered. `vercel.json` carries the settings:
-
-- **Build command** `npm run build`, **output directory** `build/client`, framework
-  preset none (so Vercel doesn't try to run the server build). Nothing serverless.
-- **URLs** have no trailing slash (`cleanUrls`, `trailingSlash: false`); `/country/bulgaria/`
-  redirects to `/country/bulgaria`. Deep links are the only acquisition channel.
-- **`*.data`** is served as `text/x-script`, what React Router's own server sends. These
-  are fetched on client-side navigation, and the wrong type fails silently.
-- **Caching**: `/assets/*` is `immutable` for a year (Vite hashes the filenames); everything
-  else, including `/data/*`, `/flags/*`, HTML and `.data`, must revalidate because those
-  filenames don't change between builds. Making the data URLs content-addressed is the
-  planned fix — `docs/performance.md`.
-- **404**: `public/404.html`, a static page with no dependency on the app bundle.
-
-Note: Vercel's Hobby tier forbids commercial use.
-
-Verify before deploying:
-
-```bash
-npm run typecheck
-npm run build:content
-npx react-router build   # or npm run build, which runs build:content first
-npm run test:unit
-npm test                 # needs the build above; CHROMIUM_PATH in the sandbox
-```
-
-## Data sources
+## 📚 Data sources
 
 Every dataset the project uses, what it is for, and its licence. Licences were read from
 each package's own `package.json` / `LICENSE` in `node_modules`, not from memory.
@@ -111,7 +97,7 @@ fake-indexeddb, @react-router/*) MIT or Apache-2.0.
 A new dataset gets its licence checked and recorded in this table **before** it is used,
 and anything requiring attribution is credited in the app, not only here.
 
-## Licence
+## 📄 Licence
 
 Dual-licensed: code **MIT**, data (`content/` and `public/data/`) **ODbL-1.0**. See
 [LICENSE](LICENSE) for the split and the reason for it.
