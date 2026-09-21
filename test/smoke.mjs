@@ -7,6 +7,13 @@
  * size-comparison tool must lift and drop.
  * Any console error or uncaught exception fails the run.
  *
+ * The last step drives the same dev server with the iPhone 13 profile (touch, DPR 3, 390x664): the
+ * bottom sheet, the tab bar, and a quiz run on a touch keyboard's terms. Playwright emulates the
+ * viewport and touch but NOT an on-screen keyboard — it cannot open one or shrink the visual
+ * viewport — so what is checked is what does not need a real keyboard: START focuses the input
+ * inside the tap, the input keeps focus through map drags, Skip and Pause, typed answers advance.
+ * The keyboard's own behaviour (visualViewport, the bar riding on it) needs a real phone.
+ *
  * The progress step (12) is the one exception: it needs `window.__zemya`, the grading test
  * seam, which is stripped from the production bundle by `import.meta.env.DEV` — by design,
  * see app/lib/core/ProgressProvider.tsx. So it spawns its own `react-router dev` server
@@ -15,7 +22,7 @@
  *
  *   npm run build && npm test
  */
-import { chromium } from 'playwright';
+import { chromium, devices } from 'playwright';
 import { createServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { spawn } from 'node:child_process';
@@ -276,6 +283,7 @@ check(/\/quiz\/flags\/world\/50$/.test(page.url()), `the pre-scope URL did not r
 /* --- 13. grading a facet updates the rail and repaints the mastery overlay -------- */
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
 let devServer = null;
+let phonePassRan = false;
 let devOutput = '';
 
 /** Strip ANSI escapes (colour, bold, …) so a captured-output error message is readable —
@@ -841,6 +849,213 @@ try {
     (microNext || europeAfter.zoom < europeIn.zoom * 0.5) && europeAfter.zoom > europeAfter.home * 1.2,
     `answering "${europeTarget}" in a Europe quiz left the camera at ${(europeAfter.zoom / europeAfter.home).toFixed(2)}x home (zoomed-in was ${(europeIn.zoom / europeAfter.home).toFixed(2)}x)`
   );
+
+  /* --- 20. phone (iPhone 13 profile): sheet, tabs, and a quiz run ------------------- */
+  const phoneCtx = await browser.newContext({ ...devices['iPhone 13'] });
+  const phone = await phoneCtx.newPage();
+  phone.on('console', m => {
+    if (m.type() === 'error' && !IGNORE.test(m.text())) problems.push(`phone console: ${m.text()}`);
+  });
+  phone.on('pageerror', e => problems.push(`phone pageerror: ${e.message}`));
+  const phoneCdp = await phoneCtx.newCDPSession(phone);
+
+  /** A one-finger vertical touch drag at x, from y0 to y1, as real touch events. */
+  async function touchDrag(x, y0, y1, steps = 14) {
+    const send = (type, y) =>
+      phoneCdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+    await send('touchStart', y0);
+    for (let i = 1; i <= steps; i++) {
+      await send('touchMove', y0 + ((y1 - y0) * i) / steps);
+      await phone.waitForTimeout(16);
+    }
+    await send('touchEnd', y1);
+    await phone.waitForTimeout(500);
+  }
+  const snapOf = () => phone.getAttribute('.panel', 'data-snap');
+  const inputFocused = () =>
+    phone.evaluate(() => document.activeElement === document.querySelector('.quiz-dock__input'));
+
+  await phone.goto(devBase, { waitUntil: 'networkidle' });
+  await phone.waitForTimeout(1500);
+
+  const shell = await phone.evaluate(() => ({
+    vw: window.innerWidth,
+    vh: window.innerHeight,
+    scrollW: document.documentElement.scrollWidth,
+    scrollH: document.documentElement.scrollHeight,
+    shellH: document.querySelector('.shell').getBoundingClientRect().height
+  }));
+  check(shell.scrollW === shell.vw, `phone: the page scrolls horizontally (${shell.scrollW} > ${shell.vw})`);
+  check(shell.scrollH <= shell.vh && Math.round(shell.shellH) === shell.vh, `phone: the shell is not exactly one viewport tall (${JSON.stringify(shell)})`);
+  check(await phone.isVisible('.tabbar'), 'phone: no tab bar');
+  check(!(await phone.isVisible('.rail')), 'phone: the desktop rail is still showing');
+  check((await snapOf()) === 'peek', `phone: the sheet did not start at peek (${await snapOf()})`);
+
+  // tap a country: selects it, the sheet stays at peek, the camera does not move, no tooltip
+  let tapped = false;
+  for (const [x, y] of [[85, 250], [200, 260], [330, 260], [250, 330], [130, 330], [300, 300]]) {
+    await phone.touchscreen.tap(x, y);
+    await phone.waitForTimeout(500);
+    if (/\/country\//.test(phone.url())) { tapped = true; break; }
+  }
+  check(tapped, 'phone: tapping the map never selected a country');
+  if (tapped) {
+    check((await snapOf()) === 'peek', `phone: selecting on the map moved the sheet off peek (${await snapOf()})`);
+    check(!(await phone.isVisible('.tip')), 'phone: a hover tooltip showed on touch');
+    const peekTitle = ((await phone.textContent('.panel .peek__title')) || '').trim();
+    check(peekTitle.length > 0, 'phone: the peek shows no country name');
+    const peekBox = await phone.evaluate(() => {
+      const r = document.querySelector('.panel').getBoundingClientRect();
+      const t = document.querySelector('.tabbar').getBoundingClientRect();
+      return { visible: t.top - r.top };
+    });
+    check(peekBox.visible > 80 && peekBox.visible < 100, `phone: peek should show ~88px of sheet above the tab bar, showed ${peekBox.visible}`);
+
+    // drag the handle up to full, then scroll the content, then drag it back down
+    const grip = await phone.locator('.sheet__grip').boundingBox();
+    await touchDrag(grip.x + grip.width / 2 - 60, grip.y + 14, 30);
+    check((await snapOf()) === 'full', `phone: dragging the handle up did not reach full (${await snapOf()})`);
+    const fullTop = await phone.evaluate(() => document.querySelector('.panel').getBoundingClientRect().top);
+    check(Math.abs(fullTop - shell.vh * 0.1) < 4, `phone: full should leave 10% of the screen, top was ${fullTop}`);
+    // a drag inside scrolled-to-top content at full: up scrolls the content, it must not move the sheet
+    await touchDrag(200, 500, 250);
+    check((await snapOf()) === 'full', 'phone: scrolling the content moved the sheet');
+    check((await phone.evaluate(() => document.querySelector('.panel__body').scrollTop)) > 0, 'phone: the sheet content did not scroll');
+    // ...and back at scrollTop 0, a downward drag moves the sheet
+    await phone.evaluate(() => { document.querySelector('.panel__body').scrollTop = 0; });
+    await touchDrag(200, 250, 560);
+    check((await snapOf()) !== 'full', 'phone: dragging down from the top of the content did not lower the sheet');
+    // tap the handle to step
+    const before = await snapOf();
+    await phone.tap('.sheet__grip');
+    await phone.waitForTimeout(400);
+    check((await snapOf()) !== before, 'phone: tapping the handle did not step the sheet');
+  }
+
+  // tabs: Quizzes opens the catalogue at half
+  await phone.tap('.tab:has-text("Quizzes")');
+  await phone.waitForURL('**/quiz', { timeout: 5000 });
+  await phone.waitForTimeout(500);
+  check((await snapOf()) === 'half', `phone: the Quizzes tab should open the sheet at half (${await snapOf()})`);
+
+  // start a quiz: the run owns the screen, and START focuses the input inside the tap
+  await phone.tap('.quiz-size-card__link');
+  await phone.waitForURL(/\/quiz\/countries\//, { timeout: 5000 });
+  await phone.waitForTimeout(1200);
+  check(!(await phone.isVisible('.tabbar')), 'phone: the tab bar is showing during a quiz');
+  check(!(await phone.isVisible('.panel')), 'phone: the sheet is showing during a quiz');
+  check(await phone.isVisible('.quiz-dock__start'), 'phone: no START button');
+  const startBox = await phone.locator('.quiz-dock__start').boundingBox();
+  check(
+    Math.abs(startBox.x + startBox.width / 2 - shell.vw / 2) < 2 && Math.abs(startBox.y + startBox.height / 2 - shell.vh / 2) < 4,
+    `phone: START is not centred on the screen (${JSON.stringify(startBox)})`
+  );
+  const idleText = await phone.evaluate(() => document.body.innerText);
+  check(!/space, or enter|press esc|ctrl/i.test(idleText), 'phone: the quiz screen tells a touch user to press a key');
+  check(/tap start/i.test(idleText), 'phone: the quiz screen does not say "Tap START"');
+  const inputAttrs = await phone.evaluate(() => {
+    const i = document.querySelector('.quiz-dock__input');
+    return ['autocomplete', 'autocorrect', 'autocapitalize', 'spellcheck', 'inputmode', 'enterkeyhint'].map(a => `${a}=${i.getAttribute(a)}`).join(' ');
+  });
+  check(
+    inputAttrs === 'autocomplete=off autocorrect=off autocapitalize=none spellcheck=false inputmode=text enterkeyhint=done',
+    `phone: the quiz input's attributes are wrong — ${inputAttrs}`
+  );
+
+  // Chromium focuses the input from the engine's effect too, so "is it focused" cannot tell a
+  // focus inside the tap from one after it — and iOS only opens the keyboard for the former.
+  // Record who called focus() on the quiz input: the first call must come from START's handler.
+  await phone.evaluate(() => {
+    window.__focusStacks = [];
+    const original = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (...args) {
+      if (this.classList?.contains('quiz-dock__input')) window.__focusStacks.push(new Error().stack || '');
+      return original.apply(this, args);
+    };
+  });
+  await phone.tap('.quiz-dock__start');
+  await phone.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  const firstFocusStack = await phone.evaluate(() => window.__focusStacks[0] || '');
+  check(
+    /startRun/.test(firstFocusStack),
+    `phone: the quiz input was not focused synchronously inside START's tap handler — first focus() came from:\n${firstFocusStack.split('\n').slice(0, 5).join('\n')}`
+  );
+  check(await inputFocused(), 'phone: the input was not focused right after START');
+  check(await phone.isVisible('.quiz-hud'), 'phone: no HUD during the run');
+  const targets = await phone.evaluate(() => {
+    const b = sel => document.querySelector(sel)?.getBoundingClientRect();
+    const hud = b('.quiz-hud'), bar = b('.quiz-controls');
+    return { hudBottom: hud.bottom, barTop: bar.top, barBottom: bar.bottom, vh: innerHeight,
+      buttons: [...document.querySelectorAll('.quiz-dock__btn, .quiz-hud__pause')].map(e => [e.getAttribute('aria-label'), e.offsetWidth, e.offsetHeight]) };
+  });
+  check(targets.buttons.length === 3, `phone: expected Skip, Reveal and Pause buttons, found ${JSON.stringify(targets.buttons)}`);
+  check(targets.buttons.every(([, w, h]) => w >= 44 && h >= 44), `phone: a touch target is under 44x44 — ${JSON.stringify(targets.buttons)}`);
+  check(Math.abs(targets.barBottom - targets.vh) < 2, `phone: the input bar is not pinned to the bottom (no keyboard) — ${JSON.stringify(targets)}`);
+
+  // the camera puts the target inside the strip between the HUD and the input bar
+  await phone.waitForTimeout(1500);
+  const strip = await phone.evaluate(() => {
+    const v = window.__zemyaView();
+    const hud = document.querySelector('.quiz-hud').getBoundingClientRect();
+    const bar = document.querySelector('.quiz-controls').getBoundingClientRect();
+    return { target: v.target, top: hud.bottom, bottom: bar.top };
+  });
+  check(
+    strip.target && strip.target[1] > strip.top && strip.target[1] < strip.bottom,
+    `phone: the quiz target is outside the strip between HUD and input — ${JSON.stringify(strip)}`
+  );
+
+  // dragging and pinching the map must not blur the input (and so must not close the keyboard)
+  await touchDrag(200, 320, 400);
+  check(await inputFocused(), 'phone: dragging the map blurred the quiz input');
+  await phone.touchscreen.tap(200, 300);
+  await phone.waitForTimeout(200);
+  check(await inputFocused(), 'phone: tapping the map blurred the quiz input');
+  check(/\/quiz\//.test(phone.url()), 'phone: tapping the map during a run navigated away');
+
+  // type an answer with the (focused) input — no locator, so nothing but real focus can receive it
+  const first = await phone.evaluate(() => window.__zemyaQuiz);
+  await phone.keyboard.type(first.target, { delay: 8 });
+  await phone.waitForTimeout(400);
+  const second = await phone.evaluate(() => window.__zemyaQuiz);
+  check(second.answeredCount === first.answeredCount + 1 && second.target !== first.target, `phone: typing "${first.target}" did not advance the quiz`);
+  check(await inputFocused(), 'phone: the input lost focus between questions');
+
+  // Skip is a real button and does not steal focus
+  await phone.tap('.quiz-dock__btn[aria-label="Skip"]');
+  await phone.waitForTimeout(300);
+  const skipped = await phone.evaluate(() => window.__zemyaQuiz);
+  check(skipped.target !== second.target, 'phone: the Skip button did not skip');
+  check(await inputFocused(), 'phone: tapping Skip blurred the input');
+
+  // pause / resume / abandon live in the HUD and the pause screen
+  await phone.tap('.quiz-hud__pause');
+  await phone.waitForTimeout(300);
+  check(await phone.isVisible('.quiz-pause'), 'phone: Pause showed no pause screen');
+  check(await phone.isVisible('.quiz-pause__btn:has-text("Abandon")'), 'phone: the pause screen has no Abandon');
+  await phone.tap('.quiz-pause__btn--primary');
+  await phone.waitForTimeout(300);
+  check((await phone.evaluate(() => window.__zemyaQuiz.phase)) === 'running', 'phone: Resume did not resume the run');
+
+  // finish the run: the results open as a full-height sheet
+  let phoneGuard = 0;
+  while (phoneGuard++ < 60) {
+    const q = await phone.evaluate(() => window.__zemyaQuiz);
+    if (!q || q.phase === 'done' || !q.target) break;
+    await phone.keyboard.type(q.target, { delay: 4 });
+    await phone.waitForTimeout(250);
+  }
+  await phone.waitForTimeout(700);
+  check((await phone.evaluate(() => window.__zemyaQuiz.phase)) === 'done', 'phone: the run never reached the results');
+  check((await snapOf()) === 'full', `phone: the results should open as a full-height sheet (${await snapOf()})`);
+  check(await phone.isVisible('.panel .action--primary:has-text("Run it again")'), 'phone: no "Run it again" on the results sheet');
+  check(!(await inputFocused()), 'phone: the keyboard input is still focused over the results');
+  await phone.tap('.panel .action--primary:has-text("Run it again")');
+  await phone.waitForTimeout(500);
+  check(await inputFocused(), 'phone: "Run it again" did not focus the input inside the tap');
+
+  await phoneCtx.close();
+  phonePassRan = true;
 } finally {
   if (devServer) {
     try {
@@ -855,6 +1070,7 @@ try {
 await browser.close();
 server.close();
 
+check(phonePassRan, 'the phone (iPhone 13) pass never completed');
 if (problems.length) {
   console.error('FAIL\n' + problems.map(p => `  - ${p}`).join('\n'));
   process.exit(1);
@@ -863,5 +1079,6 @@ console.log(
   `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
     'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best, ' +
-    'flags quiz (no leak), capitals quiz (no leak), typing survives canvas/drag/reset, quiz camera follows, continent quiz home'
+    'flags quiz (no leak), capitals quiz (no leak), typing survives canvas/drag/reset, quiz camera follows, continent quiz home, ' +
+    'phone (iPhone 13): shell, sheet drag, tabs, tap-select, quiz on touch (focus in the START tap, typed answer advances, results sheet)'
 );

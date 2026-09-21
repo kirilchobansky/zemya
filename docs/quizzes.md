@@ -331,3 +331,15 @@ Revisit if the owner wants best times to survive a device move.
 override, which is only cleared on unmounting the route) and the panel shows the time,
 the personal-best comparison, a first-try-vs-revealed tally, and every revealed country
 as a dossier link — "the ones worth another look", the actual point of the screen.
+
+
+## On a phone
+
+Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author needs to know:
+
+- A Stage renders `<QuizControls>` (`components/quiz/QuizControls.tsx`) for the input — never its
+  own `<input>` — inside a portalled dock (`createPortal(..., document.body)`), and renders it in
+  EVERY phase (idle and done render it hidden) so START can focus it synchronously.
+- `QuizStageProps` carries `skip / reveal / canSkip / canReveal` for the phone's Skip and Reveal
+  buttons, and `onStart` is the route's `startRun` (focus, then start). Don't wrap it.
+- Nothing in a Stage may hard-code a key in copy without an `.only-fine` / `.only-coarse` split.

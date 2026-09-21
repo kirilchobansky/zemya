@@ -1310,8 +1310,20 @@ kbd {
 .layers-btn,
 .sheet__grip,
 .peek,
-.only-coarse {
+.only-coarse,
+.quiz-hud,
+.quiz-pause,
+.quiz-dock__btn,
+.quiz-dock__caption,
+.quiz-dock__input--idle {
   display: none;
+}
+
+/* The quiz input's wrappers add nothing on desktop: the input is laid out by .quiz-dock /
+   .quiz-flag-stage exactly as if they weren't there. */
+.quiz-controls,
+.quiz-dock__row {
+  display: contents;
 }
 
 /* tighter columns between the phone breakpoint and a full desktop, so the map keeps some room */
@@ -1345,7 +1357,7 @@ kbd {
   .tool,
   .neighbour,
   .action {
-    min-height: 40px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1704,12 +1716,224 @@ kbd {
     display: none;
   }
 
-  /* interim placement of the run's own controls (replaced by the phone quiz layout) */
-  .quiz-dock {
-    left: 50%;
+  /* --- the quiz run on a phone, built around the on-screen keyboard ---
+       top     thin HUD: timer · n / N · pause
+       middle  the map (or the flag), in whatever the keyboard leaves
+       bottom  the input + Skip + Reveal, directly ABOVE the keyboard
+     --kb / --vv-top / --layout-h / --kb-est come from app/lib/keyboard.ts (visualViewport). */
+  :root {
+    --hud-h: calc(48px + env(safe-area-inset-top, 0px));
+    /* the input bar: 8 + feedback slot 34 + 8 + input row 48 + 8 */
+    --dock-h: 106px;
   }
-  .quiz-flag-stage {
+
+  .quiz-hud {
+    display: flex;
+    position: fixed;
+    z-index: 8;
+    top: var(--vv-top, 0px);
     left: 0;
     right: 0;
+    height: var(--hud-h);
+    padding: env(safe-area-inset-top, 0px) 4px 0 16px;
+    align-items: center;
+    gap: 14px;
+    background: rgb(14 23 32 / 92%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .quiz-hud__timer {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .quiz-hud__count {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .quiz-hud__back {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-right: 12px;
+    font-size: 15px;
+    color: var(--sea);
+  }
+  .quiz-hud__pause {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    border-radius: 50%;
+    color: var(--ink-2);
+  }
+  .quiz-hud[data-phase='idle'] .quiz-hud__count {
+    margin-left: auto;
+    padding-right: 12px;
+  }
+
+  /* the input bar rides on the keyboard: bottom = the keyboard's height (0 when closed, and then
+     it clears the home indicator instead) */
+  .quiz-dock {
+    display: contents;
+  }
+  .quiz-controls {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: var(--kb, 0px);
+    gap: 8px;
+    padding: 8px 12px calc(8px + max(0px, env(safe-area-inset-bottom, 0px) - var(--kb, 0px)));
+    background: rgb(14 23 32 / 94%);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--rule);
+  }
+  /* idle and results: the input exists (START must focus it inside the tap) but is invisible */
+  .quiz-controls[data-phase='idle'],
+  .quiz-controls[data-phase='done'] {
+    left: 0;
+    right: auto;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: none;
+    border: 0;
+  }
+  .quiz-dock__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .quiz-dock__input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 48px;
+    padding: 0 18px;
+    font-size: 16px; /* under 16px iOS zooms the page on focus */
+    text-align: left;
+  }
+  .quiz-dock__input--idle {
+    display: block;
+  }
+  .quiz-dock__btn {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: var(--chart-2);
+    color: var(--ink-2);
+  }
+  .quiz-dock__btn:disabled {
+    opacity: 0.35;
+  }
+  .quiz-controls .quiz-feedback {
+    height: 34px;
+  }
+
+  /* START: big, and centred in the visible map area (no sheet beside it any more) */
+  .quiz-dock__start {
+    position: fixed;
+    z-index: 8;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .quiz-dock__caption {
+    display: block;
+    position: fixed;
+    z-index: 8;
+    left: 24px;
+    right: 24px;
+    top: calc(50% + 62px);
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    text-shadow: 0 1px 8px rgb(0 0 0 / 80%);
+  }
+
+  /* the flag quiz: the stage fills the space between the top of the screen and the keyboard; the
+     flag's box is sized ONCE from the strip that is left with the keyboard OPEN (its estimated
+     height, never smaller than any keyboard seen) and anchored to the top, so it neither jumps
+     when the keyboard opens nor hides behind it. The input never moves while you play. */
+  .quiz-flag-stage {
+    --flag-strip: calc(var(--layout-h, 100dvh) - var(--kb-est, 46dvh) - var(--hud-h) - var(--dock-h));
+    --flag-h: clamp(90px, calc(var(--flag-strip) * 0.9), 300px);
+    top: var(--vv-top, 0px);
+    bottom: var(--kb, 0px);
+    left: 0;
+    right: 0;
+    justify-content: flex-start;
+    gap: 0;
+    padding-top: calc(var(--hud-h) + (var(--flag-strip) - var(--flag-h)) / 2);
+  }
+  .quiz-flag-stage[data-phase='idle'] {
+    justify-content: center;
+    padding-top: 0;
+  }
+  .quiz-flag-stage__flag {
+    width: min(460px, calc(100vw - 32px));
+    height: var(--flag-h);
+  }
+
+  /* pause: Resume and Abandon (the shortcuts don't exist on a phone) */
+  .quiz-pause {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    gap: 12px;
+    padding: 24px;
+    background: rgb(8 13 19 / 88%);
+    backdrop-filter: blur(6px);
+  }
+  .quiz-pause__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+  }
+  .quiz-pause__sub {
+    margin: -6px 0 12px;
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+  .quiz-pause__btn {
+    width: min(320px, 100%);
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid var(--rule);
+    background: var(--chart-2);
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .quiz-pause__btn--primary {
+    background: var(--brass);
+    border-color: var(--brass);
+    color: #180f03;
+    font-weight: 700;
+  }
+
+  /* ⌂ sits under the HUD during a run */
+  .is-immersive .hud--bottom {
+    top: calc(var(--vv-top, 0px) + var(--hud-h) + 10px);
   }
 }

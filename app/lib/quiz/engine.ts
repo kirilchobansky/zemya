@@ -324,6 +324,10 @@ export function useQuizEngine(
       } else if (e.key === 'Enter' && e.ctrlKey) {
         e.preventDefault();
         reveal();
+      } else if (e.key === 'Enter') {
+        // A phone's "done" key would otherwise dismiss the keyboard, and it has no meaning
+        // here — answers are accepted the instant they match.
+        e.preventDefault();
       }
     },
     [skip, reveal]

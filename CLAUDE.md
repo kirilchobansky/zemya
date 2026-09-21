@@ -48,7 +48,9 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
   committed default `https://zemya.example` is a placeholder until the domain is attached.
   `npm run check:seo` audits `build/client` (run after `npm run build`). `docs/decisions.md`.
 - Phone layout (below 820px wide): full-screen map, the right-hand panel as a bottom sheet with
-  three snap points, a bottom tab bar, a Layers button. Desktop unchanged. See "## Mobile".
+  three snap points, a bottom tab bar, a Layers button, touch pan/pinch, and quiz runs built
+  around the on-screen keyboard. Desktop unchanged. The keyboard behaviour is verified only in
+  emulation — **still to be tried on a real phone** (Vercel preview). See "## Mobile".
 - Deployment-ready as static files on Vercel (`vercel.json`, `public/404.html`); not yet deployed.
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
 
@@ -258,8 +260,50 @@ block, so anything fixed that a panel route renders (the quiz dock, the flag sta
 **portalled to `<body>`** (`createPortal` in `MapStage` / `FlagsStage`). Do the same for anything
 new.
 
-**Quiz runs** (`setImmersive` in the atlas context): on a valid run the phone shell hides the
-sheet, tab bar and overlays from START to the results; results open the sheet at `full`.
+**Quiz runs on a phone** (`setImmersive` in the atlas context): on a valid run the shell hides the
+sheet, tab bar and overlays from START to the results; results open the sheet at `full`
+(`setSheetSnap`). The layout is built around the on-screen keyboard, which covers ~40% of the
+screen: a thin HUD on top (timer · n / N · pause; `‹ Quizzes` before START), the map (or the
+flag) in the middle, the input bar at the bottom pinned directly ABOVE the keyboard
+(`.quiz-controls`, `bottom: var(--kb)`). Pause opens a screen with Resume and Abandon. The rules:
+
+- **Keyboard position** comes from `visualViewport` (`app/lib/keyboard.ts`: resize + scroll) and is
+  published as `--kb` / `--vv-top` / `--layout-h` / `--kb-est` on `<html>`. The viewport meta also
+  says `interactive-widget=resizes-content` (Chrome on Android resizes the layout viewport
+  itself) but nothing may rely on it: iOS Safari ignores it, and `visualViewport` is what works.
+- **The camera's visible area during a run is the strip between the HUD and the input bar**,
+  measured from the DOM (`measureInsets` in `quiz.$quizId.tsx`) and recomputed — with the
+  current target followed again, no pulse — whenever the keyboard opens or closes.
+- **START focuses the input SYNCHRONOUSLY inside its tap handler** (`startRun`; also "Run it
+  again"). iOS opens the keyboard only for focus inside the gesture; an effect or timeout leaves
+  it closed. That is why the input is mounted in every phase — `QuizControls` renders it hidden
+  (`--idle`, a 1px opacity-0 container) in idle and done — and why `test/smoke.mjs` checks the
+  *call stack* of the first `focus()`, not just `activeElement` (Chromium focuses from the effect
+  too, so "is it focused" proves nothing).
+- **The input's attributes** stop iOS "correcting" answers ("Chad" -> "Chat"): `autocomplete=off
+  autocorrect=off autocapitalize=none spellcheck=false inputmode=text enterkeyhint=done`; Enter is
+  swallowed (the done key would dismiss the keyboard). The font is 16px (iOS zooms under that).
+- **The keyboard stays open for the whole run.** The input is never blurred between questions; the
+  canvas never takes focus (`Atlas#setKeepFocus` cancels pointerdown, mousedown and touchstart on
+  it — only on a phone layout or coarse pointer; on desktop a canvas click still blurs and the
+  typing capture in `engine.ts` recovers, which `test/smoke.mjs` relies on); the Skip / Reveal /
+  Pause / Resume / Abandon buttons cancel pointerdown so a tap on them doesn't move focus either.
+  The results screen blurs it (the keyboard would cover them).
+- **Shortcuts don't exist on a phone**, so real buttons do: Skip and Reveal beside the input
+  (48px), Pause in the HUD, Abandon in the pause screen. The Stages take `skip/reveal/canSkip/
+  canReveal` for this. On desktop the buttons are `display: none` and `.quiz-controls` /
+  `.quiz-dock__row` are `display: contents`, so the desktop layout is untouched.
+- **Copy by pointer:** "Tap START" on coarse pointers, "Press START — or Space, or Enter" on fine
+  (`.only-coarse` / `.only-fine`); `<kbd>` hints are hidden on coarse pointers. Any new hint that
+  names a key needs the same split.
+- **Flag quiz:** the flag box is sized ONCE from the strip left with the keyboard OPEN
+  (`--layout-h` minus `--kb-est`, the HUD and the bar) and top-anchored, so it never jumps when
+  the keyboard opens and never hides behind it; `--kb-est` only grows.
+
+**What Playwright cannot verify:** it emulates the viewport and touch, but not an on-screen keyboard
+— it cannot open one or shrink the visual viewport. The keyboard behaviour (the bar riding on it,
+the flag fitting above it, the camera re-following, iOS opening the keyboard from START) needs a real
+phone; the smoke test covers everything that doesn't need one.
 
 ## Commands
 

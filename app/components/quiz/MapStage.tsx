@@ -17,6 +17,8 @@ import { createPortal } from 'react-dom';
 
 import type { CountryRecord } from '~/lib/map/types';
 import type { QuizStageProps } from '~/lib/quiz/types';
+import { QuizControls } from './QuizControls';
+import { StartCaption } from './StartCaption';
 
 export interface MapStageConfig {
   /** Input placeholder while running. */
@@ -32,11 +34,7 @@ export interface MapStageConfig {
 }
 
 export function MapStage(props: QuizStageProps & { config: MapStageConfig }) {
-  const {
-    config,
-    slot, phase, target, revealed, input, onInputChange, onInputKeyDown, inputRef, onStart,
-    showNeighbours, toggleShowNeighbours
-  } = props;
+  const { config, slot, phase, target, revealed, showNeighbours, toggleShowNeighbours, onStart } = props;
 
   if (slot === 'panel') {
     if (!config.neighbourToggle) return null;
@@ -54,42 +52,27 @@ export function MapStage(props: QuizStageProps & { config: MapStageConfig }) {
     );
   }
 
-  if (phase === 'done') return null;
-
   // Portalled to <body>: on phones the panel that renders this route is a transformed bottom
   // sheet, and a transformed ancestor becomes the containing block of `position: fixed`
   // descendants — the dock would be pinned inside the sheet instead of to the screen.
+  // Rendered in every phase, including done: the input inside it must exist when a tap on START
+  // (or "Run it again") needs to focus it synchronously.
   return createPortal(
-    <div className="quiz-dock">
+    <div className="quiz-dock" data-phase={phase}>
       {phase === 'idle' && (
-        <button type="button" className="quiz-dock__start" onClick={onStart}>
-          START
-        </button>
-      )}
-      {(phase === 'running' || phase === 'paused') && (
         <>
-          <div className="quiz-feedback">
-            {target && revealed && <div className="quiz-dock__answer">{config.answerOf(target)}</div>}
-          </div>
-          <input
-            ref={inputRef}
-            // NOT the `disabled` attribute while paused — a disabled element can't hold
-            // keyboard focus, which is exactly what broke Esc-to-resume. Paused input is
-            // ignored in the engine's onInputChange instead; this is purely visual.
-            className={`quiz-dock__input${phase === 'paused' ? ' quiz-dock__input--paused' : ''}`}
-            type="text"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            value={input}
-            onChange={onInputChange}
-            onKeyDown={onInputKeyDown}
-            placeholder={phase === 'paused' ? 'Paused' : config.placeholder}
-            aria-label={config.ariaLabel}
-          />
+          <button type="button" className="quiz-dock__start" onClick={onStart}>
+            START
+          </button>
+          <StartCaption />
         </>
       )}
+      <QuizControls
+        stage={props}
+        placeholder={config.placeholder}
+        ariaLabel={config.ariaLabel}
+        answer={target && revealed ? config.answerOf(target) : null}
+      />
     </div>,
     document.body
   );

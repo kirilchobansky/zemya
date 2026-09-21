@@ -12,6 +12,7 @@
  * Stage component. See CLAUDE.md's Quizzes section.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 
 import { useAtlasContext } from './atlas';
@@ -24,19 +25,34 @@ import { formatDuration } from '~/lib/format';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
 import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, SCOPE_VIEWS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
 import { loadWorld } from '~/lib/geography/world';
+import { keepFocus } from '~/components/quiz/QuizControls';
+import { useKeyboard } from '~/lib/keyboard';
 import { NO_INSETS, type Insets } from '~/lib/map/follow';
+import { isCoarsePointer, isPhoneLayout } from '~/lib/viewport';
 import type { CountryRecord, World } from '~/lib/map/types';
 
-/** What the docked quiz input covers of the canvas, so a target hidden under it counts as
- *  not visible. The right-hand panel is a grid column BESIDE the stage, not over it, so a
- *  country "behind the panel" is simply off the canvas and needs no inset. */
+/** What sits on top of the canvas during a run, so a target hidden under it counts as not
+ *  visible. Desktop: the docked input, at the bottom. The right-hand panel is a grid column
+ *  BESIDE the stage, not over it, so a country "behind the panel" is simply off the canvas and
+ *  needs no inset. Phone: the strip between the HUD (top) and the input bar (bottom, sitting on
+ *  the keyboard) — measured from the DOM, so it is whatever the keyboard has made it right now. */
 function measureInsets(): Insets {
   const canvas = document.querySelector('.stage__canvas');
-  const dock = document.querySelector('.quiz-dock');
-  if (!canvas || !dock) return NO_INSETS;
+  if (!canvas) return NO_INSETS;
   const c = canvas.getBoundingClientRect();
-  const d = dock.getBoundingClientRect();
-  return { ...NO_INSETS, bottom: Math.max(0, c.bottom - d.top) };
+  if (!isPhoneLayout()) {
+    const dock = document.querySelector('.quiz-dock');
+    if (!dock) return NO_INSETS;
+    return { ...NO_INSETS, bottom: Math.max(0, c.bottom - dock.getBoundingClientRect().top) };
+  }
+  const hud = document.querySelector('.quiz-hud');
+  const bar = document.querySelector('.quiz-controls');
+  if (!hud || !bar) return NO_INSETS;
+  return {
+    ...NO_INSETS,
+    top: Math.max(0, hud.getBoundingClientRect().bottom - c.top),
+    bottom: Math.max(0, c.bottom - bar.getBoundingClientRect().top)
+  };
 }
 
 /** Build-time only: the size of the scope's pool, which the title says ("All 46 Countries")
@@ -66,6 +82,7 @@ export default function QuizRun() {
   const requestedSize = params.size && isQuizSize(params.size) ? params.size : null;
 
   const { atlas, setQuiz, setImmersive, setSheetSnap } = useAtlasContext();
+  const keyboard = useKeyboard();
 
   const [world, setWorld] = useState<World | null>(null);
   useEffect(() => {
@@ -150,6 +167,59 @@ export default function QuizRun() {
   useEffect(() => {
     if (finished) setSheetSnap('full');
   }, [finished, setSheetSnap]);
+
+  /* The camera's visible area during a phone run is the strip between the HUD and the input bar,
+     and the input bar rides on the keyboard — so it is measured again whenever the keyboard opens
+     or closes, and the current target is followed again inside the new strip (it may now be
+     behind the keyboard). Declared before the START and target effects below, so on the first
+     question the camera already knows the strip. Desktop: measured once per phase, as before. */
+  const running = engine.phase === 'running' || engine.phase === 'paused';
+  const targetRef = useRef(engine.target);
+  targetRef.current = engine.target;
+  // the strip changes when the keyboard covers the layout viewport (iOS) or shrinks it (Android)
+  const strip = `${keyboard.kb}:${keyboard.top}:${keyboard.height}`;
+  const lastFollowedStripRef = useRef(strip);
+  useEffect(() => {
+    if (!atlas || !isPhoneLayout()) return;
+    atlas.setInsets(running ? measureInsets() : NO_INSETS);
+    return () => atlas.setInsets(NO_INSETS);
+  }, [atlas, running, strip]);
+  useEffect(() => {
+    if (lastFollowedStripRef.current === strip) return;
+    lastFollowedStripRef.current = strip;
+    const target = targetRef.current;
+    if (!world || !atlas || !running || !target || definition?.hidesMap || !isPhoneLayout()) return;
+    const feature = world.byIso3.get(target.iso3);
+    if (!feature) return;
+    const place = definition?.markCapital ? world.places.find(mark => mark.feature === feature) ?? null : null;
+    // two frames on: where the keyboard resized the layout viewport, the atlas hears about its
+    // new canvas size from a ResizeObserver that has not fired yet
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        atlas.followTarget({ feature, place }, measureInsets()); // no pulse: it is the same question
+      });
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [strip, world, atlas, running, definition]);
+
+  /* The canvas must not take focus during a run: dragging or pinching the map must never blur
+     the input or close the keyboard. Only where there IS a keyboard to protect — a phone layout
+     or a touch pointer. On desktop a canvas click still blurs the input, and the typing capture
+     in engine.ts (which test/smoke.mjs exercises) is what gets the next keystroke back into it. */
+  useEffect(() => {
+    if (!atlas) return;
+    atlas.setKeepFocus(running && (isPhoneLayout() || isCoarsePointer()));
+    return () => atlas.setKeepFocus(false);
+  }, [atlas, running]);
+
+  /* The results sheet covers the screen: the keyboard has done its job. */
+  useEffect(() => {
+    if (finished) engine.inputRef.current?.blur();
+  }, [finished, engine.inputRef]);
 
   const prevPhaseRef = useRef(engine.phase);
   useEffect(() => {
@@ -291,6 +361,17 @@ export default function QuizRun() {
 
   const { Stage } = definition;
   const revealed = engine.target ? engine.revealedSet.has(engine.target.iso3) : false;
+
+  /* START (and "Run it again") focus the input SYNCHRONOUSLY, inside the tap: iOS opens the
+     keyboard only for a focus() that happens within the user gesture itself. A focus in an
+     effect or a timeout leaves the keyboard closed and the player stuck. The input is mounted
+     (hidden) in every phase precisely so this has something to focus. `preventScroll` because
+     iOS otherwise scrolls the page to "reveal" the input it is about to cover with a keyboard. */
+  const startRun = () => {
+    engine.inputRef.current?.focus({ preventScroll: true });
+    engine.start();
+  };
+
   const stageProps = {
     phase: engine.phase,
     target: engine.target,
@@ -299,7 +380,11 @@ export default function QuizRun() {
     onInputChange: engine.onInputChange,
     onInputKeyDown: engine.onInputKeyDown,
     inputRef: engine.inputRef,
-    onStart: engine.start,
+    onStart: startRun,
+    skip: engine.skip,
+    reveal: engine.reveal,
+    canSkip: engine.remainingCount >= 2,
+    canReveal: Boolean(engine.target) && !revealed,
     showNeighbours: engine.showNeighbours,
     toggleShowNeighbours: engine.toggleShowNeighbours
   } as const;
@@ -315,7 +400,10 @@ export default function QuizRun() {
         {engine.phase === 'idle' && (
           <div className="empty">
             <div className="empty__icon">⌨</div>
-            <p>Press START — or Space, or Enter — to begin. Nothing is timed until you do.</p>
+            <p>
+              <span className="only-fine">Press START — or Space, or Enter — to begin.</span>
+              <span className="only-coarse">Tap START to begin.</span> Nothing is timed until you do.
+            </p>
           </div>
         )}
 
@@ -355,7 +443,11 @@ export default function QuizRun() {
             <Stage {...stageProps} slot="panel" />
 
             {engine.phase === 'paused' && (
-              <div className="note">Paused — the timer is stopped. Press Esc or Resume to continue.</div>
+              <div className="note">
+                Paused — the timer is stopped.{' '}
+                <span className="only-fine">Press Esc or Resume to continue.</span>
+                <span className="only-coarse">Tap Resume to continue.</span>
+              </div>
             )}
           </>
         )}
@@ -396,7 +488,7 @@ export default function QuizRun() {
             )}
 
             <div className="actions">
-              <button type="button" className="action action--primary" onClick={engine.start}>
+              <button type="button" className="action action--primary" onClick={startRun}>
                 Run it again
               </button>
               <Link to="/quiz" state={{ sheet: 'half' }} className="action">
@@ -408,6 +500,73 @@ export default function QuizRun() {
       </div>
 
       <Stage {...stageProps} slot="stage" />
+
+      {/* Phone layout only (`display: none` above the breakpoint): the run's own chrome, since the
+          panel is hidden. Portalled to <body> — the panel is a transformed sheet, which would trap
+          `position: fixed`. Thin HUD on top, the Stage's input bar at the bottom, the map (or
+          flag) between; pause covers it with Resume and Abandon. */}
+      {engine.phase !== 'done' && createPortal(
+        <>
+          <div className="quiz-hud" data-phase={engine.phase}>
+            {engine.phase === 'idle' ? (
+              <>
+                <Link to="/quiz" state={{ sheet: 'half' }} className="quiz-hud__back">‹ Quizzes</Link>
+                <span className="quiz-hud__count numeric">{countries.length} rounds</span>
+              </>
+            ) : (
+              <>
+                <span className="quiz-hud__timer numeric">{formatDuration(engine.elapsedMs)}</span>
+                <span className="quiz-hud__count numeric">
+                  {engine.answeredCount} / {engine.totalCount}
+                </span>
+                <button
+                  type="button"
+                  className="quiz-hud__pause"
+                  aria-label={engine.phase === 'paused' ? 'Resume' : 'Pause'}
+                  onPointerDown={keepFocus}
+                  onMouseDown={keepFocus}
+                  onClick={engine.togglePause}
+                >
+                  <PauseIcon />
+                </button>
+              </>
+            )}
+          </div>
+          {engine.phase === 'paused' && (
+            <div className="quiz-pause" role="dialog" aria-label="Paused">
+              <p className="quiz-pause__title">Paused</p>
+              <p className="quiz-pause__sub">The timer is stopped.</p>
+              <button
+                type="button"
+                className="quiz-pause__btn quiz-pause__btn--primary"
+                onPointerDown={keepFocus}
+                onMouseDown={keepFocus}
+                onClick={engine.togglePause}
+              >
+                Resume
+              </button>
+              <button
+                type="button"
+                className="quiz-pause__btn"
+                onPointerDown={keepFocus}
+                onMouseDown={keepFocus}
+                onClick={engine.abandon}
+              >
+                Abandon run
+              </button>
+            </div>
+          )}
+        </>,
+        document.body
+      )}
     </>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M8.5 6v12M15.5 6v12" />
+    </svg>
   );
 }

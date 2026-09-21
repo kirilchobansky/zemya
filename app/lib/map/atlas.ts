@@ -61,6 +61,10 @@ export class Atlas {
 
   private resizeObserver: ResizeObserver;
 
+  /** True for a quiz run: the input must keep focus (and, on a phone, the keyboard must stay
+   *  open) however the map is dragged, pinched or tapped. */
+  private keepFocus = false;
+
   constructor(
     private canvas: HTMLCanvasElement,
     private world: World,
@@ -76,6 +80,8 @@ export class Atlas {
     this.resizeObserver.observe(canvas.parentElement ?? canvas);
 
     canvas.addEventListener('pointerdown', this.onPointerDown);
+    canvas.addEventListener('mousedown', this.onFocusStealer);
+    canvas.addEventListener('touchstart', this.onFocusStealer, { passive: false });
     canvas.addEventListener('pointermove', this.onPointerMove);
     canvas.addEventListener('pointerup', this.onPointerUp);
     canvas.addEventListener('pointercancel', this.onPointerUp);
@@ -92,6 +98,8 @@ export class Atlas {
     cancelAnimationFrame(this.pulseHandle);
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
+    c.removeEventListener('mousedown', this.onFocusStealer);
+    c.removeEventListener('touchstart', this.onFocusStealer);
     c.removeEventListener('pointermove', this.onPointerMove);
     c.removeEventListener('pointerup', this.onPointerUp);
     c.removeEventListener('pointercancel', this.onPointerUp);
@@ -113,6 +121,13 @@ export class Atlas {
   setFocus(features: Iterable<Feature>): void {
     this.focus = new Set(features);
     this.draw();
+  }
+
+  /** During a quiz run the canvas must not take focus. Pointer events carry the drag, pinch and
+   *  tap, so cancelling the compatibility events (mousedown, touchstart) — where a browser moves
+   *  focus and dismisses a keyboard — costs the map nothing. */
+  setKeepFocus(keep: boolean): void {
+    this.keepFocus = keep;
   }
 
   setUiFont(font: string): void {
@@ -400,7 +415,12 @@ export class Atlas {
 
   /* ---------------------------------------------------------------------- events */
 
+  private onFocusStealer = (e: Event): void => {
+    if (this.keepFocus && e.cancelable) e.preventDefault();
+  };
+
   private onPointerDown = (e: PointerEvent): void => {
+    if (this.keepFocus) e.preventDefault();
     this.canvas.setPointerCapture(e.pointerId);
     this.pointers.set(e.pointerId, [e.offsetX, e.offsetY]);
 

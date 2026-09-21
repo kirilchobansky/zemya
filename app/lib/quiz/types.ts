@@ -30,7 +30,13 @@ export interface QuizStageProps {
   onInputChange(e: ChangeEvent<HTMLInputElement>): void;
   onInputKeyDown(e: KeyboardEvent<HTMLInputElement>): void;
   inputRef: RefObject<HTMLInputElement | null>;
+  /** Must focus the input synchronously, inside the tap (see QuizControls) — the route's handler does. */
   onStart(): void;
+  /** Skip / Reveal as callable actions: phones have no Tab or Ctrl+Enter, so the Stage draws buttons. */
+  skip(): void;
+  reveal(): void;
+  canSkip: boolean;
+  canReveal: boolean;
   /** Off by default; a manual toggle is the countries quiz's own business (see
    *  CLAUDE.md) — most Stages ignore this pair entirely. */
   showNeighbours: boolean;
