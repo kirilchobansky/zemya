@@ -51,7 +51,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
         </div>
       </header>
 
-      <div className="panel__body">
+      <div className="panel__body dossier">
         <div className="dossier__hero">
           <div className="dossier__flag">
             <Flag iso2={country.iso2} emoji={country.emoji} flagRatio={country.flagRatio} size="md" />
@@ -115,7 +115,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
           </div>
         </dl>
 
-        <section>
+        <section className="dossier__borders">
           <h3 className="subhead">
             Land borders · {neighbours.length}
             {country.landlocked ? ' · landlocked' : ''}

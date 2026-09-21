@@ -73,6 +73,7 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
     const sheetHeight = () => el.offsetHeight;
 
     let gesture: {
+      startX: number;
       startY: number;
       mode: 'pending' | 'sheet' | 'scroll';
       body: HTMLElement | null;
@@ -82,9 +83,10 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       velocity: number; // px/ms, positive = moving up
     } | null = null;
 
-    function begin(y: number, target: Element | null) {
+    function begin(x: number, y: number, target: Element | null) {
       const visible = sheetVisible(snap, viewportHeight(), tabBarHeight());
       gesture = {
+        startX: x,
         startY: y,
         mode: 'pending',
         body: target?.closest<HTMLElement>('.panel__body') ?? null,
@@ -95,12 +97,17 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       };
     }
 
-    function move(y: number): boolean {
+    function move(x: number, y: number): boolean {
       if (!gesture) return false;
       const dy = y - gesture.startY;
       if (gesture.mode === 'pending') {
-        if (Math.abs(dy) < DRAG_SLOP_PX) return false;
-        if (gesture.body) {
+        if (Math.abs(dy) < DRAG_SLOP_PX && Math.abs(x - gesture.startX) < DRAG_SLOP_PX) return false;
+        if (Math.abs(x - gesture.startX) > Math.abs(dy)) {
+          // a mostly-sideways swipe (the catalogue's scrolling chip row) is not the sheet's
+          gesture.mode = 'scroll';
+        } else if (Math.abs(dy) < DRAG_SLOP_PX) {
+          return false;
+        } else if (gesture.body) {
           // inside the content: the sheet only takes the gesture from a body already at the top
           const canMoveSheet = gesture.body.scrollTop <= 0 && (dy > 0 || snap !== 'full');
           gesture.mode = canMoveSheet ? 'sheet' : 'scroll';
@@ -148,11 +155,11 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) { gesture = null; return; }
-      begin(e.touches[0].clientY, e.target as Element);
+      begin(e.touches[0].clientX, e.touches[0].clientY, e.target as Element);
     };
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
-      if (move(e.touches[0].clientY) && e.cancelable) e.preventDefault();
+      if (move(e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
     };
     const onTouchEnd = () => end();
 
@@ -161,7 +168,7 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
     // would retarget the click that follows a plain tap on the handle button.
     let mouseDragged = false;
     const onMouseMove = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse' && move(e.clientY)) mouseDragged = true;
+      if (e.pointerType === 'mouse' && move(e.clientX, e.clientY)) mouseDragged = true;
     };
     const onMouseUp = () => {
       window.removeEventListener('pointermove', onMouseMove);
@@ -172,7 +179,7 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
       if (!(e.target as Element).closest('.sheet__grip, .panel__head')) return;
       mouseDragged = false;
-      begin(e.clientY, null);
+      begin(e.clientX, e.clientY, null);
       window.addEventListener('pointermove', onMouseMove);
       window.addEventListener('pointerup', onMouseUp);
     };

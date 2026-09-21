@@ -300,6 +300,26 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
   (`--layout-h` minus `--kb-est`, the HUD and the bar) and top-anchored, so it never jumps when
   the keyboard opens and never hides behind it; `--kb-est` only grows.
 
+**Polish** (phone layout, no screen scrolls sideways at 360/390/430 — `test/smoke.mjs` checks the
+document, the sheet content and the overlays): the catalogue's region chips are ONE horizontally
+scrolling row (the size cards stay three per row, the whole card is the link, the grid keeps its
+fixed height — the no-reflow rule); study answers are full-width and >=48px, their 1-4 key badges
+hidden on coarse pointers; the dossier's sheet header carries flag, name and capital · population ·
+currency, so the body opens with the official name, then the key facts, then hook, progress,
+borders and the flag/outline notes (CSS `order` on `.dossier`; the `<h1>` stays, visually hidden).
+Neighbour chips wrap. A mostly-sideways swipe is never the sheet's (it is the chip row's).
+
+**Decisions the brief left open** (change them by asking, not by drift):
+- Cold load of any page but `/` opens the sheet at half; tabs open Quizzes/Study at half, Map at peek;
+  a map tap or a search pick opens at peek. From `full`, the handle steps down to half.
+- Progress is an overlay sheet, not a route (no new URL, nothing new in the sitemap).
+- The scale bar is hidden on phones; ⌂ sits under the Layers button (and under the HUD in a run).
+- Between 820 and 1000px the rail/panel columns are narrower (208/300) so the map keeps room.
+- `Atlas#setKeepFocus` applies on phone layouts and coarse pointers only (see the keyboard rules).
+- `Viewport.insets` makes the clamp keep the *visible* area inside the map, so the world view centres
+  in the visible area rather than behind the sheet.
+- DPR is capped at 2 for every device (it already was); the brief's "on coarse pointers" is a subset.
+
 **What Playwright cannot verify:** it emulates the viewport and touch, but not an on-screen keyboard
 — it cannot open one or shrink the visual viewport. The keyboard behaviour (the bar riding on it,
 the flag fitting above it, the camera re-following, iOS opening the keyboard from START) needs a real

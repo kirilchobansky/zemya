@@ -1054,6 +1054,108 @@ try {
   await phone.waitForTimeout(500);
   check(await inputFocused(), 'phone: "Run it again" did not focus the input inside the tap');
 
+  /* no screen scrolls sideways at the three common phone widths — the document, the sheet's
+     content, and the overlay sheets. Elements drawn beyond the right edge count too: a clipped
+     button is as broken as a scrollbar. */
+  const overflowReport = () =>
+    phone.evaluate(() => {
+      const vw = window.innerWidth;
+      const scroller = [...document.querySelectorAll('.panel__body, .ovl__body')]
+        .filter(e => e.getClientRects().length && e.scrollWidth > e.clientWidth + 1)
+        .map(e => `${e.className} ${e.scrollWidth}>${e.clientWidth}`);
+      const beyond = [...document.querySelectorAll('.panel *, .ovl *, .hud *, .tabbar *')]
+        .filter(e => {
+          if (e.closest('.quiz-scope')) return false; // the chip row scrolls on purpose
+          const r = e.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && (r.right > vw + 1 || r.left < -1);
+        })
+        .slice(0, 3)
+        .map(e => `${e.tagName}.${e.className} right=${Math.round(e.getBoundingClientRect().right)}`);
+      return { docW: document.documentElement.scrollWidth, vw, scroller, beyond };
+    });
+  for (const width of [360, 390, 430]) {
+    await phone.setViewportSize({ width, height: 780 });
+    for (const [label, path, snap] of [
+      ['home', '', 'peek'],
+      ['country', 'country/united-arab-emirates', 'full'],
+      ['country (micro-state)', 'country/saint-vincent-and-the-grenadines', 'full'],
+      ['catalogue', 'quiz', 'full'],
+      ['study', 'study', 'full']
+    ]) {
+      await phone.goto(`${devBase}${path}`, { waitUntil: 'networkidle' });
+      await phone.waitForTimeout(700);
+      if (snap === 'full') {
+        while ((await snapOf()) !== 'full') { await phone.tap('.sheet__grip'); await phone.waitForTimeout(350); }
+      }
+      const r = await overflowReport();
+      check(
+        r.docW === r.vw && !r.scroller.length && !r.beyond.length,
+        `phone ${width}px, ${label}: something scrolls or sits off-screen sideways — ${JSON.stringify(r)}`
+      );
+    }
+    for (const [label, opener] of [['layers', '.layers-btn'], ['progress', '.tab:has-text("Progress")']]) {
+      await phone.goto(devBase, { waitUntil: 'networkidle' });
+      await phone.waitForTimeout(500);
+      await phone.tap(opener);
+      await phone.waitForTimeout(450);
+      const r = await overflowReport();
+      check(
+        r.docW === r.vw && !r.scroller.length && !r.beyond.length,
+        `phone ${width}px, ${label} sheet: something scrolls or sits off-screen sideways — ${JSON.stringify(r)}`
+      );
+    }
+    for (const path of ['quiz/countries/europe/all', 'quiz/flags/europe/all']) {
+      await phone.goto(`${devBase}${path}`, { waitUntil: 'networkidle' });
+      await phone.waitForTimeout(700);
+      const docW = await phone.evaluate(() => document.documentElement.scrollWidth);
+      check(docW === width, `phone ${width}px, ${path}: the document is ${docW}px wide`);
+    }
+  }
+
+  /* the catalogue: region chips are ONE scrolling row, and the size cards are three to a row */
+  await phone.setViewportSize({ width: 390, height: 780 });
+  await phone.goto(`${devBase}quiz`, { waitUntil: 'networkidle' });
+  await phone.waitForTimeout(700);
+  const catalogue = await phone.evaluate(() => {
+    const row = document.querySelector('.quiz-scope');
+    const chips = [...row.querySelectorAll('.chip')].map(c => c.getBoundingClientRect().top);
+    const sizeGrid = document.querySelector('.quiz-sizes');
+    const cards = [...sizeGrid.querySelectorAll('.quiz-size-card')].map(c => c.getBoundingClientRect());
+    const link = sizeGrid.querySelector('.quiz-size-card__link').getBoundingClientRect();
+    const card = sizeGrid.querySelector('.quiz-size-card').getBoundingClientRect();
+    return {
+      rowsOfChips: new Set(chips.map(Math.round)).size,
+      scrolls: row.scrollWidth > row.clientWidth,
+      perRow: cards.filter(c => Math.abs(c.top - cards[0].top) < 2).length,
+      linkFillsCard: Math.abs(link.width - card.width) < 1 && Math.abs(link.height - card.height) < 1,
+      gridHeight: sizeGrid.getBoundingClientRect().height
+    };
+  });
+  check(catalogue.rowsOfChips === 1 && catalogue.scrolls, `phone: the catalogue's region chips are not one scrolling row — ${JSON.stringify(catalogue)}`);
+  check(catalogue.perRow === 3, `phone: the catalogue's size cards are not three per row — ${JSON.stringify(catalogue)}`);
+  check(catalogue.linkFillsCard, 'phone: the size card is not entirely its link (the whole card must be the tap target)');
+  const gridBefore = catalogue.gridHeight;
+  await phone.tap('.quiz-scope .chip:has-text("Oceania")');
+  await phone.waitForTimeout(300);
+  const gridAfter = await phone.evaluate(() => document.querySelector('.quiz-sizes').getBoundingClientRect().height);
+  check(Math.abs(gridBefore - gridAfter) < 1, `phone: choosing a smaller scope reflowed the size grid (${gridBefore} -> ${gridAfter})`);
+
+  /* study: answer buttons are full width and at least 48px tall */
+  await phone.goto(`${devBase}study`, { waitUntil: 'networkidle' });
+  await phone.waitForTimeout(900);
+  const options = await phone.evaluate(() => {
+    const body = document.querySelector('.panel__body').getBoundingClientRect();
+    return [...document.querySelectorAll('.quiz__option')].map(o => {
+      const r = o.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), body: Math.round(body.width) };
+    });
+  });
+  check(options.length >= 2, 'phone: the study screen showed no answer buttons');
+  check(
+    options.every(o => o.h >= 48 && o.w >= o.body - 34),
+    `phone: study answer buttons are not full-width and 48px tall — ${JSON.stringify(options)}`
+  );
+
   await phoneCtx.close();
   phonePassRan = true;
 } finally {
