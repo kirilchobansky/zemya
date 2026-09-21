@@ -12,6 +12,7 @@ import { pageMeta } from '~/lib/seo';
 import { QUIZ_DEFINITIONS } from '~/lib/geography/quizzes';
 import { poolForScope, QUIZ_SCOPES, SCOPE_LABELS, sizesForPool, type QuizScope, type QuizSize } from '~/lib/geography/scopes';
 import { allCountries } from '~/lib/geography/catalog.server';
+import { peekWorld } from '~/lib/geography/world';
 import type { Route } from './+types/quiz';
 
 /** How many countries each scope holds, read from the shipped catalogue at build time —
@@ -20,6 +21,15 @@ export function loader() {
   const countries = allCountries();
   return Object.fromEntries(
     QUIZ_SCOPES.map(scope => [scope, poolForScope(countries, scope).length])
+  ) as Record<QuizScope, number>;
+}
+
+/** Same counts from the in-memory catalogue when it is loaded — no `.data` request. */
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  const world = peekWorld();
+  if (!world) return serverLoader();
+  return Object.fromEntries(
+    QUIZ_SCOPES.map(scope => [scope, poolForScope(world.data.countries, scope).length])
   ) as Record<QuizScope, number>;
 }
 

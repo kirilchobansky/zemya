@@ -5,11 +5,11 @@
  */
 import {
   centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, NO_INSETS, screenToWorld, settled,
-  shortestX, step, type CameraState, type Insets, type Viewport
+  shortestX, step, worldToScreen, type CameraState, type Insets, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
 import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
-import { hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
+import { COLORS, hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 
@@ -30,6 +30,8 @@ const WHEEL_LINE_SENSITIVITY = 0.05;
 /** Touch is imprecise: a pin or capital ring is drawn at 4-9 px but must be hittable from a
  *  44 px target (24 px radius) — a bigger HIT area only, the drawing is unchanged. */
 const TOUCH_HIT_RADIUS_PX = 24;
+/** After the last pan / pinch / wheel event, wait this long, then do ONE full sharp render. */
+const GESTURE_SETTLE_MS = 120;
 
 export class Atlas {
   private ctx: CanvasRenderingContext2D;
@@ -38,6 +40,19 @@ export class Atlas {
   private camera: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
   private target: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
   private animating = false;
+  /** Renders are requested, never issued from an event handler: at most one per animation frame. */
+  private renderQueued = 0;
+  /** The camera the canvas was last fully (sharply) rendered with. */
+  private drawn: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
+  /**
+   * While a pan, pinch, wheel or (on touch) fly-to is under way the map is NOT re-rendered: the
+   * last sharp frame is snapshotted to an offscreen canvas and only that bitmap is drawn,
+   * transformed by the camera's change since. No path is filled or stroked while fingers move;
+   * one full render follows GESTURE_SETTLE_MS after the last event. Hover, selection and hit
+   * testing never touch the bitmap — they use the real geometry.
+   */
+  private gesture: { cam: CameraState; timer: number; fly: boolean } | null = null;
+  private snapCanvas: HTMLCanvasElement | null = null;
   private frameHandle = 0;
 
   private style: Style;
@@ -96,6 +111,8 @@ export class Atlas {
     this.resizeObserver.disconnect();
     cancelAnimationFrame(this.frameHandle);
     cancelAnimationFrame(this.pulseHandle);
+    cancelAnimationFrame(this.renderQueued);
+    if (this.gesture) clearTimeout(this.gesture.timer);
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
     c.removeEventListener('mousedown', this.onFocusStealer);
@@ -250,7 +267,7 @@ export class Atlas {
     cancelAnimationFrame(this.pulseHandle);
     this.pulseAt = { ux, uy, start: performance.now() };
     const tick = () => {
-      this.draw(); // draw() clears pulseAt once it has run its course
+      this.drawNow(); // rendering clears pulseAt once it has run its course
       if (this.pulseAt) this.pulseHandle = requestAnimationFrame(tick);
     };
     this.pulseHandle = requestAnimationFrame(tick);
@@ -334,7 +351,9 @@ export class Atlas {
       this.camera = clamp(this.camera, this.viewport);
       this.target = clamp(this.target, this.viewport);
     }
-    this.draw();
+    if (this.gesture) clearTimeout(this.gesture.timer);
+    this.gesture = null; // the snapshot is the wrong size now
+    this.drawNow();
   }
 
   private moveTo(next: CameraState, animate: boolean): void {
@@ -345,6 +364,12 @@ export class Atlas {
       this.draw();
       return;
     }
+    // On touch, a fly-to that stays inside what is already on screen (zooming in on a country
+    // you can see) animates the snapshot instead of re-rendering every frame. A fly to somewhere
+    // the snapshot has no pixels for renders normally.
+    const bitmap = this.coarse() && this.destinationOnScreen();
+    if (!bitmap && this.gesture?.fly) this.endGesture(false);
+    if (bitmap && !this.gesture) this.beginGesture(true);
     if (this.animating) return;
     this.animating = true;
     const tick = () => {
@@ -354,13 +379,74 @@ export class Atlas {
         this.camera = { ...this.target, x };
         this.target = { ...this.camera };
         this.animating = false;
-        this.draw();
+        if (this.gesture?.fly) this.endGesture(false);
+        this.drawNow();
         return;
       }
-      this.draw();
+      this.drawNow();
       this.frameHandle = requestAnimationFrame(tick);
     };
     this.frameHandle = requestAnimationFrame(tick);
+  }
+
+  private coarse(): boolean {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  /** Is the whole view at the destination camera inside the view drawn right now? */
+  private destinationOnScreen(): boolean {
+    const { width, height } = this.viewport;
+    for (const [sx, sy] of [[0, 0], [width, height]] as const) {
+      const [wx, wy] = screenToWorld(this.target, this.viewport, sx, sy);
+      const [x, y] = worldToScreen(this.drawn, this.viewport, wx, wy);
+      if (x < 0 || y < 0 || x > width || y > height) return false;
+    }
+    return true;
+  }
+
+  /* ------------------------------------------------------------ gesture bitmap */
+
+  private beginGesture(fly: boolean): void {
+    if (this.renderQueued) this.drawNow(); // the snapshot must be a sharp frame
+    const snap = (this.snapCanvas ??= document.createElement('canvas'));
+    snap.width = this.canvas.width;
+    snap.height = this.canvas.height;
+    snap.getContext('2d')?.drawImage(this.canvas, 0, 0);
+    this.gesture = { cam: { ...this.drawn }, timer: 0, fly };
+  }
+
+  /** Called on every pan / pinch / wheel event: the first starts the bitmap mode, each one
+   *  pushes the sharp render GESTURE_SETTLE_MS further out. */
+  private touchGesture(): void {
+    if (!this.gesture) this.beginGesture(false);
+    const g = this.gesture!;
+    g.fly = false;
+    clearTimeout(g.timer);
+    g.timer = window.setTimeout(() => this.endGesture(true), GESTURE_SETTLE_MS);
+  }
+
+  private endGesture(render: boolean): void {
+    if (!this.gesture) return;
+    clearTimeout(this.gesture.timer);
+    this.gesture = null;
+    if (render) this.drawNow();
+  }
+
+  /** One frame of a gesture: the snapshot, moved and scaled by the camera's change since it was taken. */
+  private drawGestureFrame(): void {
+    const g = this.gesture;
+    if (!g || !this.snapCanvas || !this.viewport.width) return;
+    const { ctx, camera, viewport, dpr } = this;
+    const s = camera.zoom / g.cam.zoom;
+    const tx = (viewport.width / 2) * (1 - s) - (camera.x - g.cam.x) * camera.zoom;
+    const ty = (viewport.height / 2) * (1 - s) - (camera.y - g.cam.y) * camera.zoom;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = COLORS.ocean;
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
+    ctx.drawImage(this.snapCanvas, 0, 0, viewport.width, viewport.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.callbacks.onCameraChange?.(this.scale);
   }
 
   private pulseFrame(): Pulse | undefined {
@@ -373,7 +459,24 @@ export class Atlas {
     return { ux: this.pulseAt.ux, uy: this.pulseAt.uy, t };
   }
 
+  /** Ask for a render: at most one per animation frame, however many events ask. */
   private draw = (): void => {
+    if (!this.renderQueued) this.renderQueued = requestAnimationFrame(this.flush);
+  };
+
+  private flush = (): void => {
+    this.renderQueued = 0;
+    if (this.gesture) this.drawGestureFrame();
+    else this.renderNow();
+  };
+
+  /** Render this frame now (already inside a frame callback, or a resize that must not flash). */
+  private drawNow(): void {
+    cancelAnimationFrame(this.renderQueued);
+    this.flush();
+  }
+
+  private renderNow(): void {
     const pulse = this.pulseFrame(); // before the size guard, so a pulse can always end
     if (!this.viewport.width) return;
     const style: Style = this.compare
@@ -387,8 +490,9 @@ export class Atlas {
         }
       : { ...this.style, overlay: null };
     render(this.renderContext, this.world, style, this.focus, this.uiFont, pulse);
+    this.drawn = { ...this.camera };
     this.callbacks.onCameraChange?.(this.scale);
-  };
+  }
 
   private emitCompare(): void {
     if (!this.compare) return;
@@ -462,6 +566,7 @@ export class Atlas {
         this.viewport
       );
       this.target = { ...this.camera };
+      this.touchGesture();
       this.draw();
       return;
     }
@@ -490,6 +595,7 @@ export class Atlas {
         this.viewport
       );
       this.target = { ...this.camera };
+      if (this.moved) this.touchGesture();
       this.draw();
       return;
     }
@@ -547,6 +653,7 @@ export class Atlas {
       this.viewport
     );
     this.target = { ...this.camera };
+    this.touchGesture();
     this.draw();
   };
 

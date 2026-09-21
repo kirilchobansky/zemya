@@ -64,6 +64,15 @@ describe('sheet geometry', () => {
     expect(stepSnap('full')).toBe('half');
   });
 
+  it('landscape: a drawer measured from the right edge — tab, 40%, 70%', () => {
+    const vw = 844;
+    expect(sheetVisible('peek', vw, 0, true)).toBe(36);
+    expect(sheetVisible('half', vw, 0, true)).toBe(vw * 0.4);
+    expect(sheetVisible('full', vw, 0, true)).toBe(vw * 0.7);
+    expect(nearestSnap(300, vw, 0, true)).toBe('half');
+    expect(nearestSnap(20, vw, 0, true)).toBe('peek');
+  });
+
   it('settles on the nearest snap', () => {
     expect(nearestSnap(150, vh, tab)).toBe('peek');
     expect(nearestSnap(400, vh, tab)).toBe('half');

@@ -9,11 +9,18 @@
  */
 import { useEffect, type RefObject } from 'react';
 
+import { isPhoneLandscape } from '~/lib/viewport';
+
 export type SheetSnap = 'peek' | 'half' | 'full';
 
 export const PEEK_PX = 88;
 export const HALF_FRACTION = 0.5;
 export const FULL_FRACTION = 0.9;
+/** Landscape: the sheet is a right-hand drawer measured from the viewport's right edge. Collapsed
+ *  it is a tab; open it takes 40% of the width; wide, 70% (the panel's CSS width). */
+export const DRAWER_TAB_PX = 36;
+export const DRAWER_HALF_FRACTION = 0.4;
+export const DRAWER_FULL_FRACTION = 0.7;
 const SNAPS: readonly SheetSnap[] = ['peek', 'half', 'full'];
 
 /** A drag must move this far before it is a drag rather than a tap or a scroll. */
@@ -21,10 +28,16 @@ const DRAG_SLOP_PX = 6;
 /** How far ahead (ms) a flick's velocity is projected when picking the snap to settle on. */
 const FLING_PROJECTION_MS = 160;
 
-/** Visible height of the sheet at a snap point, from the viewport's bottom edge. */
-export function sheetVisible(snap: SheetSnap, viewportHeight: number, tabBarHeight: number): number {
-  if (snap === 'peek') return PEEK_PX + tabBarHeight;
-  return viewportHeight * (snap === 'half' ? HALF_FRACTION : FULL_FRACTION);
+/** Visible extent of the sheet at a snap point: height from the viewport's bottom edge (portrait,
+ *  `size` = viewport height, `tabBar` = the bottom tab bar), or width from the right edge
+ *  (landscape drawer, `size` = viewport width; the tab bar is beside it, not under it). */
+export function sheetVisible(snap: SheetSnap, size: number, tabBar: number, landscape = false): number {
+  if (landscape) {
+    if (snap === 'peek') return DRAWER_TAB_PX;
+    return size * (snap === 'half' ? DRAWER_HALF_FRACTION : DRAWER_FULL_FRACTION);
+  }
+  if (snap === 'peek') return PEEK_PX + tabBar;
+  return size * (snap === 'half' ? HALF_FRACTION : FULL_FRACTION);
 }
 
 /** The snap point one step up (or down, from full) — what tapping the handle does. */
@@ -33,11 +46,11 @@ export function stepSnap(snap: SheetSnap): SheetSnap {
 }
 
 /** The snap whose visible height is closest to `visible`. */
-export function nearestSnap(visible: number, viewportHeight: number, tabBarHeight: number): SheetSnap {
+export function nearestSnap(visible: number, size: number, tabBar: number, landscape = false): SheetSnap {
   let best: SheetSnap = 'peek';
   let bestDistance = Infinity;
   for (const snap of SNAPS) {
-    const distance = Math.abs(sheetVisible(snap, viewportHeight, tabBarHeight) - visible);
+    const distance = Math.abs(sheetVisible(snap, size, tabBar, landscape) - visible);
     if (distance < bestDistance) {
       bestDistance = distance;
       best = snap;
@@ -68,9 +81,13 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
     const el = panel.current;
     if (!el || !enabled) return;
 
-    const viewportHeight = () => window.innerHeight;
-    const tabBarHeight = () => document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0;
-    const sheetHeight = () => el.offsetHeight;
+    // Read at the start of each gesture, so an orientation change needs no reload.
+    let landscape = false;
+    const viewportSize = () => (landscape ? window.innerWidth : window.innerHeight);
+    const tabBarHeight = () =>
+      landscape ? 0 : document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0;
+    const sheetSize = () => (landscape ? el.offsetWidth : el.offsetHeight);
+    const visibleAt = (at: SheetSnap) => sheetVisible(at, viewportSize(), tabBarHeight(), landscape);
 
     let gesture: {
       startX: number;
@@ -78,20 +95,20 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       mode: 'pending' | 'sheet' | 'scroll';
       body: HTMLElement | null;
       startVisible: number;
-      lastY: number;
+      last: number;
       lastT: number;
-      velocity: number; // px/ms, positive = moving up
+      velocity: number; // px/ms, positive = opening
     } | null = null;
 
     function begin(x: number, y: number, target: Element | null) {
-      const visible = sheetVisible(snap, viewportHeight(), tabBarHeight());
+      landscape = isPhoneLandscape();
       gesture = {
         startX: x,
         startY: y,
         mode: 'pending',
         body: target?.closest<HTMLElement>('.panel__body') ?? null,
-        startVisible: visible,
-        lastY: y,
+        startVisible: visibleAt(snap),
+        last: landscape ? x : y,
         lastT: performance.now(),
         velocity: 0
       };
@@ -99,10 +116,14 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
 
     function move(x: number, y: number): boolean {
       if (!gesture) return false;
+      const dx = x - gesture.startX;
       const dy = y - gesture.startY;
       if (gesture.mode === 'pending') {
-        if (Math.abs(dy) < DRAG_SLOP_PX && Math.abs(x - gesture.startX) < DRAG_SLOP_PX) return false;
-        if (Math.abs(x - gesture.startX) > Math.abs(dy)) {
+        if (Math.abs(dy) < DRAG_SLOP_PX && Math.abs(dx) < DRAG_SLOP_PX) return false;
+        if (landscape) {
+          // the drawer moves sideways, from the handle or header only; the content scrolls
+          gesture.mode = !gesture.body && Math.abs(dx) > Math.abs(dy) ? 'sheet' : 'scroll';
+        } else if (Math.abs(dx) > Math.abs(dy)) {
           // a mostly-sideways swipe (the catalogue's scrolling chip row) is not the sheet's
           gesture.mode = 'scroll';
         } else if (Math.abs(dy) < DRAG_SLOP_PX) {
@@ -117,22 +138,24 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
         if (gesture.mode === 'sheet') {
           el!.style.transition = 'none';
           // restart from here so the sheet doesn't jump by the slop it just crossed
+          gesture.startX = x;
           gesture.startY = y;
-          gesture.startVisible = sheetVisible(snap, viewportHeight(), tabBarHeight());
+          gesture.startVisible = visibleAt(snap);
+          gesture.last = landscape ? x : y;
         }
       }
       if (gesture.mode !== 'sheet') return false;
 
+      const at = landscape ? x : y;
       const now = performance.now();
       const dt = now - gesture.lastT;
-      if (dt > 0) gesture.velocity = gesture.velocity * 0.6 + (((gesture.lastY - y) / dt) * 0.4);
-      gesture.lastY = y;
+      if (dt > 0) gesture.velocity = gesture.velocity * 0.6 + (((gesture.last - at) / dt) * 0.4);
+      gesture.last = at;
       gesture.lastT = now;
 
-      const min = sheetVisible('peek', viewportHeight(), tabBarHeight());
-      const max = sheetVisible('full', viewportHeight(), tabBarHeight());
-      const visible = Math.max(min, Math.min(max, gesture.startVisible - (y - gesture.startY)));
-      el!.style.transform = `translateY(${sheetHeight() - visible}px)`;
+      const delta = landscape ? gesture.startX - x : gesture.startY - y;
+      const visible = Math.max(visibleAt('peek'), Math.min(visibleAt('full'), gesture.startVisible + delta));
+      el!.style.transform = `translate${landscape ? 'X' : 'Y'}(${sheetSize() - visible}px)`;
       return true;
     }
 
@@ -140,11 +163,9 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       const g = gesture;
       gesture = null;
       if (!g || g.mode !== 'sheet') return;
-      const vh = viewportHeight();
-      const tab = tabBarHeight();
-      const current = sheetHeight() - (parseFloat(el!.style.transform.replace(/[^\d.-]/g, '')) || 0);
+      const current = sheetSize() - (parseFloat(el!.style.transform.replace(/[^\d.-]/g, '')) || 0);
       const projected = current + g.velocity * FLING_PROJECTION_MS;
-      const next = nearestSnap(projected, vh, tab);
+      const next = nearestSnap(projected, viewportSize(), tabBarHeight(), landscape);
       // set the attribute and drop the inline transform in the same tick, so the browser
       // animates from the dragged position to the snap instead of jumping
       el!.style.transition = '';

@@ -20,6 +20,8 @@ const COUNTRIES_URL = '/data/geography/countries.json';
 const FULL_URL = '/data/geography/world.json';
 
 let pending: Promise<World> | null = null;
+/** The built world once loadWorld() has resolved — null before. */
+let loaded: World | null = null;
 /** Set once loadWorld()'s promise resolves — onFullDetail reads it to know when it's
  *  safe to attach a "call me once the upgrade lands" listener. */
 let fullDetailPromise: Promise<void> | null = null;
@@ -41,6 +43,7 @@ export function loadWorld(): Promise<World> {
           // worse experience, not a broken one — never let it surface as an unhandled
           // rejection or take the already-painted map down with it.
           .catch(error => console.warn('[world] full-detail payload failed to load', error));
+        loaded = world;
         return world;
       })
       .catch(error => {
@@ -49,6 +52,13 @@ export function loadWorld(): Promise<World> {
       });
   }
   return pending;
+}
+
+/** The world if it is already in memory, else null — never starts a fetch. Route clientLoaders
+ *  use it to answer from memory (no `.data` round trip); with null they fall back to the
+ *  server loader's prerendered data. */
+export function peekWorld(): World | null {
+  return loaded;
 }
 
 /** Runs `cb` once the full-detail payload has attached (or immediately, on a microtask,

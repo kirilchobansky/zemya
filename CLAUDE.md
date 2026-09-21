@@ -245,7 +245,7 @@ fingers pinch about their midpoint (the world point that started under the finge
 them, so a two-finger drag also pans). No hover for `pointerType === 'touch'` (no tooltip, no
 hover highlight); a tap selects. Hit areas on touch are 24 px radius for capital rings and
 micro-state pins (`TOUCH_HIT_RADIUS_PX`) — drawing unchanged. The canvas DPR cap of 2 in
-`Atlas#resize` already applies at every width. Phone perf at 4x CPU throttle **misses** the
+`Atlas#resize` already applies at every width. Phone perf at 4x CPU throttle **missed** the (before gesture snapshots — see below)
 target in this sandbox — numbers and cause in `docs/performance.md`.
 
 **Visible map area** (`Insets` in `camera.ts`): whatever covers the canvas is subtracted from
@@ -300,6 +300,29 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
   (`--layout-h` minus `--kb-est`, the HUD and the bar) and top-anchored, so it never jumps when
   the keyboard opens and never hides behind it; `--kb-est` only grows.
 
+**Landscape phones** get the phone layout, arranged sideways: layout is the phone layout when
+`width < 820px` OR `(pointer: coarse) and (height < 500px)` (`PHONE_QUERY`; an iPad in landscape
+is still desktop). In landscape the sheet is a right-hand drawer (collapsed 36px tab / 40% / 70% of
+the width, same `data-snap` names; `sheetVisible(..., landscape)` in `sheet.ts`), the tab bar is a
+slim vertical bar on the left, and the camera's insets subtract both. Map taps and search picks
+open the drawer at half (a 36px tab shows nothing). A landscape quiz puts the HUD inline at the
+left of the input bar above the keyboard, with the answer chip floating over them; the map gets
+the strip above. It is all media queries and read-at-event JS, so rotating needs no reload.
+
+**Rendering & gestures** (`Atlas`): a render is *requested* (`draw()` = one rAF, coalesced),
+never issued from an event handler. When a pan, pinch or wheel starts, the last sharp frame is
+snapshotted to an offscreen canvas and only that bitmap is drawn (`drawImage` with the gesture's
+translate/scale — no path fill or stroke while fingers move); one full sharp render follows 120 ms
+after the last event. On coarse pointers a fly-to whose destination is already on screen does the
+same; a fly to somewhere the snapshot has no pixels for renders normally. Hover, selection and
+hit-testing use the real geometry. Applies to every pointer type, desktop wheel included.
+
+**No click delay:** the country, catalogue, quiz-run and home routes have a `clientLoader` that
+answers from the in-memory world (`peekWorld()`; falls back to the server loader / prerendered
+`.data` only if the world hasn't loaded), so a tap never waits on `/country/:slug.data`. The
+atlas derives the selection from the *pending* navigation location (`useNavigation`), so the
+highlight lands on the tap itself.
+
 **Polish** (phone layout, no screen scrolls sideways at 360/390/430 — `test/smoke.mjs` checks the
 document, the sheet content and the overlays): the catalogue's region chips are ONE horizontally
 scrolling row (the size cards stay three per row, the whole card is the link, the grid keeps its
@@ -352,8 +375,8 @@ Prerendered pages and what `test:unit` covers: `docs/architecture.md`.
 coastline detail preserved when zoomed in.** Detail is not the thing to sacrifice — it's
 visible and was asked for. What has to go is drawing detail nobody can see on screen.
 
-`npm run perf` (`test/perf.mjs`) checks this; **any change touching `app/lib/map/` runs it
-and reports the number in the commit message** — "it feels smoother" is not evidence.
+`npm run perf` (`test/perf.mjs`) measures this, but it is **not** a required step: run it only
+when a prompt explicitly asks. Same for `npm test` and screenshots.
 
 Measured numbers, the LOD design and the build-vs-`react-router build` measurement trap
 (`npm run build` regenerates `public/data/` and overwrites a hand-built test payload):
@@ -366,9 +389,10 @@ Solo project, one machine, one person. No branches, no pull requests, no CI.
 - Work directly on `main`. Do not create branches. Do not open pull requests.
 - Commit when a change works. Small commits are fine; perfect commits are not required.
 - Commit subject: imperative, lower case, no trailing period. One line is enough.
-- Before committing, run `npm run typecheck` and `npm run build:content`. If content
-  changed, commit the regenerated public/data in the same commit.
-- Running the browser smoke test is optional. It is a tool for me, not a gate.
+- **Default verification:** `npm run typecheck`, `npm run test:unit`, `npx react-router build`.
+  Browser tests (`npm test`), screenshots and `npm run perf` run ONLY when a prompt explicitly
+  asks — no mandatory browser step. Run `npm run build:content` too when content changed, and
+  commit the regenerated public/data in the same commit. Keep reports short.
 - This sandbox can read the repo but not push. Leave commits unpushed; the owner
   clicks Sync in VS Code.
 - If you make a decision the prompt did not specify — a name, a data shape, a

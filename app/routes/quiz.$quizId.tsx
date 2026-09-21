@@ -24,11 +24,11 @@ import { useQuizEngine } from '~/lib/quiz/engine';
 import { formatDuration } from '~/lib/format';
 import { quizDefinition, topByPopulation } from '~/lib/geography/quizzes';
 import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, SCOPE_VIEWS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
-import { loadWorld } from '~/lib/geography/world';
+import { loadWorld, peekWorld } from '~/lib/geography/world';
 import { keepFocus } from '~/components/quiz/QuizControls';
 import { useKeyboard } from '~/lib/keyboard';
 import { NO_INSETS, type Insets } from '~/lib/map/follow';
-import { isCoarsePointer, isPhoneLayout } from '~/lib/viewport';
+import { isCoarsePointer, isPhoneLandscape, isPhoneLayout } from '~/lib/viewport';
 import type { CountryRecord, World } from '~/lib/map/types';
 
 /** What sits on top of the canvas during a run, so a target hidden under it counts as not
@@ -48,6 +48,14 @@ function measureInsets(): Insets {
   const hud = document.querySelector('.quiz-hud');
   const bar = document.querySelector('.quiz-controls');
   if (!hud || !bar) return NO_INSETS;
+  if (isPhoneLandscape()) {
+    // landscape: the HUD sits inline at the left of the input bar, both on the keyboard; the
+    // answer chip floats just above them. The map gets everything above that.
+    const feedback = document.querySelector('.quiz-controls .quiz-feedback');
+    const barTop = Math.min(hud.getBoundingClientRect().top, bar.getBoundingClientRect().top,
+      feedback ? feedback.getBoundingClientRect().top : Infinity);
+    return { ...NO_INSETS, bottom: Math.max(0, c.bottom - barTop) };
+  }
   return {
     ...NO_INSETS,
     top: Math.max(0, hud.getBoundingClientRect().bottom - c.top),
@@ -60,6 +68,14 @@ function measureInsets(): Insets {
 export function loader({ params }: Route.LoaderArgs) {
   const scope = params.scope ?? '';
   return { poolSize: isQuizScope(scope) ? poolForScope(allCountries(), scope).length : 0 };
+}
+
+/** The pool size from the in-memory catalogue when loaded, else the prerendered data. */
+export async function clientLoader({ params, serverLoader }: Route.ClientLoaderArgs) {
+  const world = peekWorld();
+  if (!world) return serverLoader();
+  const scope = params.scope ?? '';
+  return { poolSize: isQuizScope(scope) ? poolForScope(world.data.countries, scope).length : 0 };
 }
 
 export function meta({ params, loaderData, location }: Route.MetaArgs) {

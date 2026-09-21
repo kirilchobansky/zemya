@@ -1374,7 +1374,7 @@ kbd {
 
 /* ---- layout: by width --------------------------------------------------------------- */
 
-@media (max-width: 819px) {
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
   :root {
     --tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
   }
@@ -2022,5 +2022,164 @@ kbd {
   /* ⌂ sits under the HUD during a run */
   .is-immersive .hud--bottom {
     top: calc(var(--vv-top, 0px) + var(--hud-h) + 10px);
+  }
+}
+
+/* ================================================================ mobile, landscape
+   A landscape phone gets the phone layout, arranged sideways: the tab bar is a slim vertical bar
+   on the left, the sheet is a drawer on the right (collapsed tab / 40% / 70% of the width — the
+   same peek / half / full, mirrored in app/lib/sheet.ts), and a quiz run puts the HUD inline
+   with the input bar above the keyboard. Live: it is all media queries, no reload. */
+@media (max-width: 819px) and (orientation: landscape),
+  (pointer: coarse) and (max-height: 499px) and (orientation: landscape) {
+  :root {
+    --tabbar-h: 0px;
+    --tabbar-w: calc(56px + env(safe-area-inset-left, 0px));
+    --dock-h: 64px;
+  }
+
+  .tabbar {
+    top: 0;
+    right: auto;
+    width: var(--tabbar-w);
+    height: auto;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    border-top: 0;
+    border-right: 1px solid var(--rule);
+  }
+  .tab {
+    gap: 2px;
+  }
+  .tab__label {
+    font-size: 8.5px;
+    letter-spacing: 0.06em;
+  }
+
+  .hud--top {
+    left: calc(var(--tabbar-w) + 10px);
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+  .search {
+    width: 220px;
+  }
+  .layers-btn {
+    margin-left: 0;
+  }
+  .hud--bottom {
+    top: auto;
+    right: auto;
+    left: calc(var(--tabbar-w) + 10px);
+    bottom: 10px;
+  }
+
+  /* the drawer */
+  .panel {
+    top: 0;
+    left: auto;
+    height: auto;
+    width: 70vw;
+    padding: 0 env(safe-area-inset-right, 0px) 0 30px;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+    border-radius: 18px 0 0 18px;
+    box-shadow: -18px 0 44px -20px rgb(0 0 0 / 85%);
+    transform: translateX(calc(70vw - 36px));
+  }
+  .panel[data-snap='half'] {
+    transform: translateX(30vw);
+  }
+  .panel[data-snap='full'] {
+    transform: translateX(0);
+  }
+  .panel[data-hidden='true'] {
+    transform: translateX(100%);
+  }
+  .sheet__grip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    height: auto;
+    flex: none;
+  }
+  .sheet__pill {
+    width: 4px;
+    height: 38px;
+  }
+  .sheet__arrow {
+    right: auto;
+    left: 0;
+    top: 50%;
+    width: 30px;
+    height: 44px;
+    transform: translateY(-50%) rotate(-90deg);
+  }
+  .sheet__grip[data-snap='full'] .sheet__arrow {
+    transform: translateY(-50%) rotate(90deg);
+  }
+  .panel__head {
+    min-height: 52px;
+    padding-top: 6px;
+  }
+  .panel__head--peek {
+    height: 52px;
+  }
+
+  /* Layers / Progress: a side panel beside the tab bar */
+  .ovl {
+    inset: 0 0 0 var(--tabbar-w);
+  }
+  .ovl__sheet {
+    left: auto;
+    top: 0;
+    width: min(420px, 60%);
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+    border-radius: 18px 0 0 18px;
+    transform: translateX(105%);
+  }
+
+  /* quiz run: HUD inline with the input bar, both on the keyboard; the map gets the rest */
+  .quiz-hud[data-phase='idle'] {
+    height: calc(44px + env(safe-area-inset-top, 0px));
+  }
+  .quiz-hud[data-phase='running'],
+  .quiz-hud[data-phase='paused'] {
+    top: auto;
+    bottom: var(--kb, 0px);
+    width: 200px;
+    height: 64px;
+    padding: 0 0 0 calc(12px + env(safe-area-inset-left, 0px));
+    gap: 10px;
+    border-bottom: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .quiz-hud__timer {
+    font-size: 17px;
+  }
+  .quiz-controls {
+    left: 200px;
+    padding: 8px calc(12px + env(safe-area-inset-right, 0px)) 8px 8px;
+  }
+  .quiz-controls .quiz-feedback {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 34px;
+    pointer-events: none;
+  }
+  .quiz-flag-stage {
+    --hud-h: 0px;
+  }
+  .is-immersive .hud--bottom {
+    left: auto;
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: auto;
+    top: calc(var(--vv-top, 0px) + 8px + env(safe-area-inset-top, 0px));
   }
 }

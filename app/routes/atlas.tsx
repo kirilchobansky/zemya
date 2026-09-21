@@ -8,14 +8,14 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type Dispatch, type SetStateAction
 } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router';
 
 import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName } from '~/components/MobileChrome';
 import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
-import { COARSE_QUERY, isPhoneLayout, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
+import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import { NO_INSETS, type Insets } from '~/lib/map/camera';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
@@ -72,6 +72,7 @@ function AtlasShell() {
   const atlasRef = useRef<Atlas | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const navigation = useNavigation();
   const { cards } = useProgress();
 
   const [world, setWorld] = useState<World | null>(null);
@@ -97,6 +98,7 @@ function AtlasShell() {
   const panelRef = useRef<HTMLElement>(null);
   const phone = useMediaQuery(PHONE_QUERY);
   const coarse = useMediaQuery(COARSE_QUERY);
+  const landscape = useMediaQuery(LANDSCAPE_QUERY);
   useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive });
 
   /* What the sheet and tab bar cover, for the camera — read through refs so an effect that
@@ -111,9 +113,16 @@ function AtlasShell() {
     // A quiz run on a phone sets its own insets (HUD above, input below) — not this.
     if (!isPhoneLayout()) return atlas.setInsets(NO_INSETS);
     if (immersiveRef.current) return;
+    const top = document.querySelector<HTMLElement>('.hud--top')?.getBoundingClientRect().bottom ?? 0;
+    if (isPhoneLandscape()) {
+      // landscape: the slim tab bar on the left and the drawer on the right cover the sides
+      const bar = document.querySelector<HTMLElement>('.tabbar')?.offsetWidth ?? 0;
+      const drawer = Math.min(sheetVisible(snapRef.current, window.innerWidth, 0, true), window.innerWidth * 0.4);
+      atlas.setInsets({ top: top ? top + 8 : 0, right: drawer, bottom: 0, left: bar });
+      return;
+    }
     const vh = window.innerHeight;
     const tab = document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0;
-    const top = document.querySelector<HTMLElement>('.hud--top')?.getBoundingClientRect().bottom ?? 0;
     // A full sheet leaves a strip too thin to frame anything in, and whoever is reading the
     // dossier is not looking at the map: frame as if it were at half.
     const covered = Math.min(sheetVisible(snapRef.current, vh, tab), vh * 0.5);
@@ -122,9 +131,12 @@ function AtlasShell() {
   }, []);
   useEffect(() => {
     if (atlasInstance) applyInsets(atlasInstance);
-  }, [atlasInstance, applyInsets, snap, immersive, phone]);
+  }, [atlasInstance, applyInsets, snap, immersive, phone, landscape]);
 
-  const slug = COUNTRY_PATH.exec(location.pathname)?.[1] ?? null;
+  // The selection follows the navigation the moment it starts, not when its data has loaded: the
+  // highlight must land on the tap itself. (The clientLoaders answer from memory, so pending is
+  // brief; this covers the fallback to the network.)
+  const slug = COUNTRY_PATH.exec(navigation.location?.pathname ?? location.pathname)?.[1] ?? null;
   const selected = slug && world ? world.bySlug.get(slug) ?? null : null;
 
   /**
@@ -179,7 +191,7 @@ function AtlasShell() {
         return;
       }
       // `sheet: 'peek'` (phone layout only): the map stays visible behind a selection
-      navigate(feature ? `/country/${feature.country.slug}` : '/', { state: { sheet: 'peek' } });
+      navigate(feature ? `/country/${feature.country.slug}` : '/', { state: { sheet: isPhoneLandscape() ? 'half' : 'peek' } });
     },
     [armingCompare, navigate, quiz]
   );
@@ -339,7 +351,7 @@ function AtlasShell() {
             <SearchBox
               world={world}
               onPick={feature =>
-                navigate(`/country/${feature.country.slug}`, { state: { fly: true, sheet: 'peek' } })
+                navigate(`/country/${feature.country.slug}`, { state: { fly: true, sheet: isPhoneLandscape() ? 'half' : 'peek' } })
               }
             />
             <button

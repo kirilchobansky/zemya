@@ -5,12 +5,28 @@ import { Flag } from '~/components/Flag';
 import { formatCompact, formatNumber } from '~/lib/format';
 import { countryJsonLd, pageMeta } from '~/lib/seo';
 import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
+import { peekWorld } from '~/lib/geography/world';
 import type { Route } from './+types/country';
 
 export function loader({ params }: Route.LoaderArgs) {
   const country = countryBySlug(params.slug);
   if (!country) throw new Response('Not found', { status: 404 });
   return { country, neighbours: neighbourLinks(country) };
+}
+
+/** On the client the country is already in memory (world.json's facts) — answer from there so a
+ *  tap on the map never waits for /country/:slug.data. Falls back to the server loader (the
+ *  prerendered data) when the world hasn't loaded yet, e.g. a very early navigation. */
+export async function clientLoader({ params, serverLoader }: Route.ClientLoaderArgs) {
+  const world = peekWorld();
+  const feature = world?.bySlug.get(params.slug);
+  if (!world || !feature) return serverLoader();
+  const country = feature.country;
+  const neighbours = country.borders
+    .map(iso3 => world.byIso3.get(iso3)?.country)
+    .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    .map(c => ({ slug: c.slug, name: c.name, emoji: c.emoji }));
+  return { country, neighbours };
 }
 
 export function meta({ loaderData, location }: Route.MetaArgs) {

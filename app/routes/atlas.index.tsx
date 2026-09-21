@@ -2,6 +2,8 @@ import { Link } from 'react-router';
 
 import { allCountries } from '~/lib/geography/catalog.server';
 import { pageMeta, websiteJsonLd } from '~/lib/seo';
+import { peekWorld } from '~/lib/geography/world';
+import type { CountryRecord } from '~/lib/map/types';
 import type { Route } from './+types/atlas.index';
 
 const DESCRIPTION =
@@ -15,16 +17,24 @@ export function meta() {
   ];
 }
 
-export function loader() {
+function suggestionsFrom(countries: CountryRecord[]) {
   // a handful of large, recognisable countries as starting points
-  const suggestions = allCountries()
+  return countries
     .slice()
     .sort((a, b) => b.population - a.population)
-    .slice(0, 24)
-    .sort(() => 0)
     .slice(0, 8)
     .map(c => ({ slug: c.slug, name: c.name, emoji: c.emoji }));
-  return { suggestions };
+}
+
+export function loader() {
+  return { suggestions: suggestionsFrom(allCountries()) };
+}
+
+/** Answered from the in-memory catalogue when it is there (no network), else the server loader. */
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  const world = peekWorld();
+  if (!world) return serverLoader();
+  return { suggestions: suggestionsFrom(world.data.countries) };
 }
 
 export default function AtlasIndex({ loaderData }: Route.ComponentProps) {
