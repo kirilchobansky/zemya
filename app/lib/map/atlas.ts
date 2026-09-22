@@ -32,6 +32,13 @@ const WHEEL_LINE_SENSITIVITY = 0.05;
 const TOUCH_HIT_RADIUS_PX = 24;
 /** After the last pan / pinch / wheel event, wait this long, then do ONE full sharp render. */
 const GESTURE_SETTLE_MS = 120;
+/** Mid-gesture (touch only), once the snapshot is stretched past this scale ratio or panned
+ *  past this fraction of the viewport, re-snapshot sharply instead of waiting for settle. */
+const GESTURE_RESNAP_MIN_SCALE = 0.75;
+const GESTURE_RESNAP_MAX_SCALE = 1.33;
+const GESTURE_RESNAP_PAN_FRACTION = 1 / 3;
+/** Re-snapshotting is itself a sharp render, so it's throttled — no more than this often. */
+const GESTURE_RESNAP_INTERVAL_MS = 250;
 
 export class Atlas {
   private ctx: CanvasRenderingContext2D;
@@ -51,7 +58,7 @@ export class Atlas {
    * one full render follows GESTURE_SETTLE_MS after the last event. Hover, selection and hit
    * testing never touch the bitmap — they use the real geometry.
    */
-  private gesture: { cam: CameraState; timer: number; fly: boolean } | null = null;
+  private gesture: { cam: CameraState; timer: number; fly: boolean; resnapAt: number } | null = null;
   private snapCanvas: HTMLCanvasElement | null = null;
   private frameHandle = 0;
 
@@ -412,12 +419,37 @@ export class Atlas {
     snap.width = this.canvas.width;
     snap.height = this.canvas.height;
     snap.getContext('2d')?.drawImage(this.canvas, 0, 0);
-    this.gesture = { cam: { ...this.drawn }, timer: 0, fly };
+    this.gesture = { cam: { ...this.drawn }, timer: 0, fly, resnapAt: performance.now() };
   }
 
-  /** Called on every pan / pinch / wheel event: the first starts the bitmap mode, each one
-   *  pushes the sharp render GESTURE_SETTLE_MS further out. */
+  /** Is the current gesture's bitmap stretched or panned far enough that it visibly blurs /
+   *  shows empty edges — scale outside ~0.75-1.33, or panned more than ~a third of the
+   *  viewport since the snapshot was taken? */
+  private gestureStretched(): boolean {
+    const g = this.gesture;
+    if (!g) return false;
+    const { camera, viewport } = this;
+    const s = camera.zoom / g.cam.zoom;
+    if (s < GESTURE_RESNAP_MIN_SCALE || s > GESTURE_RESNAP_MAX_SCALE) return true;
+    const dx = (camera.x - g.cam.x) * camera.zoom;
+    const dy = (camera.y - g.cam.y) * camera.zoom;
+    return Math.abs(dx) > viewport.width * GESTURE_RESNAP_PAN_FRACTION
+      || Math.abs(dy) > viewport.height * GESTURE_RESNAP_PAN_FRACTION;
+  }
+
+  /** Called on every pan / pinch / wheel event, coarse pointers only — on a mouse or trackpad
+   *  pan and zoom render the real map every frame instead (culling + LOD hold 60fps there).
+   *  The first touch event starts the bitmap mode; each one pushes the sharp render
+   *  GESTURE_SETTLE_MS further out. Mid-gesture, once the snapshot is stretched too far, do one
+   *  sharp render and take a fresh snapshot instead of waiting for the gesture to end. */
   private touchGesture(): void {
+    if (!this.coarse()) return;
+    const now = performance.now();
+    if (this.gesture && now - this.gesture.resnapAt >= GESTURE_RESNAP_INTERVAL_MS && this.gestureStretched()) {
+      clearTimeout(this.gesture.timer);
+      this.gesture = null;
+      this.renderNow(); // sharp frame at the current camera, so the new snapshot isn't itself stretched
+    }
     if (!this.gesture) this.beginGesture(false);
     const g = this.gesture!;
     g.fly = false;
