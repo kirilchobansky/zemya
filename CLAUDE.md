@@ -28,13 +28,24 @@ metadata; the phone layout (sheet, tabs, touch map, keyboard-aware quizzes, land
 a real phone; deployed on Vercel at https://zemya.study, indexed on Google; MIT code / ODbL data. Full
 list, with the reasoning behind each item: `docs/status.md`.
 
-**History (data layer only, owner-requested, see "Do not" below):** `content/history/bg.yaml` — 87
-hand-authored entries (8 periods incl. the overlapping Възраждане, the 26 First Empire rulers
-681–1018, heads of state and prime ministers since 1989, 19 tier-1 dates), validated and built by
-`scripts/build-history.mjs` (`scripts/lib/history.mjs` has the date parser and validator) into
-`public/data/history/bg.json`. TODOs left in the YAML for Second Empire rulers, monarchs 1878–1946
-and communist-era leaders. No UI, no routes, no cards read this yet — do not start wiring it up
-without asking; the exception below is still about the picker only, not content.
+**History (data + time-axis engine only, owner-requested, see "Do not" below):**
+`content/history/bg.yaml` — 87 hand-authored entries (8 periods incl. the overlapping
+Възраждане, the 26 First Empire rulers 681–1018, heads of state and prime ministers since
+1989, 19 tier-1 dates), validated and built by `scripts/build-history.mjs`
+(`scripts/lib/history.mjs` has the date parser and validator) into `public/data/history/bg.json`.
+TODOs left in the YAML for Second Empire rulers, monarchs 1878–1946 and communist-era leaders.
+`app/lib/history/scale.ts` — decimal-year time representation, viewport projection, the zoom
+ladder (millennium…day) and tier-based visibility; pure logic, mirroring `app/lib/map/`'s
+projection/camera split, so the eventual canvas renderer and `app/lib/map/` can share a shape
+without either importing the other. Placed under `app/lib/` to match `core/`, `map/`,
+`geography/` — a prompt asking for `app/history/` gets the `app/lib/` sibling instead; record any
+further placement like this the same way. It imports `parseHistoryDate`/`dateKey` straight from
+`scripts/lib/history.mjs` (typed via a `.d.mts` sibling, same pattern as `site.mjs`/`site.d.mts`)
+rather than duplicating the parser — safe because that module has zero Node dependencies and
+Vite bundles it like any other pure module; confirmed by `test/unit/scale.test.ts` importing and
+running it through the same Vite pipeline the real app build uses. No UI, no routes, no canvas,
+no cards read any of this yet — do not start wiring it up without asking; the exception below is
+still about the picker, data and this one logic module, not a start on rendering.
 
 **Next:**
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara targeted
@@ -304,9 +315,12 @@ so nothing may depend on a webfont having loaded.
   (1) the quiz picker (`/quizzes`) lists History as a second subject with an empty quiz list and
   a "coming soon" state (`app/lib/quiz/subjects.ts`) — owner-requested UI scaffolding for the
   subject layer itself. (2) `content/history/bg.yaml` — owner-requested history *data*, built by
-  `scripts/build-history.mjs` into `public/data/history/bg.json` (see "Where this is"). Neither
-  exception extends past what it names: no history routes, cards, quiz content or UI read the
-  history data yet, and no further history countries or content kinds without asking again.
+  `scripts/build-history.mjs` into `public/data/history/bg.json`. (3) `app/lib/history/scale.ts` —
+  owner-requested time-axis *logic* (decimal years, viewport projection, zoom ladder, tier
+  visibility; no canvas, no React, no DOM). See "Where this is" for all three. None of these
+  extends past what it names: no history routes, cards, quiz content, canvas renderer or other UI
+  reads any of this yet, and no further history countries, content kinds or logic modules without
+  asking again.
 - Do not add accounts, a database, or any server call in the first release.
 - Do not introduce a map tile provider or API key.
 - Do not put secrets in the repo. `.env` is gitignored; `.env.example` is committed.
