@@ -51,8 +51,9 @@ export const CONFIG = {
   ],
   /**
    * Highest entry.tier visible per (zoom level, entry kind). 0 means "never at this
-   * level, regardless of tier" — governments (heads of state / PMs) never show above
-   * decade zoom, for instance, since there is no useful "century of prime ministers" view.
+   * level, regardless of tier" — governments (cabinets; heads of state are `ruler`, not
+   * `government`) never show above decade zoom, for instance, since there is no useful
+   * "century of prime ministers" view.
    */
   maxTier: {
     millennium: { period: 1, ruler: 0, government: 0, event: 1 },

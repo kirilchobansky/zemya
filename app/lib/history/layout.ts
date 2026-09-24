@@ -43,11 +43,11 @@ export interface ContextSlot {
    *  a gap, which is normal (e.g. between the Second Empire's fall and the Ottoman
    *  period's own start-of-rulers gap). Always a member of `all` when non-null. */
   primary: LayoutEntry | null;
-  /** Every entry of this kind containing t, including `primary`. Length 0 in a gap,
-   *  1 in the normal single-ruler case, 2+ for genuine simultaneous office (this
-   *  content's "government" kind covers both head of state and head of government, so a
-   *  2-long `all` there is the everyday case after 1989, not a rare edge case) or for
-   *  true containment ambiguity (co-rulers). */
+  /** Every entry of this kind containing t, including `primary`. Length 0 in a gap, 1 in
+   *  the normal case (one head of state on the `ruler` wire, one cabinet on the
+   *  `government` wire — heads of state stay on `ruler` across every era, хан through
+   *  президент; `government` is cabinets only, and only exists from 1878 on), 2+ only for
+   *  genuine containment ambiguity (true co-rulers, or an overlapping period). */
   all: LayoutEntry[];
 }
 

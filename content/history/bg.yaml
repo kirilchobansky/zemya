@@ -499,7 +499,7 @@ entries:
 
   # -------------------------------------------------- heads of state since 1989 (11.2)
   - id: pres-mladenov
-    kind: government
+    kind: ruler
     name: { bg: "Петър Младенов", en: "Petar Mladenov" }
     aliases: []
     role: президент
@@ -513,7 +513,7 @@ entries:
       en: "Chairman of the State Council, president from 3 April 1990; resigned after his recorded remark \"Let the tanks come\"."
 
   - id: pres-todorov-acting
-    kind: government
+    kind: ruler
     name: { bg: "Николай Тодоров", en: "Nikolay Todorov" }
     aliases: []
     role: и.д. президент
@@ -527,7 +527,7 @@ entries:
       en: "Acting head of state as chairman of the Grand National Assembly, for a few weeks between Mladenov and Zhelev."
 
   - id: pres-zhelev
-    kind: government
+    kind: ruler
     name: { bg: "Желю Желев", en: "Zhelyu Zhelev" }
     aliases: []
     role: президент
@@ -541,7 +541,7 @@ entries:
       en: "Elected by the Grand National Assembly, then directly (1992); the first non-communist head of state since 1944."
 
   - id: pres-stoyanov
-    kind: government
+    kind: ruler
     name: { bg: "Петър Стоянов", en: "Petar Stoyanov" }
     aliases: []
     role: президент
@@ -555,7 +555,7 @@ entries:
       en: "UDF; his presidency was oriented toward Euro-Atlantic integration."
 
   - id: pres-parvanov
-    kind: government
+    kind: ruler
     name: { bg: "Георги Първанов", en: "Georgi Parvanov" }
     aliases: []
     role: президент
@@ -569,7 +569,7 @@ entries:
       en: "Two terms — the first president to serve two; the country joined NATO (2004) and the EU (2007)."
 
   - id: pres-plevneliev
-    kind: government
+    kind: ruler
     name: { bg: "Росен Плевнелиев", en: "Rosen Plevneliev" }
     aliases: []
     role: президент
@@ -583,7 +583,7 @@ entries:
       en: "GERB; a term marked by the 2013 and 2020 protests and several caretaker cabinets."
 
   - id: pres-radev
-    kind: government
+    kind: ruler
     name: { bg: "Румен Радев", en: "Rumen Radev" }
     aliases: []
     role: президент
@@ -597,7 +597,7 @@ entries:
       en: "A former air force commander; resigned on 23 January 2026 to enter party politics."
 
   - id: pres-yotova
-    kind: government
+    kind: ruler
     name: { bg: "Илияна Йотова", en: "Iliana Yotova" }
     aliases: []
     role: президент

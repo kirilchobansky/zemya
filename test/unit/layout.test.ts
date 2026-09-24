@@ -86,12 +86,14 @@ describe('contextAt', () => {
     expect(contextAt([senior, regent], 1005).ruler.all.map(e => e.id).sort()).toEqual(['regent', 'senior']);
   });
 
-  it('a `government` slot commonly holds two simultaneous entries (head of state + head of government)', () => {
-    const president = entry({ id: 'pres', kind: 'government', start: 1997, end: 2002 });
-    const pm = entry({ id: 'pm', kind: 'government', start: 1997, end: 2001 });
+  it('ruler and government are independent wires: a president (ruler) and a PM (government) at the same moment each resolve in their own slot, not each other\'s', () => {
+    const president = entry({ id: 'pres', kind: 'ruler', start: 1997, end: 2002 }); // heads of state stay on the ruler wire
+    const pm = entry({ id: 'pm', kind: 'government', start: 1997, end: 2001 }); // government is cabinets only
     const ctx = contextAt([president, pm], 1999);
-    expect(ctx.government.all).toHaveLength(2);
-    expect(ctx.government.primary).not.toBeNull();
+    expect(ctx.ruler.primary?.id).toBe('pres');
+    expect(ctx.ruler.all).toHaveLength(1);
+    expect(ctx.government.primary?.id).toBe('pm');
+    expect(ctx.government.all).toHaveLength(1);
   });
 });
 

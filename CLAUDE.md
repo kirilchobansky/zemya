@@ -30,10 +30,13 @@ list, with the reasoning behind each item: `docs/status.md`.
 
 **History (data + time-axis engine only, owner-requested, see "Do not" below):**
 `content/history/bg.yaml` — 87 hand-authored entries (8 periods incl. the overlapping
-Възраждане, the 26 First Empire rulers 681–1018, heads of state and prime ministers since
-1989, 19 tier-1 dates), validated and built by `scripts/build-history.mjs`
-(`scripts/lib/history.mjs` has the date parser and validator) into `public/data/history/bg.json`.
-TODOs left in the YAML for Second Empire rulers, monarchs 1878–1946 and communist-era leaders.
+Възраждане, 34 `kind: ruler` entries — the 26 First Empire rulers 681–1018 plus the 8 heads of
+state since 1989 — 26 `kind: government` cabinets (prime ministers) since 1989, 19 tier-1
+dates), validated and built by `scripts/build-history.mjs` (`scripts/lib/history.mjs` has the
+date parser and validator) into `public/data/history/bg.json`. **Heads of state are `kind:
+ruler`, not `kind: government`** — the ruler wire is one unbroken chain across every era (хан,
+цар, княз, президент); `government` is cabinets only, and only exists from 1878 on. TODOs left
+in the YAML for Second Empire rulers, monarchs 1878–1946 and communist-era leaders.
 `app/lib/history/scale.ts` — decimal-year time representation, viewport projection, the zoom
 ladder (millennium…day) and tier-based visibility; pure logic, mirroring `app/lib/map/`'s
 projection/camera split, so the eventual canvas renderer and `app/lib/map/` can share a shape
@@ -45,9 +48,9 @@ rather than duplicating the parser — safe because that module has zero Node de
 Vite bundles it like any other pure module; confirmed by `test/unit/scale.test.ts` importing and
 running it through the same Vite pipeline the real app build uses.
 `app/lib/history/layout.ts` — built on `scale.ts`: context stack (`contextAt`, what period/
-ruler/government contains a moment — gaps are `null`, genuine simultaneous entries of one kind,
-e.g. a president *and* a prime minister both being `kind: government` at once, come back as
-`ContextSlot.all`), bar-vs-pinned span classification, per-kind row packing computed from the
+ruler/government contains a moment — gaps are `null`; the ruler and government wires are
+independent, so a head of state and a cabinet at the same moment each resolve in their own
+slot, not each other's), bar-vs-pinned span classification, per-kind row packing computed from the
 whole dataset (so a row never changes while panning), density buckets for the "zoom in, there's
 more here" cue, and label-collision resolution. `test/unit/history-mjs-guard.test.ts` asserts
 `scripts/lib/history.mjs` imports nothing at all, guarding the assumption `scale.ts`'s import of
