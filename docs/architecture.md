@@ -224,7 +224,8 @@ app/lib/core/           scheduler + Dexie store. subject-agnostic; no geography 
 app/lib/map/            projection, topology, camera, renderer, controller. no React.
 app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers,
                         mastery derivation
-app/lib/history/        time-axis logic only (scale.ts). no UI yet — see CLAUDE.md's "Do not"
+app/lib/history/        time-axis + layout logic only (scale.ts, layout.ts). no UI yet — see
+                        CLAUDE.md's "Do not"
 app/lib/format.ts       shared formatting and normalisation
 app/components/         Rail, SearchBox, and future panels
 app/routes/             atlas.tsx (layout, owns the canvas) + panel routes

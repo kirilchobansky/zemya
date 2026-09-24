@@ -43,9 +43,17 @@ further placement like this the same way. It imports `parseHistoryDate`/`dateKey
 `scripts/lib/history.mjs` (typed via a `.d.mts` sibling, same pattern as `site.mjs`/`site.d.mts`)
 rather than duplicating the parser — safe because that module has zero Node dependencies and
 Vite bundles it like any other pure module; confirmed by `test/unit/scale.test.ts` importing and
-running it through the same Vite pipeline the real app build uses. No UI, no routes, no canvas,
-no cards read any of this yet — do not start wiring it up without asking; the exception below is
-still about the picker, data and this one logic module, not a start on rendering.
+running it through the same Vite pipeline the real app build uses.
+`app/lib/history/layout.ts` — built on `scale.ts`: context stack (`contextAt`, what period/
+ruler/government contains a moment — gaps are `null`, genuine simultaneous entries of one kind,
+e.g. a president *and* a prime minister both being `kind: government` at once, come back as
+`ContextSlot.all`), bar-vs-pinned span classification, per-kind row packing computed from the
+whole dataset (so a row never changes while panning), density buckets for the "zoom in, there's
+more here" cue, and label-collision resolution. `test/unit/history-mjs-guard.test.ts` asserts
+`scripts/lib/history.mjs` imports nothing at all, guarding the assumption `scale.ts`'s import of
+it depends on. No UI, no routes, no canvas, no cards read any of this yet — do not start wiring
+it up without asking; the exception below is still about the picker, data and these two logic
+modules, not a start on rendering.
 
 **Next:**
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara targeted
@@ -315,9 +323,10 @@ so nothing may depend on a webfont having loaded.
   (1) the quiz picker (`/quizzes`) lists History as a second subject with an empty quiz list and
   a "coming soon" state (`app/lib/quiz/subjects.ts`) — owner-requested UI scaffolding for the
   subject layer itself. (2) `content/history/bg.yaml` — owner-requested history *data*, built by
-  `scripts/build-history.mjs` into `public/data/history/bg.json`. (3) `app/lib/history/scale.ts` —
-  owner-requested time-axis *logic* (decimal years, viewport projection, zoom ladder, tier
-  visibility; no canvas, no React, no DOM). See "Where this is" for all three. None of these
+  `scripts/build-history.mjs` into `public/data/history/bg.json`. (3) `app/lib/history/scale.ts`
+  and `app/lib/history/layout.ts` — owner-requested time-axis and layout *logic* (decimal years,
+  viewport projection, zoom ladder, tier visibility, context stack, row packing, label collision;
+  no canvas, no React, no DOM). See "Where this is" for all of these. None of these
   extends past what it names: no history routes, cards, quiz content, canvas renderer or other UI
   reads any of this yet, and no further history countries, content kinds or logic modules without
   asking again.
