@@ -267,6 +267,20 @@ a {
   color: var(--ink-2);
 }
 
+/* ---------------------------------------------------------------- history timeline */
+
+/* Not a grid like .shell (no rail, no panel) — the timeline route is a single full-bleed
+   canvas, so it just needs the same 100dvh rule .shell gives the atlas layout. */
+.history-page {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+}
+.history-page > .stage {
+  position: absolute;
+  inset: 0;
+}
+
 /* ---------------------------------------------------------------- stage */
 
 .stage {

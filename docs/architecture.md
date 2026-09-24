@@ -224,11 +224,14 @@ app/lib/core/           scheduler + Dexie store. subject-agnostic; no geography 
 app/lib/map/            projection, topology, camera, renderer, controller. no React.
 app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers,
                         mastery derivation
-app/lib/history/        time-axis + layout logic only (scale.ts, layout.ts). no UI yet — see
-                        CLAUDE.md's "Do not"
+app/lib/history/        time-axis + layout logic (scale.ts, layout.ts), the canvas renderer
+                        (renderer.ts) and its controller (timeline.ts), and the *.server.ts
+                        catalog reader. One route uses it (routes/history.bulgaria.tsx) — see
+                        CLAUDE.md's "Do not" before adding a second
 app/lib/format.ts       shared formatting and normalisation
 app/components/         Rail, SearchBox, and future panels
-app/routes/             atlas.tsx (layout, owns the canvas) + panel routes
+app/routes/             atlas.tsx (layout, owns the map canvas) + panel routes;
+                        history.bulgaria.tsx owns its own canvas outside that layout
 app/styles/             tokens.css then app.css
 content/history/        hand-authored YAML, one file per language/country code (bg.yaml)
 public/data/geography/  generated, committed on purpose

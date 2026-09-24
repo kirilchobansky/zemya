@@ -89,7 +89,11 @@ function sitemapXml(origin: string): string {
 
 export default {
   ssr: true,
-  prerender: () => [...indexable, '/quiz', ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
+  // '/history/bulgaria': first render of the history timeline, prerendered (a static host
+  // needs a real file for every path) but deliberately left out of `indexable` — not
+  // linked from anywhere, not in the sitemap, noindex in its own <meta> (see the route
+  // and CLAUDE.md's history exception).
+  prerender: () => [...indexable, '/quiz', '/history/bulgaria', ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
 
   /** robots.txt and sitemap.xml are generated here, from the same lists that were just
    *  prerendered, and written next to the pages. Never hand-maintained. */

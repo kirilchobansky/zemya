@@ -54,9 +54,26 @@ slot, not each other's), bar-vs-pinned span classification, per-kind row packing
 whole dataset (so a row never changes while panning), density buckets for the "zoom in, there's
 more here" cue, and label-collision resolution. `test/unit/history-mjs-guard.test.ts` asserts
 `scripts/lib/history.mjs` imports nothing at all, guarding the assumption `scale.ts`'s import of
-it depends on. No UI, no routes, no canvas, no cards read any of this yet — do not start wiring
-it up without asking; the exception below is still about the picker, data and these two logic
-modules, not a start on rendering.
+it depends on.
+
+**First render, owner-requested:** `/history/bulgaria` — canvas only, no dossier, no hover, no
+selection, no quiz; not linked from anywhere, noindex, prerendered but left out of `indexable`
+(the sitemap list) in `react-router.config.ts`. `app/lib/history/renderer.ts` (the cylinder band,
+tick marks via `ticks()` — with `placeLabels()` resolving label crowding at borderline zooms, a
+real defect caught by an actual render, not by typecheck — the screen-fixed centre marker, and
+period/ruler bars via `assignRows()`/`classifySpan()`) and `app/lib/history/timeline.ts` (the
+`HistoryTimeline` controller: render-request queue, DPR/resize, drag-to-pan, wheel/pinch-to-zoom).
+Every draw function takes `axis: 'horizontal' | 'vertical'` and goes through one `project()`
+helper — only horizontal is wired up. `Atlas` (`app/lib/map/atlas.ts`) could not be reused
+directly (typed throughout against the 2D geography camera/World/Feature); `HistoryTimeline`
+copies its *pattern* — render-request queue, `ResizeObserver`-driven resize, "hold the point under
+the cursor/pinch fixed" — one dimension smaller, against `scale.ts`'s `Viewport` instead of
+`camera.ts`'s `CameraState`. `app/lib/history/catalog.server.ts` reads `public/data/history/bg.json`
+and converts each entry's date string to a decimal year server-side (`scale.ts`'s `decimalYearOf`,
+safe to run there — pure logic, not Node-specific), mirroring `app/lib/geography/catalog.server.ts`.
+No dossier, no hover, no selection, no quiz, no card, and no link to it from anywhere else in the
+app yet — do not extend past this route without asking; the exception below now covers exactly
+these five files plus this one page, not a start on the real timeline UI.
 
 **Next:**
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara targeted
@@ -329,10 +346,12 @@ so nothing may depend on a webfont having loaded.
   `scripts/build-history.mjs` into `public/data/history/bg.json`. (3) `app/lib/history/scale.ts`
   and `app/lib/history/layout.ts` — owner-requested time-axis and layout *logic* (decimal years,
   viewport projection, zoom ladder, tier visibility, context stack, row packing, label collision;
-  no canvas, no React, no DOM). See "Where this is" for all of these. None of these
-  extends past what it names: no history routes, cards, quiz content, canvas renderer or other UI
-  reads any of this yet, and no further history countries, content kinds or logic modules without
-  asking again.
+  no canvas, no React, no DOM). (4) `/history/bulgaria` — owner-requested first canvas render
+  (`app/lib/history/renderer.ts`, `timeline.ts`, `catalog.server.ts`); unlinked, noindex, no
+  dossier/hover/selection/quiz. See "Where this is" for all of these. None of these extends past
+  what it names: no OTHER history route, card, quiz content, or link into `/history/bulgaria` from
+  the rest of the app exists yet, and no further history countries, content kinds, logic modules
+  or UI (dossier, hover, selection, quiz, a second route) without asking again.
 - Do not add accounts, a database, or any server call in the first release.
 - Do not introduce a map tile provider or API key.
 - Do not put secrets in the repo. `.env` is gitignored; `.env.example` is committed.

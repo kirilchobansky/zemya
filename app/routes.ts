@@ -20,5 +20,10 @@ export default [
     route('quiz', 'routes/quiz.tsx'),
     route('quiz/:quizId/:scope/:size', 'routes/quiz.$quizId.tsx'),
     route('quiz/:quizId/:size', 'routes/quiz.legacy.tsx')
-  ])
+  ]),
+
+  // First render of the history timeline. Owns its own canvas (app/lib/history/ stays
+  // independent of app/lib/map/), so it sits outside the atlas layout rather than inside
+  // it. Not linked from anywhere and noindex — see CLAUDE.md's history exception.
+  route('history/bulgaria', 'routes/history.bulgaria.tsx')
 ] satisfies RouteConfig;
