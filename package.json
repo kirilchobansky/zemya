@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "npm run build:content && react-router build",
-    "build:content": "node scripts/build-content.mjs",
+    "build:content": "node scripts/build-content.mjs && node scripts/build-history.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "node test/smoke.mjs",
