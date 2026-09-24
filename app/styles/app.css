@@ -963,6 +963,7 @@ a {
   gap: 4px;
   margin: 0 0 12px;
 }
+.quiz-order { margin-bottom: 8px; }
 .quiz-scope .chip {
   padding: 5px 8px;
   font-size: 11px;

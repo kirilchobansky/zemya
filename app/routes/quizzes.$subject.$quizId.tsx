@@ -14,7 +14,13 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, Navigate, useNavigate, useParams } from "react-router";
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 
 import { useAtlasContext } from "./atlas";
 import { allCountries } from "~/lib/geography/catalog.server";
@@ -24,7 +30,10 @@ import type { Route } from "./+types/quizzes.$subject.$quizId";
 import { useQuizEngine } from "~/lib/quiz/engine";
 import { formatDuration } from "~/lib/format";
 import { subjectById, quizInSubject } from "~/lib/quiz/subjects";
-import { randomSubset } from "~/lib/geography/quizzes";
+import {
+  selectQuizCountries,
+  type QuizSelectionMode,
+} from "~/lib/geography/quizzes";
 import {
   isQuizScope,
   isQuizSize,
@@ -126,13 +135,22 @@ export function meta({ params, loaderData, location }: Route.MetaArgs) {
     });
   }
   return pageMeta({
-    ...quizPageSeo(definition, scope, size, loaderData?.poolSize ?? 0),
+    ...quizPageSeo(
+      definition,
+      scope,
+      size,
+      loaderData?.poolSize ?? 0,
+      new URLSearchParams(location.search).get("order") === "population"
+        ? "population"
+        : "random",
+    ),
     path: location.pathname,
   });
 }
 
 export default function QuizRun() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const params = useParams<{
     subject: string;
     quizId: string;
@@ -147,6 +165,8 @@ export default function QuizRun() {
   const scope = params.scope && isQuizScope(params.scope) ? params.scope : null;
   const requestedSize =
     params.size && isQuizSize(params.size) ? params.size : null;
+  const mode: QuizSelectionMode =
+    searchParams.get("order") === "population" ? "population" : "random";
   const backTo = `/quizzes/${params.subject}`;
 
   const { atlas, setQuiz, setImmersive, setSheetSnap } = useAtlasContext();
@@ -178,8 +198,8 @@ export default function QuizRun() {
       : null;
 
   const countries = useMemo(
-    () => (definition && size ? randomSubset(pool, size) : []),
-    [definition, pool, size],
+    () => (definition && size ? selectQuizCountries(pool, size, mode) : []),
+    [definition, mode, pool, size],
   );
 
   const abandon = () => navigate(backTo, { state: { sheet: "half" } });

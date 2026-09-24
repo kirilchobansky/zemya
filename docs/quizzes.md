@@ -1,3 +1,9 @@
+(see "Scopes" below), randomly selected from the chosen pool by default (`randomSubset`),
+or population-ranked when the order toggle is switched on (`populationSubset`); a quiz
+South America is the subregion, North America is every other Americas country — 197 / 54 / 48 /
+46 / 23 / 12 / 14), and "top N" means a random N-country subset _within_ that pool by default;
+the control below the continent buttons switches it to the N most populous. The old,
+
 # Quizzes reference
 
 Look-up material moved out of CLAUDE.md: the route shape, scopes, size ladder, personal
@@ -40,15 +46,17 @@ arrive as a ~50-line presenter (`components/quiz/FlagsStage.tsx`) plus a registr
 reusing everything else. The list itself is compact — quiz names only — with one quiz's
 scope chips and size ladder expanded inline at a time, collapsed by default; same markup on
 desktop's right panel and the phone sheet. Sizes come from `app/lib/geography/scopes.ts`
-(see "Scopes" below), randomly selected from the chosen pool (`randomSubset`); a quiz
-that shouldn't rank by population would pass its own list into the shared engine instead.
+(see "Scopes" below), randomly selected from the chosen pool by default (`randomSubset`),
+or population-ranked when the order toggle is switched on (`populationSubset`); a quiz
+that shouldn't use either shared order would pass its own list into the shared engine instead.
 
 **Scopes.** Every quiz has a continent filter, in the shared catalogue and engine, not
 per quiz. Route: `/quizzes/:subject/:quizId/:scope/:size`, scope one of `world | africa |
 asia | europe | north-america | south-america | oceania`; the pool is
 `poolForScope(countries, scope)` (`region`, plus `subregion` to split the Americas: South
 America is the subregion, North America is every other Americas country — 197 / 54 / 48 /
-46 / 23 / 12 / 14), and "top N" means a random N-country subset _within_ that pool. The old,
+46 / 23 / 12 / 14), and "top N" means a random N-country subset _within_ that pool by default;
+the control below the continent buttons switches it to the N most populous. The old,
 pre-subject `/quiz/:quizId/:size` (pre-scope too) still exists as `routes/quiz.legacy.tsx`,
 now a redirect straight to `/quizzes/geography/:quizId/world/:size`, and is prerendered for
 the old sizes so bookmarks to a static host still resolve. A removed scope key

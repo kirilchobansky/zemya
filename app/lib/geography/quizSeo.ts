@@ -8,6 +8,7 @@ import {
   type QuizScope,
   type QuizSize,
 } from "~/lib/geography/scopes";
+import type { QuizSelectionMode } from "~/lib/geography/quizzes";
 
 interface QuizNaming {
   seoName: string;
@@ -24,10 +25,16 @@ export function quizPageSeo(
   scope: QuizScope,
   size: QuizSize,
   poolSize: number,
+  mode: QuizSelectionMode = "random",
 ): { title: string; description: string } {
   const scopeLabel = SCOPE_LABELS[scope];
   const count = size === "all" ? poolSize : Number(size);
-  const which = size === "all" ? `all ${count}` : `a random ${count}`;
+  const which =
+    size === "all"
+      ? `all ${count}`
+      : mode === "population"
+        ? `the ${count} most populous`
+        : `a random ${count}`;
   const where = scope === "world" ? "" : `${scopeLabel} `;
   return {
     title: `${scopeLabel} ${quiz.seoName} Quiz — ${countLabel(size, poolSize)} | Zemya`,

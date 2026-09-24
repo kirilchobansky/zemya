@@ -11,6 +11,8 @@ import type { QuizSize } from "~/lib/geography/scopes";
 import type { MatchOutcome, QuizDefinition } from "~/lib/quiz/types";
 import type { CountryRecord } from "~/lib/map/types";
 
+export type QuizSelectionMode = "random" | "population";
+
 /**
  * Accepts the target's confusable twin (see content/geography/confusable-flags.yaml) as
  * well as its own name — the flags quiz's one addition on top of the plain name match
@@ -103,4 +105,22 @@ export function randomSubset(
     ];
   }
   return shuffled.slice(0, Number(size));
+}
+
+export function populationSubset(
+  countries: CountryRecord[],
+  size: QuizSize,
+): CountryRecord[] {
+  const sorted = [...countries].sort((a, b) => b.population - a.population);
+  return size === "all" ? sorted : sorted.slice(0, Number(size));
+}
+
+export function selectQuizCountries(
+  countries: CountryRecord[],
+  size: QuizSize,
+  mode: QuizSelectionMode,
+): CountryRecord[] {
+  return mode === "population"
+    ? populationSubset(countries, size)
+    : randomSubset(countries, size);
 }

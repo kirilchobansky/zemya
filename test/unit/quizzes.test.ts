@@ -8,7 +8,12 @@
 import { describe, expect, it } from "vitest";
 
 import { allCountries, countryBySlug } from "~/lib/geography/catalog.server";
-import { quizDefinition, randomSubset } from "~/lib/geography/quizzes";
+import {
+  populationSubset,
+  quizDefinition,
+  randomSubset,
+  selectQuizCountries,
+} from "~/lib/geography/quizzes";
 import {
   isQuizScope,
   isQuizSize,
@@ -177,6 +182,26 @@ describe("randomSubset", () => {
     const top50 = new Set(randomSubset(countries, "50").map((c) => c.iso3));
     expect(top20.size).toBe(20);
     expect(top50.size).toBe(50);
+  });
+});
+
+describe("populationSubset", () => {
+  const countries = allCountries();
+
+  it("returns the most populous countries first", () => {
+    const top20 = populationSubset(countries, "20");
+    expect(top20).toHaveLength(20);
+    for (let index = 1; index < top20.length; index++) {
+      expect(top20[index - 1].population).toBeGreaterThanOrEqual(
+        top20[index].population,
+      );
+    }
+  });
+
+  it("selectQuizCountries uses the requested mode", () => {
+    expect(selectQuizCountries(countries, "20", "population")).toEqual(
+      populationSubset(countries, "20"),
+    );
   });
 });
 

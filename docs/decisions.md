@@ -1,3 +1,6 @@
+sizes say "Top N" because they are a random N-country subset by default (`randomSubset`),
+with a toggle for the N most populous (`populationSubset`); "All N" for the
+
 # Decisions, history and known rough edges
 
 Moved out of CLAUDE.md. Nothing here changes what you do on an ordinary task; it records
