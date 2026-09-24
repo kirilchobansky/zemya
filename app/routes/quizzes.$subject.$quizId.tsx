@@ -12,26 +12,39 @@
  * where, using what input layout — is left to the quiz's own Stage component. See
  * CLAUDE.md's Quizzes section.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Link, Navigate, useNavigate, useParams } from 'react-router';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 
-import { useAtlasContext } from './atlas';
-import { allCountries } from '~/lib/geography/catalog.server';
-import { quizPageSeo } from '~/lib/geography/quizSeo';
-import { pageMeta } from '~/lib/seo';
-import type { Route } from './+types/quizzes.$subject.$quizId';
-import { useQuizEngine } from '~/lib/quiz/engine';
-import { formatDuration } from '~/lib/format';
-import { subjectById, quizInSubject } from '~/lib/quiz/subjects';
-import { topByPopulation } from '~/lib/geography/quizzes';
-import { isQuizScope, isQuizSize, LEGACY_SCOPES, poolForScope, SCOPE_LABELS, SCOPE_VIEWS, sizesForPool, type QuizSize } from '~/lib/geography/scopes';
-import { loadWorld, peekWorld } from '~/lib/geography/world';
-import { keepFocus } from '~/components/quiz/QuizControls';
-import { useKeyboard } from '~/lib/keyboard';
-import { NO_INSETS, type Insets } from '~/lib/map/follow';
-import { isCoarsePointer, isPhoneLandscape, isPhoneLayout } from '~/lib/viewport';
-import type { CountryRecord, World } from '~/lib/map/types';
+import { useAtlasContext } from "./atlas";
+import { allCountries } from "~/lib/geography/catalog.server";
+import { quizPageSeo } from "~/lib/geography/quizSeo";
+import { pageMeta } from "~/lib/seo";
+import type { Route } from "./+types/quizzes.$subject.$quizId";
+import { useQuizEngine } from "~/lib/quiz/engine";
+import { formatDuration } from "~/lib/format";
+import { subjectById, quizInSubject } from "~/lib/quiz/subjects";
+import { randomSubset } from "~/lib/geography/quizzes";
+import {
+  isQuizScope,
+  isQuizSize,
+  LEGACY_SCOPES,
+  poolForScope,
+  SCOPE_LABELS,
+  SCOPE_VIEWS,
+  sizesForPool,
+  type QuizSize,
+} from "~/lib/geography/scopes";
+import { loadWorld, peekWorld } from "~/lib/geography/world";
+import { keepFocus } from "~/components/quiz/QuizControls";
+import { useKeyboard } from "~/lib/keyboard";
+import { NO_INSETS, type Insets } from "~/lib/map/follow";
+import {
+  isCoarsePointer,
+  isPhoneLandscape,
+  isPhoneLayout,
+} from "~/lib/viewport";
+import type { CountryRecord, World } from "~/lib/map/types";
 
 /** What sits on top of the canvas during a run, so a target hidden under it counts as not
  *  visible. Desktop: the docked input, at the bottom. The right-hand panel is a grid column
@@ -39,67 +52,101 @@ import type { CountryRecord, World } from '~/lib/map/types';
  *  needs no inset. Phone: the strip between the HUD (top) and the input bar (bottom, sitting on
  *  the keyboard) — measured from the DOM, so it is whatever the keyboard has made it right now. */
 function measureInsets(): Insets {
-  const canvas = document.querySelector('.stage__canvas');
+  const canvas = document.querySelector(".stage__canvas");
   if (!canvas) return NO_INSETS;
   const c = canvas.getBoundingClientRect();
   if (!isPhoneLayout()) {
-    const dock = document.querySelector('.quiz-dock');
+    const dock = document.querySelector(".quiz-dock");
     if (!dock) return NO_INSETS;
-    return { ...NO_INSETS, bottom: Math.max(0, c.bottom - dock.getBoundingClientRect().top) };
+    return {
+      ...NO_INSETS,
+      bottom: Math.max(0, c.bottom - dock.getBoundingClientRect().top),
+    };
   }
-  const hud = document.querySelector('.quiz-hud');
-  const bar = document.querySelector('.quiz-controls');
+  const hud = document.querySelector(".quiz-hud");
+  const bar = document.querySelector(".quiz-controls");
   if (!hud || !bar) return NO_INSETS;
   if (isPhoneLandscape()) {
     // landscape: the HUD sits inline at the left of the input bar, both on the keyboard; the
     // answer chip floats just above them. The map gets everything above that.
-    const feedback = document.querySelector('.quiz-controls .quiz-feedback');
-    const barTop = Math.min(hud.getBoundingClientRect().top, bar.getBoundingClientRect().top,
-      feedback ? feedback.getBoundingClientRect().top : Infinity);
+    const feedback = document.querySelector(".quiz-controls .quiz-feedback");
+    const barTop = Math.min(
+      hud.getBoundingClientRect().top,
+      bar.getBoundingClientRect().top,
+      feedback ? feedback.getBoundingClientRect().top : Infinity,
+    );
     return { ...NO_INSETS, bottom: Math.max(0, c.bottom - barTop) };
   }
   return {
     ...NO_INSETS,
     top: Math.max(0, hud.getBoundingClientRect().bottom - c.top),
-    bottom: Math.max(0, c.bottom - bar.getBoundingClientRect().top)
+    bottom: Math.max(0, c.bottom - bar.getBoundingClientRect().top),
   };
 }
 
 /** Build-time only: the size of the scope's pool, which the title says ("All 46 Countries")
  *  and which only the catalogue knows. */
 export function loader({ params }: Route.LoaderArgs) {
-  const scope = params.scope ?? '';
-  return { poolSize: isQuizScope(scope) ? poolForScope(allCountries(), scope).length : 0 };
+  const scope = params.scope ?? "";
+  return {
+    poolSize: isQuizScope(scope)
+      ? poolForScope(allCountries(), scope).length
+      : 0,
+  };
 }
 
 /** The pool size from the in-memory catalogue when loaded, else the prerendered data. */
-export async function clientLoader({ params, serverLoader }: Route.ClientLoaderArgs) {
+export async function clientLoader({
+  params,
+  serverLoader,
+}: Route.ClientLoaderArgs) {
   const world = peekWorld();
   if (!world) return serverLoader();
-  const scope = params.scope ?? '';
-  return { poolSize: isQuizScope(scope) ? poolForScope(world.data.countries, scope).length : 0 };
+  const scope = params.scope ?? "";
+  return {
+    poolSize: isQuizScope(scope)
+      ? poolForScope(world.data.countries, scope).length
+      : 0,
+  };
 }
 
 export function meta({ params, loaderData, location }: Route.MetaArgs) {
   const subject = params.subject ? subjectById(params.subject) : undefined;
-  const definition = subject && params.quizId ? quizInSubject(subject, params.quizId) : undefined;
-  const { scope = '', size = '' } = params;
+  const definition =
+    subject && params.quizId
+      ? quizInSubject(subject, params.quizId)
+      : undefined;
+  const { scope = "", size = "" } = params;
   if (!definition || !isQuizScope(scope) || !isQuizSize(size)) {
-    return pageMeta({ title: 'Quiz — Zemya', description: 'A timed quiz.', path: location.pathname, noindex: true });
+    return pageMeta({
+      title: "Quiz — Zemya",
+      description: "A timed quiz.",
+      path: location.pathname,
+      noindex: true,
+    });
   }
   return pageMeta({
     ...quizPageSeo(definition, scope, size, loaderData?.poolSize ?? 0),
-    path: location.pathname
+    path: location.pathname,
   });
 }
 
 export default function QuizRun() {
   const navigate = useNavigate();
-  const params = useParams<{ subject: string; quizId: string; scope: string; size: string }>();
+  const params = useParams<{
+    subject: string;
+    quizId: string;
+    scope: string;
+    size: string;
+  }>();
   const subject = params.subject ? subjectById(params.subject) : undefined;
-  const definition = subject && params.quizId ? quizInSubject(subject, params.quizId) : undefined;
+  const definition =
+    subject && params.quizId
+      ? quizInSubject(subject, params.quizId)
+      : undefined;
   const scope = params.scope && isQuizScope(params.scope) ? params.scope : null;
-  const requestedSize = params.size && isQuizSize(params.size) ? params.size : null;
+  const requestedSize =
+    params.size && isQuizSize(params.size) ? params.size : null;
   const backTo = `/quizzes/${params.subject}`;
 
   const { atlas, setQuiz, setImmersive, setSheetSnap } = useAtlasContext();
@@ -108,32 +155,40 @@ export default function QuizRun() {
   const [world, setWorld] = useState<World | null>(null);
   useEffect(() => {
     let cancelled = false;
-    loadWorld().then(w => { if (!cancelled) setWorld(w); });
-    return () => { cancelled = true; };
+    loadWorld().then((w) => {
+      if (!cancelled) setWorld(w);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /** The whole scope's pool, before any Top-N cut — its length decides which sizes exist. */
   const pool = useMemo(
     () => (world && scope ? poolForScope(world.data.countries, scope) : []),
-    [world, scope]
+    [world, scope],
   );
   /** A size the pool can't offer (e.g. 50 of Oceania's 14, or a hand-typed URL) is not a
    *  run — the catalogue is the only thing that should be linking here. */
   const size: QuizSize | null =
-    requestedSize && pool.length && sizesForPool(pool.length).includes(requestedSize) ? requestedSize : null;
+    requestedSize &&
+    pool.length &&
+    sizesForPool(pool.length).includes(requestedSize)
+      ? requestedSize
+      : null;
 
   const countries = useMemo(
-    () => (definition && size ? topByPopulation(pool, size) : []),
-    [definition, pool, size]
+    () => (definition && size ? randomSubset(pool, size) : []),
+    [definition, pool, size],
   );
 
-  const abandon = () => navigate(backTo, { state: { sheet: 'half' } });
+  const abandon = () => navigate(backTo, { state: { sheet: "half" } });
   const engine = useQuizEngine(
-    definition ?? { id: 'unknown', facet: 'location' },
+    definition ?? { id: "unknown", facet: "location" },
     countries,
-    scope ?? 'world',
-    requestedSize ?? 'all',
-    abandon
+    scope ?? "world",
+    requestedSize ?? "all",
+    abandon,
   );
 
   /* quiz mode covers the whole lifetime of this route, not just the running phase — the
@@ -147,7 +202,13 @@ export default function QuizRun() {
   atlasRef.current = atlas;
   const markCapital = Boolean(definition?.markCapital);
   useEffect(() => {
-    setQuiz({ target: null, answered: new Map(), showNeighbours: false, showCapital: markCapital, paused: false });
+    setQuiz({
+      target: null,
+      answered: new Map(),
+      showNeighbours: false,
+      showCapital: markCapital,
+      paused: false,
+    });
     return () => {
       setQuiz(null);
       atlasRef.current?.setFocus([]); // don't leave a random country's pin permanently enlarged
@@ -178,15 +239,17 @@ export default function QuizRun() {
      until its results, which open the sheet at full height. Only for a valid run: the
      "not found" and "preparing" states keep the tab bar, so nobody is stranded. No effect on
      desktop, where the shell has no such state. */
-  const validRun = Boolean(definition && scope && requestedSize && world && size);
-  const runOwnsScreen = validRun && engine.phase !== 'done';
+  const validRun = Boolean(
+    definition && scope && requestedSize && world && size,
+  );
+  const runOwnsScreen = validRun && engine.phase !== "done";
   useEffect(() => {
     setImmersive(runOwnsScreen);
     return () => setImmersive(false);
   }, [runOwnsScreen, setImmersive]);
-  const finished = validRun && engine.phase === 'done';
+  const finished = validRun && engine.phase === "done";
   useEffect(() => {
-    if (finished) setSheetSnap('full');
+    if (finished) setSheetSnap("full");
   }, [finished, setSheetSnap]);
 
   /* The camera's visible area during a phone run is the strip between the HUD and the input bar,
@@ -194,7 +257,7 @@ export default function QuizRun() {
      or closes, and the current target is followed again inside the new strip (it may now be
      behind the keyboard). Declared before the START and target effects below, so on the first
      question the camera already knows the strip. Desktop: measured once per phase, as before. */
-  const running = engine.phase === 'running' || engine.phase === 'paused';
+  const running = engine.phase === "running" || engine.phase === "paused";
   const targetRef = useRef(engine.target);
   targetRef.current = engine.target;
   // the strip changes when the keyboard covers the layout viewport (iOS) or shrinks it (Android)
@@ -209,10 +272,20 @@ export default function QuizRun() {
     if (lastFollowedStripRef.current === strip) return;
     lastFollowedStripRef.current = strip;
     const target = targetRef.current;
-    if (!world || !atlas || !running || !target || definition?.hidesMap || !isPhoneLayout()) return;
+    if (
+      !world ||
+      !atlas ||
+      !running ||
+      !target ||
+      definition?.hidesMap ||
+      !isPhoneLayout()
+    )
+      return;
     const feature = world.byIso3.get(target.iso3);
     if (!feature) return;
-    const place = definition?.markCapital ? world.places.find(mark => mark.feature === feature) ?? null : null;
+    const place = definition?.markCapital
+      ? (world.places.find((mark) => mark.feature === feature) ?? null)
+      : null;
     // two frames on: where the keyboard resized the layout viewport, the atlas hears about its
     // new canvas size from a ResizeObserver that has not fired yet
     let second = 0;
@@ -247,8 +320,9 @@ export default function QuizRun() {
     const prev = prevPhaseRef.current;
     // START only — idle/done -> running. Resuming from pause is ALSO "not running -> running",
     // and used to reset the player's zoom to the world view.
-    if ((prev === 'idle' || prev === 'done') && engine.phase === 'running') atlas?.home();
-    if (prev !== 'done' && engine.phase === 'done') {
+    if ((prev === "idle" || prev === "done") && engine.phase === "running")
+      atlas?.home();
+    if (prev !== "done" && engine.phase === "done") {
       atlas?.home();
       atlas?.setFocus([]);
     }
@@ -263,16 +337,19 @@ export default function QuizRun() {
      target alone, so it neither moves the camera nor pulses, and resuming from pause doesn't. */
   const lastPulsedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (engine.phase === 'idle' || engine.phase === 'done') {
+    if (engine.phase === "idle" || engine.phase === "done") {
       lastPulsedRef.current = null;
     }
-    if (!world || !atlas || engine.phase !== 'running' || definition?.hidesMap) return;
+    if (!world || !atlas || engine.phase !== "running" || definition?.hidesMap)
+      return;
     const iso3 = engine.target?.iso3 ?? null;
     if (!iso3 || iso3 === lastPulsedRef.current) return;
     lastPulsedRef.current = iso3;
     const feature = world.byIso3.get(iso3);
     if (!feature) return;
-    const place = definition?.markCapital ? world.places.find(mark => mark.feature === feature) ?? null : null;
+    const place = definition?.markCapital
+      ? (world.places.find((mark) => mark.feature === feature) ?? null)
+      : null;
     atlas.followTarget({ feature, place }, measureInsets()); // the one camera decision, however we got here
     atlas.pulse(place?.ux ?? feature.ux, place?.uy ?? feature.uy);
   }, [engine.target, engine.phase, world, atlas, definition]);
@@ -282,16 +359,23 @@ export default function QuizRun() {
      Stage that never shows the map. */
   useEffect(() => {
     if (!world) return;
-    const feature = engine.target ? world.byIso3.get(engine.target.iso3) ?? null : null;
+    const feature = engine.target
+      ? (world.byIso3.get(engine.target.iso3) ?? null)
+      : null;
     atlas?.setFocus(feature ? [feature] : []);
-    setQuiz(prev => (prev ? { ...prev, target: feature } : prev));
+    setQuiz((prev) => (prev ? { ...prev, target: feature } : prev));
   }, [engine.target, world, atlas, setQuiz]);
 
   useEffect(() => {
-    setQuiz(prev =>
+    setQuiz((prev) =>
       prev
-        ? { ...prev, answered: engine.answered, showNeighbours: engine.showNeighbours, paused: engine.phase === 'paused' }
-        : prev
+        ? {
+            ...prev,
+            answered: engine.answered,
+            showNeighbours: engine.showNeighbours,
+            paused: engine.phase === "paused",
+          }
+        : prev,
     );
   }, [engine.answered, engine.showNeighbours, engine.phase, setQuiz]);
 
@@ -300,16 +384,37 @@ export default function QuizRun() {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as unknown as { __zemyaView?: unknown }).__zemyaView = () => {
-      const feature = engine.target && world ? world.byIso3.get(engine.target.iso3) : null;
-      const place = feature && definition?.markCapital ? world?.places.find(m => m.feature === feature) : null;
+      const feature =
+        engine.target && world ? world.byIso3.get(engine.target.iso3) : null;
+      const place =
+        feature && definition?.markCapital
+          ? world?.places.find((m) => m.feature === feature)
+          : null;
       const view = atlas?.view;
-      const canvas = document.querySelector('.stage__canvas')?.getBoundingClientRect();
-      const dock = document.querySelector('.quiz-dock')?.getBoundingClientRect();
+      const canvas = document
+        .querySelector(".stage__canvas")
+        ?.getBoundingClientRect();
+      const dock = document
+        .querySelector(".quiz-dock")
+        ?.getBoundingClientRect();
       return {
         camera: view ?? null,
-        target: feature && atlas ? atlas.screenPosition(place?.ux ?? feature.ux, place?.uy ?? feature.uy) : null,
-        canvas: canvas ? { left: canvas.left, top: canvas.top, right: canvas.right, bottom: canvas.bottom } : null,
-        dockTop: dock ? dock.top : null
+        target:
+          feature && atlas
+            ? atlas.screenPosition(
+                place?.ux ?? feature.ux,
+                place?.uy ?? feature.uy,
+              )
+            : null,
+        canvas: canvas
+          ? {
+              left: canvas.left,
+              top: canvas.top,
+              right: canvas.right,
+              bottom: canvas.bottom,
+            }
+          : null,
+        dockTop: dock ? dock.top : null,
       };
     };
   }, [atlas, world, engine.target, definition]);
@@ -329,14 +434,24 @@ export default function QuizRun() {
       targetCapital: engine.target?.capital ?? null,
       answeredCount: engine.answeredCount,
       phase: engine.phase,
-      elapsedMs: engine.elapsedMs
+      elapsedMs: engine.elapsedMs,
     };
   }, [engine.target, engine.answeredCount, engine.phase, engine.elapsedMs]);
 
   /* a scope key that has since been removed ("americas", split in two) lands on its
      replacement rather than a Not found page — old links and bookmarks keep working */
-  if (subject && definition && params.scope && Object.hasOwn(LEGACY_SCOPES, params.scope)) {
-    return <Navigate to={`/quizzes/${subject.id}/${definition.id}/${LEGACY_SCOPES[params.scope]}/${params.size ?? 'all'}`} replace />;
+  if (
+    subject &&
+    definition &&
+    params.scope &&
+    Object.hasOwn(LEGACY_SCOPES, params.scope)
+  ) {
+    return (
+      <Navigate
+        to={`/quizzes/${subject.id}/${definition.id}/${LEGACY_SCOPES[params.scope]}/${params.size ?? "all"}`}
+        replace
+      />
+    );
   }
 
   if (!subject || !definition || !scope || !requestedSize) {
@@ -350,14 +465,24 @@ export default function QuizRun() {
           <div className="empty">
             <div className="empty__icon">?</div>
             <p>
-              {!subject
-                ? <>There is no subject called "{params.subject}".</>
-                : !definition
-                ? <>There is no quiz called "{params.quizId}" under {subject.name}.</>
-                : <>There is no such scope or size: "{params.scope}/{params.size}".</>}
+              {!subject ? (
+                <>There is no subject called "{params.subject}".</>
+              ) : !definition ? (
+                <>
+                  There is no quiz called "{params.quizId}" under {subject.name}
+                  .
+                </>
+              ) : (
+                <>
+                  There is no such scope or size: "{params.scope}/{params.size}
+                  ".
+                </>
+              )}
             </p>
           </div>
-          <Link to={subject ? backTo : '/quizzes'} className="action">Back to quizzes</Link>
+          <Link to={subject ? backTo : "/quizzes"} className="action">
+            Back to quizzes
+          </Link>
         </div>
       </>
     );
@@ -383,7 +508,9 @@ export default function QuizRun() {
   if (!size) return <Navigate to={backTo} replace />;
 
   const { Stage } = definition;
-  const revealed = engine.target ? engine.revealedSet.has(engine.target.iso3) : false;
+  const revealed = engine.target
+    ? engine.revealedSet.has(engine.target.iso3)
+    : false;
 
   /* START (and "Run it again") focus the input SYNCHRONOUSLY, inside the tap: iOS opens the
      keyboard only for a focus() that happens within the user gesture itself. A focus in an
@@ -409,30 +536,37 @@ export default function QuizRun() {
     canSkip: engine.remainingCount >= 2,
     canReveal: Boolean(engine.target) && !revealed,
     showNeighbours: engine.showNeighbours,
-    toggleShowNeighbours: engine.toggleShowNeighbours
+    toggleShowNeighbours: engine.toggleShowNeighbours,
   } as const;
 
   return (
     <>
       <header className="panel__head">
-        <span className="panel__eyebrow">{definition.title} · {SCOPE_LABELS[scope]}</span>
+        <span className="panel__eyebrow">
+          {definition.title} · {SCOPE_LABELS[scope]}
+        </span>
         <h2>{countries.length} rounds</h2>
       </header>
 
       <div className="panel__body">
-        {engine.phase === 'idle' && (
+        {engine.phase === "idle" && (
           <div className="empty">
             <div className="empty__icon">⌨</div>
             <p>
-              <span className="only-fine">Press START — or Space, or Enter — to begin.</span>
-              <span className="only-coarse">Tap START to begin.</span> Nothing is timed until you do.
+              <span className="only-fine">
+                Press START — or Space, or Enter — to begin.
+              </span>
+              <span className="only-coarse">Tap START to begin.</span> Nothing
+              is timed until you do.
             </p>
           </div>
         )}
 
-        {(engine.phase === 'running' || engine.phase === 'paused') && (
+        {(engine.phase === "running" || engine.phase === "paused") && (
           <>
-            <div className="quiz-run__timer numeric">{formatDuration(engine.elapsedMs)}</div>
+            <div className="quiz-run__timer numeric">
+              {formatDuration(engine.elapsedMs)}
+            </div>
             <div className="quiz-run__count numeric">
               {engine.answeredCount} / {engine.totalCount}
             </div>
@@ -444,7 +578,12 @@ export default function QuizRun() {
             </div>
 
             <div className="actions">
-              <button type="button" className="action" onClick={engine.skip} disabled={engine.remainingCount < 2}>
+              <button
+                type="button"
+                className="action"
+                onClick={engine.skip}
+                disabled={engine.remainingCount < 2}
+              >
                 Skip <kbd>Tab</kbd>
               </button>
               <button
@@ -455,8 +594,12 @@ export default function QuizRun() {
               >
                 Reveal <kbd>Ctrl+Enter</kbd>
               </button>
-              <button type="button" className="action" onClick={engine.togglePause}>
-                {engine.phase === 'paused' ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
+              <button
+                type="button"
+                className="action"
+                onClick={engine.togglePause}
+              >
+                {engine.phase === "paused" ? "Resume" : "Pause"} <kbd>Esc</kbd>
               </button>
               <button type="button" className="action" onClick={engine.abandon}>
                 Abandon <kbd>Ctrl+⌫</kbd>
@@ -465,44 +608,70 @@ export default function QuizRun() {
 
             <Stage {...stageProps} slot="panel" />
 
-            {engine.phase === 'paused' && (
+            {engine.phase === "paused" && (
               <div className="note">
-                Paused — the timer is stopped.{' '}
-                <span className="only-fine">Press Esc or Resume to continue.</span>
+                Paused — the timer is stopped.{" "}
+                <span className="only-fine">
+                  Press Esc or Resume to continue.
+                </span>
                 <span className="only-coarse">Tap Resume to continue.</span>
               </div>
             )}
           </>
         )}
 
-        {engine.phase === 'done' && engine.result && (
+        {engine.phase === "done" && engine.result && (
           <>
             <div className="hook">
               <div className="hook__label">Result</div>
-              <p className="quiz-result__time numeric">{formatDuration(engine.result.timeMs)}</p>
+              <p className="quiz-result__time numeric">
+                {formatDuration(engine.result.timeMs)}
+              </p>
               <p style={{ marginBottom: 6 }}>
                 {engine.result.beatBest ? (
                   engine.result.previousBest !== null ? (
-                    <>New personal best — beat <b>{formatDuration(engine.result.previousBest)}</b>.</>
+                    <>
+                      New personal best — beat{" "}
+                      <b>{formatDuration(engine.result.previousBest)}</b>.
+                    </>
                   ) : (
-                    <>First run at this size — <b>{formatDuration(engine.result.timeMs)}</b> is now your personal best.</>
+                    <>
+                      First run at this size —{" "}
+                      <b>{formatDuration(engine.result.timeMs)}</b> is now your
+                      personal best.
+                    </>
                   )
                 ) : (
-                  <>Personal best stays <b>{formatDuration(engine.result.previousBest ?? engine.result.timeMs)}</b>.</>
+                  <>
+                    Personal best stays{" "}
+                    <b>
+                      {formatDuration(
+                        engine.result.previousBest ?? engine.result.timeMs,
+                      )}
+                    </b>
+                    .
+                  </>
                 )}
               </p>
               <p>
-                <b>{engine.result.firstTryCount}</b> first-try, <b>{engine.result.revealed.length}</b> revealed
-                {' '}(of {countries.length}).
+                <b>{engine.result.firstTryCount}</b> first-try,{" "}
+                <b>{engine.result.revealed.length}</b> revealed (of{" "}
+                {countries.length}).
               </p>
             </div>
 
             {engine.result.revealed.length > 0 && (
               <section>
-                <h3 className="subhead">Revealed — the ones worth another look</h3>
+                <h3 className="subhead">
+                  Revealed — the ones worth another look
+                </h3>
                 <div className="neighbours">
                   {engine.result.revealed.map((country: CountryRecord) => (
-                    <Link className="neighbour" key={country.iso3} to={`/country/${country.slug}`}>
+                    <Link
+                      className="neighbour"
+                      key={country.iso3}
+                      to={`/country/${country.slug}`}
+                    >
                       {country.emoji} {country.name}
                     </Link>
                   ))}
@@ -511,10 +680,14 @@ export default function QuizRun() {
             )}
 
             <div className="actions">
-              <button type="button" className="action action--primary" onClick={startRun}>
+              <button
+                type="button"
+                className="action action--primary"
+                onClick={startRun}
+              >
                 Run it again
               </button>
-              <Link to={backTo} state={{ sheet: 'half' }} className="action">
+              <Link to={backTo} state={{ sheet: "half" }} className="action">
                 Back to quizzes
               </Link>
             </div>
@@ -528,67 +701,87 @@ export default function QuizRun() {
           panel is hidden. Portalled to <body> — the panel is a transformed sheet, which would trap
           `position: fixed`. Thin HUD on top, the Stage's input bar at the bottom, the map (or
           flag) between; pause covers it with Resume and Abandon. */}
-      {engine.phase !== 'done' && createPortal(
-        <>
-          <div className="quiz-hud" data-phase={engine.phase}>
-            {engine.phase === 'idle' ? (
-              <>
-                <Link to={backTo} state={{ sheet: 'half' }} className="quiz-hud__back">‹ Quizzes</Link>
-                <span className="quiz-hud__count numeric">{countries.length} rounds</span>
-              </>
-            ) : (
-              <>
-                <span className="quiz-hud__timer numeric">{formatDuration(engine.elapsedMs)}</span>
-                <span className="quiz-hud__count numeric">
-                  {engine.answeredCount} / {engine.totalCount}
-                </span>
+      {engine.phase !== "done" &&
+        createPortal(
+          <>
+            <div className="quiz-hud" data-phase={engine.phase}>
+              {engine.phase === "idle" ? (
+                <>
+                  <Link
+                    to={backTo}
+                    state={{ sheet: "half" }}
+                    className="quiz-hud__back"
+                  >
+                    ‹ Quizzes
+                  </Link>
+                  <span className="quiz-hud__count numeric">
+                    {countries.length} rounds
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="quiz-hud__timer numeric">
+                    {formatDuration(engine.elapsedMs)}
+                  </span>
+                  <span className="quiz-hud__count numeric">
+                    {engine.answeredCount} / {engine.totalCount}
+                  </span>
+                  <button
+                    type="button"
+                    className="quiz-hud__pause"
+                    aria-label={engine.phase === "paused" ? "Resume" : "Pause"}
+                    onPointerDown={keepFocus}
+                    onMouseDown={keepFocus}
+                    onClick={engine.togglePause}
+                  >
+                    <PauseIcon />
+                  </button>
+                </>
+              )}
+            </div>
+            {engine.phase === "paused" && (
+              <div className="quiz-pause" role="dialog" aria-label="Paused">
+                <p className="quiz-pause__title">Paused</p>
+                <p className="quiz-pause__sub">The timer is stopped.</p>
                 <button
                   type="button"
-                  className="quiz-hud__pause"
-                  aria-label={engine.phase === 'paused' ? 'Resume' : 'Pause'}
+                  className="quiz-pause__btn quiz-pause__btn--primary"
                   onPointerDown={keepFocus}
                   onMouseDown={keepFocus}
                   onClick={engine.togglePause}
                 >
-                  <PauseIcon />
+                  Resume
                 </button>
-              </>
+                <button
+                  type="button"
+                  className="quiz-pause__btn"
+                  onPointerDown={keepFocus}
+                  onMouseDown={keepFocus}
+                  onClick={engine.abandon}
+                >
+                  Abandon run
+                </button>
+              </div>
             )}
-          </div>
-          {engine.phase === 'paused' && (
-            <div className="quiz-pause" role="dialog" aria-label="Paused">
-              <p className="quiz-pause__title">Paused</p>
-              <p className="quiz-pause__sub">The timer is stopped.</p>
-              <button
-                type="button"
-                className="quiz-pause__btn quiz-pause__btn--primary"
-                onPointerDown={keepFocus}
-                onMouseDown={keepFocus}
-                onClick={engine.togglePause}
-              >
-                Resume
-              </button>
-              <button
-                type="button"
-                className="quiz-pause__btn"
-                onPointerDown={keepFocus}
-                onMouseDown={keepFocus}
-                onClick={engine.abandon}
-              >
-                Abandon run
-              </button>
-            </div>
-          )}
-        </>,
-        document.body
-      )}
+          </>,
+          document.body,
+        )}
     </>
   );
 }
 
 function PauseIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
       <path d="M8.5 6v12M15.5 6v12" />
     </svg>
   );

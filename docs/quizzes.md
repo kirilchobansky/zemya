@@ -40,8 +40,7 @@ arrive as a ~50-line presenter (`components/quiz/FlagsStage.tsx`) plus a registr
 reusing everything else. The list itself is compact — quiz names only — with one quiz's
 scope chips and size ladder expanded inline at a time, collapsed by default; same markup on
 desktop's right panel and the phone sheet. Sizes come from `app/lib/geography/scopes.ts`
-(see "Scopes" below), ranked by population within the selected pool (`topByPopulation` —
-kept behind one function so ranking by a different axis later is a one-line change); a quiz
+(see "Scopes" below), randomly selected from the chosen pool (`randomSubset`); a quiz
 that shouldn't rank by population would pass its own list into the shared engine instead.
 
 **Scopes.** Every quiz has a continent filter, in the shared catalogue and engine, not
@@ -49,7 +48,7 @@ per quiz. Route: `/quizzes/:subject/:quizId/:scope/:size`, scope one of `world |
 asia | europe | north-america | south-america | oceania`; the pool is
 `poolForScope(countries, scope)` (`region`, plus `subregion` to split the Americas: South
 America is the subregion, North America is every other Americas country — 197 / 54 / 48 /
-46 / 23 / 12 / 14), and "top N" means the N most populous *within* that pool. The old,
+46 / 23 / 12 / 14), and "top N" means a random N-country subset _within_ that pool. The old,
 pre-subject `/quiz/:quizId/:size` (pre-scope too) still exists as `routes/quiz.legacy.tsx`,
 now a redirect straight to `/quizzes/geography/:quizId/world/:size`, and is prerendered for
 the old sizes so bookmarks to a static host still resolve. A removed scope key
@@ -160,7 +159,7 @@ looked at, not tuned; a target that doesn't fit (Russia in Europe) still zooms o
 minimum. Smoke step 21 covers it.
 
 **Colours: three meanings, three colours.** Brass = the question, red = "you didn't know this
-one" (revealed), green = got it. Revealed used to be `--learn` amber, which is the *same value*
+one" (revealed), green = got it. Revealed used to be `--learn` amber, which is the _same value_
 as brass (`#E8A33D`), so mid-run a revealed country looked like the current question. Red is
 the mastery colour for "new / not known", so it is right semantically, not just a different hue.
 One function (`quizFillFor`) paints all three quizzes, so they cannot disagree; the flags quiz
@@ -168,19 +167,21 @@ has no map, and its revealed-answer chip carries the same red outline. Pinned by
 
 **Camera: one path for every new question (supersedes "follows the player" and "never moves
 again" below).** START still calls `atlas.home()` once. After it, every NEW question — a correct
-answer, a skip, a reveal-then-answer — runs `Atlas#followTarget`, and that is the *only* place the
+answer, a skip, a reveal-then-answer — runs `Atlas#followTarget`, and that is the _only_ place the
 quiz camera decides (`follow.ts` is the pure maths under it). Earlier, the route called
 `homeIfZoomedIn()` for a guess and not for a skip, so the two behaved differently; that decision
 now lives in one function, and the route just calls it when the target changes. Two steps, one
-animation, decided against where the camera is *heading* (`Atlas#target`), so quick answers chain:
+animation, decided against where the camera is _heading_ (`Atlas#target`), so quick answers chain:
+
 1. Zoomed past `QUIZ_WORLD_VIEW_FACTOR` (1.25x home)? Start from the home view (the continent, in a
    continent scope), else from where the camera is.
 2. `cameraForTarget` from there: **(a)** comfortably inside the visible area and big enough -> leave
    it; **(b)** too small -> zoom **in** until legible, even off the overview; **(c)** too big ->
    zoom out the minimum to fit; **(d)** otherwise centre it (only the axis that failed).
+
 - **Comfortable** = inside the visible area by `QUIZ_COMFORT_MARGIN` (10%) of each dimension, or the
   floor for the target kind (12 px shape, 48 px pin, 60 px capital dot). `QUIZ_FRAME_PADDING` is
-  *derived* (`1 - 2 x margin`), so a country zoomed out to fit is comfortable by construction.
+  _derived_ (`1 - 2 x margin`), so a country zoomed out to fit is comfortable by construction.
   Touching the edge, or a 12 px margin, was "visible" before — a sliver you had to squint at.
 - **Legible** = at least `QUIZ_MIN_TARGET_PX` (12) wide, the same measure the renderer uses to
   decide pin vs shape (`PIN_MAX_WIDTH` 7 in `thresholds.ts`), so a target is never left as a pin.
@@ -205,7 +206,7 @@ animation, decided against where the camera is *heading* (`Atlas#target`), so qu
 - The flags quiz (`hidesMap: true`) skips follow and pulse; nothing on screen uses them.
 
 **Capital dot vs outline.** A capital ring, its name and its hit-test all go through one
-predicate (`capitalShapeShowing`): the country must be drawn as a shape *and* at least
+predicate (`capitalShapeShowing`): the country must be drawn as a shape _and_ at least
 `CAPITAL_MIN_SHAPE_WIDTH` wide — `PIN_MAX_WIDTH` plus the ring's own diameter, derived in
 `thresholds.ts`, so the two cannot drift. Before, a 10 px ring appeared on a 7 px sliver: a dot
 floating beside a country that hadn't formed yet. In the quiz, the target ring is not drawn beside
@@ -262,7 +263,7 @@ the pause one below: an interaction the quiz doesn't own reaching in and clobber
 so the second Esc a player pressed, aimed at resuming, reached no handler, and the run
 looked permanently stuck (the owner's actual bug report). Escape is now a `window`-level
 listener active in both `running` and `paused`, independent of what has focus; the input
-itself is only *visually* dimmed (`.quiz-dock__input--paused`) and its keystrokes are
+itself is only _visually_ dimmed (`.quiz-dock__input--paused`) and its keystrokes are
 ignored in `handleInputChange`'s own phase check, so it stays focused and every shortcut
 keeps working. General lesson: a keyboard shortcut that is supposed to escape a state must
 not be attached only to a DOM node that state disables.
@@ -279,7 +280,7 @@ country's own name (e.g. "Qatar").
 `geo:<ISO3>:<definition.facet>` card (`app/lib/geography/mastery.ts`'s `cardId`) through
 the normal `review()` from `useProgress()` — the same path study mode uses. For the
 countries quiz that's `location`, graded here even though study mode still can't ask it
-(`ASKABLE_FACETS` excludes it) — that's intentional, the quiz *is* the location question,
+(`ASKABLE_FACETS` excludes it) — that's intentional, the quiz _is_ the location question,
 so don't "fix" it by adding a location question kind to study mode instead. The flags
 quiz grades `flag` instead, feeding the same card study mode's flag questions already use.
 Rating: revealed -> Again; not revealed but skipped at least once -> Hard; answered clean
@@ -314,11 +315,12 @@ player sees is the countries quiz's screen: the target country in `--brass`, the
 definition puts `showCapital` on the `QuizOverride`, which `atlas.tsx` turns into the
 renderer's `Style.quizPlace` — the target's own capital, drawn as two concentric ink rings
 (`drawQuizPlace`) at **any** zoom, because the ordinary capital rings only exist above 9x
-and the quiz stays near 1x. Every *other* capital ring, every place label and every place
+and the quiz stays near 1x. Every _other_ capital ring, every place label and every place
 tooltip stay off under `quizMode`. **The highlight is the question** — nothing on screen
 names the country, and nothing names the city until a reveal.
+
 - `match` always returns an outcome (`{ accepted: matchesCapital(...) }`), never `null`,
-  because `null` makes the engine fall back to the *country*-name matcher and "France"
+  because `null` makes the engine fall back to the _country_-name matcher and "France"
   would answer "capital of France". (Countries whose accepted capital names include their
   own name — Panama, Guatemala, Kuwait, Andorra, Luxembourg — accept it on purpose.)
 - `MapStage.tsx` is the shared map Stage; `CountriesStage`/`CapitalsStage` are one config
@@ -358,7 +360,6 @@ Revisit if the owner wants best times to survive a device move.
 override, which is only cleared on unmounting the route) and the panel shows the time,
 the personal-best comparison, a first-try-vs-revealed tally, and every revealed country
 as a dossier link — "the ones worth another look", the actual point of the screen.
-
 
 ## On a phone
 

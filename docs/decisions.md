@@ -7,6 +7,7 @@ summary; the per-feature narrative behind it is the first section below.
 ## What works — detail
 
 **Working:**
+
 - The atlas: canvas map at full 1:10m unsimplified coastline detail, search, neighbour
   highlighting, true-size compare tool, 5 choropleth overlays plus a mastery overlay.
 - Renders off-screen world copies and off-screen features culled before fill/stroke, and
@@ -33,10 +34,10 @@ summary; the per-feature narrative behind it is the first section below.
   from a hole already present in world-atlas's separate land layer, no new dependency.
   The Great Lakes, Lake Victoria and Lake Baikal are not (see Known rough edges).
 - Capital cities as a map layer: 197 `places` (`{ name, iso3, kind: 'capital', lon, lat,
-  population }`) in both geometry payloads, drawn as a hollow ring (never the filled
+population }`) in both geometry payloads, drawn as a hollow ring (never the filled
   circle micro-state pins use) together with its name from `CAPITAL_ZOOM_FACTOR` (9x homeZoom, later for small
   countries by area, and only once the country itself is a shape — see architecture.md), a "Capitals" toolbar toggle
-  (default on), hover tooltip with the city name, and click selecting the *country* (no
+  (default on), hover tooltip with the city name, and click selecting the _country_ (no
   city page). Suppressed entirely under `quizMode`. See "Places and capitals" in architecture.md.
 - Capital name matching (`capitalAliases` on every country record, `matchesCapital` in
   `names.ts`): the authored capital plus a curated list in
@@ -161,7 +162,7 @@ summary; the per-feature narrative behind it is the first section below.
   downloading that one package, and repeating — did not need to guess the full list up
   front). This environment variable only lasts the shell session; a future session hitting
   the "Chromium is missing shared libraries" error should try this before assuming `npm
-  test` is unavailable and falling back to the substitute checks below.
+test` is unavailable and falling back to the substitute checks below.
 - Node-canvas is still not a real substitute for a browser when this shortcut isn't
   available for some reason: `typecheck` + `build:content` + `react-router build` +
   `test:unit`, plus a real render of the affected geometry through node-canvas for
@@ -245,11 +246,11 @@ official specification is published.
   The default `https://zemya.example` is a reserved placeholder, not a real site — set the real
   one before deploying.
 - **Every route's `meta` goes through `pageMeta()`** (`app/lib/seo.ts`): title, description,
-  canonical, og:*, twitter:*. The prerenderer passes `/x/`; canonicals strip the slash to match
+  canonical, og:_, twitter:_. The prerenderer passes `/x/`; canonicals strip the slash to match
   `trailingSlash: false`. Legacy redirect pages are `noindex` and stay out of the sitemap.
 - **Quiz titles** come from `quizPageSeo()` (`app/lib/geography/quizSeo.ts`) plus `seoName` /
   `seoTask` on each `QuizDefinition`: "Africa Capitals Quiz — Top 30 Countries | Zemya". Numeric
-  sizes say "Top N" because they are the N most populous (`topByPopulation`); "All N" for the
+  sizes say "Top N" because they are a random N-country subset (`randomSubset`); "All N" for the
   rest. Pool size comes from a build-time loader.
 - **Sitemap and robots.txt** are written by `buildEnd` in `react-router.config.ts` from the same
   list that `prerender` uses. A `VERCEL_ENV=preview` build gets a disallow-all robots.txt, and
