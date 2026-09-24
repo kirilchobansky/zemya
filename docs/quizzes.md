@@ -12,35 +12,61 @@ The owner's own words on why this exists: "the reason i want this app is the qui
 actually. Not the detail not anything else." — treat this as the app's core loop, not a
 feature alongside the atlas and study mode.
 
-**Route shape.** `/quiz` (`routes/quiz.tsx`) is the catalogue — a list built from
-`app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`/`QUIZ_SIZES`. Every run, of any quiz,
-is served by one route: `/quiz/:quizId/:size` (`routes/quiz.$quizId.tsx`), which looks the
-id up in `QUIZ_DEFINITIONS` and renders that definition's `Stage`. A second quiz ("Name
-the Capital" — since built) is one new `QuizDefinition` entry, never a new route tree or a rewrite
-of the catalogue page — this is what let "Name the Flag" arrive as a ~50-line presenter
-(`components/quiz/FlagsStage.tsx`) plus a registry entry, reusing everything else. Sizes
-come from `app/lib/geography/scopes.ts` (see "Scopes" below), ranked by population within
-the selected pool (`topByPopulation` — kept behind one function so ranking by a different
-axis later is a one-line change); a quiz that shouldn't rank by population would pass its
-own list into the shared engine instead.
+**Subjects.** A thin layer sits above the quiz catalogue: `/quizzes` (`routes/quizzes.tsx`)
+picks a subject (Geography, History), `/quizzes/:subject` (`routes/quizzes.$subject.tsx`)
+lists that subject's quizzes, and a run is `/quizzes/:subject/:quizId/:scope/:size`
+(`routes/quizzes.$subject.$quizId.tsx`). `app/lib/quiz/subjects.ts` is the registry: `{ id,
+name, blurb, quizzes: QuizDefinition[] }`; geography's `quizzes` is the same
+`QUIZ_DEFINITIONS` array below, unchanged, and history's is empty — its list page renders a
+"coming soon" empty state rather than crashing on nothing to map over. This is UI scaffolding
+for the picker, **not** a start on history content — see CLAUDE.md's Do Not section on
+subjects, and its note on this specific deviation. The old flat `/quiz`, `/quiz/:quizId/:scope/:size`
+and `/quiz/:quizId/:size` paths (indexed on Google before this layer existed) are kept as
+permanent redirects to their `/quizzes/geography/...` equivalent (`routes/quiz.tsx`,
+`quiz.$quizId.tsx`, `quiz.legacy.tsx` — now three thin redirect stubs, prerendered as static
+files since a host with no server can't redirect a URL that isn't a real page). Quiz ids
+(`countries`, `flags`, `capitals`) are unchanged — personal bests in IndexedDB are keyed by
+them, not by any route shape.
+
+**Route shape (within a subject).** `/quizzes/:subject` lists a subject's quizzes, built
+from `app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`/`QUIZ_SIZES` for geography. Every
+run, of any quiz, is served by one route: `/quizzes/:subject/:quizId/:scope/:size`
+(`routes/quizzes.$subject.$quizId.tsx`), which looks the id up within that subject
+(`quizInSubject`) and renders that definition's `Stage` — a quiz id only resolves inside its
+own subject, so `/quizzes/history/countries/...` 404s rather than quietly serving geography's
+quiz. A second quiz ("Name the Capital" — since built) is one new `QuizDefinition` entry,
+never a new route tree or a rewrite of the list page — this is what let "Name the Flag"
+arrive as a ~50-line presenter (`components/quiz/FlagsStage.tsx`) plus a registry entry,
+reusing everything else. The list itself is compact — quiz names only — with one quiz's
+scope chips and size ladder expanded inline at a time, collapsed by default; same markup on
+desktop's right panel and the phone sheet. Sizes come from `app/lib/geography/scopes.ts`
+(see "Scopes" below), ranked by population within the selected pool (`topByPopulation` —
+kept behind one function so ranking by a different axis later is a one-line change); a quiz
+that shouldn't rank by population would pass its own list into the shared engine instead.
 
 **Scopes.** Every quiz has a continent filter, in the shared catalogue and engine, not
-per quiz. Route: `/quiz/:quizId/:scope/:size`, scope one of `world | africa | asia |
-europe | north-america | south-america | oceania`; the pool is
+per quiz. Route: `/quizzes/:subject/:quizId/:scope/:size`, scope one of `world | africa |
+asia | europe | north-america | south-america | oceania`; the pool is
 `poolForScope(countries, scope)` (`region`, plus `subregion` to split the Americas: South
 America is the subregion, North America is every other Americas country — 197 / 54 / 48 /
-46 / 23 / 12 / 14), and "top N" means the N most populous *within* that pool. The old
-`/quiz/:quizId/:size` still exists as `routes/quiz.legacy.tsx`, a redirect to the world
-scope, and is prerendered for the old sizes so bookmarks to a static host still resolve. A
-removed scope key (`LEGACY_SCOPES` in `scopes.ts` — today just `americas`, split in two)
-redirects to its replacement (world) and is prerendered for the sizes it once offered; a
-size the pool can't offer (typed into the URL by hand) redirects to `/quiz`.
-`scopes.ts` is deliberately dependency-free (no `~` alias, no React): `react-router.config.ts`
-imports it directly to derive the prerendered `/quiz/:id/:scope/:size` set from
-`countries.json`, so adding a country changes both the offered sizes and the prerendered
-pages with no list to edit. The catalogue reads the same pool sizes from a build-time
-route loader. A new quiz is one id in that config's `QUIZ_IDS` plus its
-`QUIZ_DEFINITIONS` entry.
+46 / 23 / 12 / 14), and "top N" means the N most populous *within* that pool. The old,
+pre-subject `/quiz/:quizId/:size` (pre-scope too) still exists as `routes/quiz.legacy.tsx`,
+now a redirect straight to `/quizzes/geography/:quizId/world/:size`, and is prerendered for
+the old sizes so bookmarks to a static host still resolve. A removed scope key
+(`LEGACY_SCOPES` in `scopes.ts` — today just `americas`, split in two) redirects to its
+replacement (world) and is prerendered for the sizes it once offered, under both the old
+`/quiz/:id/americas/:size` prefix (`routes/quiz.$quizId.tsx`, a redirect stub to the
+`/quizzes/geography/...` equivalent) and inside the real run route itself (which still
+carries the `americas` -> `world` check, for a URL someone types by hand under the new
+prefix); a size the pool can't offer (typed into the URL by hand) redirects to
+`/quizzes/:subject`. `scopes.ts` is deliberately dependency-free (no `~` alias, no React):
+`react-router.config.ts` imports it directly to derive the prerendered
+`/quizzes/geography/:id/:scope/:size` set (and the old `/quiz/:id/:scope/:size` redirect
+stubs, same combinations) from `countries.json`, so adding a country changes both the
+offered sizes and the prerendered pages with no list to edit. The list page reads the same
+pool sizes from a build-time route loader. A new quiz is one id in that config's `QUIZ_IDS`
+plus its `QUIZ_DEFINITIONS` entry — subject membership is separate, in
+`app/lib/quiz/subjects.ts`.
 
 **The size ladder is computed, never listed.** `sizesForPool(N)` keeps a rung S of
 `[10, 20, 30, 50, 90, 120]` when `0.08 * N <= S <= 0.68 * N`, and always appends All. The
@@ -80,7 +106,7 @@ this split; both turned out to be needed once the catalogue text and the flags q
 confusable pairs were actually built, so they're recorded here rather than only in a
 commit message.
 
-`routes/quiz.$quizId.tsx` is the "atlas bridge": it owns the handful of things every quiz
+`routes/quizzes.$subject.$quizId.tsx` is the "atlas bridge": it owns the handful of things every quiz
 needs from the atlas layout — hiding the search box/toolbar/tooltip for the run's whole
 lifetime, returning the camera to the world view on START and on finish, and mirroring
 the run's target/answered/showNeighbours/paused state into the map's own quiz-mode
@@ -95,10 +121,10 @@ today only the countries quiz uses it, for its neighbour-glow toggle, since no o
 has a notion of map neighbours. This `slot` prop is how a one-off control like that gets a
 home without `QuizStageProps` growing a bespoke field per future quiz.
 
-**Quiz mode is one flag, not four conditionals.** `routes/quiz.$quizId.tsx` reaches the
+**Quiz mode is one flag, not four conditionals.** `routes/quizzes.$subject.$quizId.tsx` reaches the
 map through `useAtlasContext()` (exported from `routes/atlas.tsx`) and writes a `quiz:
 QuizOverride | null` there for the whole lifetime of the route (set on mount, torn down on
-unmount), for every quiz alike — `quiz.tsx`'s catalogue never touches it. Setting it
+unmount), for every quiz alike — the subject/quiz list pages never touch it. Setting it
 non-null does these things, all gated on that one value: the renderer's `Style.quizMode`
 suppresses `drawLabels()` entirely — country AND capital names — and the capital rings and
 their hit-testing (`renderer.ts`); `atlas.tsx` stops rendering the search box and the hover
@@ -116,11 +142,11 @@ the input, so no Stage may change its position, ever. The flag lives in a fixed 
 box (`.quiz-flag-stage__flag`) — only the flag inside it changes size (Qatar fits by
 width, Nepal by height) — and the revealed-answer chip and the panel's accepted-twin note
 each have a slot of reserved height (`.quiz-feedback`, `.quiz-run__note-slot`) that is
-always present and simply empty. New quiz Stages follow the same rule. The catalogue
-follows it too: each quiz's size grid reserves the height of the tallest grid any scope
-can produce (`--max-rows` from the data x `--card-h`), so a chip that shrinks one quiz's
-grid never shoves the quiz below it. Checked by clicking every chip and by skipping
-through all 197 flags and comparing the input's box.
+always present and simply empty. New quiz Stages follow the same rule. The quiz list
+follows it too: each quiz's size grid (once expanded) reserves the height of the tallest
+grid any scope can produce (`--max-rows` from the data x `--card-h`), so a chip that shrinks
+one quiz's grid never shoves anything below it. Checked by clicking every chip and by
+skipping through all 197 flags and comparing the input's box.
 
 **Continent quizzes: the continent is "home".** In a continent scope the run's home view is
 that continent, not the world. `SCOPE_VIEWS` (`scopes.ts`) holds a hand-set lon/lat box per
@@ -242,9 +268,10 @@ keeps working. General lesson: a keyboard shortcut that is supposed to escape a 
 not be attached only to a DOM node that state disables.
 
 **Abandon.** `Ctrl+Backspace` (also a button) quits a run outright — nothing saved, no
-`quizRuns` row, no FSRS grading for anything answered so far — and returns to `/quiz`.
-Deliberately just a `navigate('/quiz')`: the route unmounting is what already tears the
-`quiz` override down (see its mount effect), so there is no local state to reset first.
+`quizRuns` row, no FSRS grading for anything answered so far — and returns to
+`/quizzes/:subject`. Deliberately just a `navigate()` back to the subject's quiz list: the
+route unmounting is what already tears the `quiz` override down (see its mount effect), so
+there is no local state to reset first.
 Not a bare key, and not Esc (already pause) — a bare letter would fire while typing a
 country's own name (e.g. "Qatar").
 
@@ -281,7 +308,7 @@ accept the twin's name and explain the real difference (`"Accepted — that one 
 and only grow it from real play.
 
 **"Name the Capital".** Third `QuizDefinition` (`quizzes.ts`), route
-`/quiz/capitals/:scope/:size` (22 prerendered combinations, from the same ladder). What the
+`/quizzes/geography/capitals/:scope/:size` (22 prerendered combinations, from the same ladder). What the
 player sees is the countries quiz's screen: the target country in `--brass`, the map at
 (roughly) the world view, an input docked at the bottom. `markCapital: true` on the
 definition puts `showCapital` on the `QuizOverride`, which `atlas.tsx` turns into the
@@ -309,7 +336,7 @@ names the country, and nothing names the city until a reveal.
 - Where the target's capital sits under a pin-drawn city-state (Vatican, Monaco, Singapore),
   the target pin's own ring is the marker and the quiz ring is skipped (same 6 px rule as
   `drawCapitals`).
-- `test/smoke.mjs` step 18 is the label-leak test: START on `/quiz/capitals/world/20`, read
+- `test/smoke.mjs` step 18 is the label-leak test: START on `/quizzes/geography/capitals/world/20`, read
   the target from `window.__zemyaQuiz` (now with `targetCapital`), then scan **every text
   node and every `aria-label`/`title`/`alt`/`placeholder`/`value`** — whole-word,
   case- and diacritic-insensitive, `<script>`/`<style>` skipped — for the target's capital
@@ -320,7 +347,7 @@ names the country, and nothing names the city until a reveal.
 
 **Personal best.** Every finished run is appended (never overwritten) to a `quizRuns`
 table in the same Dexie database as `cards`/`reviews` (`app/lib/core/progress.ts`) —
-`bestQuizTime()` reads the fastest for a given quiz+size, shown on the catalogue's size
+`bestQuizTime()` reads the fastest for a given quiz+size, shown on the quiz list's size
 cards and on the results screen ("beat your best" / "personal best stays"). Deliberately
 left out of the JSON export/import format: a personal best is local flavour, not learning
 progress, and folding it in would force `SCHEMA_VERSION` to move over an additive table.

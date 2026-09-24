@@ -256,29 +256,37 @@ if (await page.isVisible('.quiz__option')) {
 }
 
 /* --- 12. quiz mode hides the search box and the map's own hover tooltip ----------- */
-await page.goto(`${base}/quiz/countries/world/20`, { waitUntil: 'networkidle' });
+await page.goto(`${base}/quizzes/geography/countries/world/20`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1000);
 check(!(await page.isVisible('.search')), 'the search box is visible during a quiz run');
 await page.mouse.move(700, 430);
 await page.waitForTimeout(200);
 check(!(await page.isVisible('.tip')), 'the hover tooltip is visible during a quiz run');
 
-/* --- 12b. catalogue scopes: chips re-derive the size ladder; the old URL redirects -- */
-await page.goto(`${base}/quiz`, { waitUntil: 'networkidle' });
+/* --- 12b. quiz list scopes: chips re-derive the size ladder; the old URLs redirect -- */
+await page.goto(`${base}/quizzes/geography`, { waitUntil: 'networkidle' });
+// collapsed by default — nothing to click yet
+check(!(await page.isVisible('.quiz-sizes')), 'the size ladder is visible before a quiz row is expanded');
+await page.click('.quiz-list__item >> nth=0 >> .quiz-list__row');
 const ladderOf = async () =>
   page.evaluate(() =>
-    [...document.querySelectorAll('.quiz-block')[0].querySelectorAll('.quiz-size-card__n')].map(e => e.textContent)
+    [...document.querySelectorAll('.quiz-list__item')[0].querySelectorAll('.quiz-size-card__n')].map(e => e.textContent)
   );
 check((await ladderOf()).join(',') === '20,30,50,90,120,All', `world ladder is ${await ladderOf()}`);
-await page.click('.quiz-block >> nth=0 >> .chip:has-text("Oceania")');
+await page.click('.quiz-list__item >> nth=0 >> .chip:has-text("Oceania")');
 check((await ladderOf()).join(',') === 'All', `oceania ladder is ${await ladderOf()}`);
 check(
-  (await page.getAttribute('.quiz-block >> nth=0 >> .chip:has-text("Oceania")', 'aria-pressed')) === 'true',
+  (await page.getAttribute('.quiz-list__item >> nth=0 >> .chip:has-text("Oceania")', 'aria-pressed')) === 'true',
   'the Oceania chip does not show as selected'
 );
+// the old flat /quiz paths (predating both scopes and subjects) redirect to their
+// /quizzes/geography/... equivalent
+await page.goto(`${base}/quiz`, { waitUntil: 'networkidle' });
+await page.waitForURL(/\/quizzes\/geography$/, { timeout: 5000 }).catch(() => {});
+check(/\/quizzes\/geography$/.test(page.url()), `/quiz did not redirect to /quizzes/geography — at ${page.url()}`);
 await page.goto(`${base}/quiz/flags/50`, { waitUntil: 'networkidle' });
-await page.waitForURL(/\/quiz\/flags\/world\/50$/, { timeout: 5000 }).catch(() => {});
-check(/\/quiz\/flags\/world\/50$/.test(page.url()), `the pre-scope URL did not redirect to world — at ${page.url()}`);
+await page.waitForURL(/\/quizzes\/geography\/flags\/world\/50$/, { timeout: 5000 }).catch(() => {});
+check(/\/quizzes\/geography\/flags\/world\/50$/.test(page.url()), `the pre-scope URL did not redirect to world — at ${page.url()}`);
 
 /* --- 13. grading a facet updates the rail and repaints the mastery overlay -------- */
 const DEV_STARTUP_TIMEOUT_MS = Number(process.env.DEV_STARTUP_TIMEOUT_MS || 60_000);
@@ -437,7 +445,7 @@ try {
   }
 
   /* --- 14. quiz mode: answering advances and never leaks the next country's name --- */
-  await page.goto(`${devBase}quiz/countries/world/20`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quizzes/geography/countries/world/20`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   await page.click('.quiz-dock__start');
   await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
@@ -519,15 +527,18 @@ try {
     const restarted = await page.evaluate(() => window.__zemyaQuiz);
     check(restarted?.phase === 'running', '"Run it again" did not start a new run');
 
-    // a second, slower run should report the earlier one as the (unbeaten) personal best
-    await page.goto(`${devBase}quiz`, { waitUntil: 'networkidle' });
+    // a second, slower run should report the earlier one as the (unbeaten) personal best —
+    // the size grid (and so the best-time badge) only renders once the quiz row is expanded
+    await page.goto(`${devBase}quizzes/geography`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
+    await page.click('.quiz-list__row:has-text("Name the Country")');
+    await page.waitForTimeout(400);
     const catalogueText = await page.textContent('.panel__body');
-    check(/\d:\d\d\.\d/.test(catalogueText), 'the quiz catalogue shows no personal best time after a finished run');
+    check(/\d:\d\d\.\d/.test(catalogueText), 'the quiz list shows no personal best time after a finished run');
   }
 
   /* --- 17. flags quiz: no map, answering advances, and no leaked country name ------ */
-  await page.goto(`${devBase}quiz/flags/world/20`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quizzes/geography/flags/world/20`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   check(await page.isVisible('.quiz-dock__start'), 'the flags quiz has no START control');
   await page.click('.quiz-dock__start');
@@ -601,7 +612,7 @@ try {
       return hits;
     }, name);
 
-  await page.goto(`${devBase}quiz/capitals/world/20`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quizzes/geography/capitals/world/20`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   check(await page.isVisible('.quiz-dock__start'), 'the capitals quiz has no START control');
   await page.click('.quiz-dock__start');
@@ -671,7 +682,7 @@ try {
   }
 
   /* --- 19. typing survives touching the canvas: the focus regression test -------------- */
-  await page.goto(`${devBase}quiz/countries/world/30`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quizzes/geography/countries/world/30`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   await page.click('.quiz-dock__start');
   await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
@@ -730,7 +741,7 @@ try {
 
   /* --- 20. ONE camera path for every new question: from a zoomed-in view a skip returns to the
           overview exactly as an answer does, and every new target ends up on screen ------- */
-  await page.goto(`${devBase}quiz/countries/world/30`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quizzes/geography/countries/world/30`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
   await page.click('.quiz-dock__start');
   await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
@@ -817,7 +828,7 @@ try {
 
   /* --- 21. a continent quiz treats the continent as home: START frames it, and a guess from
           a zoomed-in view returns to it, not to the whole world --------------------- */
-  await page.goto(`${devBase}quiz/countries/europe/all`, { waitUntil: 'networkidle' });
+  await page.goto(`${devBase}quizzes/geography/countries/europe/all`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
   // before START the camera is already on the continent, behind the start dock
   const europeIdle = (await page.evaluate(() => window.__zemyaView())).camera;
@@ -932,15 +943,21 @@ try {
     check((await snapOf()) !== before, 'phone: tapping the handle did not step the sheet');
   }
 
-  // tabs: Quizzes opens the catalogue at half
+  // tabs: Quizzes opens the subject picker at half
   await phone.tap('.tab:has-text("Quizzes")');
-  await phone.waitForURL('**/quiz', { timeout: 5000 });
+  await phone.waitForURL('**/quizzes', { timeout: 5000 });
   await phone.waitForTimeout(500);
   check((await snapOf()) === 'half', `phone: the Quizzes tab should open the sheet at half (${await snapOf()})`);
 
-  // start a quiz: the run owns the screen, and START focuses the input inside the tap
+  // pick Geography, expand Name the Country, then start a quiz: the run owns the screen,
+  // and START focuses the input inside the tap
+  await phone.tap('.subject-card:has-text("Geography")');
+  await phone.waitForURL('**/quizzes/geography', { timeout: 5000 });
+  await phone.waitForTimeout(400);
+  await phone.tap('.quiz-list__row:has-text("Name the Country")');
+  await phone.waitForTimeout(300);
   await phone.tap('.quiz-size-card__link');
-  await phone.waitForURL(/\/quiz\/countries\//, { timeout: 5000 });
+  await phone.waitForURL(/\/quizzes\/geography\/countries\//, { timeout: 5000 });
   await phone.waitForTimeout(1200);
   check(!(await phone.isVisible('.tabbar')), 'phone: the tab bar is showing during a quiz');
   check(!(await phone.isVisible('.panel')), 'phone: the sheet is showing during a quiz');
@@ -1104,7 +1121,7 @@ try {
         `phone ${width}px, ${label} sheet: something scrolls or sits off-screen sideways — ${JSON.stringify(r)}`
       );
     }
-    for (const path of ['quiz/countries/europe/all', 'quiz/flags/europe/all']) {
+    for (const path of ['quizzes/geography/countries/europe/all', 'quizzes/geography/flags/europe/all']) {
       await phone.goto(`${devBase}${path}`, { waitUntil: 'networkidle' });
       await phone.waitForTimeout(700);
       const docW = await phone.evaluate(() => document.documentElement.scrollWidth);
@@ -1112,10 +1129,13 @@ try {
     }
   }
 
-  /* the catalogue: region chips are ONE scrolling row, and the size cards are three to a row */
+  /* the quiz list: region chips are ONE scrolling row, and the size cards are three to a row —
+     both only exist once a quiz row is expanded (collapsed by default) */
   await phone.setViewportSize({ width: 390, height: 780 });
-  await phone.goto(`${devBase}quiz`, { waitUntil: 'networkidle' });
+  await phone.goto(`${devBase}quizzes/geography`, { waitUntil: 'networkidle' });
   await phone.waitForTimeout(700);
+  await phone.tap('.quiz-list__row:has-text("Name the Country")');
+  await phone.waitForTimeout(300);
   const catalogue = await phone.evaluate(() => {
     const row = document.querySelector('.quiz-scope');
     const chips = [...row.querySelectorAll('.chip')].map(c => c.getBoundingClientRect().top);

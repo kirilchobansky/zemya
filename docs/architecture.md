@@ -151,9 +151,12 @@ table is added to `app/lib/core/progress.ts`, add it to all three in the same co
 
 ## Prerendering and tests
 
-Prerendered pages: 197 countries, the atlas/study/quiz index pages, and every valid
-`/quiz/:id/:scope/:size` (22 per quiz today, three quizzes) plus the legacy `/quiz/:id/:size`
-and removed-scope redirects, prerendered for the two quizzes that predate scopes only.
+Prerendered pages: 197 countries, the atlas/study/quiz-subject/quiz-list index pages, and
+every valid `/quizzes/geography/:id/:scope/:size` (22 per quiz today, three quizzes), plus
+the old flat `/quiz`, `/quiz/:id/:scope/:size` and `/quiz/:id/:size` paths (predating the
+subject layer, indexed on Google before it existed) kept as permanent redirect stubs to
+their `/quizzes/geography/...` equivalent, and the removed-scope (`americas`) redirects,
+prerendered for the two quizzes that predate scopes only. See docs/quizzes.md's "Subjects".
 
 `npm run test:unit` needs no build — it exercises `app/lib/core/` and
 `app/lib/geography/mastery.ts` directly, importing real content through the same

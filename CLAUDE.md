@@ -22,10 +22,12 @@ Updated every commit: what works, what's next — read it before reconstructing 
 log`. The per-feature narrative behind each line is in `docs/decisions.md`.
 
 **Working:** the atlas (1:10m canvas map, search, overlays, compare, capitals layer); 197 hand-authored
-countries; FSRS study mode; three quizzes on one engine (Countries, Flags, Capitals); SEO/sharing
-metadata; the phone layout (sheet, tabs, touch map, keyboard-aware quizzes, landscape drawer) tested
-on a real phone; deployed on Vercel at https://zemya.study, indexed on Google; MIT code / ODbL
-data. Full list, with the reasoning behind each item: `docs/status.md`.
+countries; FSRS study mode; three quizzes on one engine (Countries, Flags, Capitals), now behind a
+subject picker (`/quizzes` → Geography today, History a "coming soon" placeholder — no history
+content yet, see "Do not" below); SEO/sharing metadata; the phone layout (sheet, tabs, touch map,
+keyboard-aware quizzes, landscape drawer) tested on a real phone; deployed on Vercel at
+https://zemya.study, indexed on Google; MIT code / ODbL data. Full list, with the reasoning behind
+each item: `docs/status.md`.
 
 **Next:**
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara targeted
@@ -139,10 +141,12 @@ calls them, not what they do.
 - **Cards** (`docs/architecture.md`): one card per (country, facet), id `geo:BGR:capital`,
   lazy, mastery derived never stored, writes never awaited by the UI. **Every table the app
   writes must be covered by reset, export and import** — all three, same commit.
-- **Quizzes** (`docs/quizzes.md`): one engine, one route; a new quiz is a `QuizDefinition`
-  plus its id in `react-router.config.ts`'s `QUIZ_IDS`. Anything that could show a
-  country's name is gated on the single `quiz`/`quizMode` value. No Stage may move when its
-  content changes size. Never `disabled` the run input.
+- **Quizzes** (`docs/quizzes.md`): one engine, one route, behind a subject picker
+  (`/quizzes` → `/quizzes/:subject` → `/quizzes/:subject/:quizId/:scope/:size`); a new quiz
+  is a `QuizDefinition` plus its id in `react-router.config.ts`'s `QUIZ_IDS`, still under
+  the geography subject in `app/lib/quiz/subjects.ts`. Anything that could show a country's
+  name is gated on the single `quiz`/`quizMode` value. No Stage may move when its content
+  changes size. Never `disabled` the run input.
 
 ## Mobile — the rules; the reference is `docs/mobile.md` (read it before touching the phone layout)
 
@@ -289,7 +293,11 @@ so nothing may depend on a webfont having loaded.
 ## Do not
 
 - Do not add subjects beyond geography until geography ships and has users. The multi-subject
-  vision shapes the *architecture*, not the roadmap.
+  vision shapes the *architecture*, not the roadmap. **Exception, deliberately drawn narrow:**
+  the quiz picker (`/quizzes`) lists History as a second subject with an empty quiz list and a
+  "coming soon" state (`app/lib/quiz/subjects.ts`) — owner-requested UI scaffolding for the
+  subject layer itself, not a start on history content. No history data, cards or routes exist;
+  don't let this exception justify adding any.
 - Do not add accounts, a database, or any server call in the first release.
 - Do not introduce a map tile provider or API key.
 - Do not put secrets in the repo. `.env` is gitignored; `.env.example` is committed.

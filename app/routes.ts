@@ -10,6 +10,13 @@ export default [
     index('routes/atlas.index.tsx'),
     route('country/:slug', 'routes/country.tsx'),
     route('study', 'routes/study.tsx'),
+
+    // subject -> quiz list -> run. See docs/quizzes.md's "Route shape".
+    route('quizzes', 'routes/quizzes.tsx'),
+    route('quizzes/:subject', 'routes/quizzes.$subject.tsx'),
+    route('quizzes/:subject/:quizId/:scope/:size', 'routes/quizzes.$subject.$quizId.tsx'),
+
+    // permanent redirects from the old flat /quiz paths (pre-dates the subject layer)
     route('quiz', 'routes/quiz.tsx'),
     route('quiz/:quizId/:scope/:size', 'routes/quiz.$quizId.tsx'),
     route('quiz/:quizId/:size', 'routes/quiz.legacy.tsx')

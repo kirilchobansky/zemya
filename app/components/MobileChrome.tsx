@@ -69,7 +69,7 @@ export type OverlayName = 'layers' | 'progress' | null;
 export function TabBar({ overlay, onOverlay }: { overlay: OverlayName; onOverlay(next: OverlayName): void }) {
   const { pathname } = useLocation();
   const onMap = pathname === '/' || pathname.startsWith('/country/');
-  const onQuiz = pathname.startsWith('/quiz');
+  const onQuiz = pathname.startsWith('/quizzes') || pathname.startsWith('/quiz');
   const onStudy = pathname === '/study';
   const close = () => onOverlay(null);
 
@@ -82,7 +82,7 @@ export function TabBar({ overlay, onOverlay }: { overlay: OverlayName; onOverlay
         <Icon><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><ellipse cx="12" cy="12" rx="4" ry="9" /></Icon>
         <span className="tab__label">Map</span>
       </Link>
-      <Link to="/quiz" state={{ sheet: 'half' }} className="tab" aria-current={tab(onQuiz)} onClick={close}>
+      <Link to="/quizzes" state={{ sheet: 'half' }} className="tab" aria-current={tab(onQuiz)} onClick={close}>
         <Icon><circle cx="12" cy="13.5" r="7.5" /><path d="M12 9.5v4l2.5 1.5M9.5 3h5" /></Icon>
         <span className="tab__label">Quizzes</span>
       </Link>

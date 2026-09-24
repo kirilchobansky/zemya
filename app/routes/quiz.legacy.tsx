@@ -1,7 +1,8 @@
 /**
- * /quiz/:quizId/:size predates continent scopes; it now means the world scope. Kept as a
- * redirect so existing links and bookmarks don't break — see quiz.$quizId.tsx for the
- * real route (/quiz/:quizId/:scope/:size).
+ * /quiz/:quizId/:size predates both continent scopes and the subject layer; it now means the
+ * world scope of a geography quiz. Kept as a redirect so existing links and bookmarks don't
+ * break — see routes/quizzes.$subject.$quizId.tsx for the real route
+ * (/quizzes/:subject/:quizId/:scope/:size).
  */
 import { Link, Navigate, useParams } from 'react-router';
 
@@ -13,14 +14,14 @@ export function meta({ params }: Route.MetaArgs) {
   return pageMeta({
     title: 'Quiz moved — Zemya',
     description: 'This quiz has moved.',
-    path: `/quiz/${params.quizId}/world/${params.size}`,
+    path: `/quizzes/geography/${params.quizId}/world/${params.size}`,
     noindex: true
   });
 }
 
 export default function LegacyQuizRedirect() {
   const { quizId = '', size = '' } = useParams();
-  const to = `/quiz/${quizId}/world/${size}`;
+  const to = `/quizzes/geography/${quizId}/world/${size}`;
   return (
     <>
       <header className="panel__head">

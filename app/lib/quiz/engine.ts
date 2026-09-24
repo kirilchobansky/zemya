@@ -217,9 +217,9 @@ export function useQuizEngine(
   }, [phase, stopSegment]);
 
   /* Abandon: quit the run outright, nothing saved — no quizRuns row, no FSRS grading for
-     whatever was answered so far. onAbandon is the route's navigate('/quiz'); the route
-     unmounting is what tears down whatever atlas/quiz integration it set up, so nothing
-     here needs to reset local state first. */
+     whatever was answered so far. onAbandon is the route's navigate('/quizzes/:subject');
+     the route unmounting is what tears down whatever atlas/quiz integration it set up, so
+     nothing here needs to reset local state first. */
   const abandon = useCallback(() => {
     onAbandon();
   }, [onAbandon]);

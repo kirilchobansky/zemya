@@ -977,17 +977,97 @@ a {
   font-weight: 500;
   color: var(--ink-2);
 }
-.quiz-block + .quiz-block {
-  margin-top: 26px;
+/* ---------------------------------------------------------------- subject picker */
+
+.subject-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.quiz-title {
-  margin: 0 0 4px;
+.subject-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  color: var(--ink);
+  transition: border-color 0.14s, background 0.14s;
+}
+.subject-card:hover,
+.subject-card:focus-visible {
+  outline: none;
+  border-color: var(--sea);
+  background: var(--chart-3);
+}
+.subject-card__name {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
   color: var(--sea);
+}
+.subject-card__blurb {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+.subject-card__count {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------- quiz list (per subject) */
+
+.quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quiz-list__item {
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  overflow: hidden;
+}
+.quiz-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.quiz-list__row:hover {
+  background: var(--chart-3);
+}
+.quiz-list__name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--sea);
+}
+.quiz-list__chevron {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--ink-3);
+  line-height: 1;
+}
+.quiz-list__body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
 }
 .quiz-desc {
   margin: 0 0 12px;
@@ -1630,8 +1710,8 @@ kbd {
     font-size: 13px;
     white-space: nowrap;
   }
-  .quiz-title {
-    font-size: 24px;
+  .quiz-list__name {
+    font-size: 16px;
   }
   .quiz-size-card__link {
     padding-bottom: 34px;

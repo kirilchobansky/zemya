@@ -19,10 +19,15 @@ const countries: { region: string; subregion: string }[] = JSON.parse(
   readFileSync('public/data/geography/countries.json', 'utf8')
 );
 
+/** Mirrors app/lib/quiz/subjects.ts's SUBJECTS' ids — a separate literal because that file
+ *  imports React (JSX icons/blurbs) and this file is loaded outside the app's bundler. */
+const SUBJECT_IDS = ['geography', 'history'];
+
 /** Mirrors app/lib/geography/quizzes.ts's QUIZ_DEFINITIONS' ids — a separate literal
  *  because quizzes.ts imports React Stage components and this file is loaded outside the
  *  app's bundler. Scopes and the size ladder come from scopes.ts, which is dependency-free
- *  for exactly this reason, so the prerendered set is derived from the data. */
+ *  for exactly this reason, so the prerendered set is derived from the data. Geography is
+ *  the only subject with quizzes today; history has none to prerender runs for. */
 const QUIZ_IDS = ['countries', 'flags', 'capitals'];
 
 /** The quizzes that existed before scopes did — only these have old bookmarks to keep
@@ -34,6 +39,15 @@ const LEGACY_QUIZ_IDS = ['countries', 'flags'];
 const LEGACY_SIZES = ['20', '30', '50', '90', '120', 'all'];
 
 const quizRuns = QUIZ_IDS.flatMap(id =>
+  QUIZ_SCOPES.flatMap(scope =>
+    sizesForPool(poolForScope(countries, scope).length).map(size => `/quizzes/geography/${id}/${scope}/${size}`)
+  )
+);
+
+/** Every /quiz/* path that ever existed, before the subject layer — kept as permanent
+ *  redirect stubs to their /quizzes/geography/* equivalent (routes/quiz.tsx,
+ *  quiz.$quizId.tsx, quiz.legacy.tsx). A static host needs a real file for each one. */
+const oldCatalogueRuns = QUIZ_IDS.flatMap(id =>
   QUIZ_SCOPES.flatMap(scope =>
     sizesForPool(poolForScope(countries, scope).length).map(size => `/quiz/${id}/${scope}/${size}`)
   )
@@ -49,10 +63,11 @@ const legacyScopeRuns = Object.keys(LEGACY_SCOPES).flatMap(scope =>
 );
 
 /** Every real page, in one list, so the sitemap can never drift from what is prerendered.
- *  The legacy redirect pages are prerendered (a static host needs a file) but are not
+ *  The old-prefix redirect stubs are prerendered (a static host needs a file) but are not
  *  content, so they are prerendered and left out of the sitemap. */
 const indexable = [
-  '/', '/study', '/quiz',
+  '/', '/study', '/quizzes',
+  ...SUBJECT_IDS.map(id => `/quizzes/${id}`),
   ...quizRuns,
   ...slugs.map(slug => `/country/${slug}`)
 ];
@@ -74,7 +89,7 @@ function sitemapXml(origin: string): string {
 
 export default {
   ssr: true,
-  prerender: () => [...indexable, ...legacyQuizRuns, ...legacyScopeRuns],
+  prerender: () => [...indexable, '/quiz', ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
 
   /** robots.txt and sitemap.xml are generated here, from the same lists that were just
    *  prerendered, and written next to the pages. Never hand-maintained. */

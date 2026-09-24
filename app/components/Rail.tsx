@@ -40,7 +40,7 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
               Study
             </Link>
             <Link
-              to="/quiz"
+              to="/quizzes"
               className="action action--primary"
               style={{ flex: 1, textAlign: 'center' }}
             >
