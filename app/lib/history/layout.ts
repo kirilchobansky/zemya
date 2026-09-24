@@ -38,23 +38,23 @@ function contains(e: LayoutEntry, t: number): boolean {
 
 const CONTEXT_KINDS: readonly EntryKind[] = ['period', 'ruler', 'government'];
 
-export interface ContextSlot {
+export interface ContextSlot<T extends LayoutEntry = LayoutEntry> {
   /** The one entry to show as "the" context, or null if nothing of this kind contains t —
    *  a gap, which is normal (e.g. between the Second Empire's fall and the Ottoman
    *  period's own start-of-rulers gap). Always a member of `all` when non-null. */
-  primary: LayoutEntry | null;
+  primary: T | null;
   /** Every entry of this kind containing t, including `primary`. Length 0 in a gap, 1 in
    *  the normal case (one head of state on the `ruler` wire, one cabinet on the
    *  `government` wire — heads of state stay on `ruler` across every era, хан through
    *  президент; `government` is cabinets only, and only exists from 1878 on), 2+ only for
    *  genuine containment ambiguity (true co-rulers, or an overlapping period). */
-  all: LayoutEntry[];
+  all: T[];
 }
 
-export interface Context {
-  period: ContextSlot;
-  ruler: ContextSlot;
-  government: ContextSlot;
+export interface Context<T extends LayoutEntry = LayoutEntry> {
+  period: ContextSlot<T>;
+  ruler: ContextSlot<T>;
+  government: ContextSlot<T>;
 }
 
 /**
@@ -63,7 +63,7 @@ export interface Context {
  * override of the default rule). Otherwise the better (lower) tier wins; ties break on id
  * so the result never depends on array order.
  */
-function primaryOf(candidates: readonly LayoutEntry[]): LayoutEntry | null {
+function primaryOf<T extends LayoutEntry>(candidates: readonly T[]): T | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
   const ids = new Set(candidates.map(c => c.id));
@@ -75,9 +75,11 @@ function primaryOf(candidates: readonly LayoutEntry[]): LayoutEntry | null {
 /** What contains the moment `t`: the period, ruler and government (if any) whose
  *  [start, end] span covers it. Pure date containment, except that an entry's explicit
  *  `parent` overrides which of several co-containing entries of the same kind is
- *  `primary` (see primaryOf). */
-export function contextAt(entries: readonly LayoutEntry[], t: number): Context {
-  const slot = (kind: EntryKind): ContextSlot => {
+ *  `primary` (see primaryOf). Generic only so a caller that enriches LayoutEntry with its
+ *  own extra fields (e.g. the renderer's TimelineEntry, which adds display text) gets
+ *  that type back out of `.primary`/`.all` instead of having to re-look-up by id. */
+export function contextAt<T extends LayoutEntry>(entries: readonly T[], t: number): Context<T> {
+  const slot = (kind: EntryKind): ContextSlot<T> => {
     const all = entries.filter(e => e.kind === kind && contains(e, t));
     return { primary: primaryOf(all), all };
   };

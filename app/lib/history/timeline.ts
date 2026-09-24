@@ -22,6 +22,9 @@ const DRAG_THRESHOLD_PX = 3;
  *  limits — these are just a safety floor/ceiling, a first-pass judgement call. */
 const MIN_PX_PER_YEAR = 0.001;
 const MAX_PX_PER_YEAR = 20000;
+/** How much of the viewport's width the fitted span occupies on open — "a small margin",
+ *  4% of empty space on each side. */
+const FIT_MARGIN = 0.04;
 
 function clampPxPerYear(pxPerYear: number): number {
   return Math.max(MIN_PX_PER_YEAR, Math.min(MAX_PX_PER_YEAR, pxPerYear));
@@ -30,7 +33,8 @@ function clampPxPerYear(pxPerYear: number): number {
 export interface TimelineOptions {
   axis: Axis;
   entries: TimelineEntry[];
-  /** Decimal year to open centred on. */
+  /** Decimal year to open centred on. Omit both this and initialPxPerYear (the normal
+   *  case) to open fitted to the whole dataset instead — see fitToWholeHistory. */
   initialCenter?: number;
   initialPxPerYear?: number;
 }
@@ -52,6 +56,13 @@ export class HistoryTimeline {
   /** Renders are requested, never issued from an event handler — at most one per
    *  animation frame, however many gesture events ask (same rule as Atlas). */
   private renderQueued = 0;
+  /** True once the constructor was given an explicit starting view — then resize() must
+   *  never override it with the whole-history fit. */
+  private hasExplicitInitialView: boolean;
+  /** True once the first resize has fit the initial view to the whole dataset — a LATER
+   *  resize (an actual window/container resize) must not re-fit, or the user's own pan
+   *  and zoom would be thrown away every time the window changes size. */
+  private fittedInitialView = false;
 
   private drag: { alongClient: number; center: number } | null = null;
   private moved = false;
@@ -67,6 +78,7 @@ export class HistoryTimeline {
     this.ctx = context;
     this.axis = options.axis;
     this.entries = options.entries;
+    this.hasExplicitInitialView = options.initialCenter !== undefined || options.initialPxPerYear !== undefined;
     this.viewport = {
       center: options.initialCenter ?? DEFAULT_CENTER,
       pxPerYear: clampPxPerYear(options.initialPxPerYear ?? DEFAULT_PX_PER_YEAR),
@@ -76,6 +88,22 @@ export class HistoryTimeline {
     if (typeof getComputedStyle === 'function') {
       this.uiFont = getComputedStyle(document.body).getPropertyValue('--font-ui') || this.uiFont;
       this.monoFont = getComputedStyle(document.body).getPropertyValue('--font-mono') || this.monoFont;
+    }
+    // Bulgarian text (entry.label is name.bg) must not stay stuck on a Latin-only
+    // fallback: the values just read above may be whatever --font-ui/--font-mono resolve
+    // to BEFORE the webfont (Archivo / IBM Plex Mono, both Cyrillic) has finished
+    // loading. document.fonts.ready resolves once loading settles either way — with the
+    // real webfont if it loaded, or confirming the fallback is what it's staying on if
+    // not (e.g. offline) — so re-reading the custom properties then and asking for one
+    // more render corrects a first paint that guessed wrong, without polling.
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.ready
+        .then(() => {
+          this.uiFont = getComputedStyle(document.body).getPropertyValue('--font-ui') || this.uiFont;
+          this.monoFont = getComputedStyle(document.body).getPropertyValue('--font-mono') || this.monoFont;
+          this.draw();
+        })
+        .catch(() => {});
     }
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -125,8 +153,28 @@ export class HistoryTimeline {
     this.canvas.height = Math.round(rect.height * this.dpr);
     this.canvas.style.width = `${rect.width}px`;
     this.canvas.style.height = `${rect.height}px`;
+    if (!this.hasExplicitInitialView && !this.fittedInitialView && this.entries.length) {
+      this.fitToWholeHistory();
+      this.fittedInitialView = true;
+    }
     this.drawNow();
   };
+
+  /** Opens the timeline fitted to the whole dataset (earliest authored entry to today)
+   *  with FIT_MARGIN of empty space on each side, rather than an arbitrary zoom. Only
+   *  ever runs once, on the first resize with a real sizePx (see fittedInitialView) —
+   *  every later resize (a real window/container size change) must leave the current
+   *  pan/zoom alone. `new Date()` here is reading today's actual wall-clock date for
+   *  camera framing, not parsing an authored historical date — the "never use Date"
+   *  rule in scale.ts is about Julian/Gregorian ambiguity in THAT, which today's date
+   *  can't have. */
+  private fitToWholeHistory(): void {
+    const earliest = Math.min(...this.entries.map(e => e.start));
+    const today = new Date().getFullYear();
+    const span = Math.max(today - earliest, 1);
+    const pxPerYear = clampPxPerYear((this.viewport.sizePx * (1 - FIT_MARGIN * 2)) / span);
+    this.viewport = { ...this.viewport, pxPerYear, center: (earliest + today) / 2 };
+  }
 
   /** Ask for a render: at most one per animation frame, however many events ask. */
   private draw = (): void => {

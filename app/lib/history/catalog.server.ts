@@ -32,14 +32,27 @@ let cache: TimelineEntry[] | null = null;
 
 function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
   const where = `public/data/history/bg.json: "${raw.id}"`;
+  const start = decimalYearOf(raw.start, `${where}.start`);
   return {
     id: raw.id,
     kind: raw.kind,
     tier: raw.tier,
     parent: raw.parent,
-    start: decimalYearOf(raw.start, `${where}.start`),
-    end: raw.end == null ? null : decimalYearOf(raw.end, `${where}.end`),
-    label: raw.name.en || raw.name.bg
+    start,
+    // `end: null` means "ongoing" for a period/ruler/government (scale.ts's
+    // visibleEntries treats it as extending to +Infinity, correctly — the Republic of
+    // Bulgaria has no end date because it hasn't ended). An EVENT with no authored end is
+    // a different thing: a single moment, not an open-ended span. Falling through to the
+    // same +Infinity would make every undated-end event "ongoing" from its date forward,
+    // so it would incorrectly still count as visible (and its pin would still draw) in
+    // any later view's culling — caught by an actual render showing an 1185 event pin
+    // while centred on 1247. Collapsing it to `start` here, once, is cheaper and more
+    // obviously correct than teaching the generic, kind-agnostic scale.ts/layout.ts
+    // pipeline a kind-specific exception.
+    end: raw.end == null ? (raw.kind === 'event' ? start : null) : decimalYearOf(raw.end, `${where}.end`),
+    // Bulgarian, not English: this is a Bulgarian history timeline, and the canvas font
+    // stack (app/lib/history/timeline.ts) is chosen to cover Cyrillic specifically for it.
+    label: raw.name.bg
   };
 }
 

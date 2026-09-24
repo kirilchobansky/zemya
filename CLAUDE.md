@@ -75,6 +75,47 @@ No dossier, no hover, no selection, no quiz, no card, and no link to it from any
 app yet — do not extend past this route without asking; the exception below now covers exactly
 these five files plus this one page, not a start on the real timeline UI.
 
+**Legibility pass, owner-requested (same five files, still no dossier/hover/selection/quiz):**
+Bar/pin labels are `name.bg`, not English — this is a Bulgarian timeline, and both canvas fonts
+(`--font-ui`/`--font-mono`, i.e. Archivo/IBM Plex Mono) carry Cyrillic; `HistoryTimeline` also
+awaits `document.fonts.ready` once and re-renders, so a frame drawn before the webfont loads gets
+corrected instead of staying stuck on a Latin-only fallback. Bar labels truncate-with-ellipsis to
+their own bar's width (hidden entirely, bar still drawn, when there's no room even for the
+ellipsis); every label — ticks, bars, pins, context-stack lines — is now collision-resolved by
+`placeLabels()`, grouped by whatever actually shares a line (a lane row; the tick strip) rather
+than by the whole page, since two labels in different rows never visually compete. `contextAt`
+(`layout.ts`) is now generic (`ContextSlot<T>`/`Context<T>`) so its `.primary` carries a
+`TimelineEntry`'s `.label` straight through — a non-breaking signature change, re-verified against
+`layout.test.ts`'s existing 38 cases. Events (`kind: event`) draw as pins below the cylinder: stem,
+dot, "year — name.bg", culled and tiered the same as everything else. The context stack — period,
+ruler, government, largest at the top, above the cylinder, centred under the centre marker, a gap
+rendered as nothing — reads `contextAt()` against the centre date on the WHOLE dataset, never the
+zoom-culled subset, so it's correct at every zoom, not just the ones with bars on screen. Initial
+view fits the whole dataset (earliest authored `start` to today's actual wall-clock year — `Date`
+used only for that, never for parsing an authored date) with a small margin, computed once on the
+first real resize; a later resize (an actual window resize) never re-fits and so never discards
+the visitor's own pan/zoom.
+
+Two real defects, found only by an actual browser render (not by typecheck/test:unit/build) and
+fixed in the same pass — both are why this route's own checklist asks for a browser look, not just
+the usual three commands: (1) `classifySpan`'s pinned `labelPx` and an event's raw time position
+are clamped to keep one ANCHOR point on screen; centred text at an anchor pinned right at the edge
+still had half of itself rendered off-canvas, so the renderer now clamps a second time
+(`clampCentredAnchor`) using the actual measured text width before positioning or feeding
+`placeLabels`. (2) Two non-overlapping periods sharing an `assignRows` row (Byzantine rule, then
+Second Empire) could both be "pinned" near their shared boundary with clamped anchors close enough
+to collide even though their real date ranges never touch; a plain tier/id tie-break could then
+hide whichever period the view is actually mostly inside of behind whichever the view barely
+touches at the edge. Fixed by nudging a PINNED candidate's tier (render-time only, never the
+entry's real editorial tier) by how much of the visible range its own span covers, so "what's
+mostly on screen" wins the tie. Also: an event with no authored `end` was defaulting to
+`Infinity` (scale.ts's correct "ongoing" rule for a period/ruler/government's open end) rather
+than `start` (the correct rule for a single-moment event), so an undated-end event from any point
+in the past kept counting as "visible" — and its pin kept drawing — in every later view; fixed
+where the kind-specific meaning belongs, in `catalog.server.ts`'s raw-to-`TimelineEntry`
+conversion, not by teaching the generic, kind-agnostic `scale.ts`/`layout.ts` a kind-specific
+exception.
+
 **Next:**
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara targeted
   2028; re-check before release). The `npm run audit` items are all resolved (Sierra Leone SLE,
