@@ -74,6 +74,8 @@ export function validateHistory(doc, where) {
     if (!STYLES.has(raw.style)) throw new Error(`${at}: "style" must be one of ${[...STYLES].join(', ')}, got ${JSON.stringify(raw.style)}`);
 
     if (raw.aliases !== undefined && !Array.isArray(raw.aliases)) throw new Error(`${at}: "aliases" must be a list`);
+    if (raw.tags !== undefined && !Array.isArray(raw.tags)) throw new Error(`${at}: "tags" must be a list`);
+    if (raw.color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(raw.color)) throw new Error(`${at}: "color" must be a "#rrggbb" hex string`);
 
     if (raw.start === undefined || raw.start === null || raw.start === '') throw new Error(`${at}: missing "start"`);
     const start = parseHistoryDate(raw.start, `${at}: start`);
@@ -96,6 +98,9 @@ export function validateHistory(doc, where) {
       style: raw.style,
       tier: raw.tier,
       parent: raw.parent != null ? String(raw.parent) : null,
+      category: raw.category != null ? String(raw.category) : null,
+      tags: (raw.tags ?? []).map(String),
+      color: raw.color != null ? String(raw.color) : null,
       blurb: { bg: String(raw.blurb?.bg ?? ''), en: String(raw.blurb?.en ?? '') }
     });
   }

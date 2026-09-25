@@ -131,10 +131,11 @@ Moved from CLAUDE.md's "Where this is" (which keeps a one-paragraph summary). Th
 per-pass narrative of how `/history/bulgaria` got built, owner-requested a step at a time —
 see CLAUDE.md's "Do not" for the bounded list of files/pages this covers.
 
-**Data + time-axis engine.** `content/history/bg.yaml` — 87 hand-authored entries (8 periods
-incl. the overlapping Възраждане, 34 `kind: ruler` entries — the 26 First Empire rulers
-681–1018 plus the 8 heads of state since 1989 — 26 `kind: government` cabinets (prime
-ministers) since 1989, 19 tier-1 dates), validated and built by `scripts/build-history.mjs`
+**Data + time-axis engine.** `content/history/bg.yaml` — originally 87 hand-authored entries
+(8 periods incl. the overlapping Възраждане, 34 `kind: ruler` entries — the 26 First Empire
+rulers 681–1018 plus the 8 heads of state since 1989 — 26 `kind: government` cabinets (prime
+ministers) since 1989, 19 tier-1 dates; grown to 680 by a bulk `kind: event` import, see
+below), validated and built by `scripts/build-history.mjs`
 (`scripts/lib/history.mjs` has the date parser and validator) into
 `public/data/history/bg.json`. **Heads of state are `kind: ruler`, not `kind: government`** —
 the ruler wire is one unbroken chain across every era (хан, цар, княз, президент);
@@ -291,6 +292,38 @@ drawn outside `[cylinderTop, cylinderBottom]` is `drawCentreDate`. A faint centr
 exists for legibility (so it's clear which capsule the readout refers to when several sit
 close together) but is now clipped to the cylinder's own inner height, which satisfies the
 brief without losing that cue.
+
+**Bulk import from events-bg.json.** `content/history/events-bg.json` — 613 auto-generated,
+bg-only events with flat `era`/`category` keys (10 eras, 9 categories, each carrying a
+`color`) — was imported by `scripts/import-events.mjs`, a one-off migration script (not
+idempotent; re-running it throws on the id collisions it created the first time), taking
+`bg.yaml` from 87 to 680 entries. Decisions made along the way, not specified by the
+import brief itself:
+- Two new optional per-entry fields, `category` and `tags` (events only), plus `color`
+  (periods and events both) were added to the schema — `scripts/lib/history.mjs`
+  validates and passes all three through now. `color` is `"#rrggbb"`, adopted from the
+  JSON's era colour (period bands) or category colour (event dots), never hand-picked;
+  the app doesn't read any of the three yet.
+- The JSON's `principality` (1878–1908) and `kingdom` (1908–1946) eras both fold into the
+  one `period-principality-kingdom` bg.yaml already had spanning 1878–1946; that period's
+  colour takes the earlier era's (`principality`, `#4a6b8a`) since a period can only carry
+  one colour. The JSON's `pre` era (632–680, Стара Велика България) had no period yet — added
+  as `period-pre`.
+- Dedup against the 19 hand-authored tier-1 events: 21 JSON events matched one of the 19 by
+  year and title (two of the 19 are hand-written composites each covering two JSON events —
+  the national-catastrophes entry spans Bucharest 1913 + Neuilly 1919, the NATO/EU entry
+  spans 2004 + 2007). All 21 were dropped from the import rather than appended as near-
+  duplicates. For the 17 clean 1:1 matches, the existing entry's `blurb.bg` was overwritten
+  with the JSON's summary (richer than the original one-line blurb); the two composites kept
+  their existing hand-written blurb, since no single JSON summary covers both halves.
+- Imported entries have no English text (`name.en`/`blurb.en` are both `""`) — the JSON is
+  bg-only, and the schema already allows an empty `en`.
+- `start` only ever gets `YYYY` or `YYYY-MM-DD`, never `YYYY-MM`: `scripts/lib/history.mjs`'s
+  date parser doesn't accept a month without a day, and 58 JSON events have a month but no
+  day, so those import as year-only (`precision: year`) despite the JSON carrying a month.
+- New ids are `event-` plus a transliterated slug of the Bulgarian title (no library — a
+  fixed Cyrillic→Latin table in the script), falling back to appending the year on a
+  collision.
 
 ## Locked decisions — detail
 

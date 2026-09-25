@@ -38,4 +38,10 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   History picks a country (`/history`, one entry — Bulgaria) and swaps the shell's canvas
   to the timeline at `/history/bulgaria`, now indexed and in the sitemap. `CLAUDE.md`'s
   history exception.
+- `content/history/bg.yaml` grew from a 106-entry hand-authored first pass to 680 entries:
+  `scripts/import-events.mjs` bulk-imported `content/history/events-bg.json` (613
+  auto-generated events), adding a `period-pre` period and two new optional per-entry
+  fields, `category` and `tags`, plus `color` (period band / event dot colour, adopted
+  from the JSON's era/category colours) — all three now validated and passed through by
+  `scripts/lib/history.mjs`. Still data only; no UI reads `category`/`tags`/`color` yet.
 
