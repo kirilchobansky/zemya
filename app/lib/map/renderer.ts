@@ -11,6 +11,7 @@
 import type { CameraState, Viewport } from './camera';
 import { homeZoom, worldToScreen } from './camera';
 import { kmPerPixel, wrapX, yToLat, lonToX, latToY } from './projection';
+import { mergedStrokePath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 import {
   CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, PIN_MAX_WIDTH
@@ -21,10 +22,19 @@ export interface Style {
   fill(feature: Feature): string | null;
   /** [colour, width in CSS pixels], or null for no stroke. */
   stroke(feature: Feature): [string, number] | null;
-  /** Whether this feature keeps its stroke during a fast frame (atlas.ts's gesture/fly-to
-   *  mode) — normally the selected country and its neighbours. Ignored outside a fast
-   *  frame, where every feature strokes as usual. Omit to stroke nothing during one. */
+  /** Whether this feature's stroke differs from `defaultStroke()` — normally the selected
+   *  country and its neighbours. render() strokes every OTHER feature in one pass, via the
+   *  whole map's merged Path2D (topology.ts's mergedStrokePath) rather than one `stroke()`
+   *  lookup and one canvas call per country; only features this returns true for get their
+   *  own individual stroke() call, on top. Omit (with defaultStroke also omitted) to fall
+   *  back to stroking every feature individually, the pre-merged-path behaviour. */
   highlight?(feature: Feature): boolean;
+  /** The stroke every feature NOT covered by `highlight()` shares — what the merged path
+   *  above is stroked with. Both real Style objects (overlays.ts's strokeFor/quizStrokeFor)
+   *  return the same value from here as their own fallback case, so the two can never
+   *  disagree about what "not highlighted" looks like. Null (or omitted) skips the merged
+   *  pass — nothing not individually highlighted gets a stroke at all. */
+  defaultStroke?(): [string, number] | null;
   /** Extra outline dragged over the map by the size-comparison tool. */
   overlay?: { path: Path2D; fill: string; stroke: string } | null;
   showLabels: boolean;
@@ -600,15 +610,27 @@ function drawLabels(rc: RenderContext, world: World, font: string, style: Style)
  * progress — see atlas.ts's setGestureActive/setFlying). Grouped here, each independent, so
  * any one can be tuned or switched back on without touching the others while chasing frame
  * time. A `true` means "keep doing this during a fast frame too" — every one starts `false`
- * because the whole point is to skip it. Labels, pins and capital markers are NOT in this
- * list — they still draw every fast frame (drawLabels stays cheap on its own, via the
- * layout cache above; pins and capital rings were already cheap) because they're the only
- * way to navigate while the map is moving.
+ * because the whole point is to skip it. NOT in this list, because they draw every fast
+ * frame regardless: labels/pins/capital markers (the only way to navigate while the map is
+ * moving — drawLabels stays cheap on its own, via the layout cache above; pins and capital
+ * rings were already cheap) and borders (mergedStrokes below, cheap via the whole map's
+ * merged Path2D instead of a per-country stroke).
  */
 const FAST_FRAME_FULL_DETAIL = false;
 const FAST_FRAME_GRATICULE = false;
-/** false = only `style.highlight()` features (selected + neighbours) keep their stroke. */
-const FAST_FRAME_FULL_STROKES = false;
+
+/**
+ * Whether a settled (non-fast) frame also strokes borders through the merged-path pass
+ * below instead of one stroke() call per country. A fast frame always does — that's the
+ * whole point, see CLAUDE.md's performance note on this. Measured `false` (this file's
+ * per-country loop, unchanged) against `true` with `PERF_CPU=8 npm run perf` (world-zoom
+ * pan; at 1x both are already vsync-capped, no signal): identical, median 16.7ms /
+ * p95 50.1ms / worst 66–83ms either way — the settled frame's stroke pass was never the
+ * bottleneck at this camera. Left `false`; see the commit that measured this for the full
+ * numbers, and re-measure before flipping it rather than assuming the merged path is
+ * always a win.
+ */
+const SETTLED_MERGED_STROKES = false;
 
 export function render(
   rc: RenderContext,
@@ -662,13 +684,35 @@ export function render(
     }
 
     // strokes in a second pass so no fill can bleed over a neighbour's border
-    for (const feature of visible) {
-      if (fast && !FAST_FRAME_FULL_STROKES && !style.highlight?.(feature)) continue;
-      const s = style.stroke(feature);
-      if (!s) continue;
-      ctx.strokeStyle = s[0];
-      ctx.lineWidth = s[1] / camera.zoom;
-      ctx.stroke(activePath(feature, full)!);
+    if (fast || SETTLED_MERGED_STROKES) {
+      // One stroke() call for the whole map's borders, at the one colour/width every
+      // not-highlighted feature shares (style.defaultStroke) — instead of a stroke()
+      // lookup and a canvas call per country. A shared border between two touching
+      // countries is in the merged path twice; one uniform colour makes that invisible.
+      const shared = style.defaultStroke?.();
+      if (shared) {
+        ctx.strokeStyle = shared[0];
+        ctx.lineWidth = shared[1] / camera.zoom;
+        ctx.stroke(mergedStrokePath(world, full));
+      }
+      // Only the features whose stroke actually differs (selection, neighbours) get their
+      // own individual stroke() call, on top of the merged pass.
+      for (const feature of visible) {
+        if (!style.highlight?.(feature)) continue;
+        const s = style.stroke(feature);
+        if (!s) continue;
+        ctx.strokeStyle = s[0];
+        ctx.lineWidth = s[1] / camera.zoom;
+        ctx.stroke(activePath(feature, full)!);
+      }
+    } else {
+      for (const feature of visible) {
+        const s = style.stroke(feature);
+        if (!s) continue;
+        ctx.strokeStyle = s[0];
+        ctx.lineWidth = s[1] / camera.zoom;
+        ctx.stroke(activePath(feature, full)!);
+      }
     }
 
     // lakes on top of the land they cut into, so the Caspian reads as water sitting in

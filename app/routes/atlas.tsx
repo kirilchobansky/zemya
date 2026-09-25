@@ -26,8 +26,8 @@ import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import { onThemeChange } from '~/lib/theme';
 import {
-  fillFor, quizFillFor, quizStrokeFor, refreshOverlayColours, strokeFor, type OverlayId, type QuizOverride,
-  type StyleInputs
+  defaultStrokeFor, fillFor, quizFillFor, quizStrokeFor, refreshOverlayColours, strokeFor, type OverlayId,
+  type QuizOverride, type StyleInputs
 } from '~/lib/geography/overlays';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
@@ -250,6 +250,7 @@ function AtlasShell() {
         fill: f => fillFor(f, styleRef.current),
         stroke: f => strokeFor(f, styleRef.current),
         highlight: f => isSelectedOrNeighbour(f, styleRef.current),
+        defaultStroke: defaultStrokeFor,
         showLabels: true,
         showPins: true,
         showCapitals: true
@@ -313,6 +314,7 @@ function AtlasShell() {
             fill: f => quizFillFor(f, quiz),
             stroke: f => quizStrokeFor(f, quiz),
             highlight: f => f === quiz.target || Boolean(quiz.showNeighbours && quiz.target?.neighbours.includes(f)),
+            defaultStroke: defaultStrokeFor,
             showLabels: true,
             showPins,
             showCapitals: false,
@@ -323,6 +325,7 @@ function AtlasShell() {
             fill: f => fillFor(f, styleRef.current),
             stroke: f => strokeFor(f, styleRef.current),
             highlight: f => isSelectedOrNeighbour(f, styleRef.current),
+            defaultStroke: defaultStrokeFor,
             showLabels: true,
             showPins,
             showCapitals,

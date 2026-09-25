@@ -212,7 +212,10 @@ export function buildWorld(data: WorldData): World {
     places.push({ place, feature, ux: wrapX(lonToX(place.lon)), uy: latToY(place.lat) });
   }
 
-  return { data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [], places };
+  return {
+    data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [], places,
+    mergedPath: null, mergedFullPath: null
+  };
 }
 
 /**
@@ -346,6 +349,42 @@ export function attachFullDetail(world: World, data: GeometryData): void {
     }
     if (drew) world.fullLakes.push({ path });
   }
+
+  // `fullPath` just changed for (almost) every feature — the merged full-detail path built
+  // from the old (missing or coarse-fallback) values is stale. Coarse `path` never changes
+  // after buildWorld, so `mergedPath` is left alone.
+  world.mergedFullPath = null;
+}
+
+/**
+ * The union of every feature's outline at one detail level, in a single Path2D — built
+ * lazily on first need and cached on `world` (see World.mergedPath's own doc comment).
+ * Stroking this once, with one uniform style, is what makes borders cheap enough to draw
+ * during a fast-frame gesture (renderer.ts) instead of a per-country lookup and 197
+ * separate stroke() calls. A shared border between two touching countries is traced
+ * twice — stroked with one uniform colour, which makes the overlap invisible, so this
+ * must never be used to stroke a colour that could actually differ at that seam.
+ */
+export function mergedStrokePath(world: World, full: boolean): Path2D {
+  if (full) {
+    if (!world.mergedFullPath) {
+      const merged = new Path2D();
+      for (const feature of world.features) {
+        const path = feature.fullPath ?? feature.path;
+        if (path) merged.addPath(path);
+      }
+      world.mergedFullPath = merged;
+    }
+    return world.mergedFullPath;
+  }
+  if (!world.mergedPath) {
+    const merged = new Path2D();
+    for (const feature of world.features) {
+      if (feature.path) merged.addPath(feature.path);
+    }
+    world.mergedPath = merged;
+  }
+  return world.mergedPath;
 }
 
 /**

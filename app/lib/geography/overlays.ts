@@ -249,6 +249,14 @@ export function strokeFor(feature: Feature, s: StyleInputs): [string, number] {
   if (s.selected === feature) return [STROKE_SELECTED, 1.8];
   if (s.showNeighbours && s.selected?.neighbours.includes(feature)) return [STROKE_NEIGHBOUR, 1.2];
   if (s.hovered === feature) return [STROKE_HOVER, 1.2];
+  return defaultStrokeFor();
+}
+
+/** The stroke every feature falls back to — what strokeFor and quizStrokeFor both return
+ *  once none of their own special cases apply. Every not-selected, not-neighbour,
+ *  not-hovered feature shares this exact value, which is what lets renderer.ts stroke
+ *  the whole map's merged Path2D once with it instead of looking it up per country. */
+export function defaultStrokeFor(): [string, number] {
   return [STROKE_DEFAULT, 1];
 }
 
@@ -293,5 +301,5 @@ export function quizFillFor(feature: Feature, quiz: QuizOverride): string {
 export function quizStrokeFor(feature: Feature, quiz: QuizOverride): [string, number] {
   if (quiz.target === feature) return [STROKE_SELECTED, 1.8];
   if (quiz.showNeighbours && quiz.target?.neighbours.includes(feature)) return [STROKE_NEIGHBOUR, 1.2];
-  return [STROKE_DEFAULT, 1];
+  return defaultStrokeFor();
 }

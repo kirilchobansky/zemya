@@ -176,4 +176,17 @@ export interface World {
   fullLakes: ContextShape[];
   /** Every place that joined to a country in this dataset. */
   places: PlaceMark[];
+  /**
+   * Every feature's outline, unioned into one Path2D per detail level — built lazily on
+   * first need (topology.ts's mergedStrokePath) and cached here after: coarse `path` is
+   * set once by buildWorld and never changes again, so `mergedPath` never needs
+   * rebuilding once built. `mergedFullPath` is reset to null by attachFullDetail (the one
+   * event that actually changes `fullPath` data), forcing one lazy rebuild the next time
+   * it's needed — "rebuild only if the world data is rebuilt". Stroking one merged path
+   * once, instead of every country individually, is what keeps borders cheap enough to
+   * draw during a fast frame (renderer.ts) — a shared border between two touching
+   * countries is traced twice, which a single uniform stroke colour makes invisible.
+   */
+  mergedPath: Path2D | null;
+  mergedFullPath: Path2D | null;
 }
