@@ -21,6 +21,10 @@ export interface Style {
   fill(feature: Feature): string | null;
   /** [colour, width in CSS pixels], or null for no stroke. */
   stroke(feature: Feature): [string, number] | null;
+  /** Whether this feature keeps its stroke during a fast frame (atlas.ts's gesture/fly-to
+   *  mode) — normally the selected country and its neighbours. Ignored outside a fast
+   *  frame, where every feature strokes as usual. Omit to stroke nothing during one. */
+  highlight?(feature: Feature): boolean;
   /** Extra outline dragged over the map by the size-comparison tool. */
   overlay?: { path: Path2D; fill: string; stroke: string } | null;
   showLabels: boolean;
@@ -92,6 +96,12 @@ export interface RenderContext {
   camera: CameraState;
   viewport: Viewport;
   dpr: number;
+  /** True during a coarse-pointer gesture or fly-to (atlas.ts) — one frame's worth of
+   *  degradation (see the FAST_FRAME_* constants below `render()`), never used by
+   *  pick()/pickPlace()/hitOverlay(), which always hit-test the real geometry. Optional
+   *  (treated as false) so existing RenderContext literals that predate this flag still
+   *  typecheck. */
+  fast?: boolean;
 }
 
 function applyTransform(rc: RenderContext, copy: number): void {
@@ -461,6 +471,21 @@ function drawPlaceLabels(
   }
 }
 
+/**
+ * Degradations applied only while `rc.fast` is set (a coarse-pointer gesture or fly-to in
+ * progress — see atlas.ts's setGestureActive/setFlying). Grouped here, each independent, so
+ * any one can be tuned or switched back on without touching the others while chasing frame
+ * time. A `true` means "keep doing this during a fast frame too" — every one starts `false`
+ * because the whole point is to skip it.
+ */
+const FAST_FRAME_FULL_DETAIL = false;
+const FAST_FRAME_GRATICULE = false;
+const FAST_FRAME_PINS = false;
+const FAST_FRAME_CAPITALS = false;
+const FAST_FRAME_LABELS = false;
+/** false = only `style.highlight()` features (selected + neighbours) keep their stroke. */
+const FAST_FRAME_FULL_STROKES = false;
+
 export function render(
   rc: RenderContext,
   world: World,
@@ -469,21 +494,21 @@ export function render(
   uiFont: string,
   pulse?: Pulse
 ): void {
-  const { ctx, camera, viewport } = rc;
+  const { ctx, camera, viewport, fast } = rc;
 
   resetTransform(rc);
   ctx.clearRect(0, 0, viewport.width, viewport.height);
   ctx.fillStyle = COLORS.ocean;
   ctx.fillRect(0, 0, viewport.width, viewport.height);
 
-  drawGraticule(rc);
+  if (!fast || FAST_FRAME_GRATICULE) drawGraticule(rc);
 
   const copyCandidates = camera.zoom < viewport.width * 1.6 ? [-1, 0, 1] : [0];
   // copy 0 always renders even if the visibility maths somehow says otherwise — it must
   // never be possible to cull the map down to a blank canvas
   const copies = copyCandidates.filter(copy => copy === 0 || isCopyVisible(rc, copy));
 
-  const full = useFullDetail(camera, viewport);
+  const full = (!fast || FAST_FRAME_FULL_DETAIL) && useFullDetail(camera, viewport);
   // world.fullContext/fullLakes start empty and fill in once attachFullDetail runs — fall
   // back to the coarse (always-populated) versions until then, same as activePath does
   // per feature.
@@ -514,6 +539,7 @@ export function render(
 
     // strokes in a second pass so no fill can bleed over a neighbour's border
     for (const feature of visible) {
+      if (fast && !FAST_FRAME_FULL_STROKES && !style.highlight?.(feature)) continue;
       const s = style.stroke(feature);
       if (!s) continue;
       ctx.strokeStyle = s[0];
@@ -536,9 +562,9 @@ export function render(
   }
 
   resetTransform(rc);
-  if (style.showPins) drawPins(rc, world, style, focus);
-  drawCapitals(rc, world, style);
-  if (style.showLabels) drawLabels(rc, world, uiFont, style);
+  if (style.showPins && (!fast || FAST_FRAME_PINS)) drawPins(rc, world, style, focus);
+  if (!fast || FAST_FRAME_CAPITALS) drawCapitals(rc, world, style);
+  if (style.showLabels && (!fast || FAST_FRAME_LABELS)) drawLabels(rc, world, uiFont, style);
   if (pulse) drawPulse(rc, pulse);
 }
 

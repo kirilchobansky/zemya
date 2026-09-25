@@ -22,10 +22,16 @@ import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
 import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import {
-  fillFor, quizFillFor, quizStrokeFor, strokeFor, type OverlayId, type QuizOverride
+  fillFor, quizFillFor, quizStrokeFor, strokeFor, type OverlayId, type QuizOverride, type StyleInputs
 } from '~/lib/geography/overlays';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
+
+/** Which features keep their stroke during a fast frame (atlas.ts, renderer.ts's Style.highlight)
+ *  — the same selected-country-plus-neighbours pair strokeFor/fillFor already single out. */
+function isSelectedOrNeighbour(feature: Feature, s: StyleInputs): boolean {
+  return feature === s.selected || Boolean(s.showNeighbours && s.selected?.neighbours.includes(feature));
+}
 
 /**
  * The layout owns the canvas, so a quiz run — a child route rendered only into the right
@@ -221,6 +227,7 @@ function AtlasShell() {
       {
         fill: f => fillFor(f, styleRef.current),
         stroke: f => strokeFor(f, styleRef.current),
+        highlight: f => isSelectedOrNeighbour(f, styleRef.current),
         showLabels: true,
         showPins: true,
         showCapitals: true
@@ -258,6 +265,7 @@ function AtlasShell() {
         ? {
             fill: f => quizFillFor(f, quiz),
             stroke: f => quizStrokeFor(f, quiz),
+            highlight: f => f === quiz.target || Boolean(quiz.showNeighbours && quiz.target?.neighbours.includes(f)),
             showLabels: true,
             showPins,
             showCapitals: false,
@@ -267,6 +275,7 @@ function AtlasShell() {
         : {
             fill: f => fillFor(f, styleRef.current),
             stroke: f => strokeFor(f, styleRef.current),
+            highlight: f => isSelectedOrNeighbour(f, styleRef.current),
             showLabels: true,
             showPins,
             showCapitals,

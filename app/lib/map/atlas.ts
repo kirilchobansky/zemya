@@ -5,11 +5,11 @@
  */
 import {
   centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, NO_INSETS, screenToWorld, settled,
-  shortestX, step, worldToScreen, type CameraState, type Insets, type Viewport
+  shortestX, step, type CameraState, type Insets, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
 import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
-import { COLORS, hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
+import { hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 
@@ -30,36 +30,40 @@ const WHEEL_LINE_SENSITIVITY = 0.05;
 /** Touch is imprecise: a pin or capital ring is drawn at 4-9 px but must be hittable from a
  *  44 px target (24 px radius) — a bigger HIT area only, the drawing is unchanged. */
 const TOUCH_HIT_RADIUS_PX = 24;
-/** After the last pan / pinch / wheel event, wait this long, then do ONE full sharp render. */
+/** After the last pan / pinch / wheel event, wait this long, then restore full detail and
+ *  render one full frame. */
 const GESTURE_SETTLE_MS = 120;
-/** Mid-gesture (touch only), once the snapshot is stretched past this scale ratio or panned
- *  past this fraction of the viewport, re-snapshot sharply instead of waiting for settle. */
-const GESTURE_RESNAP_MIN_SCALE = 0.75;
-const GESTURE_RESNAP_MAX_SCALE = 1.33;
-const GESTURE_RESNAP_PAN_FRACTION = 1 / 3;
-/** Re-snapshotting is itself a sharp render, so it's throttled — no more than this often. */
-const GESTURE_RESNAP_INTERVAL_MS = 250;
+/** Canvas DPR while a fast frame is active (normally capped at 2 — see resize()). Cutting
+ *  it to 1 is what keeps a real render cheap enough to draw every frame of a gesture. */
+const FAST_FRAME_DPR = 1;
 
 export class Atlas {
   private ctx: CanvasRenderingContext2D;
   private viewport: Viewport = { width: 0, height: 0 };
+  /** The DPR actually in effect right now — FAST_FRAME_DPR during a fast frame, deviceDpr
+   *  otherwise. What the canvas is sized for and what RenderContext.dpr carries. */
   private dpr = 1;
+  /** The real device pixel ratio (capped at 2), recomputed on resize. What `dpr` restores to
+   *  once a fast frame ends. */
+  private deviceDpr = 1;
   private camera: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
   private target: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
   private animating = false;
   /** Renders are requested, never issued from an event handler: at most one per animation frame. */
   private renderQueued = 0;
-  /** The camera the canvas was last fully (sharply) rendered with. */
-  private drawn: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
   /**
-   * While a pan, pinch, wheel or (on touch) fly-to is under way the map is NOT re-rendered: the
-   * last sharp frame is snapshotted to an offscreen canvas and only that bitmap is drawn,
-   * transformed by the camera's change since. No path is filled or stroked while fingers move;
-   * one full render follows GESTURE_SETTLE_MS after the last event. Hover, selection and hit
-   * testing never touch the bitmap — they use the real geometry.
+   * True while a coarse-pointer pan/pinch/wheel gesture or fly-to animation is under way.
+   * Every frame still renders for real (unlike the old snapshot-and-stretch bitmap path) —
+   * RenderContext.fast just tells renderer.ts which detail is cheap to skip for one frame
+   * (see renderer.ts's FAST_FRAME_* constants): coarse geometry regardless of zoom, no
+   * labels/pins/capitals/graticule, strokes only on the selected country and its
+   * neighbours. Hover, selection and hit testing are untouched — they never read `fast`.
+   * `gestureActive` and `flying` are independent because a fly-to can start mid-gesture
+   * (a tap-to-select while panning) and each needs its own end condition.
    */
-  private gesture: { cam: CameraState; timer: number; fly: boolean; resnapAt: number } | null = null;
-  private snapCanvas: HTMLCanvasElement | null = null;
+  private gestureActive = false;
+  private flying = false;
+  private gestureTimer = 0;
   private frameHandle = 0;
 
   private style: Style;
@@ -119,7 +123,7 @@ export class Atlas {
     cancelAnimationFrame(this.frameHandle);
     cancelAnimationFrame(this.pulseHandle);
     cancelAnimationFrame(this.renderQueued);
-    if (this.gesture) clearTimeout(this.gesture.timer);
+    clearTimeout(this.gestureTimer);
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
     c.removeEventListener('mousedown', this.onFocusStealer);
@@ -338,15 +342,21 @@ export class Atlas {
   /* -------------------------------------------------------------------- internals */
 
   private get renderContext(): RenderContext {
-    return { ctx: this.ctx, camera: this.camera, viewport: this.viewport, dpr: this.dpr };
+    return { ctx: this.ctx, camera: this.camera, viewport: this.viewport, dpr: this.dpr, fast: this.fastFrame };
   }
 
   private resize(): void {
     const host = this.canvas.parentElement ?? this.canvas;
     const rect = host.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.deviceDpr = Math.min(window.devicePixelRatio || 1, 2);
     this.viewport = { width: rect.width, height: rect.height, insets: this.insets };
+    // The canvas is the wrong size for whatever a fast frame was mid-gesture, so end it
+    // outright rather than resizing under it.
+    clearTimeout(this.gestureTimer);
+    this.gestureActive = false;
+    this.flying = false;
+    this.dpr = this.deviceDpr;
     this.canvas.width = Math.round(rect.width * this.dpr);
     this.canvas.height = Math.round(rect.height * this.dpr);
     this.canvas.style.width = `${rect.width}px`;
@@ -358,8 +368,6 @@ export class Atlas {
       this.camera = clamp(this.camera, this.viewport);
       this.target = clamp(this.target, this.viewport);
     }
-    if (this.gesture) clearTimeout(this.gesture.timer);
-    this.gesture = null; // the snapshot is the wrong size now
     this.drawNow();
   }
 
@@ -371,12 +379,10 @@ export class Atlas {
       this.draw();
       return;
     }
-    // On touch, a fly-to that stays inside what is already on screen (zooming in on a country
-    // you can see) animates the snapshot instead of re-rendering every frame. A fly to somewhere
-    // the snapshot has no pixels for renders normally.
-    const bitmap = this.coarse() && this.destinationOnScreen();
-    if (!bitmap && this.gesture?.fly) this.endGesture(false);
-    if (bitmap && !this.gesture) this.beginGesture(true);
+    // On a coarse pointer, a fly-to's whole animation is a fast frame too — every frame is
+    // still a real render, just a cheap-but-correct one (see renderContext/render()).
+    const fly = this.coarse();
+    if (fly) this.setFlying(true);
     if (this.animating) return;
     this.animating = true;
     const tick = () => {
@@ -386,7 +392,7 @@ export class Atlas {
         this.camera = { ...this.target, x };
         this.target = { ...this.camera };
         this.animating = false;
-        if (this.gesture?.fly) this.endGesture(false);
+        if (fly) this.setFlying(false);
         this.drawNow();
         return;
       }
@@ -400,85 +406,45 @@ export class Atlas {
     return typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
   }
 
-  /** Is the whole view at the destination camera inside the view drawn right now? */
-  private destinationOnScreen(): boolean {
-    const { width, height } = this.viewport;
-    for (const [sx, sy] of [[0, 0], [width, height]] as const) {
-      const [wx, wy] = screenToWorld(this.target, this.viewport, sx, sy);
-      const [x, y] = worldToScreen(this.drawn, this.viewport, wx, wy);
-      if (x < 0 || y < 0 || x > width || y > height) return false;
-    }
-    return true;
+  /* ------------------------------------------------------------------- fast frame */
+
+  private get fastFrame(): boolean {
+    return this.gestureActive || this.flying;
   }
 
-  /* ------------------------------------------------------------ gesture bitmap */
-
-  private beginGesture(fly: boolean): void {
-    if (this.renderQueued) this.drawNow(); // the snapshot must be a sharp frame
-    const snap = (this.snapCanvas ??= document.createElement('canvas'));
-    snap.width = this.canvas.width;
-    snap.height = this.canvas.height;
-    snap.getContext('2d')?.drawImage(this.canvas, 0, 0);
-    this.gesture = { cam: { ...this.drawn }, timer: 0, fly, resnapAt: performance.now() };
+  private setGestureActive(active: boolean): void {
+    if (this.gestureActive === active) return;
+    this.gestureActive = active;
+    this.syncFastFrameDpr();
   }
 
-  /** Is the current gesture's bitmap stretched or panned far enough that it visibly blurs /
-   *  shows empty edges — scale outside ~0.75-1.33, or panned more than ~a third of the
-   *  viewport since the snapshot was taken? */
-  private gestureStretched(): boolean {
-    const g = this.gesture;
-    if (!g) return false;
-    const { camera, viewport } = this;
-    const s = camera.zoom / g.cam.zoom;
-    if (s < GESTURE_RESNAP_MIN_SCALE || s > GESTURE_RESNAP_MAX_SCALE) return true;
-    const dx = (camera.x - g.cam.x) * camera.zoom;
-    const dy = (camera.y - g.cam.y) * camera.zoom;
-    return Math.abs(dx) > viewport.width * GESTURE_RESNAP_PAN_FRACTION
-      || Math.abs(dy) > viewport.height * GESTURE_RESNAP_PAN_FRACTION;
+  private setFlying(active: boolean): void {
+    if (this.flying === active) return;
+    this.flying = active;
+    this.syncFastFrameDpr();
   }
 
-  /** Called on every pan / pinch / wheel event, coarse pointers only — on a mouse or trackpad
-   *  pan and zoom render the real map every frame instead (culling + LOD hold 60fps there).
-   *  The first touch event starts the bitmap mode; each one pushes the sharp render
-   *  GESTURE_SETTLE_MS further out. Mid-gesture, once the snapshot is stretched too far, do one
-   *  sharp render and take a fresh snapshot instead of waiting for the gesture to end. */
+  /** The canvas is resized for the new DPR only on an actual transition into or out of a
+   *  fast frame, never per frame — a fast frame's whole point is cheap frames, and resizing
+   *  the backing store every frame would undo that. */
+  private syncFastFrameDpr(): void {
+    const dpr = this.fastFrame ? FAST_FRAME_DPR : this.deviceDpr;
+    if (dpr === this.dpr) return;
+    this.dpr = dpr;
+    this.canvas.width = Math.round(this.viewport.width * dpr);
+    this.canvas.height = Math.round(this.viewport.height * dpr);
+    this.drawNow();
+  }
+
+  /** Called on every pan / pinch / wheel event, coarse pointers only — on a mouse or
+   *  trackpad, pan and zoom render the real map every frame at full detail instead (culling
+   *  + LOD hold 60fps there). The first touch event enters the fast frame; each one pushes
+   *  the settle GESTURE_SETTLE_MS further out. */
   private touchGesture(): void {
     if (!this.coarse()) return;
-    const now = performance.now();
-    if (this.gesture && now - this.gesture.resnapAt >= GESTURE_RESNAP_INTERVAL_MS && this.gestureStretched()) {
-      clearTimeout(this.gesture.timer);
-      this.gesture = null;
-      this.renderNow(); // sharp frame at the current camera, so the new snapshot isn't itself stretched
-    }
-    if (!this.gesture) this.beginGesture(false);
-    const g = this.gesture!;
-    g.fly = false;
-    clearTimeout(g.timer);
-    g.timer = window.setTimeout(() => this.endGesture(true), GESTURE_SETTLE_MS);
-  }
-
-  private endGesture(render: boolean): void {
-    if (!this.gesture) return;
-    clearTimeout(this.gesture.timer);
-    this.gesture = null;
-    if (render) this.drawNow();
-  }
-
-  /** One frame of a gesture: the snapshot, moved and scaled by the camera's change since it was taken. */
-  private drawGestureFrame(): void {
-    const g = this.gesture;
-    if (!g || !this.snapCanvas || !this.viewport.width) return;
-    const { ctx, camera, viewport, dpr } = this;
-    const s = camera.zoom / g.cam.zoom;
-    const tx = (viewport.width / 2) * (1 - s) - (camera.x - g.cam.x) * camera.zoom;
-    const ty = (viewport.height / 2) * (1 - s) - (camera.y - g.cam.y) * camera.zoom;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = COLORS.ocean;
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * tx, dpr * ty);
-    ctx.drawImage(this.snapCanvas, 0, 0, viewport.width, viewport.height);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.callbacks.onCameraChange?.(this.scale);
+    this.setGestureActive(true);
+    clearTimeout(this.gestureTimer);
+    this.gestureTimer = window.setTimeout(() => this.setGestureActive(false), GESTURE_SETTLE_MS);
   }
 
   private pulseFrame(): Pulse | undefined {
@@ -493,22 +459,17 @@ export class Atlas {
 
   /** Ask for a render: at most one per animation frame, however many events ask. */
   private draw = (): void => {
-    if (!this.renderQueued) this.renderQueued = requestAnimationFrame(this.flush);
-  };
-
-  private flush = (): void => {
-    this.renderQueued = 0;
-    if (this.gesture) this.drawGestureFrame();
-    else this.renderNow();
+    if (!this.renderQueued) this.renderQueued = requestAnimationFrame(this.renderNow);
   };
 
   /** Render this frame now (already inside a frame callback, or a resize that must not flash). */
   private drawNow(): void {
     cancelAnimationFrame(this.renderQueued);
-    this.flush();
+    this.renderNow();
   }
 
-  private renderNow(): void {
+  private renderNow = (): void => {
+    this.renderQueued = 0;
     const pulse = this.pulseFrame(); // before the size guard, so a pulse can always end
     if (!this.viewport.width) return;
     const style: Style = this.compare
@@ -522,9 +483,8 @@ export class Atlas {
         }
       : { ...this.style, overlay: null };
     render(this.renderContext, this.world, style, this.focus, this.uiFont, pulse);
-    this.drawn = { ...this.camera };
     this.callbacks.onCameraChange?.(this.scale);
-  }
+  };
 
   private emitCompare(): void {
     if (!this.compare) return;
