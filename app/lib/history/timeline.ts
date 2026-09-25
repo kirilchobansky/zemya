@@ -1,6 +1,7 @@
 /**
  * Binds the history renderer to a canvas: owns the time viewport, the render-request
- * queue, devicePixelRatio + resize handling, and drag-to-pan / wheel-and-pinch-to-zoom.
+ * queue, devicePixelRatio + resize handling, drag-to-pan / wheel-and-pinch-to-zoom, and
+ * the cylinder's own eased size animation.
  *
  * Mirrors app/lib/map/atlas.ts's shape (render-request queue, ResizeObserver-driven
  * resize, the pointer/wheel wiring, the "hold the point under the cursor/pinch fixed"
@@ -12,23 +13,18 @@
  * No hover, no selection, no keyboard — the first render has none of those yet.
  */
 import { render, type Axis, type RenderContext, type TimelineEntry } from './renderer';
-import { pxToTime, type Viewport } from './scale';
+import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, pxToTime, type TimeRange, type Viewport } from './scale';
 
 const WHEEL_SENSITIVITY = 0.0016;
 const WHEEL_LINE_SENSITIVITY = 0.05;
 const DRAG_THRESHOLD_PX = 3;
-/** Bounds on pxPerYear so a runaway wheel/pinch can't zoom to zero or to infinity. Not
- *  tied to scale.ts's CONFIG.zoomThresholds, which pick tick GRANULARITY, not camera
- *  limits — these are just a safety floor/ceiling, a first-pass judgement call. */
-const MIN_PX_PER_YEAR = 0.001;
-const MAX_PX_PER_YEAR = 20000;
-/** How much of the viewport's width the fitted span occupies on open — "a small margin",
- *  4% of empty space on each side. */
-const FIT_MARGIN = 0.04;
-
-function clampPxPerYear(pxPerYear: number): number {
-  return Math.max(MIN_PX_PER_YEAR, Math.min(MAX_PX_PER_YEAR, pxPerYear));
-}
+/** Time constant (ms) for the cylinder's own eased grow/shrink — "smooth, eased
+ *  transitions, never a snap": a discrete wheel notch (one event, one target change)
+ *  still animates over several frames rather than jumping straight to the new size. */
+const CYLINDER_EASE_MS = 160;
+/** Below this, the animation is considered converged and stops re-requesting frames on
+ *  its own (a real gesture still asks for more via draw()). */
+const CYLINDER_EASE_EPSILON = 0.0006;
 
 export interface TimelineOptions {
   axis: Axis;
@@ -47,10 +43,24 @@ export class HistoryTimeline {
   private axis: Axis;
   private entries: TimelineEntry[];
   private viewport: Viewport;
+  /** [earliest authored start, today] — what fitToWholeHistory frames, and what
+   *  minimum-zoom (the cylinder filling the viewport exactly, no padding) is measured
+   *  against. */
+  private contentRange: TimeRange;
+  /** contentRange padded by half of ITS OWN width on each side — "half a viewport beyond
+   *  the data... so 681 and today can each be brought to the centre marker at maximum
+   *  zoom-out" — the hard bound pan clamps to. Center (not pxPerYear) clamps to this. */
+  private pannableRange: TimeRange;
   private crossSizePx = 0;
   private dpr = 1;
   private uiFont = 'system-ui, sans-serif';
   private monoFont = 'ui-monospace, monospace';
+
+  /** The cylinder's current height as a fraction of crossSizePx — eased toward
+   *  cylinderThicknessFraction(viewport.pxPerYear, ...) every frame, never snapped to it
+   *  directly, except on the very first frame (null means "not yet initialised"). */
+  private cylinderFrac: number | null = null;
+  private lastAnimationFrameTime = 0;
 
   private resizeObserver: ResizeObserver;
   /** Renders are requested, never issued from an event handler — at most one per
@@ -78,10 +88,15 @@ export class HistoryTimeline {
     this.ctx = context;
     this.axis = options.axis;
     this.entries = options.entries;
+    const { content, pannable } = HistoryTimeline.computeRanges(options.entries);
+    this.contentRange = content;
+    this.pannableRange = pannable;
     this.hasExplicitInitialView = options.initialCenter !== undefined || options.initialPxPerYear !== undefined;
     this.viewport = {
       center: options.initialCenter ?? DEFAULT_CENTER,
-      pxPerYear: clampPxPerYear(options.initialPxPerYear ?? DEFAULT_PX_PER_YEAR),
+      // sizePx is 0 here (the real clamp, tied to the container's width, happens in the
+      // first resize() below) — this only enforces the day-level zoom-in ceiling early.
+      pxPerYear: clampPxPerYear(options.initialPxPerYear ?? DEFAULT_PX_PER_YEAR, 0, this.contentRange),
       sizePx: 0
     };
 
@@ -119,6 +134,18 @@ export class HistoryTimeline {
     this.resize();
   }
 
+  /** Computes both ranges once from the (immutable, per-instance) entry list: the raw
+   *  content span (earliest authored `start` to today's actual wall-clock year — `Date`
+   *  used only for "today", never for parsing an authored date) and that span padded by
+   *  half its own width on each side for pan clamping. */
+  private static computeRanges(entries: readonly TimelineEntry[]): { content: TimeRange; pannable: TimeRange } {
+    const earliest = entries.length ? Math.min(...entries.map(e => e.start)) : DEFAULT_CENTER - 1;
+    const today = new Date().getFullYear();
+    const content: TimeRange = { from: earliest, to: Math.max(today, earliest + 1) };
+    const half = (content.to - content.from) / 2;
+    return { content, pannable: { from: content.from - half, to: content.to + half } };
+  }
+
   destroy(): void {
     this.resizeObserver.disconnect();
     cancelAnimationFrame(this.renderQueued);
@@ -136,8 +163,38 @@ export class HistoryTimeline {
   private get renderContext(): RenderContext {
     return {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
-      crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont
+      crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
+      cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
+      contentRange: this.contentRange
     };
+  }
+
+  /** The zoom floor for THIS frame's sizePx: the cylinder filling the viewport with the
+   *  whole content range exactly, no padding — "the cylinder fills the screen" at
+   *  maximum zoom-out doubles as the pxPerYear clamp floor. Distinct from
+   *  `pannableRange`, which is wider (so 681/today can still be centred once zoomed all
+   *  the way out) — see clampPxPerYear's own doc on why the two ranges differ. */
+  private get minPxPerYear(): number {
+    const span = Math.max(this.contentRange.to - this.contentRange.from, 1);
+    return this.viewport.sizePx > 0 ? this.viewport.sizePx / span : DEFAULT_PX_PER_YEAR;
+  }
+
+  /** Eases `cylinderFrac` toward this frame's target fraction — never snaps, except to
+   *  set the very first value with no prior frame to ease from. Keeps requesting frames
+   *  (via draw()) while still visibly short of the target, so a single discrete wheel
+   *  notch still animates smoothly over several frames instead of jumping once. */
+  private updateCylinderAnimation(): void {
+    const target = cylinderThicknessFraction(this.viewport.pxPerYear, this.minPxPerYear, CONFIG.maxPxPerYear);
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (this.cylinderFrac === null) {
+      this.cylinderFrac = target;
+    } else {
+      const dt = this.lastAnimationFrameTime ? Math.min(now - this.lastAnimationFrameTime, 100) : 100;
+      const rate = 1 - Math.exp(-dt / CYLINDER_EASE_MS);
+      this.cylinderFrac += (target - this.cylinderFrac) * rate;
+    }
+    this.lastAnimationFrameTime = now;
+    if (Math.abs(target - this.cylinderFrac) > CYLINDER_EASE_EPSILON) this.draw();
   }
 
   private resize = (): void => {
@@ -156,24 +213,28 @@ export class HistoryTimeline {
     if (!this.hasExplicitInitialView && !this.fittedInitialView && this.entries.length) {
       this.fitToWholeHistory();
       this.fittedInitialView = true;
+    } else {
+      // A real resize (not the initial fit) can still shrink the viewport below what the
+      // current pxPerYear/center allow — re-clamp so it never ends up panned or zoomed
+      // past the data's own range plus margin.
+      const pxPerYear = clampPxPerYear(this.viewport.pxPerYear, this.viewport.sizePx, this.contentRange);
+      const center = clampCenter(this.viewport.center, pxPerYear, this.viewport.sizePx, this.pannableRange);
+      this.viewport = { ...this.viewport, pxPerYear, center };
     }
     this.drawNow();
   };
 
-  /** Opens the timeline fitted to the whole dataset (earliest authored entry to today)
-   *  with FIT_MARGIN of empty space on each side, rather than an arbitrary zoom. Only
-   *  ever runs once, on the first resize with a real sizePx (see fittedInitialView) —
-   *  every later resize (a real window/container size change) must leave the current
-   *  pan/zoom alone. `new Date()` here is reading today's actual wall-clock date for
-   *  camera framing, not parsing an authored historical date — the "never use Date"
-   *  rule in scale.ts is about Julian/Gregorian ambiguity in THAT, which today's date
-   *  can't have. */
+  /** Opens the timeline fitted to the whole dataset: the cylinder filling the viewport
+   *  edge to edge with the whole content range (earliest authored entry to today) and
+   *  nothing more — the same "no padding" floor clampPxPerYear enforces as the maximum
+   *  zoom-out, so this is just that floor, once, up front. Only ever runs once, on the
+   *  first resize with a real sizePx (see fittedInitialView) — every later resize (a real
+   *  window/container size change) must leave the current pan/zoom alone. */
   private fitToWholeHistory(): void {
-    const earliest = Math.min(...this.entries.map(e => e.start));
-    const today = new Date().getFullYear();
-    const span = Math.max(today - earliest, 1);
-    const pxPerYear = clampPxPerYear((this.viewport.sizePx * (1 - FIT_MARGIN * 2)) / span);
-    this.viewport = { ...this.viewport, pxPerYear, center: (earliest + today) / 2 };
+    const { from, to } = this.contentRange;
+    const pxPerYear = clampPxPerYear(this.minPxPerYear, this.viewport.sizePx, this.contentRange);
+    const center = clampCenter((from + to) / 2, pxPerYear, this.viewport.sizePx, this.pannableRange);
+    this.viewport = { ...this.viewport, pxPerYear, center };
   }
 
   /** Ask for a render: at most one per animation frame, however many events ask. */
@@ -194,6 +255,7 @@ export class HistoryTimeline {
 
   private renderNow(): void {
     if (!this.viewport.sizePx) return;
+    this.updateCylinderAnimation();
     render(this.renderContext, this.entries);
   }
 
@@ -232,8 +294,10 @@ export class HistoryTimeline {
       const [a, b] = [...this.pointers.values()];
       const distance = Math.abs(a - b);
       const mid = (a + b) / 2;
-      const pxPerYear = clampPxPerYear(this.pinch.pxPerYear * (distance / Math.max(this.pinch.distance, 1)));
-      const center = this.pinch.time - (mid - this.viewport.sizePx / 2) / pxPerYear;
+      const rawPxPerYear = this.pinch.pxPerYear * (distance / Math.max(this.pinch.distance, 1));
+      const pxPerYear = clampPxPerYear(rawPxPerYear, this.viewport.sizePx, this.contentRange);
+      const rawCenter = this.pinch.time - (mid - this.viewport.sizePx / 2) / pxPerYear;
+      const center = clampCenter(rawCenter, pxPerYear, this.viewport.sizePx, this.pannableRange);
       this.viewport = { ...this.viewport, pxPerYear, center };
       this.draw();
       return;
@@ -242,7 +306,9 @@ export class HistoryTimeline {
     if (this.drag) {
       const deltaPx = this.along(e) - this.drag.alongClient;
       if (Math.abs(deltaPx) > DRAG_THRESHOLD_PX) this.moved = true;
-      this.viewport = { ...this.viewport, center: this.drag.center - deltaPx / this.viewport.pxPerYear };
+      const rawCenter = this.drag.center - deltaPx / this.viewport.pxPerYear;
+      const center = clampCenter(rawCenter, this.viewport.pxPerYear, this.viewport.sizePx, this.pannableRange);
+      this.viewport = { ...this.viewport, center };
       this.draw();
     }
   };
@@ -259,9 +325,12 @@ export class HistoryTimeline {
     const along = this.along(e);
     const time = pxToTime(along, this.viewport); // the moment under the cursor
     const sensitivity = e.deltaMode === 1 ? WHEEL_LINE_SENSITIVITY : WHEEL_SENSITIVITY;
-    const pxPerYear = clampPxPerYear(this.viewport.pxPerYear * Math.exp(-e.deltaY * sensitivity));
-    // hold the moment under the cursor still
-    this.viewport = { ...this.viewport, pxPerYear, center: time - (along - this.viewport.sizePx / 2) / pxPerYear };
+    const rawPxPerYear = this.viewport.pxPerYear * Math.exp(-e.deltaY * sensitivity);
+    const pxPerYear = clampPxPerYear(rawPxPerYear, this.viewport.sizePx, this.contentRange);
+    // hold the moment under the cursor still, then clamp the result to the pannable range
+    const rawCenter = time - (along - this.viewport.sizePx / 2) / pxPerYear;
+    const center = clampCenter(rawCenter, pxPerYear, this.viewport.sizePx, this.pannableRange);
+    this.viewport = { ...this.viewport, pxPerYear, center };
     this.draw();
   };
 }

@@ -4,6 +4,13 @@
  * shape (one RenderContext, one entry-point `render()`, a literal COLORS object) but for
  * the 1D time axis instead of the 2D Mercator world.
  *
+ * The whole page IS the cylinder: a single full-width band, vertically centred, that
+ * grows and shrinks with zoom (HistoryTimeline eases its thickness frame to frame — this
+ * module just draws whatever thickness it's handed). Everything except the centre date
+ * readout lives INSIDE it: year ticks on its top surface, then horizontal "wires" stacked
+ * by duration (periods, rulers, governments, events) with entries drawn as rounded
+ * capsules sitting on them.
+ *
  * Every function takes `axis` and goes through `project()`/`rectFor()`/`drawHaloText()`
  * to turn an (along-axis, cross-axis) position into real canvas x/y — nothing below ever
  * writes `ctx.something(x, y)` with x or y read directly off a Viewport or a screen
@@ -13,11 +20,13 @@
  *
  * Colors are literals, not CSS custom properties — canvas can't read a custom property
  * cheaply every frame, same reasoning as app/lib/map/renderer.ts's COLORS. Keep these in
- * sync with app/styles/tokens.css by hand (see that file's own "change one, change both").
+ * sync with app/styles/tokens.css by hand where they correspond (see that file's own
+ * "change one, change both") — the per-kind wire colours (sea/gov/brass/land) are new,
+ * canvas-only variants with no token equivalent.
  *
- * Every label on this page — ticks, bars, pins, the context stack — goes through
- * placeLabels() (layout.ts), grouped by whatever visually shares a line (a lane row, or
- * the tick strip), so a crowded zoom drops the lower-tier text instead of overlapping it.
+ * Every label on this page — ticks, capsules, the two out-of-range zone labels — goes
+ * through placeLabels() (layout.ts) or is truncated to its own capsule's width
+ * (truncateToFit), so a crowded zoom drops or shortens text instead of overlapping it.
  * Text is Bulgarian (entry.label is name.bg — see catalog.server.ts): both canvas fonts
  * are read from CSS custom properties that resolve to Archivo/IBM Plex Mono, which carry
  * Cyrillic; app/lib/history/timeline.ts additionally waits on `document.fonts.ready`
@@ -25,7 +34,10 @@
  * loading gets corrected rather than staying stuck on a Latin-only fallback.
  */
 import { assignRows, classifySpan, contextAt, placeLabels, type LabelCandidate, type LayoutEntry } from './layout';
-import { dateOfDecimalYear, pxToTime, ticks, timeToPx, visibleEntries, type EntryKind, type Viewport } from './scale';
+import {
+  CONFIG, dateOfDecimalYear, pxToTime, ticks, timeToPx, visibleEntries,
+  type EntryKind, type Tick, type TimeRange, type Viewport
+} from './scale';
 
 export type Axis = 'horizontal' | 'vertical';
 
@@ -39,45 +51,84 @@ export interface TimelineEntry extends LayoutEntry {
 
 const COLORS = {
   abyss: '#080D13', // --abyss
-  chart: '#0E1720', // --chart
   land: '#31485A', // --land — periods
-  rule: '#243543', // --rule — period stroke
-  ink: '#E6EEF3', // --ink — bar text, the context stack's period line
-  ink2: '#9FB3C0', // --ink-2
-  ink3: '#67808F', // --ink-3 — the context stack's government line (no bars of its own)
-  brass: '#E8A33D', // --brass — event pins, the centre marker
-  brass2: '#F5CE86', // --brass-2 — pinned/event label text
-  brassDim: '#8A6425', // --brass-dim — event stems
-  sea: '#4EA9C9', // --sea — rulers, the context stack's ruler line
-  seaDim: '#2A5F75', // --sea-dim — ruler fill
+  landBright: '#4A6E86', // a lightened --land — the cylinder's lit middle, and period capsules' bright stop
+  rule: '#243543', // --rule — period capsule stroke
+  ink: '#E6EEF3', // --ink — focused-capsule text
+  ink2: '#9FB3C0', // --ink-2 — ordinary capsule text
+  ink3: '#67808F', // --ink-3 — tick labels, out-of-range zone labels
+  brass: '#E8A33D', // --brass — events, the centre date readout
+  brass2: '#F5CE86', // --brass-2 — the centre date readout's own text
+  brassDim: '#8A6425', // --brass-dim — event capsules' dim stop
+  sea: '#4EA9C9', // --sea — rulers
+  seaDim: '#2A5F75', // --sea-dim — ruler capsules' dim stop
+  gov: '#8B84C7', // a muted violet, canvas-only — governments (cabinets; no token: distinct from period/ruler/event on purpose)
+  govDim: '#3E3A5C',
   highlight: 'rgba(245,206,134,.35)', // --brass-2, low opacity — the cylinder's specular line
   labelHalo: 'rgba(8,13,19,.85)', // --abyss, high opacity
-  pinnedHalo: 'rgba(8,13,19,.72)'
+  centreLine: 'rgba(232,163,61,.32)' // --brass, faint — confined inside the cylinder only
 } as const;
 
+/** Background wash for period capsules' translucent bands, one colour per period so
+ *  adjacent eras read as distinct background colour rather than a uniform tint — picked
+ *  by the period's stable position in the WHOLE dataset (periodIndexOf in render()), not
+ *  by draw order, so a given era's wash never changes colour as you pan. */
+const PERIOD_BAND_COLORS: readonly string[] = [
+  'rgba(49,72,90,.26)', 'rgba(42,95,117,.22)', 'rgba(70,58,110,.22)', 'rgba(120,90,40,.18)'
+];
+
 export const RENDER_CONFIG = {
-  contextStackTop: 8,
-  contextStackLineGap: 4,
-  cylinderTop: 72,
-  cylinderThickness: 88,
-  tickMajorLength: 88, // spans the cylinder's full thickness
-  tickMinorLength: 44,
-  tickLabelGap: 10,
-  /** Where an event pin's dot sits, and how far its stem drops before the label. */
-  eventDotCross: 194,
-  eventStemLength: 16,
-  /** Where the period lane starts — under the cylinder, its tick labels and the event row. */
-  rowsTop: 236,
-  /** Periods and rulers get different row heights as well as different colours — "a
-   *  glance should tell them apart without a legend" applies to shape, not just hue. */
-  periodRowHeight: 32,
-  rulerRowHeight: 24,
-  rowGap: 6,
-  /** Gap between the period lane and the ruler lane below it. */
-  laneGap: 18,
-  /** Inset so two adjacent bars never visually touch. */
-  barPadPx: 2
+  /** Reserved strip at the very top of the cylinder for year ticks and their labels —
+   *  "year labels stay on the cylinder's top surface." */
+  tickStripHeight: 28,
+  tickMajorLength: 10,
+  tickMinorLength: 5,
+  /** Gap between the tick strip and the first wire, and between the last wire and the
+   *  cylinder's own bottom edge. */
+  wirePaddingTop: 8,
+  wirePaddingBottom: 12,
+  /** Gap between adjacent wires (period/ruler/government/event), and between two
+   *  overlapping entries' sub-rows on the SAME wire. */
+  wireGap: 5,
+  /** Inset so two adjacent capsules never visually touch. */
+  capsuleGapPx: 4,
+  capsuleHPad: 10,
+  capsuleMinFontPx: 10,
+  capsuleMaxFontPx: 22,
+  /** How much bigger the capsule containing the centre date is than its siblings on the
+   *  same wire — "the current focus." */
+  capsuleFocusScale: 1.28,
+  eventCapsuleMinWidthPx: 14,
+  centreDateGap: 10,
+  centreDateFontPx: 13,
+  fadeZoneLabelFontPx: 13
 } as const;
+
+/** Duration order, top to bottom inside the cylinder — periods longest-lived, events
+ *  shortest (a single moment). Fixed, mirrors scale.ts's KIND_RANK. */
+const WIRE_ORDER: readonly EntryKind[] = ['period', 'ruler', 'government', 'event'];
+
+/** Where each wire "unlocks" along the cylinder's own normalised growth (0 = maximum
+ *  zoom-out, 1 = day-level) and how wide the eased fade-in band is — "as the cylinder
+ *  grows with zoom, more wires become visible; at the thinnest zoom only the period wire
+ *  shows." Tied to the cylinder's OWN eased size (not raw pxPerYear), so a wire's
+ *  appearance inherits the same smooth, never-a-snap animation the cylinder's growth
+ *  already has, for free. A judgement call on exact thresholds — see CLAUDE.md. */
+const WIRE_REVEAL_START: Readonly<Record<EntryKind, number>> = { period: 0, ruler: 0.22, government: 0.46, event: 0.68 };
+const WIRE_REVEAL_BAND = 0.12;
+
+function clamp(x: number, lo: number, hi: number): number {
+  return Math.min(Math.max(x, lo), hi);
+}
+
+function smoothstep(t: number): number {
+  const c = clamp(t, 0, 1);
+  return c * c * (3 - 2 * c);
+}
+
+function wireRevealAt(kind: EntryKind, normFrac: number): number {
+  return smoothstep((normFrac - WIRE_REVEAL_START[kind]) / WIRE_REVEAL_BAND);
+}
 
 /** The one place axis direction is decided: (along-axis px, cross-axis px) -> real
  *  canvas (x, y). "along" is time; "cross" is everything perpendicular to it. */
@@ -111,8 +162,8 @@ function drawHaloText(ctx: CanvasRenderingContext2D, axis: Axis, along: number, 
 }
 
 /** Shortens `text` with a trailing ellipsis until it fits `maxWidthPx` (the font must
- *  already be set on `ctx`), or '' if even a bare ellipsis doesn't fit — "hidden entirely
- *  when there is no room at all", the caller's cue to skip the label but keep the bar. */
+ *  already be set on `ctx`), or '' if even a bare ellipsis doesn't fit — the caller's cue
+ *  to skip the label but keep the capsule. */
 function truncateToFit(ctx: CanvasRenderingContext2D, text: string, maxWidthPx: number): string {
   if (maxWidthPx <= 0) return '';
   if (ctx.measureText(text).width <= maxWidthPx) return text;
@@ -128,48 +179,76 @@ function truncateToFit(ctx: CanvasRenderingContext2D, text: string, maxWidthPx: 
   return lo === 0 ? '' : text.slice(0, lo) + ellipsis;
 }
 
-/** Converts a text's rendering anchor + measured width into placeLabels' left-edge/width
- *  convention (layout.ts's overlap test assumes `px` is the LEFT edge), so the collision
- *  check matches what's actually going to be on screen regardless of whether the text is
- *  left- or centre-aligned. `padPx` widens the box a little on each side so two labels
- *  get a hair of breathing room rather than touching pixel-to-pixel. */
 function labelCandidate(id: string, anchorPx: number, widthPx: number, align: 'left' | 'center', tier: number, padPx = 0): LabelCandidate {
   const left = align === 'center' ? anchorPx - widthPx / 2 - padPx : anchorPx - padPx;
   return { id, px: left, widthPx: widthPx + padPx * 2, tier };
 }
 
-/** classifySpan's `labelPx` (and an event's raw time position) are clamped to keep that
- *  one ANCHOR point on screen — they don't and can't know the text's rendered width
- *  (layout.ts stays font-metric-agnostic on purpose). Centred text at an anchor clamped
- *  right at the edge would still have half of itself rendered off-canvas, so the
- *  renderer clamps a second time here, accounting for the actual measured width, before
- *  handing the position to placeLabels or drawHaloText. */
+/** Clamps a CENTRED anchor so the text of width `widthPx` stays fully on screen —
+ *  layout.ts stays font-metric-agnostic, so this is the renderer's own second clamp,
+ *  after whatever positioned the anchor in the first place. */
 function clampCentredAnchor(anchorPx: number, widthPx: number, sizePx: number, padPx: number): number {
   const half = widthPx / 2 + padPx;
   if (half * 2 >= sizePx) return sizePx / 2; // wider than the viewport itself — centre it and let it clip
   return Math.min(Math.max(anchorPx, half), sizePx - half);
 }
 
+/** Drops ticks whose px position is closer than `minGapPx` to a kept tick's — applies to
+ *  the MARK itself, not just its label (placeLabels, below, separately thins the text). */
+function declutterByPx(candidates: readonly Tick[], minGapPx: number): Tick[] {
+  const sorted = [...candidates].sort((a, b) => a.px - b.px);
+  const kept: Tick[] = [];
+  let lastPx = -Infinity;
+  for (const tick of sorted) {
+    if (tick.px - lastPx >= minGapPx) {
+      kept.push(tick);
+      lastPx = tick.px;
+    }
+  }
+  return kept;
+}
+
 /* -------------------------------------------------------------------------- the cylinder */
 
 /**
- * A band across the canvas with a dark-bright-dark gradient across its THICKNESS (not
- * along the timeline) so it reads as lit from above, like a rotating drum — plus a thin
- * highlight line near the top, the specular hint that sells the roundness.
+ * The whole page's stage: a full-width, rounded band with a dark-bright-dark gradient
+ * across its THICKNESS (not along the timeline) so it reads as lit from above, like a
+ * rotating drum — a thin highlight near the top edge, a darkening vignette just inside
+ * both the top and bottom edges (the curved inner surface a real tube would show), and a
+ * soft drop shadow so it sits above the background. `thickness` is whatever
+ * HistoryTimeline's own eased animation currently has it at — this function draws a
+ * snapshot, it doesn't know or care that it's mid-animation.
  */
-function drawCylinder(ctx: CanvasRenderingContext2D, axis: Axis, alongSizePx: number): void {
-  const { cylinderTop: top, cylinderThickness: thickness } = RENDER_CONFIG;
-  const p0 = project(axis, 0, top);
-  const p1 = project(axis, 0, top + thickness);
-  const gradient = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
-  gradient.addColorStop(0, COLORS.chart);
-  gradient.addColorStop(0.5, COLORS.land);
-  gradient.addColorStop(1, COLORS.chart);
-  ctx.fillStyle = gradient;
-  const band = rectFor(axis, 0, alongSizePx, top, top + thickness);
-  ctx.fillRect(band.x, band.y, band.w, band.h);
+function drawCylinderShell(ctx: CanvasRenderingContext2D, axis: Axis, alongSizePx: number, cylinderTop: number, thickness: number): void {
+  const cylinderBottom = cylinderTop + thickness;
+  const radius = Math.min(thickness / 2, 26);
+  const band = rectFor(axis, 0, alongSizePx, cylinderTop, cylinderBottom);
 
-  const highlightCross = top + thickness * 0.32; // a light source from above, not dead centre
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.55)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetX = axis === 'vertical' ? 10 : 0;
+  ctx.shadowOffsetY = axis === 'horizontal' ? 10 : 0;
+  ctx.beginPath();
+  ctx.roundRect(band.x, band.y, band.w, band.h, radius);
+  const p0 = project(axis, 0, cylinderTop);
+  const p1 = project(axis, 0, cylinderBottom);
+  const gradient = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
+  gradient.addColorStop(0, COLORS.abyss);
+  gradient.addColorStop(0.16, COLORS.land);
+  gradient.addColorStop(0.5, COLORS.landBright);
+  gradient.addColorStop(0.84, COLORS.land);
+  gradient.addColorStop(1, COLORS.abyss);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+  ctx.restore(); // the shadow must not bleed into what's drawn next
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(band.x, band.y, band.w, band.h, radius);
+  ctx.clip();
+
+  const highlightCross = cylinderTop + thickness * 0.12;
   const h0 = project(axis, 0, highlightCross);
   const h1 = project(axis, alongSizePx, highlightCross);
   ctx.strokeStyle = COLORS.highlight;
@@ -178,6 +257,72 @@ function drawCylinder(ctx: CanvasRenderingContext2D, axis: Axis, alongSizePx: nu
   ctx.moveTo(h0.x, h0.y);
   ctx.lineTo(h1.x, h1.y);
   ctx.stroke();
+
+  // Inner vignette: a short dark gradient just inside each edge, so the surface reads as
+  // curving away rather than ending in a flat line.
+  const vignetteDepth = Math.max(6, thickness * 0.1);
+  for (const [edgeCross, dir] of [[cylinderTop, 1], [cylinderBottom, -1]] as const) {
+    const v0 = project(axis, 0, edgeCross);
+    const v1 = project(axis, 0, edgeCross + vignetteDepth * dir);
+    const vGrad = ctx.createLinearGradient(v0.x, v0.y, v1.x, v1.y);
+    vGrad.addColorStop(0, 'rgba(0,0,0,.4)');
+    vGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = vGrad;
+    const r = rectFor(axis, 0, alongSizePx, edgeCross, edgeCross + vignetteDepth * dir);
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  }
+  ctx.restore();
+}
+
+/**
+ * Darkens the cylinder outside the dataset's own [contentRange.from, contentRange.to] —
+ * "fade the cylinder's brightness towards both outer regions" — and, where enough of that
+ * empty zone is on screen to read comfortably, a muted label: "Преди <earliest year> —
+ * Стара Велика България" to the left, "Бъдеще" to the right. Both zones are always
+ * reachable (never fully off the pannable range) since HistoryTimeline's pan limit is
+ * exactly half a viewport past each edge at maximum zoom-out.
+ */
+function drawOutOfRangeFade(
+  ctx: CanvasRenderingContext2D, axis: Axis, monoFont: string, viewport: Viewport,
+  cylinderTop: number, cylinderBottom: number, contentRange: TimeRange
+): void {
+  const startPx = timeToPx(contentRange.from, viewport);
+  const endPx = timeToPx(contentRange.to, viewport);
+  const midCross = (cylinderTop + cylinderBottom) / 2;
+
+  const fade = (fromPx: number, toPx: number): void => {
+    if (toPx - fromPx < 1) return;
+    const g0 = project(axis, toPx, 0);
+    const g1 = project(axis, fromPx, 0);
+    const grad = ctx.createLinearGradient(g0.x, g0.y, g1.x, g1.y);
+    grad.addColorStop(0, 'rgba(8,13,19,0)');
+    grad.addColorStop(1, 'rgba(8,13,19,.6)');
+    ctx.fillStyle = grad;
+    const r = rectFor(axis, fromPx, toPx, cylinderTop, cylinderBottom);
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  };
+
+  if (startPx > 0) {
+    const edge = Math.min(startPx, viewport.sizePx);
+    fade(0, edge);
+    if (edge > 70) {
+      const earliestYear = dateOfDecimalYear(contentRange.from).year;
+      ctx.font = `600 ${RENDER_CONFIG.fadeZoneLabelFontPx}px ${monoFont}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      drawHaloText(ctx, axis, edge / 2, midCross, `Преди ${earliestYear} — Стара Велика България`, COLORS.ink3);
+    }
+  }
+  if (endPx < viewport.sizePx) {
+    const edge = Math.max(endPx, 0);
+    fade(edge, viewport.sizePx);
+    if (viewport.sizePx - edge > 70) {
+      ctx.font = `600 ${RENDER_CONFIG.fadeZoneLabelFontPx}px ${monoFont}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      drawHaloText(ctx, axis, (edge + viewport.sizePx) / 2, midCross, 'Бъдеще', COLORS.ink3);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------------------- ticks */
@@ -193,135 +338,141 @@ function formatHistoryDate(d: { year: number; month: number | null; day: number 
   return `${d.day} ${MONTH_NAMES[d.month - 1]} ${yearLabel}`;
 }
 
-/** Tick marks and labels, drawn ON the cylinder's surface — major ticks span its full
- *  thickness, minor ticks (month/day, only active at finer zoom — see scale.ts's ticks())
- *  span half of it, so the two weights stay visually distinct without a third colour.
- *
- *  Marks and labels are two separate passes: every tick gets its mark, but at a zoom
- *  where consecutive year ticks are closer together than their labels are wide (a
- *  border case around the year/decade threshold), printing every label would overlap
- *  into an unreadable smear. placeLabels resolves it: major beats minor on overlap, and
- *  a dropped label still leaves its mark on the surface. */
-function drawTicks(ctx: CanvasRenderingContext2D, axis: Axis, monoFont: string, viewport: Viewport): void {
-  const { cylinderTop: top, cylinderThickness: thickness, tickMajorLength, tickMinorLength, tickLabelGap } = RENDER_CONFIG;
+/** Ticks and their labels, drawn on the cylinder's own top surface, inside
+ *  RENDER_CONFIG.tickStripHeight — "year labels stay on the cylinder's top surface." */
+function drawTopTicks(ctx: CanvasRenderingContext2D, axis: Axis, monoFont: string, viewport: Viewport, cylinderTop: number): void {
+  const { tickMajorLength, tickMinorLength } = RENDER_CONFIG;
   const all = ticks(viewport);
+  const majors = all.filter(t => t.weight === 'major');
+  const minors = declutterByPx(all.filter(t => t.weight === 'minor'), 4);
+  const drawn = [...majors, ...minors].sort((a, b) => a.t - b.t);
 
-  for (const tick of all) {
+  const markTop = cylinderTop + 4;
+  for (const tick of drawn) {
     const length = tick.weight === 'major' ? tickMajorLength : tickMinorLength;
-    const cross0 = top + (thickness - length) / 2;
-    const cross1 = cross0 + length;
-    const p0 = project(axis, tick.px, cross0);
-    const p1 = project(axis, tick.px, cross1);
-    ctx.strokeStyle = tick.weight === 'major' ? 'rgba(230,238,243,.55)' : 'rgba(103,128,143,.45)';
-    ctx.lineWidth = tick.weight === 'major' ? 1.5 : 1;
+    const p0 = project(axis, tick.px, markTop);
+    const p1 = project(axis, tick.px, markTop + length);
+    ctx.strokeStyle = tick.weight === 'major' ? 'rgba(230,238,243,.6)' : 'rgba(103,128,143,.25)';
+    ctx.lineWidth = tick.weight === 'major' ? 1.3 : 1;
     ctx.beginPath();
     ctx.moveTo(p0.x, p0.y);
     ctx.lineTo(p1.x, p1.y);
     ctx.stroke();
   }
 
-  const candidates: LabelCandidate[] = all.map((tick, i) => {
-    ctx.font = `${tick.weight === 'major' ? 600 : 400} 11px ${monoFont}`;
-    return labelCandidate(String(i), tick.px, ctx.measureText(tick.label).width, 'center', tick.weight === 'major' ? 0 : 1, 4);
+  const labelCross = markTop + tickMajorLength + 2;
+  const candidates: LabelCandidate[] = drawn.map((tick, i) => {
+    ctx.font = `${tick.weight === 'major' ? 600 : 400} 10px ${monoFont}`;
+    return labelCandidate(String(i), tick.px, ctx.measureText(tick.label).width, 'center', tick.weight === 'major' ? 0 : 1, 3);
   });
   const placed = new Set(placeLabels(candidates).map(c => c.id));
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  all.forEach((tick, i) => {
+  drawn.forEach((tick, i) => {
     if (!placed.has(String(i))) return;
-    ctx.font = `${tick.weight === 'major' ? 600 : 400} 11px ${monoFont}`;
-    drawHaloText(ctx, axis, tick.px, top + thickness + tickLabelGap, tick.label, tick.weight === 'major' ? COLORS.ink2 : COLORS.ink3);
+    ctx.font = `${tick.weight === 'major' ? 600 : 400} 10px ${monoFont}`;
+    drawHaloText(ctx, axis, tick.px, labelCross, tick.label, tick.weight === 'major' ? COLORS.ink2 : COLORS.ink3);
   });
 }
 
-/* ------------------------------------------------------------------------ centre marker */
+/* ------------------------------------------------------------------------------- wires */
 
-/** A line fixed at the screen centre — never moves as content pans, since it's drawn at
- *  sizePx / 2 rather than at any entry's or tick's computed position — with the exact
- *  date under it. timeToPx(viewport.center, viewport) is always sizePx / 2 by
- *  construction, so reading the date straight off viewport.center is exact. */
-function drawCentreMarker(ctx: CanvasRenderingContext2D, axis: Axis, monoFont: string, viewport: Viewport, crossSizePx: number): void {
-  const alongCentre = viewport.sizePx / 2;
-  const p0 = project(axis, alongCentre, 0);
-  const p1 = project(axis, alongCentre, crossSizePx);
-  ctx.strokeStyle = COLORS.brass;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(p0.x, p0.y);
-  ctx.lineTo(p1.x, p1.y);
-  ctx.stroke();
-
-  ctx.font = `700 13px ${monoFont}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  drawHaloText(ctx, axis, alongCentre, crossSizePx - 8, formatHistoryDate(dateOfDecimalYear(viewport.center)), COLORS.brass2);
-}
-
-/* -------------------------------------------------------------------------- context stack */
-
-/**
- * Above the cylinder: what contains the date under the centre marker, one line per kind
- * — period (largest, top), ruler, government (smallest) — each in its own colour so the
- * three read as a hierarchy, not a list. A kind with no containing entry (a gap — no
- * ruler during most of Ottoman rule, no government before 1878) is skipped outright, not
- * drawn as a placeholder. Runs contextAt against the WHOLE dataset, not the zoom-culled
- * subset, so the answer never depends on which bars happen to be drawn right now — "stays
- * readable at every zoom level" means correct at every zoom level too.
- */
-function drawContextStack(ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, entries: readonly TimelineEntry[], viewport: Viewport): void {
-  const at = contextAt(entries, viewport.center);
-  const alongCentre = viewport.sizePx / 2;
-
-  const lines: { text: string; fontPx: number; color: string }[] = [];
-  if (at.period.primary) lines.push({ text: at.period.primary.label, fontPx: 18, color: COLORS.ink });
-  if (at.ruler.primary) lines.push({ text: at.ruler.primary.label, fontPx: 15, color: COLORS.sea });
-  if (at.government.primary) lines.push({ text: at.government.primary.label, fontPx: 13, color: COLORS.ink3 });
-
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  let cross = RENDER_CONFIG.contextStackTop;
-  for (const line of lines) {
-    ctx.font = `700 ${line.fontPx}px ${uiFont}`;
-    drawHaloText(ctx, axis, alongCentre, cross, line.text, line.color);
-    cross += line.fontPx + RENDER_CONFIG.contextStackLineGap;
-  }
-}
-
-/* ------------------------------------------------------------------------- period/ruler lanes */
-
-/** How many rows `kind` occupies, from a row assignment computed over the WHOLE dataset
- *  (see assignRows) — used to place the ruler lane below however tall the period lane
- *  turns out to be, without that offset jumping as entries scroll in and out of view. */
-function laneRowCount(entries: readonly LayoutEntry[], rows: ReadonlyMap<string, number>, kind: EntryKind): number {
-  let max = -1;
-  for (const e of entries) {
-    if (e.kind !== kind) continue;
-    const row = rows.get(e.id);
-    if (row !== undefined && row > max) max = row;
-  }
-  return max + 1;
+interface WireLayout {
+  top: number;
+  height: number;
+  rowHeight: number;
+  subRows: number;
+  /** The wire's own reveal factor (0..1) — how "unlocked" it is at the current cylinder
+   *  size. Applied as this wire's alpha, so it fades in rather than popping. */
+  alpha: number;
 }
 
 /**
- * One kind's entries, one row at a time, as bars (classifySpan's "bar" mode) or a label
- * pinned to stay on screen ("pinned" mode, for a span wider than the viewport) — see
- * layout.ts. Bars always draw; their labels are collision-resolved with placeLabels PER
- * ROW (two labels in different rows never compete — they don't visually overlap — so
- * grouping by row before calling placeLabels matters, not just calling it once per lane).
- * A bar label is truncated to fit its own bar first; a pinned label keeps its full text
- * (it isn't boxed in the way a bar is).
+ * Splits the cylinder's inner content area into one row per visible kind, in duration
+ * order, sized by how "unlocked" each kind is (wireRevealAt, itself driven by the
+ * cylinder's own eased growth) AND by whether it actually has anything to show right now
+ * — a kind with zero visible entries gets no row at all, so its space merges into its
+ * neighbours ("fill the space instead of leaving it empty") rather than sitting reserved
+ * and blank. Each kind's own sub-row count (co-occurring entries — overlapping periods,
+ * co-rulers) is read off `rows` for only the entries actually on screen, so a wire's
+ * capsules get taller when fewer of them are competing for the same row right now.
  */
-function drawLane(
-  ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string,
+function layoutWires(
+  visibleByKind: Readonly<Record<EntryKind, TimelineEntry[]>>, rows: ReadonlyMap<string, number>,
+  contentTop: number, contentBottom: number, normFrac: number
+): Partial<Record<EntryKind, WireLayout>> {
+  const available = Math.max(0, contentBottom - contentTop);
+  const shown: EntryKind[] = [];
+  const reveal: Partial<Record<EntryKind, number>> = {};
+  for (const kind of WIRE_ORDER) {
+    if (visibleByKind[kind].length === 0) continue;
+    const r = wireRevealAt(kind, normFrac);
+    if (r > 0.02) {
+      shown.push(kind);
+      reveal[kind] = r;
+    }
+  }
+  if (shown.length === 0) return {};
+
+  const totalReveal = shown.reduce((sum, k) => sum + (reveal[k] ?? 0), 0);
+  const usable = Math.max(0, available - RENDER_CONFIG.wireGap * (shown.length - 1));
+
+  const out: Partial<Record<EntryKind, WireLayout>> = {};
+  let top = contentTop;
+  for (const kind of shown) {
+    const height = usable * ((reveal[kind] ?? 0) / totalReveal);
+    let subRows = 1;
+    for (const e of visibleByKind[kind]) subRows = Math.max(subRows, (rows.get(e.id) ?? 0) + 1);
+    out[kind] = { top, height, rowHeight: height / subRows, subRows, alpha: reveal[kind] ?? 1 };
+    top += height + RENDER_CONFIG.wireGap;
+  }
+  return out;
+}
+
+function kindCapsuleColors(kind: EntryKind): { dim: string; bright: string; stroke: string } {
+  switch (kind) {
+    case 'period': return { dim: COLORS.land, bright: COLORS.landBright, stroke: COLORS.rule };
+    case 'ruler': return { dim: COLORS.seaDim, bright: COLORS.sea, stroke: COLORS.sea };
+    case 'government': return { dim: COLORS.govDim, bright: COLORS.gov, stroke: COLORS.gov };
+    case 'event': return { dim: COLORS.brassDim, bright: COLORS.brass, stroke: COLORS.brass };
+  }
+}
+
+/** One faint rail per sub-row of `wire` — the literal "wire" its capsules sit on. */
+function drawWireRails(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number, wire: WireLayout, color: string): void {
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = wire.alpha * 0.35;
+  ctx.lineWidth = 1;
+  for (let row = 0; row < wire.subRows; row++) {
+    const mid = wire.top + row * wire.rowHeight + wire.rowHeight / 2;
+    const p0 = project(axis, 0, mid);
+    const p1 = project(axis, sizePx, mid);
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * `kind`'s visible entries as rounded capsules on `wire`: a cross-axis gradient fill in
+ * the kind's colour (dim at the edges, bright through the middle — the same "lit from
+ * above" technique as the cylinder itself), the Bulgarian name inside, clipped and
+ * truncated to the capsule's own width. A period/ruler/government capsule wider than the
+ * viewport (classifySpan's "pinned" mode) still draws spanning the whole width, so it
+ * never disappears just because neither of its own ends is on screen. An event has no
+ * duration, so it gets a small pill sized to its own text instead of a span. The one
+ * entry whose span contains the centre date (`focusId`) draws larger and brighter than
+ * its siblings on the same wire — "the current focus."
+ */
+function drawWireCapsules(
+  ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, kind: EntryKind,
   entries: readonly TimelineEntry[], rows: ReadonlyMap<string, number>, viewport: Viewport,
-  laneTop: number, rowHeight: number, fill: string, stroke: string
+  wire: WireLayout, focusId: string | null
 ): void {
-  const { rowGap, barPadPx } = RENDER_CONFIG;
-  const visibleFrom = pxToTime(0, viewport);
-  const visibleTo = pxToTime(viewport.sizePx, viewport);
-  const visibleSpan = Math.max(visibleTo - visibleFrom, 1e-9);
-
+  const { dim, bright, stroke } = kindCapsuleColors(kind);
   const byRow = new Map<number, TimelineEntry[]>();
   for (const e of entries) {
     const row = rows.get(e.id) ?? 0;
@@ -329,137 +480,132 @@ function drawLane(
   }
 
   for (const [row, rowEntries] of byRow) {
-    const cross0 = laneTop + row * (rowHeight + rowGap);
-    const cross1 = cross0 + rowHeight;
-    const crossMid = (cross0 + cross1) / 2;
-    const spans = new Map(rowEntries.map(e => [e.id, classifySpan(e, viewport)] as const));
+    if (row >= wire.subRows) continue; // defensive: subRows is computed from this same set
+    const rowTop = wire.top + row * wire.rowHeight;
+    const rowMid = rowTop + wire.rowHeight / 2;
+    const baseFontPx = clamp(wire.rowHeight * 0.42, RENDER_CONFIG.capsuleMinFontPx, RENDER_CONFIG.capsuleMaxFontPx);
+    const baseHeight = Math.max(4, wire.rowHeight - RENDER_CONFIG.capsuleGapPx);
 
     for (const e of rowEntries) {
-      const span = spans.get(e.id)!;
-      if (span.mode !== 'bar') continue;
-      const r = rectFor(axis, span.fromPx + barPadPx, span.toPx - barPadPx, cross0, cross1);
-      if (r.w <= 0 || r.h <= 0) continue;
-      ctx.fillStyle = fill;
-      ctx.fillRect(r.x, r.y, r.w, r.h);
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(r.x + 0.5, r.y + 0.5, Math.max(0, r.w - 1), Math.max(0, r.h - 1));
-    }
+      const isFocus = e.id === focusId;
+      const h = Math.min(wire.height, baseHeight * (isFocus ? RENDER_CONFIG.capsuleFocusScale : 1));
+      const fontPx = Math.min(RENDER_CONFIG.capsuleMaxFontPx, baseFontPx * (isFocus ? 1.12 : 1));
+      const cross0 = rowMid - h / 2;
+      const cross1 = rowMid + h / 2;
 
-    interface Candidate { entry: TimelineEntry; text: string; anchorPx: number; align: 'left' | 'center'; widthPx: number; tier: number }
-    const candidates: Candidate[] = [];
-    for (const e of rowEntries) {
-      const span = spans.get(e.id)!;
-      if (span.mode === 'bar') {
-        const r = rectFor(axis, span.fromPx + barPadPx, span.toPx - barPadPx, cross0, cross1);
-        const barAlongPx = (axis === 'horizontal' ? r.w : r.h) - 12; // inset padding, both sides
-        if (barAlongPx <= 0) continue;
-        ctx.font = `500 12px ${uiFont}`;
-        const text = truncateToFit(ctx, e.label, barAlongPx);
-        if (!text) continue; // no room even for an ellipsis — bar stays, label doesn't
-        candidates.push({ entry: e, text, anchorPx: span.fromPx + barPadPx + 6, align: 'left', widthPx: ctx.measureText(text).width, tier: e.tier });
+      let fromPx: number;
+      let toPx: number;
+      if (kind === 'event') {
+        ctx.font = `600 ${fontPx}px ${uiFont}`;
+        const textWidth = ctx.measureText(e.label).width;
+        const capsuleWidth = Math.max(RENDER_CONFIG.eventCapsuleMinWidthPx, textWidth + RENDER_CONFIG.capsuleHPad * 2);
+        const centre = clampCentredAnchor(timeToPx(e.start, viewport), capsuleWidth, viewport.sizePx, 0);
+        fromPx = centre - capsuleWidth / 2;
+        toPx = centre + capsuleWidth / 2;
       } else {
-        ctx.font = `600 12px ${uiFont}`;
-        const widthPx = ctx.measureText(e.label).width;
-        const anchorPx = clampCentredAnchor(span.labelPx, widthPx, viewport.sizePx, 6);
-        // Two non-overlapping periods sharing a row (Byzantine rule, then Second Empire)
-        // can both be pinned near their shared boundary, with clamped anchors close
-        // enough to collide even though their actual date ranges never do. A plain
-        // tier/id tie-break would pick whichever wins alphabetically — possibly the one
-        // the view barely touches at the edge, hiding the one that covers almost the
-        // whole screen. Nudge the tier by how much of the VISIBLE range this entry's own
-        // span covers, so among equal-tier pinned rivals, "what you're mostly looking
-        // at" wins — never enough to cross into a genuinely different content tier.
-        const overlapStart = Math.max(e.start, visibleFrom);
-        const overlapEnd = Math.min(e.end ?? Infinity, visibleTo);
-        const overlapFraction = Math.max(0, overlapEnd - overlapStart) / visibleSpan;
-        candidates.push({ entry: e, text: e.label, anchorPx, align: 'center', widthPx, tier: e.tier - overlapFraction * 0.5 });
+        const span = classifySpan(e, viewport);
+        if (span.mode === 'bar') {
+          fromPx = span.fromPx + RENDER_CONFIG.capsuleGapPx / 2;
+          toPx = span.toPx - RENDER_CONFIG.capsuleGapPx / 2;
+        } else {
+          fromPx = RENDER_CONFIG.capsuleGapPx;
+          toPx = viewport.sizePx - RENDER_CONFIG.capsuleGapPx;
+        }
       }
-    }
+      if (toPx - fromPx < 2) continue;
 
-    const survivors = new Set(
-      placeLabels(candidates.map(c => labelCandidate(c.entry.id, c.anchorPx, c.widthPx, c.align, c.tier, 6))).map(c => c.id)
-    );
+      const r = rectFor(axis, fromPx, toPx, cross0, cross1);
+      const radius = Math.min(r.w, r.h) / 2;
 
-    for (const c of candidates) {
-      if (!survivors.has(c.entry.id)) continue;
-      if (c.align === 'left') {
-        const span = spans.get(c.entry.id)!;
-        if (span.mode !== 'bar') continue;
-        const r = rectFor(axis, span.fromPx + barPadPx, span.toPx - barPadPx, cross0, cross1);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(r.x, r.y, r.w, r.h);
-        ctx.clip();
-        ctx.font = `500 12px ${uiFont}`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        drawHaloText(ctx, axis, c.anchorPx, crossMid, c.text, COLORS.ink);
-        ctx.restore();
-      } else {
-        ctx.font = `600 12px ${uiFont}`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const halo = rectFor(axis, c.anchorPx - c.widthPx / 2 - 6, c.anchorPx + c.widthPx / 2 + 6, cross0 + 3, cross1 - 3);
-        ctx.fillStyle = COLORS.pinnedHalo;
-        ctx.fillRect(halo.x, halo.y, halo.w, halo.h);
-        drawHaloText(ctx, axis, c.anchorPx, crossMid, c.text, COLORS.brass2);
+      ctx.save();
+      ctx.globalAlpha = wire.alpha;
+      ctx.beginPath();
+      ctx.roundRect(r.x, r.y, r.w, r.h, radius);
+      const g0 = project(axis, fromPx, cross0);
+      const g1 = project(axis, fromPx, cross1);
+      const grad = ctx.createLinearGradient(g0.x, g0.y, g1.x, g1.y);
+      grad.addColorStop(0, dim);
+      grad.addColorStop(0.5, bright);
+      grad.addColorStop(1, dim);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = isFocus ? 1.5 : 1;
+      ctx.strokeStyle = isFocus ? bright : stroke;
+      ctx.stroke();
+
+      const availableTextPx = (axis === 'horizontal' ? r.w : r.h) - RENDER_CONFIG.capsuleHPad * 2;
+      if (availableTextPx > 6) {
+        ctx.font = `${isFocus ? 700 : 500} ${fontPx}px ${uiFont}`;
+        const text = truncateToFit(ctx, e.label, availableTextPx);
+        if (text) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(r.x, r.y, r.w, r.h);
+          ctx.clip();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          drawHaloText(ctx, axis, (fromPx + toPx) / 2, rowMid, text, isFocus ? COLORS.ink : COLORS.ink2);
+          ctx.restore();
+        }
       }
+      ctx.restore();
     }
   }
 }
 
-/* ------------------------------------------------------------------------------- events */
-
 /**
- * kind: event entries as pins below the cylinder — a short stem, a dot at
- * `RENDER_CONFIG.eventDotCross`, and a "year — name" label below it. Stems and dots
- * always draw (they're cheap and unambiguous even packed tight); labels are
- * collision-resolved by placeLabels using each event's own tier, same rule as everywhere
- * else on this page.
+ * A wide translucent band per visible period, behind everything else inside the cylinder
+ * — "the era is felt as background colour." Coloured by the period's stable index in the
+ * WHOLE dataset (`periodIndexOf`, computed once in render() from every period, not just
+ * the visible ones), so a given era's wash never changes colour as it scrolls in and out
+ * of view.
  */
-function drawEvents(ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, entries: readonly TimelineEntry[], viewport: Viewport): void {
-  const { eventDotCross, eventStemLength } = RENDER_CONFIG;
-  const labelCross = eventDotCross + eventStemLength;
-  const positioned = entries.map(e => ({ entry: e, px: timeToPx(e.start, viewport) }));
-
-  for (const { px } of positioned) {
-    const p0 = project(axis, px, eventDotCross);
-    const p1 = project(axis, px, labelCross);
-    ctx.strokeStyle = COLORS.brassDim;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.stroke();
-    ctx.fillStyle = COLORS.brass;
-    ctx.beginPath();
-    ctx.arc(p0.x, p0.y, 3, 0, Math.PI * 2);
-    ctx.fill();
+function drawPeriodBands(
+  ctx: CanvasRenderingContext2D, axis: Axis, periods: readonly TimelineEntry[], periodIndexOf: ReadonlyMap<string, number>,
+  viewport: Viewport, top: number, bottom: number
+): void {
+  for (const e of periods) {
+    const span = classifySpan(e, viewport);
+    const fromPx = span.mode === 'bar' ? span.fromPx : 0;
+    const toPx = span.mode === 'bar' ? span.toPx : viewport.sizePx;
+    if (toPx - fromPx < 1) continue;
+    const colorIndex = (periodIndexOf.get(e.id) ?? 0) % PERIOD_BAND_COLORS.length;
+    ctx.fillStyle = PERIOD_BAND_COLORS[colorIndex];
+    const r = rectFor(axis, fromPx, toPx, top, bottom);
+    ctx.fillRect(r.x, r.y, r.w, r.h);
   }
+}
 
-  ctx.font = `600 11px ${uiFont}`;
-  // The label's anchor is the dot's position clamped for its own measured width (see
-  // clampCentredAnchor) — so a pin near either edge keeps its full label on screen while
-  // its stem and dot stay exactly on the true date.
-  const withText = positioned.map(({ entry, px }) => {
-    const { year } = dateOfDecimalYear(entry.start);
-    const text = `${year < 0 ? `${-year} BC` : year} — ${entry.label}`;
-    const widthPx = ctx.measureText(text).width;
-    return { entry, text, widthPx, labelPx: clampCentredAnchor(px, widthPx, viewport.sizePx, 4) };
-  });
+/* ------------------------------------------------------------------------ centre marker */
 
-  const survivors = new Set(
-    placeLabels(withText.map(w => labelCandidate(w.entry.id, w.labelPx, w.widthPx, 'center', w.entry.tier, 4))).map(c => c.id)
-  );
+/** A faint line confined to the cylinder's own inner height (never outside it — "nothing
+ *  outside the cylinder except the centre date readout") marking exactly where the centre
+ *  date sits, so it's still legible which capsule the readout above refers to even when
+ *  several sit close together. */
+function drawCentreCylinderLine(ctx: CanvasRenderingContext2D, axis: Axis, viewport: Viewport, cylinderTop: number, cylinderBottom: number): void {
+  const alongCentre = viewport.sizePx / 2;
+  const p0 = project(axis, alongCentre, cylinderTop);
+  const p1 = project(axis, alongCentre, cylinderBottom);
+  ctx.strokeStyle = COLORS.centreLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(p0.x, p0.y);
+  ctx.lineTo(p1.x, p1.y);
+  ctx.stroke();
+}
 
+/** The one thing allowed outside the cylinder: the exact date under the centre marker,
+ *  just above its top edge. timeToPx(viewport.center, viewport) is always sizePx / 2 by
+ *  construction, so reading the date straight off viewport.center is exact. */
+function drawCentreDate(ctx: CanvasRenderingContext2D, axis: Axis, monoFont: string, viewport: Viewport, cylinderTop: number): void {
+  const alongCentre = viewport.sizePx / 2;
+  ctx.font = `700 ${RENDER_CONFIG.centreDateFontPx}px ${monoFont}`;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  for (const w of withText) {
-    if (!survivors.has(w.entry.id)) continue;
-    ctx.font = `600 11px ${uiFont}`;
-    drawHaloText(ctx, axis, w.labelPx, labelCross + 4, w.text, COLORS.brass2);
-  }
+  ctx.textBaseline = 'bottom';
+  drawHaloText(
+    ctx, axis, alongCentre, cylinderTop - RENDER_CONFIG.centreDateGap,
+    formatHistoryDate(dateOfDecimalYear(viewport.center)), COLORS.brass2
+  );
 }
 
 /* -------------------------------------------------------------------------------- entry point */
@@ -474,17 +620,24 @@ export interface RenderContext {
   dpr: number;
   uiFont: string;
   monoFont: string;
+  /** The cylinder's current height, in px — HistoryTimeline's own eased animation target,
+   *  already resolved to a concrete number by the time this reaches render(). */
+  cylinderThicknessPx: number;
+  /** [earliest authored entry, today] — draws the out-of-range fade/labels and (via
+   *  minPxPerYear upstream) is what the cylinder's growth curve is normalised against. */
+  contentRange: TimeRange;
 }
 
 /**
- * One frame: background, the cylinder and its ticks, event pins, period bars, ruler
- * bars, the context stack, then the centre marker on top of everything (a fixed overlay,
- * so it must never be drawn under content). `entries` is the WHOLE dataset — row
- * assignment and the context stack both need it complete; this function culls to what's
- * on screen itself, per draw call, via visibleEntries.
+ * One frame: background, the cylinder shell (rounded, gradient, vignette, shadow), the
+ * out-of-range fade + labels, the period colour wash, each visible wire's rail + capsules
+ * (period, ruler, government, event, in that order — see WIRE_ORDER), the top-surface
+ * ticks, then the centre line and date readout on top of everything. `entries` is the
+ * WHOLE dataset — row assignment and the focus lookup both need it complete; this
+ * function culls to what's on screen itself, per draw call, via visibleEntries.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): void {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -492,24 +645,46 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): vo
   ctx.fillStyle = COLORS.abyss;
   ctx.fillRect(full.x, full.y, full.w, full.h);
 
-  drawCylinder(ctx, axis, viewport.sizePx);
-  drawTicks(ctx, axis, monoFont, viewport);
+  const minThickness = RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop + RENDER_CONFIG.wirePaddingBottom + 14;
+  const thickness = Math.max(minThickness, cylinderThicknessPx);
+  const cylinderTop = crossSizePx / 2 - thickness / 2;
+  const cylinderBottom = cylinderTop + thickness;
+
+  drawCylinderShell(ctx, axis, viewport.sizePx, cylinderTop, thickness);
+  drawOutOfRangeFade(ctx, axis, monoFont, viewport, cylinderTop, cylinderBottom, contentRange);
+
+  const contentTop = cylinderTop + RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop;
+  const contentBottom = cylinderBottom - RENDER_CONFIG.wirePaddingBottom;
 
   const visible = visibleEntries(entries, viewport);
-  drawEvents(ctx, axis, uiFont, visible.filter(e => e.kind === 'event'), viewport);
+  const visibleByKind: Record<EntryKind, TimelineEntry[]> = { period: [], ruler: [], government: [], event: [] };
+  for (const e of visible) visibleByKind[e.kind].push(e);
 
+  const allPeriods = entries.filter(e => e.kind === 'period').sort((a, b) => a.start - b.start);
+  const periodIndexOf = new Map(allPeriods.map((e, i) => [e.id, i] as const));
+  drawPeriodBands(ctx, axis, visibleByKind.period, periodIndexOf, viewport, contentTop, contentBottom);
+
+  const normFrac = clamp(
+    (thickness / crossSizePx - CONFIG.minCylinderThicknessFrac) / (CONFIG.maxCylinderThicknessFrac - CONFIG.minCylinderThicknessFrac), 0, 1
+  );
   const rows = assignRows(entries);
-  const periodRows = laneRowCount(entries, rows, 'period');
-  drawLane(
-    ctx, axis, uiFont, visible.filter(e => e.kind === 'period'), rows, viewport,
-    RENDER_CONFIG.rowsTop, RENDER_CONFIG.periodRowHeight, COLORS.land, COLORS.rule
-  );
-  const rulerTop = RENDER_CONFIG.rowsTop + periodRows * (RENDER_CONFIG.periodRowHeight + RENDER_CONFIG.rowGap) + RENDER_CONFIG.laneGap;
-  drawLane(
-    ctx, axis, uiFont, visible.filter(e => e.kind === 'ruler'), rows, viewport,
-    rulerTop, RENDER_CONFIG.rulerRowHeight, COLORS.seaDim, COLORS.sea
-  );
+  const wires = layoutWires(visibleByKind, rows, contentTop, contentBottom, normFrac);
 
-  drawContextStack(ctx, axis, uiFont, entries, viewport);
-  drawCentreMarker(ctx, axis, monoFont, viewport, crossSizePx);
+  const focus = contextAt(entries, viewport.center);
+  const focusIds: Partial<Record<EntryKind, string>> = {
+    ...(focus.period.primary ? { period: focus.period.primary.id } : {}),
+    ...(focus.ruler.primary ? { ruler: focus.ruler.primary.id } : {}),
+    ...(focus.government.primary ? { government: focus.government.primary.id } : {})
+  };
+
+  for (const kind of WIRE_ORDER) {
+    const wire = wires[kind];
+    if (!wire) continue;
+    drawWireRails(ctx, axis, viewport.sizePx, wire, kindCapsuleColors(kind).stroke);
+    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null);
+  }
+
+  drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);
+  drawCentreCylinderLine(ctx, axis, viewport, cylinderTop, cylinderBottom);
+  drawCentreDate(ctx, axis, monoFont, viewport, cylinderTop);
 }

@@ -116,6 +116,74 @@ where the kind-specific meaning belongs, in `catalog.server.ts`'s raw-to-`Timeli
 conversion, not by teaching the generic, kind-agnostic `scale.ts`/`layout.ts` a kind-specific
 exception.
 
+**Full-cylinder redesign, owner-requested (same five files, still no dossier/hover/selection/quiz;
+supersedes the two passes above — their specifics below are no longer current):** The cylinder IS
+the page now: full canvas width edge to edge, vertically centred, its own height animated between
+`CONFIG.minCylinderThicknessFrac` (12%) and `maxCylinderThicknessFrac` (85%) of `crossSizePx` as a
+function of zoom (`cylinderThicknessFraction`, `scale.ts` — log-scale interpolation, since zoom is
+multiplicative, smoothstep-eased). `HistoryTimeline` never snaps to that target: `renderNow()` calls
+`updateCylinderAnimation()` every frame, exponentially easing `cylinderFrac` toward it
+(`CYLINDER_EASE_MS` = 160ms time constant) and re-requesting a frame while still short of it, so a
+single discrete wheel notch still animates the cylinder's size over several frames rather than
+jumping once. `RenderContext` carries the resolved `cylinderThicknessPx` and `contentRange` down to
+the renderer, which treats both as plain snapshots — it has no idea an animation is happening.
+
+Everything except the centre date readout now lives INSIDE the cylinder. Year ticks moved onto its
+own top surface (`drawTopTicks`, `RENDER_CONFIG.tickStripHeight`) — the tick-thinning logic itself
+(`niceStep()`/`CONFIG.tickTargetCount`, `scale.ts`) is unchanged by this pass, only where the marks
+draw. Below the tick strip, up to four horizontal "wires" stack in duration order — period, ruler,
+government, event (`WIRE_ORDER`) — each entry a rounded capsule (`ctx.roundRect`) filled with a
+cross-axis gradient in that kind's colour (dim at the edges, bright through the middle, the same
+technique as the cylinder's own gradient) with its Bulgarian name inside, truncated to the capsule's
+own width. **Governments now have a real visual — capsules on their own wire — for the first time**;
+the previous two passes only ever summarised them as floating text, never drew them at all.
+
+A wire "unlocks" as the cylinder grows, smoothly (`wireRevealAt`, thresholds along the cylinder's
+own normalised 0–1 growth: ruler at 0.22, government at 0.46, event at 0.68, each with a 0.12-wide
+eased fade-in band) — tied to the cylinder's OWN eased size rather than raw pxPerYear, so a wire's
+appearance inherits the same never-a-snap animation for free. A wire with nothing currently visible
+gets no row at all, so unclaimed space merges into its neighbours rather than sitting reserved and
+blank; within a wire, capsule height and font size both scale with how much room is actually
+available right now (`layoutWires`/`drawWireCapsules`) — "fill the space instead of leaving it
+empty." Periods additionally paint a wide translucent band behind everything inside the cylinder,
+coloured by the period's stable position in the WHOLE dataset (`periodIndexOf`, computed once from
+every period so a given era's wash never changes colour as it scrolls in and out of view) cycling
+through a small fixed palette (`PERIOD_BAND_COLORS`) — a judgement call, since the brief didn't
+specify per-era colours, made because a single uniform wash across periods that mostly tile the
+whole range contiguously wouldn't read as distinct eras at all.
+
+*"The wire containing the centre date is drawn larger and brighter than the others — the current
+focus"* is implemented per-CAPSULE, not per-row: for period/ruler/government, `contextAt` (reused
+from the earlier passes) finds the one entry whose span contains the centre date, and that specific
+capsule draws at `capsuleFocusScale` (1.28×) with a brighter fill/stroke/text — not the whole wire,
+since nearly every wire always has SOME entry at the centre (a period covers the whole range almost
+contiguously), so highlighting an entire row would rarely distinguish anything. Events have no
+"current" concept (a zero-duration moment either is or isn't the centre, never "the one containing
+it" among several) and are never focus-highlighted.
+
+Pan is now clamped to the data's own range padded by HALF A VIEWPORT on each side — specifically
+half of whatever the viewport shows at maximum zoom-out, i.e. half of `contentRange`'s own span
+(`HistoryTimeline.computeRanges`) — so 681 and today can each be brought all the way to the centre
+marker. This needed the zoom-out FLOOR and the pan-CENTER bound to read from two different ranges,
+not one: `clampPxPerYear` is called with `contentRange` (so minimum zoom is exactly "the cylinder
+fills the viewport with the whole content span, no padding"), while `clampCenter` is called with the
+wider, half-viewport-padded `pannableRange` — both existing `scale.ts` functions, unchanged; only
+which range `timeline.ts` hands each one changed. `FIT_MARGIN` and the old 4%-of-span
+`RANGE_MARGIN_FRACTION` are both gone: the default/initial view is now exactly that same zoom-out
+floor (content fills the cylinder's width edge to edge, no screen-space padding), matching "the
+cylinder fills the screen" thematically. Beyond `contentRange` — reachable now that panning extends
+that far — the cylinder's brightness fades towards the outer regions (`drawOutOfRangeFade`, a dark
+gradient overlay) with a muted centred label once enough of that empty zone is on screen: "Преди
+`<earliest year>` — Стара Велика България" on the left (`earliest year` read off `contentRange.from`,
+not hand-typed, so it can't go stale if the dataset's own start ever moves) and "Бъдеще" on the
+right.
+
+The old floating context-stack text and the old full-height centre line are both gone — "nothing
+outside the cylinder except the centre date readout" is now literal: the only thing drawn outside
+`[cylinderTop, cylinderBottom]` is `drawCentreDate`. A faint centre line still exists for legibility
+(so it's clear which capsule the readout refers to when several sit close together) but is now
+clipped to the cylinder's own inner height, which satisfies the brief without losing that cue.
+
 **Next:**
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara targeted
   2028; re-check before release). The `npm run audit` items are all resolved (Sierra Leone SLE,

@@ -24,9 +24,6 @@ export type TickWeight = 'major' | 'minor';
 /** Coarsest first. Every table below is keyed by this same order. */
 export const ZOOM_LEVELS: readonly ZoomLevel[] = ['millennium', 'century', 'decade', 'year', 'month', 'day'];
 const COARSE_LEVELS: ReadonlySet<ZoomLevel> = new Set(['millennium', 'century', 'decade']);
-const STEP_FOR_LEVEL: Readonly<Record<'millennium' | 'century' | 'decade' | 'year', number>> = {
-  millennium: 1000, century: 100, decade: 10, year: 1
-};
 
 /**
  * All tuning constants in one place, per the brief — nothing below this object hardcodes
@@ -49,6 +46,20 @@ export const CONFIG = {
     { level: 'month' as const, minPxPerYear: 96 },
     { level: 'day' as const, minPxPerYear: 2400 }
   ],
+  /** Target number of labelled major ticks on screen at any zoom — niceStep() below picks
+   *  a round step (1/2/5 x a power of ten) near visibleSpan/tickTargetCount, so the axis
+   *  reads "roughly 6-10 ticks", not one every fixed N years regardless of how many that
+   *  puts on screen. */
+  tickTargetCount: 8,
+  /** Hard ceiling on pxPerYear: zoom cannot go further in than roughly day-level
+   *  granularity with comfortably spaced labels. Distinct from zoomThresholds' day entry
+   *  (that's where day ticks switch ON, not a camera limit) — see clampPxPerYear. */
+  maxPxPerYear: 20000,
+  /** The cylinder's own height, as a fraction of the canvas's cross-axis size — "about
+   *  12% at maximum zoom-out, up to about 85% at day-level zoom" — see
+   *  cylinderThicknessFraction below. */
+  minCylinderThicknessFrac: 0.12,
+  maxCylinderThicknessFrac: 0.85,
   /**
    * Highest entry.tier visible per (zoom level, entry kind). 0 means "never at this
    * level, regardless of tier" — governments (cabinets; heads of state are `ruler`, not
@@ -165,6 +176,20 @@ export interface Tick {
   weight: TickWeight;
 }
 
+/** Rounds `span / targetCount` up or down to the nearest "nice" round number — 1, 2 or 5
+ *  times a power of ten (the standard tick-count heuristic) — so a step lands on a round
+ *  year/decade/century boundary instead of an arbitrary count. Boundaries between the 1/
+ *  2/5/10 candidates sit at their geometric means (sqrt(2), sqrt(10), sqrt(50)), so each
+ *  candidate wins over the widest possible range of raw steps closest to it. */
+function niceStep(span: number, targetCount: number): number {
+  const rawStep = span / Math.max(targetCount, 1);
+  if (!(rawStep > 0)) return 1;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const residual = rawStep / magnitude;
+  const niceResidual = residual < Math.SQRT2 ? 1 : residual < Math.sqrt(10) ? 2 : residual < Math.sqrt(50) ? 5 : 10;
+  return niceResidual * magnitude;
+}
+
 function integerStepTicks(range: TimeRange, viewport: Viewport, step: number, level: ZoomLevel, weight: TickWeight): Tick[] {
   const out: Tick[] = [];
   const first = Math.ceil(range.from / step) * step;
@@ -218,15 +243,69 @@ function dayTicks(range: TimeRange, viewport: Viewport, weight: TickWeight): Tic
 export function ticks(viewport: Viewport): Tick[] {
   const level = levelFor(viewport.pxPerYear);
   const range = visibleRange(viewport);
+  const span = range.to - range.from;
 
   if (COARSE_LEVELS.has(level)) {
-    return integerStepTicks(range, viewport, STEP_FOR_LEVEL[level as 'millennium' | 'century' | 'decade'], level, 'major');
+    const step = Math.max(1, niceStep(span, CONFIG.tickTargetCount));
+    return integerStepTicks(range, viewport, step, level, 'major');
   }
 
-  const out = integerStepTicks(range, viewport, 1, 'year', 'major');
+  // Year ticks stay whole years (niceStep can propose a sub-year step once the visible
+  // span itself drops below CONFIG.tickTargetCount years, e.g. at month/day zoom) — the
+  // clamp to 1 there reproduces the old "one tick per year" behaviour exactly where it
+  // already made sense, and only thins beyond that at coarser "year"-level zooms.
+  const yearStep = Math.max(1, Math.round(niceStep(span, CONFIG.tickTargetCount)));
+  const out = integerStepTicks(range, viewport, yearStep, 'year', 'major');
   if (level === 'month' || level === 'day') out.push(...monthTicks(range, viewport, 'minor'));
   if (level === 'day') out.push(...dayTicks(range, viewport, 'minor'));
   return out.sort((a, b) => a.t - b.t);
+}
+
+/* ------------------------------------------------------------------------------ pan/zoom clamp */
+
+/** Clamps pxPerYear so the viewport can never zoom out further than `range` (the data's
+ *  own span, plus the caller's margin) fitting the whole viewport width, and never zoom in
+ *  past CONFIG.maxPxPerYear — "must not be possible to pan into 12,000 BC or the year
+ *  3000", "maximum zoom-in stops at day level". Takes primitives, not a Viewport, so a
+ *  caller can clamp pxPerYear BEFORE computing a gesture's new center from it (see
+ *  clampCenter below — order matters for "hold the point under the cursor fixed"). */
+export function clampPxPerYear(pxPerYear: number, sizePx: number, range: TimeRange): number {
+  const span = range.to - range.from;
+  const minByRange = sizePx > 0 && span > 0 ? sizePx / span : pxPerYear;
+  return Math.min(Math.max(pxPerYear, minByRange), CONFIG.maxPxPerYear);
+}
+
+/** Clamps `center` so the visible range never extends past `range`. When the viewport
+ *  itself is wider than `range` (fully zoomed out to or past the whole dataset), centers
+ *  on `range` instead of letting either edge float arbitrarily. */
+export function clampCenter(center: number, pxPerYear: number, sizePx: number, range: TimeRange): number {
+  const visibleSpan = pxPerYear > 0 ? sizePx / pxPerYear : Infinity;
+  const span = range.to - range.from;
+  if (visibleSpan >= span) return (range.from + range.to) / 2;
+  const half = visibleSpan / 2;
+  return Math.min(Math.max(center, range.from + half), range.to - half);
+}
+
+/**
+ * How much of the canvas's cross-axis the cylinder occupies, as a fraction, given the
+ * current zoom (`pxPerYear`) and the zoom range it can ever take (`minPxPerYear` —
+ * whatever currently fills the viewport with the whole content range, so this varies with
+ * window size — to `CONFIG.maxPxPerYear`, the fixed day-level ceiling). Interpolates on a
+ * LOG scale (zoom is multiplicative, not additive — the century-to-decade jump and the
+ * month-to-day jump should feel like comparable "amounts of zoom") between
+ * `minCylinderThicknessFrac` and `maxCylinderThicknessFrac`, smoothstep-eased so the curve
+ * itself has no kink — the caller (HistoryTimeline) is what turns this into a
+ * frame-to-frame animation; this function alone is a pure snapshot for a given pxPerYear.
+ */
+export function cylinderThicknessFraction(pxPerYear: number, minPxPerYear: number, maxPxPerYear: number): number {
+  const { minCylinderThicknessFrac: minFrac, maxCylinderThicknessFrac: maxFrac } = CONFIG;
+  if (!(maxPxPerYear > minPxPerYear)) return minFrac;
+  const lo = Math.log(Math.max(minPxPerYear, 1e-6));
+  const hi = Math.log(Math.max(maxPxPerYear, minPxPerYear * 1.0001));
+  const x = Math.log(Math.min(Math.max(pxPerYear, minPxPerYear), maxPxPerYear));
+  const t = (x - lo) / (hi - lo);
+  const eased = t * t * (3 - 2 * t); // smoothstep
+  return minFrac + eased * (maxFrac - minFrac);
 }
 
 /* -------------------------------------------------------------------------------- visibility */

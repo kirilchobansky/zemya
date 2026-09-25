@@ -8,9 +8,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CONFIG, type EntryKind, type HistoryEntry, KIND_RANK, dateOfDecimalYear, decimalYearOf, decimalYearOfDate,
-  kindRank, levelFor, maxTierFor, pxToTime, ticks, timeToPx, visibleEntries, visibleRange, visibleRangeOverscan,
-  type Viewport, type ZoomLevel
+  CONFIG, type EntryKind, type HistoryEntry, KIND_RANK, clampCenter, clampPxPerYear, dateOfDecimalYear, decimalYearOf,
+  decimalYearOfDate, kindRank, levelFor, maxTierFor, pxToTime, ticks, timeToPx, visibleEntries, visibleRange,
+  visibleRangeOverscan, type TimeRange, type Viewport, type ZoomLevel
 } from '~/lib/history/scale';
 
 const viewport = (overrides: Partial<Viewport> = {}): Viewport => ({
@@ -168,12 +168,26 @@ describe('ticks', () => {
     expect(byLevel.get('day')).toBe('minor');
   });
 
-  it('produces exactly one tick per calendar year in a year-level range', () => {
-    const vp = viewport({ center: 1900, pxPerYear: 20, sizePx: 800 }); // 40-year span
+  it('thins ticks to roughly the target count using one round step, not one per calendar year', () => {
+    // 40-year span at "year" level: one tick per year would be 40+, far more than the
+    // "6-10 ticks" the layout brief asks for — niceStep should round to a step of 5.
+    const vp = viewport({ center: 1900, pxPerYear: 20, sizePx: 800 });
     const years = ticks(vp).map(t => t.t);
     expect(years).toEqual([...years].sort((a, b) => a - b));
     expect(new Set(years).size).toBe(years.length); // no duplicates
-    expect(years.length).toBeGreaterThanOrEqual(39);
+    expect(years.length).toBeGreaterThanOrEqual(CONFIG.tickTargetCount - 3);
+    expect(years.length).toBeLessThanOrEqual(CONFIG.tickTargetCount + 3);
+    const steps = new Set(years.slice(1).map((y, i) => y - years[i]));
+    expect(steps.size).toBe(1); // evenly spaced by a single round step
+    expect([...steps][0]).toBeGreaterThan(1); // and thinned, not one-per-year
+  });
+
+  it('never thins below one tick per calendar year, however small the visible span', () => {
+    // At month/day zoom the visible span itself is under a year wide — niceStep would
+    // propose a sub-year step there, which must clamp back up to whole years.
+    const vp = viewport({ center: 1900, pxPerYear: 5000, sizePx: 800 }); // day zoom
+    const yearTicks = ticks(vp).filter(t => t.level === 'year');
+    for (const t of yearTicks) expect(Number.isInteger(t.t)).toBe(true);
   });
 
   it('every tick position matches timeToPx for its own time value', () => {
@@ -187,6 +201,54 @@ describe('ticks', () => {
     const vp = viewport({ center: 1900, pxPerYear: 5000, sizePx: 400 });
     const positions = ticks(vp).map(t => t.t);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+});
+
+describe('clampPxPerYear', () => {
+  const range: TimeRange = { from: 650, to: 2026 }; // ~1376-year span
+
+  it('never zooms out further than the range filling the whole viewport', () => {
+    const min = 1000 / (range.to - range.from);
+    expect(clampPxPerYear(0.001, 1000, range)).toBeCloseTo(min, 9);
+  });
+
+  it('never zooms in past CONFIG.maxPxPerYear', () => {
+    expect(clampPxPerYear(1e9, 1000, range)).toBe(CONFIG.maxPxPerYear);
+  });
+
+  it('passes a value already inside the bounds through unchanged', () => {
+    expect(clampPxPerYear(10, 1000, range)).toBe(10);
+  });
+
+  it('is a no-op (returns the input) when sizePx is 0 — no viewport to clamp against yet', () => {
+    expect(clampPxPerYear(42, 0, range)).toBe(42);
+  });
+});
+
+describe('clampCenter', () => {
+  const range: TimeRange = { from: 650, to: 2026 };
+
+  it('keeps a center already inside the pannable bounds unchanged', () => {
+    expect(clampCenter(1900, 10, 1000, range)).toBe(1900); // 50-year visible span, well inside range
+  });
+
+  it('clamps toward the range when the visible span would run past its start', () => {
+    const pxPerYear = 10; // 100-year visible span
+    const result = clampCenter(600, pxPerYear, 1000, range);
+    expect(result).toBeGreaterThan(600);
+    expect(result - 50).toBeCloseTo(range.from, 9); // left edge sits exactly at range.from
+  });
+
+  it('clamps toward the range when the visible span would run past its end', () => {
+    const pxPerYear = 10; // 100-year visible span
+    const result = clampCenter(2100, pxPerYear, 1000, range);
+    expect(result).toBeLessThan(2100);
+    expect(result + 50).toBeCloseTo(range.to, 9); // right edge sits exactly at range.to
+  });
+
+  it('centers on the range instead of clamping an edge once the viewport is wider than it', () => {
+    const pxPerYear = 0.1; // 10,000-year visible span — wider than the whole range
+    expect(clampCenter(0, pxPerYear, 1000, range)).toBeCloseTo((range.from + range.to) / 2, 9);
   });
 });
 
