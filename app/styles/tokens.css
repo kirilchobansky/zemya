@@ -31,15 +31,24 @@
   --ink: #e6eef3;
   --ink-rgb: 230 238 243;
   --ink-2: #9fb3c0;
-  --ink-3: #67808f;
+  /* AA-checked (4.5:1 for normal text) against both --chart and --chart-2 — see CLAUDE.md's
+     Visual identity note and the values it measured */
+  --ink-3: #748d99;
   /* dark text set on a brass-filled control (chips, primary buttons) — one value in every
-     theme, since brass itself stays light enough for it in both */
+     theme; --brass-fill (not --brass) is what's chosen to stay light enough against it, see
+     below */
   --ink-on-brass: #180f03;
 
-  /* accents — brass is the instrument, sea is the chart */
+  /* accents — brass is the instrument, sea is the chart. --brass/--brass-2 are for TEXT,
+     borders and outlines, and go darker in light mode for their own contrast against a pale
+     surface; --brass-fill/--brass-fill-hover are for a FILLED control's background with
+     --ink-on-brass text on top, which pulls the other way (needs to stay light) — two
+     tokens because one value can't satisfy both directions once the theme isn't dark. */
   --brass: #e8a33d;
   --brass-rgb: 232 163 61;
   --brass-2: #f5ce86;
+  --brass-fill: #e8a33d;
+  --brass-fill-hover: #f5ce86;
   --brass-dim: #8a6425;
   --sea: #4ea9c9;
   --sea-rgb: 78 169 201;
@@ -131,11 +140,13 @@
     --ink: #201a12;
     --ink-rgb: 32 26 18;
     --ink-2: #5a5040;
-    --ink-3: #857a68;
+    --ink-3: #6d6252;
 
     --brass: #a8641c;
     --brass-rgb: 168 100 28;
     --brass-2: #8a5117;
+    --brass-fill: #b3741e;
+    --brass-fill-hover: #c0821f;
     --brass-dim: #d9b689;
     --sea: #1f7691;
     --sea-rgb: 31 118 145;
@@ -203,11 +214,13 @@
   --ink: #201a12;
   --ink-rgb: 32 26 18;
   --ink-2: #5a5040;
-  --ink-3: #857a68;
+  --ink-3: #6d6252;
 
   --brass: #a8641c;
   --brass-rgb: 168 100 28;
   --brass-2: #8a5117;
+  --brass-fill: #b3741e;
+  --brass-fill-hover: #c0821f;
   --brass-dim: #d9b689;
   --sea: #1f7691;
   --sea-rgb: 31 118 145;

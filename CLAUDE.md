@@ -26,9 +26,8 @@ countries; FSRS study mode; three quizzes on one engine (Countries, Flags, Capit
 subject picker (`/quizzes` → Geography today, History a "coming soon" placeholder in the UI); SEO/sharing
 metadata; the phone layout (sheet, tabs, touch map, keyboard-aware quizzes, landscape drawer) tested on
 a real phone; System/Light/Dark theming (`app/lib/theme.ts`, tokens.css's `[data-theme]` blocks,
-`ThemeControls` in the rail and the Layers sheet), first-pass palette, contrast check to follow;
-deployed on Vercel at https://zemya.study, indexed on Google; MIT code / ODbL data. Full list,
-with the reasoning behind
+`ThemeControls` in the rail and the Layers sheet), WCAG AA-checked in both themes; deployed on Vercel
+at https://zemya.study, indexed on Google; MIT code / ODbL data. Full list, with the reasoning behind
 each item: `docs/status.md`.
 
 **History (data + time-axis engine only, owner-requested, see "Do not" below):**
@@ -406,25 +405,39 @@ colour cache needs a fallback default (kept equal to the token by hand, same con
 files now use for every entry, not just those two).
 
 ```
---abyss   #080D13 / #F4F1EA   ground, deep sea ink / off-white page
---chart   #0E1720 / #FFFFFF   panel surface
---chart-2 #14212C / #ECE7DD   raised surface
---rule    #243543 / #C9BEAC   hairline
---ink     #E6EEF3 / #201A12   primary text
---ink-2   #9FB3C0 / #5A5040   secondary text
---ink-3   #67808F / #857A68   tertiary / labels
---brass   #E8A33D / #A8641C   accent — instrument brass, used sparingly
---sea     #4EA9C9 / #1F7691   secondary accent, selection-adjacent
---new     #E2544F / #B23A35   mastery: new
---learn   #E8A33D / #A8641C   mastery: learning
---master  #3DD68C / #16875A   mastery: mastered
---land    #31485A / #FFFFFF   default landmass fill
---ocean   #080D13 / #CFE0E6   canvas water — equals --abyss in dark on purpose, diverges in light
+--abyss       #080D13 / #F4F1EA   ground, deep sea ink / off-white page
+--chart       #0E1720 / #FFFFFF   panel surface
+--chart-2     #14212C / #ECE7DD   raised surface
+--rule        #243543 / #C9BEAC   hairline
+--ink         #E6EEF3 / #201A12   primary text
+--ink-2       #9FB3C0 / #5A5040   secondary text
+--ink-3       #748D99 / #6D6252   tertiary / labels — AA-checked, not a straight deepen of --ink-2
+--brass       #E8A33D / #A8641C   accent, borders, TEXT — deepened for its own contrast on a pale surface
+--brass-fill  #E8A33D / #B3741E   a brass-FILLED control's background (chip, primary button) —
+                                   diverges from --brass in light: that button's --ink-on-brass
+                                   text needs the fill to stay light, the opposite direction from
+                                   --brass-as-text's own contrast need. See tokens.css's comment.
+--sea         #4EA9C9 / #1F7691   secondary accent, selection-adjacent
+--new         #E2544F / #B23A35   mastery: new
+--learn       #E8A33D / #A8641C   mastery: learning
+--master      #3DD68C / #16875A   mastery: mastered
+--land        #31485A / #FFFFFF   default landmass fill
+--ocean       #080D13 / #CFE0E6   canvas water — equals --abyss in dark on purpose, diverges in light
 ```
 
-(dark / light — see `tokens.css` for the full palette, including the choropleth overlays'
-categorical hues and every `-rgb` companion token used for JS/CSS alpha blending. A first pass —
-not yet checked against WCAG AA in light; that follows in a separate commit.)
+(dark / light — see `tokens.css` for the full palette, including `--brass-2`/`--brass-fill-hover`,
+the choropleth overlays' categorical hues, and every `-rgb` companion token used for JS/CSS alpha
+blending.)
+
+**Contrast, checked against WCAG AA (4.5:1 normal text) in both themes** — computed from the
+tokens above, not eyeballed: `--ink`/`--ink-2` on `--chart`/`--chart-2`/`--abyss` all clear
+7:1+ in both themes. `--ink-3` was the one failure as first drafted (4.2–4.4:1, both themes)
+and is the value now in the table. `--brass`/`--brass-2` as text clear 4.5:1+ on `--chart` in
+both themes. The one fill/text pair that cannot be solved with a single token —
+`--ink-on-brass` on a brass-filled control — is `--brass-fill`/`--brass-fill-hover`, above.
+The three quiz state colours (question = `--brass`/`--brass-fill`, revealed = `--new`, correct
+= `--master`) keep the dark theme's own hue separation (~30° apart for question/revealed, over
+100° to correct) in light too — unchanged by this pass, not re-litigated.
 
 Type: Fraunces (display) · Archivo (UI) · IBM Plex Mono (data, labels, timers).
 Loaded from Google Fonts with real system fallbacks — the app must stay usable offline,

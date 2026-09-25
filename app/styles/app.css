@@ -195,8 +195,8 @@ a {
   color: var(--ink);
 }
 .chip[aria-pressed='true'] {
-  background: var(--brass);
-  border-color: var(--brass);
+  background: var(--brass-fill);
+  border-color: var(--brass-fill);
   color: var(--ink-on-brass);
   font-weight: 600;
 }
@@ -745,13 +745,13 @@ a {
   color: var(--brass-2);
 }
 .action--primary {
-  background: var(--brass);
-  border-color: var(--brass);
+  background: var(--brass-fill);
+  border-color: var(--brass-fill);
   color: var(--ink-on-brass);
   font-weight: 600;
 }
 .action--primary:hover {
-  background: var(--brass-2);
+  background: var(--brass-fill-hover);
   color: var(--ink-on-brass);
 }
 
@@ -1291,7 +1291,7 @@ kbd {
   padding: 18px 46px;
   border-radius: 999px;
   border: none;
-  background: var(--brass);
+  background: var(--brass-fill);
   color: var(--ink-on-brass);
   font-family: var(--font-display);
   font-size: 22px;
@@ -1300,7 +1300,7 @@ kbd {
   box-shadow: var(--shadow);
 }
 .quiz-dock__start:hover {
-  background: var(--brass-2);
+  background: var(--brass-fill-hover);
 }
 .quiz-dock__input {
   width: min(380px, 60vw);
@@ -2108,8 +2108,8 @@ kbd {
     font-weight: 500;
   }
   .quiz-pause__btn--primary {
-    background: var(--brass);
-    border-color: var(--brass);
+    background: var(--brass-fill);
+    border-color: var(--brass-fill);
     color: var(--ink-on-brass);
     font-weight: 700;
   }
