@@ -133,6 +133,12 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
           </div>
         </dl>
 
+        {hasHistory && (
+          <Link to={`/history/${country.slug}`} className="action action--primary dossier__history">
+            History timeline
+          </Link>
+        )}
+
         <section className="dossier__borders">
           <h3 className="subhead">
             Land borders · {neighbours.length}
@@ -164,12 +170,6 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
         <div className="note">
           <b>Outline</b> — {country.outlineDescription}
         </div>
-
-        {hasHistory && (
-          <Link to={`/history/${country.slug}`} className="action action--primary dossier__history">
-            History timeline
-          </Link>
-        )}
       </div>
     </>
   );
