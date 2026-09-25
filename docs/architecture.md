@@ -4,6 +4,33 @@ Look-up material moved out of CLAUDE.md. Read the section that matches the area 
 touching; CLAUDE.md carries the rules that always apply. The quiz engine and its
 engine/presenter split are in [quizzes.md](quizzes.md).
 
+## Interaction principles
+
+Moved from CLAUDE.md, which keeps a one-line pointer.
+
+> The camera moves only when the user could not already see the target. Clicking a country
+> on the map never moves the camera; arriving from search, a link, or a cold URL does.
+> Any new way of selecting a country must decide which of those two it is. The quiz obeys the
+> same rule: a new question moves the camera only when the player couldn't already see the target.
+
+| What I do | Camera |
+| --- | --- |
+| Click a country on the map | does NOT move |
+| Click a capital's ring (zoomed in) | selects its country; does NOT move |
+| Click empty ocean (deselect) | does NOT move |
+| Pick a result from search | flies to it |
+| Click a neighbour chip in the dossier panel | flies to it |
+| Click a suggestion on the index panel | flies to it |
+| Open /country/<slug> cold (fresh load or shared link) | flies to it |
+| Press the ⌂ reset button | returns to world view |
+| A new quiz question (answer, skip or reveal alike) | returns the view if zoomed in, then moves ONLY if the target isn't comfortably visible and legible — one path, `Atlas#followTarget`; see `docs/quizzes.md` |
+| Wheel, drag, pinch, double-click | unchanged |
+
+Intent travels as React Router location state: `state={{ fly: true }}` on a `Link`,
+`{ state: { fly: true } }` on `navigate()`. The map's own click handler passes nothing.
+`flyTo` and `home` on the Atlas controller are unchanged by this rule — it governs who
+calls them, not what they do.
+
 ## Framework mode
 
 React Router's framework mode fixes two of these names: the app lives in `app/`, and

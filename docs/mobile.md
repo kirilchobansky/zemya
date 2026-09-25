@@ -38,8 +38,12 @@ what shows at the lowest snap (country: flag + name + capital · population · c
 "Explore the map" + a search prompt; catalogue: "Quizzes"). Routes without one show their
 ordinary eyebrow + h2.
 
-**Tab bar:** Map · Quizzes · Study · Progress. Progress is not a route: it opens the Progress
-overlay sheet (`ProgressSheet`, the same `ProgressSection` + `DataSection` the desktop rail
+**Tab bar:** five buttons, not four — Map · Quizzes · Questions · History plus Progress
+(`TabBar`, `MobileChrome.tsx`), kept in lockstep with `app/routes.ts` and `Rail.tsx`'s
+`SECTIONS`. Progress stays a data/account overlay sheet rather than a content section — a
+judgement call made restructuring the nav into sections, since the prompt didn't say where
+Progress goes; confirm before changing. It is not a route: it opens the Progress overlay
+sheet (`ProgressSheet`, the same `ProgressSection` + `DataSection` the desktop rail
 uses, so Export/Import/Reset stay one implementation). The Layers button (top right) opens
 `LayersSheet` (overlay chips + legend from `LayerControls`, the three toggles, Compare size) —
 it replaces the desktop toolbar, which is `display: none` on phones. ⌂ is a small floating button

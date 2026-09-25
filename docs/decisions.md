@@ -125,8 +125,293 @@ population }`) in both geometry payloads, drawn as a hollow ring (never the fill
   and the panel buttons stay at the same pixel for all 197 flags, reveal and twin notes
   included (see quizzes.md).
 
+## History timeline — detail
+
+Moved from CLAUDE.md's "Where this is" (which keeps a one-paragraph summary). The
+per-pass narrative of how `/history/bulgaria` got built, owner-requested a step at a time —
+see CLAUDE.md's "Do not" for the bounded list of files/pages this covers.
+
+**Data + time-axis engine.** `content/history/bg.yaml` — 87 hand-authored entries (8 periods
+incl. the overlapping Възраждане, 34 `kind: ruler` entries — the 26 First Empire rulers
+681–1018 plus the 8 heads of state since 1989 — 26 `kind: government` cabinets (prime
+ministers) since 1989, 19 tier-1 dates), validated and built by `scripts/build-history.mjs`
+(`scripts/lib/history.mjs` has the date parser and validator) into
+`public/data/history/bg.json`. **Heads of state are `kind: ruler`, not `kind: government`** —
+the ruler wire is one unbroken chain across every era (хан, цар, княз, президент);
+`government` is cabinets only, and only exists from 1878 on. TODOs left in the YAML for
+Second Empire rulers, monarchs 1878–1946 and communist-era leaders.
+`app/lib/history/scale.ts` — decimal-year time representation, viewport projection, the zoom
+ladder (millennium…day) and tier-based visibility; pure logic, mirroring `app/lib/map/`'s
+projection/camera split, so the eventual canvas renderer and `app/lib/map/` can share a shape
+without either importing the other. Placed under `app/lib/` to match `core/`, `map/`,
+`geography/` — a prompt asking for `app/history/` gets the `app/lib/` sibling instead. It
+imports `parseHistoryDate`/`dateKey` straight from `scripts/lib/history.mjs` (typed via a
+`.d.mts` sibling, same pattern as `site.mjs`/`site.d.mts`) rather than duplicating the
+parser — safe because that module has zero Node dependencies and Vite bundles it like any
+other pure module; confirmed by `test/unit/scale.test.ts` importing and running it through
+the same Vite pipeline the real app build uses. `app/lib/history/layout.ts` — built on
+`scale.ts`: context stack (`contextAt`, what period/ruler/government contains a moment —
+gaps are `null`; the ruler and government wires are independent, so a head of state and a
+cabinet at the same moment each resolve in their own slot, not each other's), bar-vs-pinned
+span classification, per-kind row packing computed from the whole dataset (so a row never
+changes while panning), density buckets for the "zoom in, there's more here" cue, and
+label-collision resolution. `test/unit/history-mjs-guard.test.ts` asserts
+`scripts/lib/history.mjs` imports nothing at all, guarding the assumption `scale.ts`'s import
+of it depends on.
+
+**First render.** `/history/bulgaria` — canvas only, no dossier, no hover, no selection, no
+quiz; at the time, not linked from anywhere, noindex, prerendered but left out of `indexable`
+(the sitemap list) in `react-router.config.ts` (superseded below — it's a real nav section
+now). `app/lib/history/renderer.ts` (the cylinder band, tick marks via `ticks()` — with
+`placeLabels()` resolving label crowding at borderline zooms, a real defect caught by an
+actual render, not by typecheck — the screen-fixed centre marker, and period/ruler bars via
+`assignRows()`/`classifySpan()`) and `app/lib/history/timeline.ts` (the `HistoryTimeline`
+controller: render-request queue, DPR/resize, drag-to-pan, wheel/pinch-to-zoom). Every draw
+function takes `axis: 'horizontal' | 'vertical'` and goes through one `project()` helper —
+only horizontal is wired up. `Atlas` (`app/lib/map/atlas.ts`) could not be reused directly
+(typed throughout against the 2D geography camera/World/Feature); `HistoryTimeline` copies
+its *pattern* — render-request queue, `ResizeObserver`-driven resize, "hold the point under
+the cursor/pinch fixed" — one dimension smaller, against `scale.ts`'s `Viewport` instead of
+`camera.ts`'s `CameraState`. `app/lib/history/catalog.server.ts` reads
+`public/data/history/bg.json` and converts each entry's date string to a decimal year
+server-side (`scale.ts`'s `decimalYearOf`, safe to run there — pure logic, not
+Node-specific), mirroring `app/lib/geography/catalog.server.ts`.
+
+**Legibility pass.** Bar/pin labels are `name.bg`, not English — this is a Bulgarian
+timeline, and both canvas fonts (`--font-ui`/`--font-mono`, i.e. Archivo/IBM Plex Mono)
+carry Cyrillic; `HistoryTimeline` also awaits `document.fonts.ready` once and re-renders, so
+a frame drawn before the webfont loads gets corrected instead of staying stuck on a
+Latin-only fallback. Bar labels truncate-with-ellipsis to their own bar's width (hidden
+entirely, bar still drawn, when there's no room even for the ellipsis); every label — ticks,
+bars, pins, context-stack lines — is collision-resolved by `placeLabels()`, grouped by
+whatever actually shares a line (a lane row; the tick strip) rather than by the whole page,
+since two labels in different rows never visually compete. `contextAt` (`layout.ts`) is
+generic (`ContextSlot<T>`/`Context<T>`) so its `.primary` carries a `TimelineEntry`'s
+`.label` straight through — a non-breaking signature change, re-verified against
+`layout.test.ts`'s existing 38 cases. Events (`kind: event`) draw as pins below the
+cylinder: stem, dot, "year — name.bg", culled and tiered the same as everything else. The
+context stack — period, ruler, government, largest at the top, above the cylinder, centred
+under the centre marker, a gap rendered as nothing — reads `contextAt()` against the centre
+date on the WHOLE dataset, never the zoom-culled subset, so it's correct at every zoom, not
+just the ones with bars on screen. Initial view fits the whole dataset (earliest authored
+`start` to today's actual wall-clock year — `Date` used only for that, never for parsing an
+authored date) with a small margin, computed once on the first real resize; a later resize
+(an actual window resize) never re-fits and so never discards the visitor's own pan/zoom.
+
+Two real defects, found only by an actual browser render (not by typecheck/test:unit/build)
+and fixed in the same pass — both are why this route's own checklist asks for a browser
+look, not just the usual three commands: (1) `classifySpan`'s pinned `labelPx` and an
+event's raw time position are clamped to keep one ANCHOR point on screen; centred text at an
+anchor pinned right at the edge still had half of itself rendered off-canvas, so the
+renderer now clamps a second time (`clampCentredAnchor`) using the actual measured text
+width before positioning or feeding `placeLabels`. (2) Two non-overlapping periods sharing
+an `assignRows` row (Byzantine rule, then Second Empire) could both be "pinned" near their
+shared boundary with clamped anchors close enough to collide even though their real date
+ranges never touch; a plain tier/id tie-break could then hide whichever period the view is
+actually mostly inside of behind whichever the view barely touches at the edge. Fixed by
+nudging a PINNED candidate's tier (render-time only, never the entry's real editorial tier)
+by how much of the visible range its own span covers, so "what's mostly on screen" wins the
+tie. Also: an event with no authored `end` was defaulting to `Infinity` (scale.ts's correct
+"ongoing" rule for a period/ruler/government's open end) rather than `start` (the correct
+rule for a single-moment event), so an undated-end event from any point in the past kept
+counting as "visible" — and its pin kept drawing — in every later view; fixed where the
+kind-specific meaning belongs, in `catalog.server.ts`'s raw-to-`TimelineEntry` conversion,
+not by teaching the generic, kind-agnostic `scale.ts`/`layout.ts` a kind-specific exception.
+
+**Full-cylinder redesign** (supersedes the two passes above — their specifics are no longer
+current). The cylinder IS the page now: full canvas width edge to edge, vertically centred,
+its own height animated between `CONFIG.minCylinderThicknessFrac` (12%) and
+`maxCylinderThicknessFrac` (85%) of `crossSizePx` as a function of zoom
+(`cylinderThicknessFraction`, `scale.ts` — log-scale interpolation, since zoom is
+multiplicative, smoothstep-eased). `HistoryTimeline` never snaps to that target: `renderNow()`
+calls `updateCylinderAnimation()` every frame, exponentially easing `cylinderFrac` toward it
+(`CYLINDER_EASE_MS` = 160ms time constant) and re-requesting a frame while still short of it,
+so a single discrete wheel notch still animates the cylinder's size over several frames
+rather than jumping once. `RenderContext` carries the resolved `cylinderThicknessPx` and
+`contentRange` down to the renderer, which treats both as plain snapshots — it has no idea
+an animation is happening.
+
+Everything except the centre date readout now lives INSIDE the cylinder. Year ticks moved
+onto its own top surface (`drawTopTicks`, `RENDER_CONFIG.tickStripHeight`) — the
+tick-thinning logic itself (`niceStep()`/`CONFIG.tickTargetCount`, `scale.ts`) is unchanged
+by this pass, only where the marks draw. Below the tick strip, up to four horizontal "wires"
+stack in duration order — period, ruler, government, event (`WIRE_ORDER`) — each entry a
+rounded capsule (`ctx.roundRect`) filled with a cross-axis gradient in that kind's colour
+(dim at the edges, bright through the middle, the same technique as the cylinder's own
+gradient) with its Bulgarian name inside, truncated to the capsule's own width. **Governments
+now have a real visual — capsules on their own wire — for the first time**; the previous two
+passes only ever summarised them as floating text, never drew them at all.
+
+A wire "unlocks" as the cylinder grows, smoothly (`wireRevealAt`, thresholds along the
+cylinder's own normalised 0–1 growth: ruler at 0.22, government at 0.46, event at 0.68, each
+with a 0.12-wide eased fade-in band) — tied to the cylinder's OWN eased size rather than raw
+pxPerYear, so a wire's appearance inherits the same never-a-snap animation for free. A wire
+with nothing currently visible gets no row at all, so unclaimed space merges into its
+neighbours rather than sitting reserved and blank; within a wire, capsule height and font
+size both scale with how much room is actually available right now
+(`layoutWires`/`drawWireCapsules`) — "fill the space instead of leaving it empty." Periods
+additionally paint a wide translucent band behind everything inside the cylinder, coloured
+by the period's stable position in the WHOLE dataset (`periodIndexOf`, computed once from
+every period so a given era's wash never changes colour as it scrolls in and out of view)
+cycling through a small fixed palette (`PERIOD_BAND_COLORS`) — a judgement call, since the
+brief didn't specify per-era colours, made because a single uniform wash across periods that
+mostly tile the whole range contiguously wouldn't read as distinct eras at all.
+
+*"The wire containing the centre date is drawn larger and brighter than the others — the
+current focus"* is implemented per-CAPSULE, not per-row: for period/ruler/government,
+`contextAt` (reused from the earlier passes) finds the one entry whose span contains the
+centre date, and that specific capsule draws at `capsuleFocusScale` (1.28×) with a brighter
+fill/stroke/text — not the whole wire, since nearly every wire always has SOME entry at the
+centre (a period covers the whole range almost contiguously), so highlighting an entire row
+would rarely distinguish anything. Events have no "current" concept (a zero-duration moment
+either is or isn't the centre, never "the one containing it" among several) and are never
+focus-highlighted.
+
+Pan is now clamped to the data's own range padded by HALF A VIEWPORT on each side —
+specifically half of whatever the viewport shows at maximum zoom-out, i.e. half of
+`contentRange`'s own span (`HistoryTimeline.computeRanges`) — so 681 and today can each be
+brought all the way to the centre marker. This needed the zoom-out FLOOR and the pan-CENTER
+bound to read from two different ranges, not one: `clampPxPerYear` is called with
+`contentRange` (so minimum zoom is exactly "the cylinder fills the viewport with the whole
+content span, no padding"), while `clampCenter` is called with the wider,
+half-viewport-padded `pannableRange` — both existing `scale.ts` functions, unchanged; only
+which range `timeline.ts` hands each one changed. `FIT_MARGIN` and the old 4%-of-span
+`RANGE_MARGIN_FRACTION` are both gone: the default/initial view is now exactly that same
+zoom-out floor (content fills the cylinder's width edge to edge, no screen-space padding),
+matching "the cylinder fills the screen" thematically. Beyond `contentRange` — reachable now
+that panning extends that far — the cylinder's brightness fades towards the outer regions
+(`drawOutOfRangeFade`, a dark gradient overlay) with a muted centred label once enough of
+that empty zone is on screen: "Преди `<earliest year>` — Стара Велика България" on the left
+(`earliest year` read off `contentRange.from`, not hand-typed, so it can't go stale if the
+dataset's own start ever moves) and "Бъдеще" on the right.
+
+The old floating context-stack text and the old full-height centre line are both gone —
+"nothing outside the cylinder except the centre date readout" is now literal: the only thing
+drawn outside `[cylinderTop, cylinderBottom]` is `drawCentreDate`. A faint centre line still
+exists for legibility (so it's clear which capsule the readout refers to when several sit
+close together) but is now clipped to the cylinder's own inner height, which satisfies the
+brief without losing that cue.
+
+## Locked decisions — detail
+
+Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
+
+| Decision | Choice | Why |
+| --- | --- | --- |
+| Platform | Web, PWA-installable | Install friction kills education tools. Deep links are the only free acquisition channel. |
+| Framework | React 19 + Vite 8 + TypeScript + React Router **v8** (framework mode) | Owner already knows React. The perf-critical part is canvas, which is framework-agnostic. Framework mode pre-renders, so `/country/bulgaria` is a crawlable document. (v8, not the v7 first discussed — v8 is current and the config is the same shape.) |
+| Hosting | **Vercel**, static only (`vercel.json`; output `build/client`, nothing serverless) | Owner already knows it, and deploy friction is the bigger risk than the bandwidth difference. Originally Cloudflare Pages (free, unmetered bandwidth, preview URL per PR); changed before first deploy, so no migration happened. **Hobby tier forbids commercial use** — if Zemya is ever monetised, hosting must move or be paid for. A real constraint, not a footnote. |
+| Backend | **None for now** | Ship without accounts. Local-first from day one so adding sync later costs nothing in perceived speed. |
+| Storage | IndexedDB via **Dexie 4.4.6**, local-first | Every interaction must be 0 ms. Never block UI on network. |
+| Scheduling | **ts-fsrs 5.4.2** (FSRS), not SM-2, not a 3-in-a-row toy | Modern open algorithm, real intervals and due dates. MIT, open-spaced-repetition org, actively maintained — checked before pinning. |
+| Map engine | Custom canvas renderer, **not** Leaflet/MapLibre. Coastlines are **1:10m, unsimplified** (~3.4 MB raw, 687 KB gzipped) | Tiles need a network; a vector-only engine gives true-size re-projection and exact hit-testing for free, and does the pedagogical things a general-purpose library makes harder. Revisit only when city/street detail is actually wanted. Measured before shipping unsimplified: paints in ~585 ms, pans at a solid 60 fps. |
+| Repo visibility | Public | Made public so this sandbox can read it. Secrets still never enter the repo. |
+
+## Visual identity — detail
+
+Moved from CLAUDE.md, which keeps the short rule (tokens.css is the single source of truth,
+canvas colours are cached once and refreshed only on a theme change, check both themes).
+
+**No longer a single committed dark theme — the owner asked for light mode.** Three states:
+System (follows the OS, the default) / Light / Dark, switched from the Layers sheet on
+phones and the rail on desktop (`ThemeControls`, `app/components/Rail.tsx`), persisted in
+`localStorage` (`app/lib/theme.ts`) and applied before first paint by an inline script in
+`root.tsx` — the documented exception to "do not use `localStorage`": it is a per-browser
+display preference, not progress data, and must be read synchronously or the page flashes
+the wrong theme. Still a chart room in both, not a generic dashboard or a white void: light
+is paper-and-ink (off-white page, white land, light blue-grey sea, darker borders, deepened/
+desaturated accents), not the dark palette's colours inverted. Do not drift toward the
+default "near-black + one neon accent" look, in either theme.
+
+Tokens live in `app/styles/tokens.css`, dark values in `:root`, light overrides under
+`[data-theme="light"]` (and mirrored under a bare `prefers-color-scheme: light` for System).
+**The canvas cannot read a CSS variable once per frame** — `app/lib/map/renderer.ts`'s
+`COLORS` and `app/lib/geography/overlays.ts`'s exported palette are resolved from these
+tokens with `getComputedStyle` exactly once (`refreshMapColours()` / `refreshOverlayColours()`),
+cached, and re-read only on a theme change (wired up in `app/routes/atlas.tsx`) — never
+inside `render()`. This replaced a former exception where `--land` and the micro-state pin
+were hardcoded literals in `renderer.ts`; nothing needs hand-mirroring into a `.ts` file
+anymore, only the resolved colour cache needs a fallback default (kept equal to the token by
+hand, same convention both files now use for every entry, not just those two).
+
+```
+--abyss       #080D13 / #F4F1EA   ground, deep sea ink / off-white page
+--chart       #0E1720 / #FFFFFF   panel surface
+--chart-2     #14212C / #ECE7DD   raised surface
+--rule        #243543 / #C9BEAC   hairline
+--ink         #E6EEF3 / #201A12   primary text
+--ink-2       #9FB3C0 / #5A5040   secondary text
+--ink-3       #748D99 / #6D6252   tertiary / labels — AA-checked, not a straight deepen of --ink-2
+--brass       #E8A33D / #A8641C   accent, borders, TEXT — deepened for its own contrast on a pale surface
+--brass-fill  #E8A33D / #B3741E   a brass-FILLED control's background (chip, primary button) —
+                                   diverges from --brass in light: that button's --ink-on-brass
+                                   text needs the fill to stay light, the opposite direction from
+                                   --brass-as-text's own contrast need. See tokens.css's comment.
+--sea         #4EA9C9 / #1F7691   secondary accent, selection-adjacent
+--new         #E2544F / #B23A35   mastery: new
+--learn       #E8A33D / #A8641C   mastery: learning
+--master      #3DD68C / #16875A   mastery: mastered
+--land        #31485A / #FFFFFF   default landmass fill
+--ocean       #080D13 / #CFE0E6   canvas water — equals --abyss in dark on purpose, diverges in light
+```
+
+(dark / light — see `tokens.css` for the full palette, including `--brass-2`/`--brass-fill-hover`,
+the choropleth overlays' categorical hues, and every `-rgb` companion token used for JS/CSS alpha
+blending.)
+
+**Contrast, checked against WCAG AA (4.5:1 normal text) in both themes** — computed from the
+tokens above, not eyeballed: `--ink`/`--ink-2` on `--chart`/`--chart-2`/`--abyss` all clear
+7:1+ in both themes. `--ink-3` was the one failure as first drafted (4.2–4.4:1, both themes)
+and is the value now in the table. `--brass`/`--brass-2` as text clear 4.5:1+ on `--chart` in
+both themes. The one fill/text pair that cannot be solved with a single token —
+`--ink-on-brass` on a brass-filled control — is `--brass-fill`/`--brass-fill-hover`, above.
+The three quiz state colours (question = `--brass`/`--brass-fill`, revealed = `--new`, correct
+= `--master`) keep the dark theme's own hue separation (~30° apart for question/revealed, over
+100° to correct) in light too — unchanged by this pass, not re-litigated.
+
+Type: Fraunces (display) · Archivo (UI) · IBM Plex Mono (data, labels, timers). Loaded from
+Google Fonts with real system fallbacks — the app must stay usable offline, so nothing may
+depend on a webfont having loaded.
+
+## What counts as a country — detail
+
+Moved from CLAUDE.md, which keeps the short rule and the count.
+
+The rule: de facto control of territory, its own capital and its own borders, AND
+meaningful international recognition. That admits Kosovo (recognised by about 115
+states) and Taiwan (11 states, plus de facto economic relations with nearly everyone).
+It excludes Somaliland (recognised by none) and Northern Cyprus (recognised only by
+Türkiye) — both of which meet the de facto test and fail the recognition one. It also
+excludes Greenland, Hong Kong, Macau and Puerto Rico (not self-governing states) and
+Western Sahara (no effective control of its territory).
+
+This is an editorial line, not a fact. Recognition counts are approximate and change;
+the line is written down so it stays consistent, not because it is objective.
+
+Excluded territories are drawn, dim and unclickable, so the map has no holes — except
+the ones absorbed into a country's own shape (see "Absorbed territories" above).
+
+## Country aliases and specificity conventions
+
+Moved from CLAUDE.md's Content conventions (the short rule stays there).
+
+- Accepted names in the quizzes are generated (world-countries' spellings), and corrected
+  per country with an `aliases:` block in that country's YAML — `add: [...]`, `remove:
+  [...]` and a mandatory `note` saying why. Applied after the ambiguity guard, so an added
+  alias may deliberately be shared ("Congo" is accepted for both Congos); `remove` must
+  name an alias that exists, so an upstream rename fails the build. Today: Thailand drops
+  "Thai" (the people, not the country), the UK adds "UK", both Congos add "Congo", and the
+  three Saint countries (Saint Lucia, Saint Kitts and Nevis, Saint Vincent and the
+  Grenadines) accept "St" as an abbreviation.
+- Religion values are deliberately specific (Eastern Orthodoxy, Sunni Islam, Theravada
+  Buddhism), not coarse buckets. The faith↔language matching round depends on it.
+
 ## Next — full text of the open items
 
+- Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara
+  targeted 2028; re-check before release). The `npm run audit` items are all resolved
+  (Sierra Leone SLE, Zimbabwe ZWG, Cuba CUP, Palestine ILS via overrides; the name stays
+  "Cape Verde", "Cabo Verde" is an accepted answer).
 - The `location` facet still has no question kind — it needs map-click interaction,
   which is why `ASKABLE_FACETS` filters it out rather than removing it from
   `applicableFacets()`. This is the next piece of study mode, not a bug.
