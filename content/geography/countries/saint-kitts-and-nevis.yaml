@@ -17,3 +17,6 @@ flag: Green and red triangles split by a black diagonal with two white stars.
 outline: Two tiny islands in the northern Leewards.
 hook: The smallest sovereign state in the Americas by both area and population.
 population: 46843
+aliases:
+  note: '"St" is the common abbreviation of "Saint" in the country''s own name; the full "Saint Kitts and Nevis" stays accepted too.'
+  add: [St Kitts and Nevis]

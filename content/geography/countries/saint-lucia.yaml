@@ -17,3 +17,6 @@ flag: Blue with a yellow and black-and-white triangular arrowhead.
 outline: A small teardrop island with the twin Pitons on its coast.
 hook: The only country named after a woman, and it has more Nobel laureates per person than anywhere.
 population: 179744
+aliases:
+  note: '"St" is the common abbreviation of "Saint" in the country''s own name; the full "Saint Lucia" stays accepted too.'
+  add: [St Lucia]
