@@ -66,6 +66,7 @@ npm run test:unit       # vitest — pure-logic tests, no browser
 npm run check:seo       # audits build/client: sitemap, titles, canonical, JSON-LD
 npm run audit           # stale-data report. Read-only. RUN BEFORE ANY RELEASE
 npm run audit:flags     # rasterises every flag against its authored description
+npm run check:history    # history content QA report (parent bounds, overlaps, gaps). Read-only
 npm run perf            # frame-time report — run only when explicitly asked
 ```
 

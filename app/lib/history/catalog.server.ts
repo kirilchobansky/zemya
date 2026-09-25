@@ -10,17 +10,20 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { decimalYearOf } from '~/lib/history/scale';
+import { decimalYearOf, KIND_RANK } from '~/lib/history/scale';
 import type { TimelineEntry } from '~/lib/history/renderer';
 
 interface RawHistoryEntry {
   id: string;
   kind: TimelineEntry['kind'];
   name: { bg: string; en: string };
+  role: string | null;
   start: string;
   end: string | null;
+  precision: 'exact' | 'year' | 'circa' | 'disputed';
   tier: number;
   parent: string | null;
+  category: string | null;
 }
 
 interface RawHistoryDoc {
@@ -28,7 +31,33 @@ interface RawHistoryDoc {
   entries: RawHistoryEntry[];
 }
 
+/** One row for the proofreading list view (routes/history.bulgaria.list.tsx) — the
+ *  authored fields as-is, no decimal-year conversion (that's TimelineEntry's job, for the
+ *  canvas only). */
+export interface HistoryListRow {
+  id: string;
+  kind: RawHistoryEntry['kind'];
+  role: string | null;
+  nameBg: string;
+  start: string;
+  end: string | null;
+  tier: number;
+  precision: RawHistoryEntry['precision'];
+  category: string | null;
+  parent: string | null;
+}
+
+let rawCache: RawHistoryEntry[] | null = null;
 let cache: TimelineEntry[] | null = null;
+
+function rawEntries(): RawHistoryEntry[] {
+  if (!rawCache) {
+    const path = join(process.cwd(), 'public', 'data', 'history', 'bg.json');
+    const doc = JSON.parse(readFileSync(path, 'utf8')) as RawHistoryDoc;
+    rawCache = doc.entries;
+  }
+  return rawCache;
+}
 
 function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
   const where = `public/data/history/bg.json: "${raw.id}"`;
@@ -57,10 +86,26 @@ function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
 }
 
 export function bulgariaTimeline(): TimelineEntry[] {
-  if (!cache) {
-    const path = join(process.cwd(), 'public', 'data', 'history', 'bg.json');
-    const doc = JSON.parse(readFileSync(path, 'utf8')) as RawHistoryDoc;
-    cache = doc.entries.map(toTimelineEntry);
-  }
+  if (!cache) cache = rawEntries().map(toTimelineEntry);
   return cache;
+}
+
+/** Plain rows for the proofreading list view — sorted by start year (numeric, so "-450"
+ *  sorts before "632"), then kind, in the fixed period/ruler/government/event order
+ *  scale.ts's KIND_RANK already defines for the canvas, so the two views agree. */
+export function bulgariaHistoryList(): HistoryListRow[] {
+  return rawEntries()
+    .map(raw => ({
+      id: raw.id,
+      kind: raw.kind,
+      role: raw.role,
+      nameBg: raw.name.bg,
+      start: raw.start,
+      end: raw.end,
+      tier: raw.tier,
+      precision: raw.precision,
+      category: raw.category,
+      parent: raw.parent
+    }))
+    .sort((a, b) => parseInt(a.start, 10) - parseInt(b.start, 10) || KIND_RANK[a.kind] - KIND_RANK[b.kind]);
 }

@@ -32,5 +32,9 @@ export default [
     // changed and why.
     route('history', 'routes/history.tsx'),
     route('history/bulgaria', 'routes/history.bulgaria.tsx')
-  ])
+  ]),
+
+  // Proofreading table for content/history/bg.yaml — deliberately outside the atlas
+  // layout: it has no canvas and needs no AtlasContext.
+  route('history/bulgaria/list', 'routes/history.bulgaria.list.tsx')
 ] satisfies RouteConfig;

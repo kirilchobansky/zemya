@@ -49,4 +49,11 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from
   9.3) — 765 entries total now. Tier/precision/skip judgement calls not in the source
   are recorded in that script's header comment. `docs/decisions.md` has the reasoning.
+- `/history/bulgaria/list`: a plain, unstyled table of the whole `bg.yaml` dataset
+  (year/range, kind, role, name.bg, tier, precision, category, parent), sorted by start
+  year then kind — for proofreading the content, not a nav destination. Prerendered (a
+  real file for the static host) but `noindex` and left out of the sitemap, and
+  deliberately outside `routes/atlas.tsx`'s layout (no canvas, no `AtlasContext`).
+  `npm run check:history` reports (read-only, like `npm run audit`) parent/period
+  mismatches, >3 same-kind overlaps, future end dates and >5y ruler/government gaps.
 
