@@ -304,6 +304,13 @@ a {
 .stage__canvas.is-picking {
   cursor: crosshair;
 }
+/* Map vs. timeline (routes/atlas.tsx's showTimeline): both canvases stay mounted — the
+   hidden one keeps its Atlas/HistoryTimeline controller alive rather than paying to
+   reconstruct it on every visit — display:none is enough since neither is animating while
+   hidden (each render loop is request-driven, not a rAF loop that runs regardless). */
+.stage__canvas.is-hidden {
+  display: none;
+}
 
 .stage::after {
   content: '';

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { siteUrl } from './scripts/lib/site.mjs';
 import { LEGACY_SCOPES, poolForScope, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
+import { HISTORY_COUNTRIES } from './app/lib/history/countries';
 
 /**
  * Every country page is prerendered to static HTML at build time, so `/country/bulgaria`
@@ -63,13 +64,15 @@ const legacyScopeRuns = Object.keys(LEGACY_SCOPES).flatMap(scope =>
 );
 
 /** Every real page, in one list, so the sitemap can never drift from what is prerendered.
- *  The old-prefix redirect stubs are prerendered (a static host needs a file) but are not
- *  content, so they are prerendered and left out of the sitemap. */
+ *  The old-prefix redirect stubs (/study, /quiz/*) are prerendered (a static host needs a
+ *  file) but are not content, so they are prerendered and left out of the sitemap — see
+ *  the `prerender` list below. */
 const indexable = [
-  '/', '/study', '/quizzes',
+  '/', '/questions', '/quizzes', '/history',
   ...SUBJECT_IDS.map(id => `/quizzes/${id}`),
   ...quizRuns,
-  ...slugs.map(slug => `/country/${slug}`)
+  ...slugs.map(slug => `/country/${slug}`),
+  ...HISTORY_COUNTRIES.map(c => `/history/${c.slug}`)
 ];
 
 /** robots.txt: allow everything and point at the sitemap — except on a Vercel preview
@@ -89,11 +92,10 @@ function sitemapXml(origin: string): string {
 
 export default {
   ssr: true,
-  // '/history/bulgaria': first render of the history timeline, prerendered (a static host
-  // needs a real file for every path) but deliberately left out of `indexable` — not
-  // linked from anywhere, not in the sitemap, noindex in its own <meta> (see the route
-  // and CLAUDE.md's history exception).
-  prerender: () => [...indexable, '/quiz', '/history/bulgaria', ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
+  // '/study' and '/quiz': old names, kept as permanent-redirect stubs (routes/study.tsx,
+  // routes/quiz.tsx) — prerendered (a static host needs a real file for every path) but
+  // deliberately left out of `indexable`, noindex in their own <meta>.
+  prerender: () => [...indexable, '/study', '/quiz', ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
 
   /** robots.txt and sitemap.xml are generated here, from the same lists that were just
    *  prerendered, and written next to the pages. Never hand-maintained. */

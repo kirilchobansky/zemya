@@ -9,6 +9,10 @@ export default [
   layout('routes/atlas.tsx', [
     index('routes/atlas.index.tsx'),
     route('country/:slug', 'routes/country.tsx'),
+
+    // Questions (formerly Study) — same FSRS engine and store keys, new name only.
+    route('questions', 'routes/questions.tsx'),
+    // permanent redirect from the old name
     route('study', 'routes/study.tsx'),
 
     // subject -> quiz list -> run. See docs/quizzes.md's "Route shape".
@@ -19,11 +23,14 @@ export default [
     // permanent redirects from the old flat /quiz paths (pre-dates the subject layer)
     route('quiz', 'routes/quiz.tsx'),
     route('quiz/:quizId/:scope/:size', 'routes/quiz.$quizId.tsx'),
-    route('quiz/:quizId/:size', 'routes/quiz.legacy.tsx')
-  ]),
+    route('quiz/:quizId/:size', 'routes/quiz.legacy.tsx'),
 
-  // First render of the history timeline. Owns its own canvas (app/lib/history/ stays
-  // independent of app/lib/map/), so it sits outside the atlas layout rather than inside
-  // it. Not linked from anywhere and noindex — see CLAUDE.md's history exception.
-  route('history/bulgaria', 'routes/history.bulgaria.tsx')
+    // History nav section: which countries have a timeline, and the timeline itself.
+    // Inside the atlas layout now (unlike the first, unlinked render of this route) — the
+    // canvas it drives lives in routes/atlas.tsx (AtlasShell), which swaps to it once this
+    // route's data reaches AtlasContext. See CLAUDE.md's history exception for what
+    // changed and why.
+    route('history', 'routes/history.tsx'),
+    route('history/bulgaria', 'routes/history.bulgaria.tsx')
+  ])
 ] satisfies RouteConfig;

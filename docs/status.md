@@ -33,4 +33,9 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   the owner and works. See "## Mobile".
 - Deployed as static files on Vercel at https://zemya.study (`vercel.json`, `public/404.html`).
 - Licensed (MIT code, ODbL data); sources in README, GeoNames credited in the rail footer.
+- Four top-level nav sections (Map, Quizzes, Questions, History), one shell: study mode
+  renamed Questions (`/questions`, same FSRS engine and store keys; `/study` redirects);
+  History picks a country (`/history`, one entry — Bulgaria) and swaps the shell's canvas
+  to the timeline at `/history/bulgaria`, now indexed and in the sitemap. `CLAUDE.md`'s
+  history exception.
 

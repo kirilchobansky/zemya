@@ -16,6 +16,8 @@ import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
 import { refreshMapColours } from '~/lib/map/renderer';
+import { HistoryTimeline } from '~/lib/history/timeline';
+import type { TimelineEntry } from '~/lib/history/renderer';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import { NO_INSETS, type Insets } from '~/lib/map/camera';
@@ -53,6 +55,10 @@ interface AtlasContextValue {
    *  no tab bar, no search — until its results, which open the sheet at `full`. */
   setImmersive: Dispatch<SetStateAction<boolean>>;
   setSheetSnap: Dispatch<SetStateAction<SheetSnap>>;
+  /** Set by a history route (routes/history.bulgaria.tsx) once its loader data is in hand;
+   *  cleared on unmount. Non-null swaps the canvas from the map to the timeline — see the
+   *  effect below that owns the HistoryTimeline controller. */
+  setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[] | null>>;
 }
 
 const AtlasContext = createContext<AtlasContextValue | null>(null);
@@ -79,6 +85,13 @@ export default function AtlasLayout() {
 function AtlasShell() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const atlasRef = useRef<Atlas | null>(null);
+  const historyCanvasRef = useRef<HTMLCanvasElement>(null);
+  const timelineRef = useRef<HistoryTimeline | null>(null);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
+  /** Non-null only while a history route (routes/history.bulgaria.tsx) has handed its
+   *  entries over — the canvas shows the map the rest of the time, including on the bare
+   *  /history picker. */
+  const showTimeline = timelineEntries !== null;
   const navigate = useNavigate();
   const location = useLocation();
   const navigation = useNavigation();
@@ -260,6 +273,23 @@ function AtlasShell() {
     };
   }, [world, applyInsets]);
 
+  /**
+   * The history timeline controller — constructed once entries arrive (a history route
+   * pushed them via AtlasContext) and torn down once they're cleared (leaving that route).
+   * Its own canvas sits underneath the map's, shown/hidden by `showTimeline` below; unlike
+   * Atlas, it owns its own pan/zoom entirely (see CLAUDE.md's history exception) so nothing
+   * else here drives it.
+   */
+  useEffect(() => {
+    if (!timelineEntries || !historyCanvasRef.current || timelineRef.current) return;
+    const timeline = new HistoryTimeline(historyCanvasRef.current, { axis: 'horizontal', entries: timelineEntries });
+    timelineRef.current = timeline;
+    return () => {
+      timeline.destroy();
+      timelineRef.current = null;
+    };
+  }, [timelineEntries]);
+
   /* a theme switch must repaint the canvas — its colours are a getComputedStyle cache
      (renderer.ts's COLORS, overlays.ts's exported palette), not a live CSS lookup */
   useEffect(() => onThemeChange(() => {
@@ -356,11 +386,14 @@ function AtlasShell() {
   const canvasClass = [
     'stage__canvas',
     armingCompare ? 'is-picking' : '',
-    quiz?.paused ? 'is-quiz-paused' : ''
+    quiz?.paused ? 'is-quiz-paused' : '',
+    showTimeline ? 'is-hidden' : ''
   ].filter(Boolean).join(' ');
 
   return (
-    <AtlasContext.Provider value={{ atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap }}>
+    <AtlasContext.Provider
+      value={{ atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap, setTimelineEntries }}
+    >
     <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
       <Rail
         overlay={overlay}
@@ -371,8 +404,13 @@ function AtlasShell() {
 
       <main className="stage">
         <canvas ref={canvasRef} className={canvasClass} aria-label="World map" />
+        <canvas
+          ref={historyCanvasRef}
+          className={`stage__canvas${showTimeline ? '' : ' is-hidden'}`}
+          aria-label="Bulgaria history timeline"
+        />
 
-        {!quiz && (
+        {!quiz && !showTimeline && (
           <div className="hud hud--top">
             <SearchBox
               world={world}
@@ -426,31 +464,33 @@ function AtlasShell() {
           </div>
         )}
 
-        <div className="hud hud--bottom">
-          <div className="zoomer glass">
-            <button type="button" className="zoom-step" onClick={() => atlasRef.current?.zoomBy(1.7)} aria-label="Zoom in">+</button>
-            <button type="button" className="zoom-step" onClick={() => atlasRef.current?.zoomBy(1 / 1.7)} aria-label="Zoom out">−</button>
-            <button type="button" onClick={() => {
-              // during a run ⌂ is only a camera reset: navigating to '/' would unmount the
-              // quiz route and silently abandon the run (the same trap as a map click)
-              if (!quiz) navigate('/');
-              atlasRef.current?.home();
-            }} aria-label="Reset view">⌂</button>
+        {!showTimeline && (
+          <div className="hud hud--bottom">
+            <div className="zoomer glass">
+              <button type="button" className="zoom-step" onClick={() => atlasRef.current?.zoomBy(1.7)} aria-label="Zoom in">+</button>
+              <button type="button" className="zoom-step" onClick={() => atlasRef.current?.zoomBy(1 / 1.7)} aria-label="Zoom out">−</button>
+              <button type="button" onClick={() => {
+                // during a run ⌂ is only a camera reset: navigating to '/' would unmount the
+                // quiz route and silently abandon the run (the same trap as a map click)
+                if (!quiz) navigate('/');
+                atlasRef.current?.home();
+              }} aria-label="Reset view">⌂</button>
+            </div>
+            <div className="scalebar glass">
+              {scale.km ? `${scale.km.toLocaleString()} km` : '—'}
+              <div className="scalebar__bar" style={{ width: `${Math.round(scale.px)}px` }} />
+            </div>
           </div>
-          <div className="scalebar glass">
-            {scale.km ? `${scale.km.toLocaleString()} km` : '—'}
-            <div className="scalebar__bar" style={{ width: `${Math.round(scale.px)}px` }} />
-          </div>
-        </div>
+        )}
 
-        {!quiz && hovered && tip && !coarse && (
+        {!quiz && !showTimeline && hovered && tip && !coarse && (
           <div className="tip glass" style={{ left: tip.x, top: tip.y }}>
             <span>{hovered.country.emoji}</span>
             <span>{hoveredPlace ? hoveredPlace.place.name : hovered.country.name}</span>
           </div>
         )}
 
-        {(comparing || armingCompare) && (
+        {!showTimeline && (comparing || armingCompare) && (
           <div className="compare-hud glass">
             <p>
               {armingCompare ? (
@@ -479,7 +519,7 @@ function AtlasShell() {
           </div>
         )}
 
-        {error && (
+        {!showTimeline && error && (
           <div className="compare-hud glass">
             <p>The map data failed to load ({error}). Reloading usually fixes it.</p>
           </div>

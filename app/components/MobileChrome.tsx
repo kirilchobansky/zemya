@@ -70,7 +70,8 @@ export function TabBar({ overlay, onOverlay }: { overlay: OverlayName; onOverlay
   const { pathname } = useLocation();
   const onMap = pathname === '/' || pathname.startsWith('/country/');
   const onQuiz = pathname.startsWith('/quizzes') || pathname.startsWith('/quiz');
-  const onStudy = pathname === '/study';
+  const onQuestions = pathname === '/questions' || pathname === '/study';
+  const onHistory = pathname.startsWith('/history');
   const close = () => onOverlay(null);
 
   // an overlay covers the section underneath, so it takes the highlight while it is open
@@ -86,9 +87,13 @@ export function TabBar({ overlay, onOverlay }: { overlay: OverlayName; onOverlay
         <Icon><circle cx="12" cy="13.5" r="7.5" /><path d="M12 9.5v4l2.5 1.5M9.5 3h5" /></Icon>
         <span className="tab__label">Quizzes</span>
       </Link>
-      <Link to="/study" state={{ sheet: 'half' }} className="tab" aria-current={tab(onStudy)} onClick={close}>
+      <Link to="/questions" state={{ sheet: 'half' }} className="tab" aria-current={tab(onQuestions)} onClick={close}>
         <Icon><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5Z" /><path d="M12 6.5v13" /></Icon>
-        <span className="tab__label">Study</span>
+        <span className="tab__label">Questions</span>
+      </Link>
+      <Link to="/history" state={{ sheet: 'half' }} className="tab" aria-current={tab(onHistory)} onClick={close}>
+        <Icon><path d="M4 7h16M4 12h16M4 17h10" /></Icon>
+        <span className="tab__label">History</span>
       </Link>
       <button
         type="button"

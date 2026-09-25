@@ -21,14 +21,18 @@ Owner: Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, ear
 Updated every commit: what works, what's next — read it before reconstructing from `git
 log`. The per-feature narrative behind each line is in `docs/decisions.md`.
 
-**Working:** the atlas (1:10m canvas map, search, overlays, compare, capitals layer); 197 hand-authored
-countries; FSRS study mode; three quizzes on one engine (Countries, Flags, Capitals), now behind a
-subject picker (`/quizzes` → Geography today, History a "coming soon" placeholder in the UI); SEO/sharing
-metadata; the phone layout (sheet, tabs, touch map, keyboard-aware quizzes, landscape drawer) tested on
-a real phone; System/Light/Dark theming (`app/lib/theme.ts`, tokens.css's `[data-theme]` blocks,
-`ThemeControls` in the rail and the Layers sheet), WCAG AA-checked in both themes; deployed on Vercel
-at https://zemya.study, indexed on Google; MIT code / ODbL data. Full list, with the reasoning behind
-each item: `docs/status.md`.
+**Working:** four top-level sections — Map, Quizzes, Questions, History (`app/routes.ts`, `Rail.tsx`'s
+`SECTIONS`, `MobileChrome.tsx`'s `TabBar`, kept in lockstep) — all sharing one shell (`routes/atlas.tsx`):
+the atlas (1:10m canvas map, search, overlays, compare, capitals layer); Questions (FSRS session,
+formerly "Study" — same engine, same FSRS store keys, `/study` permanently redirects); three quizzes on
+one engine (Countries, Flags, Capitals) behind a subject picker (`/quizzes` → Geography today, History a
+"coming soon" placeholder); History (`/history` picks a country, `/history/bulgaria` swaps the shell's
+canvas to the timeline via `AtlasContext`'s `setTimelineEntries` — see the History section below for what
+changed from its first, unlinked render); SEO/sharing metadata; the phone layout (sheet, tabs, touch map,
+keyboard-aware quizzes, landscape drawer) tested on a real phone; System/Light/Dark theming
+(`app/lib/theme.ts`, tokens.css's `[data-theme]` blocks, `ThemeControls` in the rail and the Layers
+sheet), WCAG AA-checked in both themes; deployed on Vercel at https://zemya.study, indexed on Google;
+MIT code / ODbL data. Full list, with the reasoning behind each item: `docs/status.md`.
 
 **History (data + time-axis engine only, owner-requested, see "Do not" below):**
 `content/history/bg.yaml` — 87 hand-authored entries (8 periods incl. the overlapping
@@ -192,8 +196,8 @@ clipped to the cylinder's own inner height, which satisfies the brief without lo
   Zimbabwe ZWG, Cuba CUP, Palestine ILS via overrides; the name stays "Cape Verde", "Cabo Verde" is an
   accepted answer).
 - The `location` facet has no question kind yet (needs map-click interaction), which is why
-  `ASKABLE_FACETS` filters it out. The next piece of study mode, not a bug.
-- The study-mode hint (drops one wrong option, grades a correct answer Hard) was a
+  `ASKABLE_FACETS` filters it out. The next piece of Questions, not a bug.
+- The Questions hint (drops one wrong option, grades a correct answer Hard) was a
   judgement call — confirm the shape with the owner before building on it.
 - The Great Lakes, Lake Victoria and Baikal still render as holes; drawing them needs a
   Shapefile dependency or a build-time fetch — an owner decision (full note in
@@ -307,6 +311,10 @@ calls them, not what they do.
 
 ## Mobile — the rules; the reference is `docs/mobile.md` (read it before touching the phone layout)
 
+- The tab bar (`TabBar`, `MobileChrome.tsx`) has five buttons, not four: the four nav
+  sections (Map, Quizzes, Questions, History) plus Progress, which stays a data/account
+  overlay sheet rather than a content section — a judgement call made restructuring the nav
+  into sections, since the prompt didn't say where Progress goes. Confirm before changing.
 - **LAYOUT follows viewport width** (phone layout below 820px, or a coarse pointer under 500px
   tall — `app/lib/viewport.ts`, mirrored in `app.css`); **INPUT AFFORDANCES follow the pointer**
   (`(pointer: coarse)`). Never gate markup on a JS media query (it would mismatch the prerendered
@@ -486,19 +494,26 @@ so nothing may depend on a webfont having loaded.
 ## Do not
 
 - Do not add subjects beyond geography until geography ships and has users. The multi-subject
-  vision shapes the *architecture*, not the roadmap. **Exceptions, deliberately drawn narrow:**
-  (1) the quiz picker (`/quizzes`) lists History as a second subject with an empty quiz list and
-  a "coming soon" state (`app/lib/quiz/subjects.ts`) — owner-requested UI scaffolding for the
-  subject layer itself. (2) `content/history/bg.yaml` — owner-requested history *data*, built by
-  `scripts/build-history.mjs` into `public/data/history/bg.json`. (3) `app/lib/history/scale.ts`
-  and `app/lib/history/layout.ts` — owner-requested time-axis and layout *logic* (decimal years,
-  viewport projection, zoom ladder, tier visibility, context stack, row packing, label collision;
-  no canvas, no React, no DOM). (4) `/history/bulgaria` — owner-requested first canvas render
-  (`app/lib/history/renderer.ts`, `timeline.ts`, `catalog.server.ts`); unlinked, noindex, no
-  dossier/hover/selection/quiz. See "Where this is" for all of these. None of these extends past
-  what it names: no OTHER history route, card, quiz content, or link into `/history/bulgaria` from
-  the rest of the app exists yet, and no further history countries, content kinds, logic modules
-  or UI (dossier, hover, selection, quiz, a second route) without asking again.
+  vision shapes the *architecture*, not the roadmap. **Exceptions, grown one owner-requested step
+  at a time:** (1) the quiz picker (`/quizzes`) lists History as a second subject with an empty
+  quiz list and a "coming soon" state (`app/lib/quiz/subjects.ts`) — still true, still empty.
+  (2) `content/history/bg.yaml` — history *data*, built by `scripts/build-history.mjs` into
+  `public/data/history/bg.json`. (3) `app/lib/history/scale.ts` and `layout.ts` — time-axis and
+  layout *logic* (decimal years, viewport projection, zoom ladder, tier visibility, context stack,
+  row packing, label collision; no canvas, no React, no DOM). (4) `app/lib/history/renderer.ts`,
+  `timeline.ts`, `catalog.server.ts` — the canvas render itself: the cylinder, ticks, wires,
+  drag-to-pan, wheel/pinch-zoom. Still no dossier, no hover, no selection, no quiz on the timeline
+  itself. (5) **History is now a full top-level nav section, owner-requested** (`app/routes.ts`,
+  `Rail.tsx`'s `SECTIONS`, `MobileChrome.tsx`'s `TabBar`): `/history` lists countries with a
+  timeline (`app/lib/history/countries.ts` — one entry, Bulgaria); `/history/bulgaria` is a real
+  child of the atlas layout, indexed and in the sitemap, no longer noindex or unlinked. Its canvas
+  lives in `routes/atlas.tsx` (`AtlasShell`) alongside the map's — a history route hands its
+  loader's entries to the shell through `AtlasContext`'s `setTimelineEntries`, which is what
+  swaps `showTimeline` and hides the map canvas rather than unmounting it. This supersedes (4)'s
+  "unlinked, noindex" language; everything else about the render itself is unchanged. **Still
+  bounded:** no dossier, hover, selection or quiz on the timeline; no second history country, no
+  history quiz content, no history cards, and no further history logic/UI beyond what's named here
+  — without asking again.
 - Do not add accounts, a database, or any server call in the first release.
 - Do not introduce a map tile provider or API key.
 - Do not put secrets in the repo. `.env` is gitignored; `.env.example` is committed.

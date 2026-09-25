@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useMatch } from 'react-router';
+import { Link, useLocation, useMatch } from 'react-router';
 
 import { useProgress } from '~/lib/core/ProgressProvider';
 import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
@@ -13,11 +13,21 @@ interface RailProps {
   totals: MasteryTotals;
 }
 
+/** The four top-level sections, same set and same active-section rules the phone tab bar
+ *  uses (MobileChrome.tsx's TabBar) — kept side by side so the two can't drift apart. */
+const SECTIONS = [
+  { to: '/', label: 'Map', isActive: (p: string) => p === '/' || p.startsWith('/country/') },
+  { to: '/quizzes', label: 'Quizzes', isActive: (p: string) => p.startsWith('/quizzes') || p.startsWith('/quiz') },
+  { to: '/questions', label: 'Questions', isActive: (p: string) => p === '/questions' || p === '/study' },
+  { to: '/history', label: 'History', isActive: (p: string) => p.startsWith('/history') }
+];
+
 export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailProps) {
   // A page's h1 is its subject: on a country page that is the country's name, so the
   // wordmark steps down to a plain block there and is the h1 everywhere else.
   const onCountry = useMatch('/country/:slug') !== null;
   const Wordmark = onCountry ? 'div' : 'h1';
+  const { pathname } = useLocation();
   return (
     <aside className="rail">
       <div className="brand">
@@ -32,22 +42,19 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
 
       <div className="rail__scroll">
         <section className="group">
-          <div className="actions" style={{ flexWrap: 'nowrap' }}>
-            <Link
-              to="/study"
-              className="action action--primary"
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              Study
-            </Link>
-            <Link
-              to="/quizzes"
-              className="action action--primary"
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              Quizzes
-            </Link>
-          </div>
+          <nav className="actions" aria-label="Sections">
+            {SECTIONS.map(section => (
+              <Link
+                key={section.to}
+                to={section.to}
+                className="action action--primary"
+                aria-current={section.isActive(pathname) ? 'page' : undefined}
+                style={{ flex: '1 0 40%', textAlign: 'center' }}
+              >
+                {section.label}
+              </Link>
+            ))}
+          </nav>
         </section>
 
         <LayerControls overlay={overlay} onOverlayChange={onOverlayChange} />
