@@ -6,6 +6,7 @@ import { formatCompact, formatNumber } from '~/lib/format';
 import { countryJsonLd, pageMeta } from '~/lib/seo';
 import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
 import { peekWorld } from '~/lib/geography/world';
+import { HISTORY_COUNTRIES } from '~/lib/history/countries';
 import type { Route } from './+types/country';
 
 export function loader({ params }: Route.LoaderArgs) {
@@ -47,6 +48,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
 
 export default function CountryPanel({ loaderData }: Route.ComponentProps) {
   const { country, neighbours } = loaderData;
+  const hasHistory = HISTORY_COUNTRIES.some(c => c.slug === country.slug);
 
   return (
     <>
@@ -162,6 +164,12 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
         <div className="note">
           <b>Outline</b> — {country.outlineDescription}
         </div>
+
+        {hasHistory && (
+          <Link to={`/history/${country.slug}`} className="action action--primary dossier__history">
+            History timeline
+          </Link>
+        )}
       </div>
     </>
   );

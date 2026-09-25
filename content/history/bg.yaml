@@ -31,11 +31,6 @@
 # read as "major" vs "minor" — not sourced from anything; revisit with the owner once the
 # timeline UI exists and tiers can be checked by actually zooming through them.
 #
-# TODO (later pass, not this one): Second Empire rulers (source-bg.html table 4.3, ~20
-# rulers 1185-1396), monarchs 1878-1946 (table 8.5: Batenberg, Ferdinand I, Boris III,
-# Simeon II), communist-era leaders 1946-1989 (table 9.3: Dimitrov, Chervenkov, Zhivkov
-# and the parallel BKP-secretary / premier / head-of-state tracks).
-#
 # content/history/events-bg.json (613 auto-generated events, imported in bulk by
 # scripts/import-events.mjs — see that file's header for the field mapping and the
 # dedup/blurb-merge rules against the 19 tier-1 events already below) is kept as the
@@ -532,6 +527,1201 @@ entries:
     blurb:
       bg: "Последният цар на Първото българско царство; загива при обсадата на Драч (1018)."
       en: "The last tsar of the First Bulgarian Empire; died at the siege of Dyrrhachium (1018)."
+
+  # ------------------------------------------ Second Empire rulers, 1185-1396 (table 4.3)
+  - id: ruler-petar-4
+    kind: ruler
+    name: { bg: "Петър IV (Теодор-Петър)", en: "Peter IV (Theodore-Peter)" }
+    aliases: []
+    role: цар
+    start: "1185"
+    end: "1197"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Съосновател на въстанието; управлява съвместно с брат си"
+      en: ""
+
+  - id: ruler-asen-1
+    kind: ruler
+    name: { bg: "Асен I", en: "Asen I" }
+    aliases: []
+    role: цар
+    start: "1187"
+    end: "1196"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Военният водач на възстановяването; убит от болярина Иванко"
+      en: ""
+
+  - id: ruler-kaloyan
+    kind: ruler
+    name: { bg: "Калоян", en: "Kaloyan" }
+    aliases: []
+    role: цар
+    start: "1197"
+    end: "1207"
+    precision: year
+    style: old
+    tier: 1
+    blurb:
+      bg: "Одрин 1205; уния с Рим; „Ромеоубиец“"
+      en: ""
+
+  - id: ruler-boril
+    kind: ruler
+    name: { bg: "Борил", en: "Boril" }
+    aliases: []
+    role: цар
+    start: "1207"
+    end: "1218"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Събор срещу богомилите 1211; губи територии"
+      en: ""
+
+  - id: ruler-ivan-asen-2
+    kind: ruler
+    name: { bg: "Иван Асен II", en: "Ivan Asen II" }
+    aliases: []
+    role: цар
+    start: "1218"
+    end: "1241"
+    precision: year
+    style: old
+    tier: 1
+    blurb:
+      bg: "Клокотница 1230; патриаршия 1235; най-голямото разширение"
+      en: ""
+
+  - id: ruler-kaliman-1-asen
+    kind: ruler
+    name: { bg: "Калиман I Асен", en: "Kaliman I Asen" }
+    aliases: []
+    role: цар
+    start: "1241"
+    end: "1246"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Дете-цар; начало на татарската зависимост"
+      en: ""
+
+  - id: ruler-mihail-2-asen
+    kind: ruler
+    name: { bg: "Михаил II Асен", en: "Mihail II Asen" }
+    aliases: []
+    role: цар
+    start: "1246"
+    end: "1256"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Загуба на Македония и Тракия"
+      en: ""
+
+  - id: ruler-kaliman-2-mitso-asen
+    kind: ruler
+    name: { bg: "Калиман II / Мицо Асен", en: "Kaliman II / Mitso Asen" }
+    aliases: []
+    role: цар
+    start: "1256"
+    end: "1257"
+    precision: disputed
+    style: old
+    tier: 3
+    blurb:
+      bg: "Кратки и оспорвани управления"
+      en: ""
+
+  - id: ruler-konstantin-tih-asen
+    kind: ruler
+    name: { bg: "Константин Тих Асен", en: "Konstantin Tih Asen" }
+    aliases: []
+    role: цар
+    start: "1257"
+    end: "1277"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Свален от въстанието на Ивайло"
+      en: ""
+
+  - id: ruler-ivaylo
+    kind: ruler
+    name: { bg: "Ивайло", en: "Ivaylo" }
+    aliases: []
+    role: цар
+    start: "1277"
+    end: "1280"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Единственият селянин-цар в българската история"
+      en: ""
+
+  - id: ruler-ivan-asen-3
+    kind: ruler
+    name: { bg: "Иван Асен III", en: "Ivan Asen III" }
+    aliases: []
+    role: цар
+    start: "1279"
+    end: "1280"
+    precision: year
+    style: old
+    tier: 3
+    blurb:
+      bg: "Византийско протеже; бяга от Търново"
+      en: ""
+
+  - id: ruler-georgi-1-terter
+    kind: ruler
+    name: { bg: "Георги I Тертер", en: "Georgi I Terter" }
+    aliases: []
+    role: цар
+    start: "1280"
+    end: "1292"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Основател на династията Тертер"
+      en: ""
+
+  - id: ruler-smilets
+    kind: ruler
+    name: { bg: "Смилец", en: "Smilets" }
+    aliases: []
+    role: цар
+    start: "1292"
+    end: "1298"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Управлява под татарски контрол"
+      en: ""
+
+  - id: ruler-chaka
+    kind: ruler
+    name: { bg: "Чака", en: "Chaka" }
+    aliases: []
+    role: цар
+    start: "1299"
+    end: "1300"
+    precision: year
+    style: old
+    tier: 3
+    blurb:
+      bg: "Татарски владетел на българския престол"
+      en: ""
+
+  - id: ruler-teodor-svetoslav
+    kind: ruler
+    name: { bg: "Теодор Светослав", en: "Teodor Svetoslav" }
+    aliases: []
+    role: цар
+    start: "1300"
+    end: "1321"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Освобождава страната от татарската зависимост"
+      en: ""
+
+  - id: ruler-georgi-2-terter
+    kind: ruler
+    name: { bg: "Георги II Тертер", en: "Georgi II Terter" }
+    aliases: []
+    role: цар
+    start: "1321"
+    end: "1322"
+    precision: year
+    style: old
+    tier: 3
+    blurb:
+      bg: "Кратко управление"
+      en: ""
+
+  - id: ruler-mihail-3-shishman
+    kind: ruler
+    name: { bg: "Михаил III Шишман", en: "Mihail III Shishman" }
+    aliases: []
+    role: цар
+    start: "1323"
+    end: "1330"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Загива при Велбъжд"
+      en: ""
+
+  - id: ruler-ivan-stefan
+    kind: ruler
+    name: { bg: "Иван Стефан", en: "Ivan Stefan" }
+    aliases: []
+    role: цар
+    start: "1330"
+    end: "1331"
+    precision: year
+    style: old
+    tier: 3
+    blurb:
+      bg: "Свален след една година"
+      en: ""
+
+  - id: ruler-ivan-aleksandar
+    kind: ruler
+    name: { bg: "Иван Александър", en: "Ivan Alexander" }
+    aliases: []
+    role: цар
+    start: "1331"
+    end: "1371"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Културен разцвет; разделя царството"
+      en: ""
+
+  - id: ruler-ivan-shishman
+    kind: ruler
+    name: { bg: "Иван Шишман", en: "Ivan Shishman" }
+    aliases: []
+    role: цар
+    start: "1371"
+    end: "1395"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Търновско царство; васал на султана; екзекутиран"
+      en: ""
+
+  - id: ruler-ivan-sratsimir
+    kind: ruler
+    name: { bg: "Иван Срацимир", en: "Ivan Sratsimir" }
+    aliases: []
+    role: цар
+    start: "1356"
+    end: "1396"
+    precision: year
+    style: old
+    tier: 2
+    blurb:
+      bg: "Видинско царство; последният български цар"
+      en: ""
+
+  # --------------------------------------------- governments, 1879-1908 (table 7.4)
+  - id: pm-todor-burmov
+    kind: government
+    name: { bg: "Тодор Бурмов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1879-07-05"
+    end: "1879-11-26"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Първото българско правителство; консерватор"
+      en: ""
+
+  - id: pm-mitropolit-kliment-vasil-drumev
+    kind: government
+    name: { bg: "Митрополит Климент (Васил Друмев)", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1879-11-26"
+    end: "1880-03-26"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Консервативно"
+      en: ""
+
+  - id: pm-dragan-tsankov
+    kind: government
+    name: { bg: "Драган Цанков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1880-03-26"
+    end: "1880-11-28"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Либерал"
+      en: ""
+
+  - id: pm-petko-karavelov
+    kind: government
+    name: { bg: "Петко Каравелов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1880-11-28"
+    end: "1881-04-27"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Свален от Режима на пълномощията"
+      en: ""
+
+  - id: pm-yohan-kazimir-ernrot
+    kind: government
+    name: { bg: "Йохан Казимир Ернрот", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1881-04-27"
+    end: "1881-07-01"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Руски генерал; управление с извънредни правомощия"
+      en: ""
+
+  - id: pm-leonid-sobolev
+    kind: government
+    name: { bg: "Леонид Соболев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1882-06-23"
+    end: "1883-09-07"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Руски генерал"
+      en: ""
+
+  - id: pm-dragan-tsankov-2
+    kind: government
+    name: { bg: "Драган Цанков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1883-09-07"
+    end: "1884-06-29"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Възстановяване на конституцията"
+      en: ""
+
+  - id: pm-petko-karavelov-2
+    kind: government
+    name: { bg: "Петко Каравелов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1884-06-29"
+    end: "1886-08-09"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Правителството по време на Съединението и Сръбско-българската война"
+      en: ""
+
+  - id: pm-mitropolit-kliment-tarnovski
+    kind: government
+    name: { bg: "Митрополит Климент (Търновски)", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1886-08-09"
+    end: "1886-08-12"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Проруско, след детронацията — 3 дни"
+      en: ""
+
+  - id: pm-petko-karavelov-3
+    kind: government
+    name: { bg: "Петко Каравелов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1886-08-12"
+    end: "1886-08-16"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "След контрапреврата на Стамболов — 4 дни"
+      en: ""
+
+  - id: pm-vasil-radoslavov
+    kind: government
+    name: { bg: "Васил Радославов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1886-08-16"
+    end: "1887-06-28"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Период на регентството"
+      en: ""
+
+  - id: pm-konstantin-stoilov
+    kind: government
+    name: { bg: "Константин Стоилов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1887-06-28"
+    end: "1887-08-20"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Преходно, до избора на Фердинанд"
+      en: ""
+
+  - id: pm-stefan-stambolov
+    kind: government
+    name: { bg: "Стефан Стамболов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1887-08-20"
+    end: "1894-05-18"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Най-дългото управление в Княжеството"
+      en: ""
+
+  - id: pm-konstantin-stoilov-2
+    kind: government
+    name: { bg: "Константин Стоилов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1894-05-18"
+    end: "1899-01-19"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Народна партия; признаване на Фердинанд"
+      en: ""
+
+  - id: pm-dimitar-grekov
+    kind: government
+    name: { bg: "Димитър Греков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1899-01-19"
+    end: "1899-10-01"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Либерал"
+      en: ""
+
+  - id: pm-todor-ivanchov
+    kind: government
+    name: { bg: "Тодор Иванчов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1899-10-01"
+    end: "1901-01-09"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Въвеждане на натуралния десятък; селски бунтове"
+      en: ""
+
+  - id: pm-racho-petrov
+    kind: government
+    name: { bg: "Рачо Петров", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1901-01-09"
+    end: "1901-02-21"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Служебно"
+      en: ""
+
+  - id: pm-petko-karavelov-4
+    kind: government
+    name: { bg: "Петко Каравелов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1901-02-21"
+    end: "1901-12-21"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Демократическа партия"
+      en: ""
+
+  - id: pm-stoyan-danev
+    kind: government
+    name: { bg: "Стоян Данев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1901-12-21"
+    end: "1903-05-05"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Прогресивнолиберална партия"
+      en: ""
+
+  - id: pm-racho-petrov-2
+    kind: government
+    name: { bg: "Рачо Петров", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1903-05-05"
+    end: "1906-10-22"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Илинденско-Преображенско въстание"
+      en: ""
+
+  - id: pm-dimitar-petkov
+    kind: government
+    name: { bg: "Димитър Петков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1906-10-22"
+    end: "1907-02-26"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Убит на 11 март 1907 г."
+      en: ""
+
+  - id: pm-dimitar-stanchov
+    kind: government
+    name: { bg: "Димитър Станчов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1907-03-03"
+    end: "1907-03-16"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Кратко преходно правителство"
+      en: ""
+
+  - id: pm-petar-gudev
+    kind: government
+    name: { bg: "Петър Гудев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1907-03-16"
+    end: "1908-01-16"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Народнолиберална партия"
+      en: ""
+
+  - id: pm-aleksandar-malinov
+    kind: government
+    name: { bg: "Александър Малинов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1908-01-16"
+    end: "1911-03-16"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Правителството на Независимостта"
+      en: ""
+
+  # ------------------------------------- monarchs, Third Bulgarian Kingdom (table 8.5)
+  - id: ruler-aleksandar-1-batenberg
+    kind: ruler
+    name: { bg: "Александър I Батенберг", en: "Alexander I of Battenberg" }
+    aliases: []
+    role: княз
+    start: "1879-04-17"
+    end: "1886-09-03"
+    precision: exact
+    style: old
+    tier: 2
+    blurb:
+      bg: "Избран от Учредителното събрание; извършва Съединението; детрониран от проруски офицери"
+      en: ""
+
+  - id: ruler-ferdinand-1
+    kind: ruler
+    name: { bg: "Фердинанд I", en: "Ferdinand I" }
+    aliases: []
+    role: княз, от 1908 цар
+    start: "1887-07-07"
+    end: "1918-10-03"
+    precision: exact
+    style: old
+    tier: 1
+    blurb:
+      bg: "Обявява Независимостта; въвлича страната в двете катастрофи; абдикира след поражението"
+      en: ""
+
+  - id: ruler-boris-3
+    kind: ruler
+    name: { bg: "Борис III", en: "Boris III" }
+    aliases: []
+    role: цар
+    start: "1918-10-03"
+    end: "1943-08-28"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "25 години на престола; личен режим от 1935 г.; умира при неизяснени обстоятелства"
+      en: ""
+
+  - id: ruler-simeon-2
+    kind: ruler
+    name: { bg: "Симеон II", en: "Simeon II" }
+    aliases: []
+    role: цар (малолетен)
+    start: "1943-08-28"
+    end: "1946-09-15"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Управляват регенти; напуска страната след референдума. Връща се през 1996 г. и става министър-председател през 2001–2005 г. — единственият бивш монарх в Европа, избран за премиер"
+      en: ""
+
+  # --------------------------------------------- governments, 1911-1946 (table 8.6)
+  - id: pm-ivan-evstratiev-geshov
+    kind: government
+    name: { bg: "Иван Евстратиев Гешов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1911-03-16"
+    end: "1913-06-01"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Балкански съюз; Балканската война"
+      en: ""
+
+  - id: pm-stoyan-danev-2
+    kind: government
+    name: { bg: "Стоян Данев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1913-06-01"
+    end: "1913-07-17"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Междусъюзническата война"
+      en: ""
+
+  - id: pm-vasil-radoslavov-2
+    kind: government
+    name: { bg: "Васил Радославов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1913-07-17"
+    end: "1918-06-21"
+    precision: exact
+    style: old
+    tier: 3
+    blurb:
+      bg: "Въвежда България в Първата световна война"
+      en: ""
+
+  - id: pm-aleksandar-malinov-2
+    kind: government
+    name: { bg: "Александър Малинов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1918-06-21"
+    end: "1918-10-17"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Примирието; абдикацията на Фердинанд"
+      en: ""
+
+  - id: pm-teodor-teodorov
+    kind: government
+    name: { bg: "Теодор Теодоров", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1918-10-17"
+    end: "1919-10-06"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Води преговорите в Ньой"
+      en: ""
+
+  - id: pm-aleksandar-stamboliyski
+    kind: government
+    name: { bg: "Александър Стамболийски", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1919-10-06"
+    end: "1923-06-09"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "БЗНС; поземлена реформа; убит след преврата"
+      en: ""
+
+  - id: pm-aleksandar-tsankov
+    kind: government
+    name: { bg: "Александър Цанков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1923-06-09"
+    end: "1926-01-04"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Септемврийско въстание; атентатът в „Св. Неделя“"
+      en: ""
+
+  - id: pm-andrey-lyapchev
+    kind: government
+    name: { bg: "Андрей Ляпчев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1926-01-04"
+    end: "1931-06-29"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "„Мекият режим“; стабилизация"
+      en: ""
+
+  - id: pm-aleksandar-malinov-3
+    kind: government
+    name: { bg: "Александър Малинов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1931-06-29"
+    end: "1931-10-12"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Народен блок"
+      en: ""
+
+  - id: pm-nikola-mushanov
+    kind: government
+    name: { bg: "Никола Мушанов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1931-10-12"
+    end: "1934-05-19"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Последното парламентарно правителство"
+      en: ""
+
+  - id: pm-kimon-georgiev
+    kind: government
+    name: { bg: "Кимон Георгиев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1934-05-19"
+    end: "1935-01-22"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "След преврата; разпуска партиите"
+      en: ""
+
+  - id: pm-pencho-zlatev
+    kind: government
+    name: { bg: "Пенчо Златев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1935-01-22"
+    end: "1935-04-21"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Военен; преходно"
+      en: ""
+
+  - id: pm-andrey-toshev
+    kind: government
+    name: { bg: "Андрей Тошев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1935-04-21"
+    end: "1935-11-23"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Преходно към личния режим на царя"
+      en: ""
+
+  - id: pm-georgi-kyoseivanov
+    kind: government
+    name: { bg: "Георги Кьосеиванов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1935-11-23"
+    end: "1940-02-15"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Крайовска спогодба; политика на неутралитет"
+      en: ""
+
+  - id: pm-bogdan-filov
+    kind: government
+    name: { bg: "Богдан Филов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1940-02-15"
+    end: "1943-09-14"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Тристранният пакт; войната; после регент; екзекутиран 1945"
+      en: ""
+
+  - id: pm-dobri-bozhilov
+    kind: government
+    name: { bg: "Добри Божилов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1943-09-14"
+    end: "1944-06-01"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Бомбардировките над София"
+      en: ""
+
+  - id: pm-ivan-bagryanov
+    kind: government
+    name: { bg: "Иван Багрянов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1944-06-01"
+    end: "1944-09-02"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Опит за излизане от войната"
+      en: ""
+
+  - id: pm-konstantin-muraviev
+    kind: government
+    name: { bg: "Константин Муравиев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1944-09-02"
+    end: "1944-09-09"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Обявява неутралитет; свален от преврата"
+      en: ""
+
+  - id: pm-kimon-georgiev-2
+    kind: government
+    name: { bg: "Кимон Георгиев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1944-09-09"
+    end: "1946-03-31"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Първото правителство на Отечествения фронт"
+      en: ""
+
+  - id: pm-kimon-georgiev-3
+    kind: government
+    name: { bg: "Кимон Георгиев", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1946-03-31"
+    end: "1946-11-22"
+    precision: exact
+    style: new
+    tier: 3
+    blurb:
+      bg: "Второ правителство; референдумът за република"
+      en: ""
+
+  # ----------------------------- communist-era power structure, 1946-1989 (table 9.3)
+  - id: ruler-georgi-dimitrov-bkp
+    kind: ruler
+    name: { bg: "Георги Димитров", en: "" }
+    aliases: []
+    role: лидер на БКП
+    start: "1946"
+    end: "1949"
+    precision: year
+    style: new
+    tier: 2
+    blurb:
+      bg: "Генерален секретар на Коминтерна; връща се от Москва да оглави и партията, и правителството."
+      en: ""
+
+  - id: pm-georgi-dimitrov
+    kind: government
+    name: { bg: "Георги Димитров", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1946"
+    end: "1949"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Връща се от Москва след дългогодишно ръководство на Коминтерна, за да оглави правителството."
+      en: ""
+
+  - id: ruler-vasil-kolarov-state-head
+    kind: ruler
+    name: { bg: "Васил Коларов", en: "" }
+    aliases: []
+    role: държавен глава
+    start: "1946"
+    end: "1950"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Председател на Президиума на Народното събрание — формален държавен глава след премиерския пост на Димитров."
+      en: ""
+
+  - id: ruler-valko-chervenkov-bkp
+    kind: ruler
+    name: { bg: "Вълко Червенков", en: "" }
+    aliases: []
+    role: лидер на БКП
+    start: "1950"
+    end: "1954"
+    precision: year
+    style: new
+    tier: 2
+    blurb:
+      bg: "Най-суровият сталински етап — трудови лагери в Белене и Ловеч, масови изселвания."
+      en: ""
+
+  - id: pm-vasil-kolarov
+    kind: government
+    name: { bg: "Васил Коларов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1949"
+    end: "1950"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Кратко премиерство между Димитров и Червенков."
+      en: ""
+
+  - id: pm-valko-chervenkov
+    kind: government
+    name: { bg: "Вълко Червенков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1950"
+    end: "1956"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Съчетава партийното и държавното ръководство до Априлския пленум от 1956 г."
+      en: ""
+
+  - id: ruler-georgi-damyanov-state-head
+    kind: ruler
+    name: { bg: "Георги Дамянов", en: "" }
+    aliases: []
+    role: държавен глава
+    start: "1950"
+    end: "1958"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Председател на Президиума на НС по времето на Червенков и ранния Живков."
+      en: ""
+
+  - id: ruler-todor-zhivkov-bkp
+    kind: ruler
+    name: { bg: "Тодор Живков", en: "" }
+    aliases: []
+    role: лидер на БКП
+    start: "1954"
+    end: "1989"
+    precision: year
+    style: new
+    tier: 1
+    blurb:
+      bg: "35 години на власт; свален на пленум на ЦК на 10 ноември 1989 г., ден след падането на Берлинската стена."
+      en: ""
+
+  - id: pm-anton-yugov
+    kind: government
+    name: { bg: "Антон Югов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1956"
+    end: "1962"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Постепенно изтласкан от Живков, който поема и министър-председателския пост през 1962 г."
+      en: ""
+
+  - id: ruler-dimitar-ganev-state-head
+    kind: ruler
+    name: { bg: "Димитър Ганев", en: "" }
+    aliases: []
+    role: държавен глава
+    start: "1958"
+    end: "1964"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Формален държавен глава; реалната власт вече изцяло у Живков."
+      en: ""
+
+  - id: pm-todor-zhivkov
+    kind: government
+    name: { bg: "Тодор Живков", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1962"
+    end: "1971"
+    precision: year
+    style: new
+    tier: 1
+    blurb:
+      bg: "Живков поема и правителството — властта е напълно концентрирана в неговите ръце."
+      en: ""
+
+  - id: ruler-georgi-traykov-state-head
+    kind: ruler
+    name: { bg: "Георги Трайков", en: "" }
+    aliases: []
+    role: държавен глава
+    start: "1964"
+    end: "1971"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Последен председател на Президиума на НС, преди поста да се слее с новосъздадения Държавен съвет."
+      en: ""
+
+  - id: pm-stanko-todorov
+    kind: government
+    name: { bg: "Станко Тодоров", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1971"
+    end: "1981"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Министър-председател, докато Живков ръководи страната от новия Държавен съвет."
+      en: ""
+
+  - id: ruler-todor-zhivkov-state-head
+    kind: ruler
+    name: { bg: "Тодор Живков", en: "" }
+    aliases: []
+    role: държавен глава
+    start: "1971"
+    end: "1989"
+    precision: year
+    style: new
+    tier: 1
+    blurb:
+      bg: "Оглавява новосъздадения Държавен съвет — партийното и държавното ръководство в едни ръце."
+      en: ""
+
+  - id: pm-grisha-filipov
+    kind: government
+    name: { bg: "Гриша Филипов", en: "" }
+    aliases: []
+    role: министър-председател
+    start: "1981"
+    end: "1986"
+    precision: year
+    style: new
+    tier: 3
+    blurb:
+      bg: "Последното правителство преди Атанасов в епохата на Живков."
+      en: ""
+
+  - id: ruler-petar-mladenov-bkp
+    kind: ruler
+    name: { bg: "Петър Младенов", en: "" }
+    aliases: []
+    role: лидер на БКП
+    start: "1989"
+    end: "1990"
+    precision: year
+    style: new
+    tier: 2
+    blurb:
+      bg: "Оглавява партията в деня на свалянето на Живков; тя се преименува в БСП през април 1990 г."
+      en: ""
 
   # -------------------------------------------------- heads of state since 1989 (11.2)
   - id: pres-mladenov

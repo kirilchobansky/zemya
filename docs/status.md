@@ -44,4 +44,9 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   fields, `category` and `tags`, plus `color` (period band / event dot colour, adopted
   from the JSON's era/category colours) — all three now validated and passed through by
   `scripts/lib/history.mjs`. Still data only; no UI reads `category`/`tags`/`color` yet.
+- `scripts/import-rulers.mjs` filled the rest of `content/history/source-bg.html`'s
+  ruler/government tables into `bg.yaml` (Second Empire rulers 4.3, Third Kingdom
+  monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from
+  9.3) — 765 entries total now. Tier/precision/skip judgement calls not in the source
+  are recorded in that script's header comment. `docs/decisions.md` has the reasoning.
 

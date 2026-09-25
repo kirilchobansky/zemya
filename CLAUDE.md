@@ -105,9 +105,10 @@ changes nothing — a human fixes each case. Mechanism, current list and example
 
 - Do not add subjects beyond geography until geography ships and has users, beyond the
   owner-requested History exceptions already built (quiz-picker placeholder, `bg.yaml` +
-  its build, `app/lib/history/*`, `/history` + `/history/bulgaria` as a nav section) — no
-  dossier, hover, selection, quiz, second country or further logic/UI there without asking
-  again. Full narrative and exact file list: `docs/decisions.md`.
+  its build, `app/lib/history/*`, `/history` + `/history/bulgaria` as a nav section, and a
+  "History timeline" link in the country dossier for any `HISTORY_COUNTRIES` slug) — no
+  hover, selection, quiz, second country or further logic/UI there without asking again.
+  Full narrative and exact file list: `docs/decisions.md`.
 - Do not add accounts, a database, or any server call in the first release; a map tile
   provider or API key; or secrets in the repo (`.env` is gitignored, `.env.example`
   committed). Do not use `localStorage` as the primary store — IndexedDB, guarded fallback,

@@ -602,6 +602,11 @@ a {
   margin-top: 3px;
   line-height: 1.3;
 }
+.dossier__history {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
 
 .hook {
   position: relative;
@@ -1787,6 +1792,7 @@ kbd {
   .dossier > .progress { order: 3; }
   .dossier > .dossier__borders { order: 4; }
   .dossier > .note { order: 5; }
+  .dossier > .dossier__history { order: 6; }
   .fact dd {
     min-width: 0;
     overflow-wrap: anywhere;

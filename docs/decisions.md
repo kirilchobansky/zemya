@@ -325,6 +325,60 @@ import brief itself:
   fixed Cyrillic→Latin table in the script), falling back to appending the year on a
   collision.
 
+**Ruler/government tables from source-bg.html.** `scripts/import-rulers.mjs` — another
+one-off, not idempotent — parsed the remaining hand-authored tables in
+`content/history/source-bg.html` straight out of the HTML (regex, not transcribed by hand)
+and appended them to `bg.yaml`, taking it from 680 to 765 entries: Second Empire rulers
+(table 4.3, 21 rulers 1185–1396), Third Kingdom monarchs (8.5: Batenberg, Ferdinand I,
+Boris III, Simeon II), governments 1879–1908 and 1911–1946 (7.4, 8.6), and the three
+parallel 1946–1989 power tracks (9.3: BKP leader, formal head of state, prime minister).
+Judgement calls the import brief left to the script, not derivable from the source:
+- **Tier.** 1 for Иван Асен II, Калоян, Фердинанд I, Борис III and every Живков entry
+  (all three of his roles — БКП leader, premier 1962–1971, state head 1971–1989 — per the
+  brief naming the person, not a specific role); 2 for other monarchs and party leaders;
+  3 for short (≤2 years) or explicitly "оспорвани" (contested) Second Empire reigns, for
+  every cabinet/PM entry, and for the formal-head-of-state track in table 9.3 (editorial
+  call: the source itself frames these posts as figurehead — "формалните длъжности
+  подвеждат" — so they read as closer to a cabinet than to a monarch or party leader).
+- **Precision.** `disputed` only where the source explicitly flags contested/overlapping
+  years (Калиман II / Мицо Асен: "Кратки и оспорвани управления"); co-rulers whose overlap
+  is a known, undisputed fact (Петър IV/Асен I; Иван Шишман/Иван Срацимир's Tarnovo/Vidin
+  split) keep `precision: year`, not `disputed`.
+- **Style** follows each entry's start date against the 1 April 1916 Julian cutover, same
+  rule and helper as `import-events.mjs` — needed here because two 8.5/8.6 date ranges
+  (Ferdinand I 1887–1918, governments spanning 1911–1946) straddle it; a spanning entry
+  takes its start's style, same convention already used by `period-principality-kingdom`.
+- **Table 9.3 skips.** Three cells duplicate entries already in `bg.yaml` at finer
+  (exact-date) precision and were dropped rather than re-imported: Kimon Georgiev's two
+  1944–1946 cabinets (already in table 8.6), Georgi Atanasov's 1986–1990 premiership
+  (already `pm-atanasov`, table 11.3), Petar Mladenov's 1989–1990 state headship (already
+  `pres-mladenov`, table 11.2). His new 1989–1990 БКП-leader entry has no such duplicate
+  and was kept.
+- **Rowspan handling.** Table 9.3 is the only one using `rowspan` (Zhivkov's БКП-leader
+  and, separately, his state-head cell each span several rows); the parser fills a rowspan
+  cell down into every row it covers, then dedupes on the raw cell HTML so it emits one
+  entry, not one per covered row.
+- Ids follow the existing convention of an arabic digit for an ordinal, not a roman
+  numeral (`ruler-boris-3`, not `ruler-boris-iii`) to match already-shipped ids like
+  `ruler-boris-1`/`ruler-petar-1`.
+- New entries carry `aliases: []` and, where the source table has no descriptive last
+  column (table 9.3 has none), a short hand-authored `blurb.bg` drawn from the
+  surrounding 9.1/9.2 narrative in `source-bg.html` rather than a bare "role, years"
+  placeholder.
+
+**Dossier link.** The country dossier (`app/routes/country.tsx`) now shows a "History
+timeline" button — owner-approved, widening the exception list in CLAUDE.md's "Do not"
+(previously "no dossier ... without asking again"). Rendered below the Flag/Outline notes,
+inside `.panel__body.dossier` so it inherits the panel's flex-column spacing; the condition
+is `HISTORY_COUNTRIES.some(c => c.slug === country.slug)` — the same array `routes/history.tsx`
+maps over, so a second `HISTORY_COUNTRIES` entry (still gated by the owner-approval rule
+above) would need no further wiring here. Links to `/history/${country.slug}`, the same path
+shape the picker itself uses. Styled with the existing `.action.action--primary` button
+class plus a `.dossier__history` rule (`app/styles/app.css`) that centres it as a full-width
+block; mobile's per-child `order` list for `.dossier`'s direct children (same file, the
+`@media` block reordering the sheet's sections) got a matching `order: 6` entry so it stays
+last on phones too.
+
 ## Locked decisions — detail
 
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
