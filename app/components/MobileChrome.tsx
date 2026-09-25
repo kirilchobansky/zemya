@@ -7,7 +7,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 
-import { DataSection, LayerControls, ProgressSection } from '~/components/Rail';
+import { DataSection, LayerControls, ProgressSection, ThemeControls } from '~/components/Rail';
 import type { MasteryTotals } from '~/lib/geography/mastery';
 import type { OverlayId } from '~/lib/geography/overlays';
 import type { SheetSnap } from '~/lib/sheet';
@@ -152,6 +152,7 @@ export function LayersSheet(props: LayersSheetProps) {
   return (
     <OverlaySheet open={open} title="Layers" onClose={onClose}>
       <LayerControls overlay={props.overlay} onOverlayChange={props.onOverlayChange} />
+      <ThemeControls />
       <section className="group">
         <h2 className="group__title">Show on the map</h2>
         <div className="chips">

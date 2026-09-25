@@ -25,8 +25,11 @@ log`. The per-feature narrative behind each line is in `docs/decisions.md`.
 countries; FSRS study mode; three quizzes on one engine (Countries, Flags, Capitals), now behind a
 subject picker (`/quizzes` → Geography today, History a "coming soon" placeholder in the UI); SEO/sharing
 metadata; the phone layout (sheet, tabs, touch map, keyboard-aware quizzes, landscape drawer) tested on
-a real phone; deployed on Vercel at https://zemya.study, indexed on Google; MIT code / ODbL data. Full
-list, with the reasoning behind each item: `docs/status.md`.
+a real phone; System/Light/Dark theming (`app/lib/theme.ts`, tokens.css's `[data-theme]` blocks,
+`ThemeControls` in the rail and the Layers sheet), first-pass palette, contrast check to follow;
+deployed on Vercel at https://zemya.study, indexed on Google; MIT code / ODbL data. Full list,
+with the reasoning behind
+each item: `docs/status.md`.
 
 **History (data + time-axis engine only, owner-requested, see "Do not" below):**
 `content/history/bg.yaml` — 87 hand-authored entries (8 periods incl. the overlapping
@@ -378,28 +381,50 @@ Solo project, one machine, one person. No branches, no pull requests, no CI.
 
 ## Visual identity
 
-Committed single dark theme — a chart room, not a generic dashboard. Do not add a light
-theme without asking; do not drift toward the default "near-black + one neon accent" look.
+**No longer a single committed dark theme — the owner asked for light mode.** Three states:
+System (follows the OS, the default) / Light / Dark, switched from the Layers sheet on
+phones and the rail on desktop (`ThemeControls`, `app/components/Rail.tsx`), persisted in
+`localStorage` (`app/lib/theme.ts`) and applied before first paint by an inline script in
+`root.tsx` — the documented exception to "do not use `localStorage`" below: it is a
+per-browser display preference, not progress data, and must be read synchronously or the
+page flashes the wrong theme. **Any colour change from here on must be checked in BOTH
+themes.** Still a chart room in both, not a generic dashboard or a white void: light is
+paper-and-ink (off-white page, white land, light blue-grey sea, darker borders, deepened/
+desaturated accents), not the dark palette's colours inverted. Do not drift toward the
+default "near-black + one neon accent" look, in either theme.
 
-Tokens live in `app/styles/tokens.css` and are the single source of truth — except for
-`--land` and the micro-state pin, which the canvas renderer needs as literals in
-`app/lib/map/renderer.ts`. Change one, change both.
+Tokens live in `app/styles/tokens.css` and are the single source of truth, dark values in
+`:root`, light overrides under `[data-theme="light"]` (and mirrored under a bare
+`prefers-color-scheme: light` for System). **The canvas cannot read a CSS variable once per
+frame** — `app/lib/map/renderer.ts`'s `COLORS` and `app/lib/geography/overlays.ts`'s
+exported palette are resolved from these tokens with `getComputedStyle` exactly once
+(`refreshMapColours()` / `refreshOverlayColours()`), cached, and re-read only on a theme
+change (wired up in `app/routes/atlas.tsx`) — never inside `render()`. This replaces the
+former exception where `--land` and the micro-state pin were hardcoded literals in
+`renderer.ts`; nothing needs hand-mirroring into a `.ts` file anymore, only the resolved
+colour cache needs a fallback default (kept equal to the token by hand, same convention both
+files now use for every entry, not just those two).
 
 ```
---abyss   #080D13   ground, deep sea ink
---chart   #0E1720   panel surface
---chart-2 #14212C   raised surface
---rule    #243543   hairline
---ink     #E6EEF3   primary text
---ink-2   #9FB3C0   secondary text
---ink-3   #67808F   tertiary / labels
---brass   #E8A33D   accent — instrument brass, used sparingly
---sea     #4EA9C9   secondary accent, selection-adjacent
---new     #E2544F   mastery: new
---learn   #E8A33D   mastery: learning
---master  #3DD68C   mastery: mastered
---land    #31485A   default landmass fill
+--abyss   #080D13 / #F4F1EA   ground, deep sea ink / off-white page
+--chart   #0E1720 / #FFFFFF   panel surface
+--chart-2 #14212C / #ECE7DD   raised surface
+--rule    #243543 / #C9BEAC   hairline
+--ink     #E6EEF3 / #201A12   primary text
+--ink-2   #9FB3C0 / #5A5040   secondary text
+--ink-3   #67808F / #857A68   tertiary / labels
+--brass   #E8A33D / #A8641C   accent — instrument brass, used sparingly
+--sea     #4EA9C9 / #1F7691   secondary accent, selection-adjacent
+--new     #E2544F / #B23A35   mastery: new
+--learn   #E8A33D / #A8641C   mastery: learning
+--master  #3DD68C / #16875A   mastery: mastered
+--land    #31485A / #FFFFFF   default landmass fill
+--ocean   #080D13 / #CFE0E6   canvas water — equals --abyss in dark on purpose, diverges in light
 ```
+
+(dark / light — see `tokens.css` for the full palette, including the choropleth overlays'
+categorical hues and every `-rgb` companion token used for JS/CSS alpha blending. A first pass —
+not yet checked against WCAG AA in light; that follows in a separate commit.)
 
 Type: Fraunces (display) · Archivo (UI) · IBM Plex Mono (data, labels, timers).
 Loaded from Google Fonts with real system fallbacks — the app must stay usable offline,
@@ -464,7 +489,10 @@ so nothing may depend on a webfont having loaded.
 - Do not add accounts, a database, or any server call in the first release.
 - Do not introduce a map tile provider or API key.
 - Do not put secrets in the repo. `.env` is gitignored; `.env.example` is committed.
-- Do not use `localStorage` as the primary store — IndexedDB, with a guarded fallback.
+- Do not use `localStorage` as the primary store — IndexedDB, with a guarded fallback. **One
+  documented exception:** the theme choice (`app/lib/theme.ts`) — a per-browser display
+  preference, not progress data, and it must be read synchronously before first paint (see
+  root.tsx's inline script), which IndexedDB cannot do.
 - Do not hand-write bulk historical content later; seed from Wikidata and hand-write only
   the hooks.
 - Do not enable lazy route discovery. A static host has no `/__manifest` endpoint, and the

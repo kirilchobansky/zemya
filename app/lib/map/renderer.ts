@@ -49,6 +49,12 @@ export interface Style {
   quizMode?: boolean;
 }
 
+/**
+ * Every colour the canvas paints, resolved from app/styles/tokens.css. A canvas
+ * fillStyle/strokeStyle can't be `var(--x)`, so these start as the tokens' dark-theme
+ * defaults (kept in sync by hand — see tokens.css's own header note) and are only ever
+ * overwritten by refreshMapColours() below, never read fresh inside the render loop.
+ */
 export const COLORS = {
   ocean: '#080D13',
   context: '#16222D',
@@ -61,8 +67,46 @@ export const COLORS = {
   pinEdge: 'rgba(8,13,19,.9)',
   capital: 'rgba(230,238,243,.95)',
   capitalHalo: 'rgba(8,13,19,.85)',
-  capitalLabelText: 'rgba(159,179,192,1)'
-} as const;
+  capitalLabelText: 'rgba(159,179,192,1)',
+  /** The pulse ring's colour, at whatever alpha the pulse's own animation wants — kept as a
+   *  bare "r,g,b" triplet rather than a full colour for that reason (see drawPulse). */
+  pulseRgb: '232,163,61',
+  /** The size-comparison drag overlay (atlas.ts's compare state) — brass, so it reads as
+   *  the same accent the rest of the "selected" language uses. */
+  compareFill: 'rgba(232,163,61,.42)',
+  compareStroke: '#F5CE86'
+};
+
+/**
+ * Re-reads every entry in COLORS from tokens.css and caches it in place — called once from
+ * app/routes/atlas.tsx before the first frame and again on every theme change, never from
+ * inside render(). getComputedStyle is real work; a canvas frame can't afford it 60 times a
+ * second, which is the whole reason COLORS is a cache rather than a live lookup.
+ */
+export function refreshMapColours(): void {
+  const cs = getComputedStyle(document.documentElement);
+  const read = (name: string) => cs.getPropertyValue(name).trim();
+  const rgb = (name: string) => read(name).replace(/\s+/g, ',');
+  const abyssRgb = rgb('--abyss-rgb');
+  const seaRgb = rgb('--sea-rgb');
+  const inkRgb = rgb('--ink-rgb');
+
+  COLORS.ocean = read('--ocean');
+  COLORS.context = read('--map-context');
+  COLORS.graticule = `rgba(${seaRgb},${read('--graticule-alpha')})`;
+  COLORS.graticuleMajor = `rgba(${seaRgb},${read('--graticule-major-alpha')})`;
+  COLORS.land = read('--land');
+  COLORS.microPin = read('--micro-pin');
+  COLORS.labelHalo = `rgba(${abyssRgb},.85)`;
+  COLORS.labelText = `rgba(${inkRgb},.9)`;
+  COLORS.pinEdge = `rgba(${abyssRgb},.9)`;
+  COLORS.capital = `rgba(${inkRgb},.95)`;
+  COLORS.capitalHalo = `rgba(${abyssRgb},.85)`;
+  COLORS.capitalLabelText = read('--ink-2');
+  COLORS.pulseRgb = rgb('--brass-rgb');
+  COLORS.compareFill = `rgba(${COLORS.pulseRgb},.42)`;
+  COLORS.compareStroke = read('--brass-2');
+}
 
 /**
  * A one-shot ring that grows out of a point and fades, marking a NEW quiz target so it can
@@ -75,8 +119,6 @@ export interface Pulse {
   uy: number;
   t: number;
 }
-/** --brass, as the literal the canvas needs (see the tokens note in CLAUDE.md). */
-const PULSE_RGB = '232,163,61';
 const PULSE_START_RADIUS = 8;
 const PULSE_GROWTH = 90;
 
@@ -87,7 +129,7 @@ function drawPulse(rc: RenderContext, pulse: Pulse): void {
   ctx.beginPath();
   ctx.arc(x, y, PULSE_START_RADIUS + PULSE_GROWTH * eased, 0, Math.PI * 2);
   ctx.lineWidth = 3.5 - 2 * pulse.t;
-  ctx.strokeStyle = `rgba(${PULSE_RGB},${(0.9 * (1 - pulse.t)).toFixed(3)})`;
+  ctx.strokeStyle = `rgba(${COLORS.pulseRgb},${(0.9 * (1 - pulse.t)).toFixed(3)})`;
   ctx.stroke();
 }
 

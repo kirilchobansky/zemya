@@ -10,6 +10,7 @@ import { useProgress } from '~/lib/core/ProgressProvider';
 import { countryMastery, facetProgress, type CountryMastery } from '~/lib/geography/mastery';
 import { MASTERY_COLOURS } from '~/lib/geography/overlays';
 import type { CountryRecord } from '~/lib/map/types';
+import { useTheme } from '~/lib/theme';
 
 const PILL_LABELS: Record<CountryMastery, string> = {
   new: 'Not yet seen',
@@ -18,6 +19,7 @@ const PILL_LABELS: Record<CountryMastery, string> = {
 };
 
 export function CountryProgress({ country }: { country: CountryRecord }) {
+  useTheme(); // MASTERY_COLOURS is a getComputedStyle cache — see Rail.tsx's LayerControls note
   const { cards } = useProgress();
   const state = countryMastery(country, cards);
   const facets = facetProgress(country, cards);

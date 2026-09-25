@@ -16,14 +16,26 @@ export type OverlayId =
   | 'religion'
   | 'region';
 
-export const LAND = '#31485A';
-export const SELECTED = '#E8A33D';
-export const NEIGHBOUR = '#3F8FAB';
-export const HOVER = '#456580';
+/**
+ * Every colour below is resolved from app/styles/tokens.css: the values here are the dark
+ * theme's defaults (kept in sync by hand, same convention as renderer.ts's COLORS), and
+ * refreshOverlayColours() overwrites them from the live CSS custom properties once — at
+ * app/routes/atlas.tsx's mount and on every theme change. A canvas fillStyle/strokeStyle
+ * can't be `var(--x)`, which is what these feed via fillFor/strokeFor below.
+ */
+export let LAND = '#31485A';
+export let SELECTED = '#E8A33D';
+export let NEIGHBOUR = '#3F8FAB';
+export let HOVER = '#456580';
+let STROKE_SELECTED = '#F5CE86';
+let STROKE_NEIGHBOUR = '#8FD3EA';
+let STROKE_HOVER = '#7E9CB0';
+let STROKE_DEFAULT = 'rgba(10,16,23,.92)';
 
 /** Sequential, teal to brass. Six bins because more than that stops being readable. */
 const DENSITY_RAMP = ['#123846', '#1B5566', '#37757D', '#7F9260', '#C69B45', '#F0B454'];
 const DENSITY_BREAKS = [5, 16, 50, 125, 400];
+const DENSITY_TOKENS = ['--density-1', '--density-2', '--density-3', '--density-4', '--density-5', '--density-6'];
 
 const LANGUAGE_COLOURS: Record<string, string> = {
   'Indo-European': '#4EA9C9',
@@ -38,6 +50,19 @@ const LANGUAGE_COLOURS: Record<string, string> = {
   Uralic: '#C0D06A',
   'Other families': '#6B8494'
 };
+const LANGUAGE_TOKENS: Record<string, string> = {
+  'Indo-European': '--sea',
+  'Afro-Asiatic': '--brass',
+  'Sino-Tibetan': '--new',
+  'Niger-Congo': '--master',
+  Austronesian: '--categorical-violet',
+  Turkic: '--categorical-gold',
+  Austroasiatic: '--categorical-green',
+  'Tai-Kadai': '--categorical-terracotta',
+  'Japonic / Koreanic': '--categorical-blue',
+  Uralic: '--categorical-olive',
+  'Other families': '--categorical-slate'
+};
 
 const RELIGION_COLOURS: Record<string, string> = {
   Christianity: '#4EA9C9',
@@ -49,13 +74,23 @@ const RELIGION_COLOURS: Record<string, string> = {
   'Secular / none': '#8FA3B0',
   Other: '#6B8494'
 };
+const RELIGION_TOKENS: Record<string, string> = {
+  Christianity: '--sea',
+  Islam: '--master',
+  Hinduism: '--brass',
+  Buddhism: '--categorical-terracotta',
+  Judaism: '--categorical-violet',
+  'Folk / traditional': '--categorical-olive',
+  'Secular / none': '--categorical-grey',
+  Other: '--categorical-slate'
+};
 
 /**
  * The three mastery colours are semantic, not categorical: red / amber / green read as
  * "not yet", "in progress", "done" without a legend. They are the only overlay whose
  * colours carry a judgement, which is why they are kept out of the palettes above.
  */
-export const MASTERY_COLOURS: Record<CountryMastery, string> = {
+export let MASTERY_COLOURS: Record<CountryMastery, string> = {
   new: '#E2544F',
   learning: '#E8A33D',
   mastered: '#3DD68C'
@@ -68,6 +103,40 @@ const REGION_COLOURS: Record<string, string> = {
   Americas: '#3DD68C',
   Oceania: '#B98CE0'
 };
+const REGION_TOKENS: Record<string, string> = {
+  Africa: '--brass',
+  Asia: '--new',
+  Europe: '--sea',
+  Americas: '--master',
+  Oceania: '--categorical-violet'
+};
+
+/**
+ * Re-reads every colour above from tokens.css and caches it in place — called once from
+ * app/routes/atlas.tsx before the first frame and again on every theme change. Same reason
+ * and convention as renderer.ts's refreshMapColours: a canvas frame can't call
+ * getComputedStyle, so nothing here may run inside the render loop.
+ */
+export function refreshOverlayColours(): void {
+  const cs = getComputedStyle(document.documentElement);
+  const read = (name: string) => cs.getPropertyValue(name).trim();
+
+  LAND = read('--land');
+  SELECTED = read('--brass');
+  NEIGHBOUR = read('--neighbour');
+  HOVER = read('--hover-fill');
+  STROKE_SELECTED = read('--brass-2');
+  STROKE_NEIGHBOUR = read('--neighbour-stroke');
+  STROKE_HOVER = read('--hover-stroke');
+  STROKE_DEFAULT = read('--border-default');
+
+  DENSITY_TOKENS.forEach((token, i) => { DENSITY_RAMP[i] = read(token); });
+  for (const key in LANGUAGE_TOKENS) LANGUAGE_COLOURS[key] = read(LANGUAGE_TOKENS[key]);
+  for (const key in RELIGION_TOKENS) RELIGION_COLOURS[key] = read(RELIGION_TOKENS[key]);
+  for (const key in REGION_TOKENS) REGION_COLOURS[key] = read(REGION_TOKENS[key]);
+
+  MASTERY_COLOURS = { new: read('--new'), learning: read('--learn'), mastered: read('--master') };
+}
 
 function densityColour(density: number): string {
   if (!density) return DENSITY_RAMP[0];
@@ -177,10 +246,10 @@ export function fillFor(feature: Feature, s: StyleInputs): string {
 }
 
 export function strokeFor(feature: Feature, s: StyleInputs): [string, number] {
-  if (s.selected === feature) return ['#F5CE86', 1.8];
-  if (s.showNeighbours && s.selected?.neighbours.includes(feature)) return ['#8FD3EA', 1.2];
-  if (s.hovered === feature) return ['#7E9CB0', 1.2];
-  return ['rgba(10,16,23,.92)', 1];
+  if (s.selected === feature) return [STROKE_SELECTED, 1.8];
+  if (s.showNeighbours && s.selected?.neighbours.includes(feature)) return [STROKE_NEIGHBOUR, 1.2];
+  if (s.hovered === feature) return [STROKE_HOVER, 1.2];
+  return [STROKE_DEFAULT, 1];
 }
 
 /**
@@ -222,7 +291,7 @@ export function quizFillFor(feature: Feature, quiz: QuizOverride): string {
 }
 
 export function quizStrokeFor(feature: Feature, quiz: QuizOverride): [string, number] {
-  if (quiz.target === feature) return ['#F5CE86', 1.8];
-  if (quiz.showNeighbours && quiz.target?.neighbours.includes(feature)) return ['#8FD3EA', 1.2];
-  return ['rgba(10,16,23,.92)', 1];
+  if (quiz.target === feature) return [STROKE_SELECTED, 1.8];
+  if (quiz.showNeighbours && quiz.target?.neighbours.includes(feature)) return [STROKE_NEIGHBOUR, 1.2];
+  return [STROKE_DEFAULT, 1];
 }

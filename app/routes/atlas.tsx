@@ -15,14 +15,17 @@ import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
+import { refreshMapColours } from '~/lib/map/renderer';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import { NO_INSETS, type Insets } from '~/lib/map/camera';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
 import { loadWorld, onFullDetail } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
+import { onThemeChange } from '~/lib/theme';
 import {
-  fillFor, quizFillFor, quizStrokeFor, strokeFor, type OverlayId, type QuizOverride, type StyleInputs
+  fillFor, quizFillFor, quizStrokeFor, refreshOverlayColours, strokeFor, type OverlayId, type QuizOverride,
+  type StyleInputs
 } from '~/lib/geography/overlays';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
@@ -211,6 +214,12 @@ function AtlasShell() {
   /* create the controller once the payload has arrived */
   useEffect(() => {
     if (!world || !canvasRef.current || atlasRef.current) return;
+    // The canvas can't read a CSS variable per frame (CLAUDE.md's Visual identity note) —
+    // both colour caches must be fresh before the very first frame Atlas's constructor
+    // draws, which is why this runs here rather than only from the theme-change effect
+    // below.
+    refreshOverlayColours();
+    refreshMapColours();
     const atlas = new Atlas(
       canvasRef.current,
       world,
@@ -250,6 +259,14 @@ function AtlasShell() {
       setAtlasInstance(null);
     };
   }, [world, applyInsets]);
+
+  /* a theme switch must repaint the canvas — its colours are a getComputedStyle cache
+     (renderer.ts's COLORS, overlays.ts's exported palette), not a live CSS lookup */
+  useEffect(() => onThemeChange(() => {
+    refreshOverlayColours();
+    refreshMapColours();
+    atlasRef.current?.redraw();
+  }), []);
 
   /* restyle whenever anything visual changes — quiz mode takes over the whole style
      rather than folding into fillFor/strokeFor, since none of the normal overlay/

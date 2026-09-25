@@ -9,7 +9,7 @@ import {
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
 import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
-import { hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
+import { COLORS, hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 
@@ -477,8 +477,8 @@ export class Atlas {
           ...this.style,
           overlay: {
             path: this.compare.path,
-            fill: 'rgba(232,163,61,.42)',
-            stroke: '#F5CE86'
+            fill: COLORS.compareFill,
+            stroke: COLORS.compareStroke
           }
         }
       : { ...this.style, overlay: null };

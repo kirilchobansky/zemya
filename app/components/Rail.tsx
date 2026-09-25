@@ -4,6 +4,7 @@ import { Link, useMatch } from 'react-router';
 import { useProgress } from '~/lib/core/ProgressProvider';
 import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
 import type { MasteryTotals } from '~/lib/geography/mastery';
+import { setTheme, useTheme, type Theme } from '~/lib/theme';
 
 interface RailProps {
   overlay: OverlayId;
@@ -53,6 +54,8 @@ export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailPro
 
         <ProgressSection totals={totals} />
 
+        <ThemeControls />
+
         <section className="group">
           <h2 className="group__title">How to use it</h2>
           <div className="note">
@@ -86,6 +89,10 @@ export function LayerControls({
   overlay,
   onOverlayChange
 }: Pick<RailProps, 'overlay' | 'onOverlayChange'>) {
+  // legendFor()'s swatches are a getComputedStyle cache (overlays.ts), refreshed on a theme
+  // change but not re-read on their own — subscribing forces this component (and the legend
+  // it owns) to re-render so the swatches pick the fresh values up.
+  useTheme();
   const legend = legendFor(overlay);
   return (
     <section className="group">
@@ -118,6 +125,7 @@ export function LayerControls({
 
 /** Mastered / learning / new, as a tally and a meter. */
 export function ProgressSection({ totals }: Pick<RailProps, 'totals'>) {
+  useTheme(); // MASTERY_COLOURS is a getComputedStyle cache — see LayerControls's note
   const pct = (n: number) => (totals.total ? (n / totals.total) * 100 : 0);
   return (
     <section className="group">
@@ -218,6 +226,36 @@ export function DataSection() {
         </button>
       </div>
       {status && <div className="note note--status">{status}</div>}
+    </section>
+  );
+}
+
+const THEME_OPTIONS: { id: Theme; label: string }[] = [
+  { id: 'system', label: 'System' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' }
+];
+
+/** The System / Light / Dark switch. Shared by the desktop rail and the phone Layers sheet,
+ *  same pattern as LayerControls. */
+export function ThemeControls() {
+  const theme = useTheme();
+  return (
+    <section className="group">
+      <h2 className="group__title">Appearance</h2>
+      <div className="chips">
+        {THEME_OPTIONS.map(o => (
+          <button
+            key={o.id}
+            type="button"
+            className="chip"
+            aria-pressed={theme === o.id}
+            onClick={() => setTheme(o.id)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
     </section>
   );
 }

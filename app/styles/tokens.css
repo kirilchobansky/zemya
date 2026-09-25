@@ -1,15 +1,27 @@
 /* ============================================================================
    Zemya design tokens — a chart room, not a dashboard.
 
-   One committed dark theme. See CLAUDE.md before changing any of these: the map
-   renderer reads --land and --micro-pin as literals, so a token change here must
-   be mirrored in app/lib/map/renderer.ts.
+   Two themes: dark (the :root defaults below) and light ([data-theme="light"], applied by
+   app/lib/theme.ts before first paint — see root.tsx's inline script). "System" leaves the
+   attribute off and follows prefers-color-scheme instead; an explicit "Dark" choice sets
+   [data-theme="dark"] so it can still override an OS light preference. ANY colour change
+   must be checked in both themes — see CLAUDE.md's Visual identity section.
+
+   The canvas can't read a CSS variable per frame: app/lib/map/renderer.ts's COLORS and
+   app/lib/geography/overlays.ts's exported colours are resolved from these tokens once
+   (getComputedStyle), cached, and re-read only on a theme change (refreshMapColours /
+   refreshOverlayColours, called from app/routes/atlas.tsx) — never inside the render loop.
+   A `-rgb` companion token (space-separated "R G B", no alpha) exists wherever a colour is
+   also needed at a JS-computed alpha (a pulse, a wash) or as `rgb(var(--x-rgb) / N%)` in
+   CSS — one override point per theme instead of one per alpha variant.
    ============================================================================ */
 
 :root {
   /* ground and surfaces — a blue-green bias, never neutral grey */
   --abyss: #080d13;
+  --abyss-rgb: 8 13 19;
   --chart: #0e1720;
+  --chart-rgb: 14 23 32;
   --chart-2: #14212c;
   --chart-3: #1b2c39;
   --rule: #243543;
@@ -17,28 +29,79 @@
 
   /* text */
   --ink: #e6eef3;
+  --ink-rgb: 230 238 243;
   --ink-2: #9fb3c0;
   --ink-3: #67808f;
+  /* dark text set on a brass-filled control (chips, primary buttons) — one value in every
+     theme, since brass itself stays light enough for it in both */
+  --ink-on-brass: #180f03;
 
   /* accents — brass is the instrument, sea is the chart */
   --brass: #e8a33d;
+  --brass-rgb: 232 163 61;
   --brass-2: #f5ce86;
   --brass-dim: #8a6425;
   --sea: #4ea9c9;
+  --sea-rgb: 78 169 201;
   --sea-dim: #2a5f75;
 
   /* semantic: mastery state. separate from the accent hue on purpose */
   --new: #e2544f;
+  --new-rgb: 226 84 79;
   --learn: #e8a33d;
   --master: #3dd68c;
+  --master-rgb: 61 214 140;
 
-  /* map */
+  /* map: land, water and the choropleth overlays (app/lib/geography/overlays.ts) */
   --land: #31485a;
   --land-edge: #405a6d;
+  --ocean: #080d13; /* == --abyss in dark on purpose (the map bleeds into the page); diverges in light */
+  --map-context: #16222d;
+  --micro-pin: #68889d;
+  --neighbour: #3f8fab;
+  --neighbour-stroke: #8fd3ea;
+  --hover-fill: #456580;
+  --hover-stroke: #7e9cb0;
+  --border-default: rgba(10, 16, 23, 0.92);
+  --graticule-alpha: 0.075;
+  --graticule-major-alpha: 0.16;
 
-  --shadow: 0 18px 44px -20px rgb(0 0 0 / 85%);
+  --density-1: #123846;
+  --density-2: #1b5566;
+  --density-3: #37757d;
+  --density-4: #7f9260;
+  --density-5: #c69b45;
+  --density-6: #f0b454;
+
+  /* categorical hues shared across language / religion / region where the same swatch is
+     reused in more than one of those overlays; a hue unique to one overlay is named for it */
+  --categorical-violet: #b98ce0; /* language: Austronesian · religion: Judaism · region: Oceania */
+  --categorical-gold: #f0d264; /* language: Turkic */
+  --categorical-green: #6fbf73; /* language: Austroasiatic */
+  --categorical-terracotta: #e0855a; /* language: Tai-Kadai · religion: Buddhism */
+  --categorical-blue: #7fa8f0; /* language: Japonic / Koreanic */
+  --categorical-olive: #c0d06a; /* language: Uralic · religion: Folk / traditional */
+  --categorical-slate: #6b8494; /* language: Other families · religion: Other */
+  --categorical-grey: #8fa3b0; /* religion: Secular / none */
+
+  /* shadows, scrims, vignettes — pure/near-black in both themes (standard practice: a
+     drop shadow reads as a shadow regardless of page colour) */
+  --shadow-rgb: 0 0 0;
+  --scrim-rgb: 4 8 12;
+  --shadow: 0 18px 44px -20px rgb(var(--shadow-rgb) / 85%);
   --radius: 10px;
   --radius-sm: 7px;
+
+  /* the flag drop-shadow (Flag.tsx / app.css): a light rim so a flag's own silhouette lifts
+     off --chart, plus a soft dark lift underneath */
+  --flag-shadow-rim: rgba(230, 238, 243, 0.55);
+  --flag-shadow-lift: rgba(0, 0, 0, 0.5);
+  --flag-stage-bg: #273549;
+  --flag-stage-shadow: rgb(var(--shadow-rgb) / 55%);
+
+  --brand-mark-a: #2d4658;
+  --brand-mark-b: #101c25;
+  --swatch-border-rgb: 255 255 255;
 
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
   --font-ui: 'Archivo', 'Helvetica Neue', Helvetica, system-ui, -apple-system, sans-serif;
@@ -48,6 +111,151 @@
   --panel-width: 372px;
 
   color-scheme: dark;
+}
+
+/* -------------------------------------------------------------------------- light theme
+   One block of overrides, applied either by the OS preference (with no explicit choice
+   persisted) or by an explicit "Light" choice — see app/lib/theme.ts. */
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --abyss: #f4f1ea;
+    --abyss-rgb: 244 241 234;
+    --chart: #ffffff;
+    --chart-rgb: 255 255 255;
+    --chart-2: #ece7dd;
+    --chart-3: #ded6c7;
+    --rule: #c9beac;
+    --rule-soft: #ddd4c2;
+
+    --ink: #201a12;
+    --ink-rgb: 32 26 18;
+    --ink-2: #5a5040;
+    --ink-3: #857a68;
+
+    --brass: #a8641c;
+    --brass-rgb: 168 100 28;
+    --brass-2: #8a5117;
+    --brass-dim: #d9b689;
+    --sea: #1f7691;
+    --sea-rgb: 31 118 145;
+    --sea-dim: #bfe0ea;
+
+    --new: #b23a35;
+    --new-rgb: 178 58 53;
+    --learn: #a8641c;
+    --master: #16875a;
+    --master-rgb: 22 135 90;
+
+    --land: #ffffff;
+    --land-edge: #b9c3ca;
+    --ocean: #cfe0e6;
+    --map-context: #e4dccb;
+    --micro-pin: #4c6572;
+    --neighbour: #2f7e9e;
+    --neighbour-stroke: #0f5772;
+    --hover-fill: #dcebf0;
+    --hover-stroke: #3a7f95;
+    --border-default: rgba(28, 38, 46, 0.5);
+
+    --density-1: #cfe4ea;
+    --density-2: #9dc7d3;
+    --density-3: #5fa0ab;
+    --density-4: #9c8f4e;
+    --density-5: #b8843a;
+    --density-6: #a85f22;
+
+    --categorical-violet: #7c4fa8;
+    --categorical-gold: #93701a;
+    --categorical-green: #2f7d4b;
+    --categorical-terracotta: #a3502c;
+    --categorical-blue: #3c62a8;
+    --categorical-olive: #6b7a2c;
+    --categorical-slate: #5c6f7a;
+    --categorical-grey: #5a6f7a;
+
+    --flag-shadow-rim: rgba(20, 30, 38, 0.12);
+    --flag-shadow-lift: rgba(20, 30, 38, 0.24);
+    --flag-stage-bg: #e4dccb;
+    --flag-stage-shadow: rgb(var(--shadow-rgb) / 22%);
+
+    --brand-mark-a: #dce6ea;
+    --brand-mark-b: #aebfc7;
+    --swatch-border-rgb: 20 30 38;
+
+    color-scheme: light;
+  }
+}
+
+/* an explicit "Light" choice applies the same block outside prefers-color-scheme too —
+   duplicated rather than nested because plain CSS has no "match this OR that media" without
+   repeating the declaration block (no custom-media / :media() support to lean on here) */
+:root[data-theme='light'] {
+  --abyss: #f4f1ea;
+  --abyss-rgb: 244 241 234;
+  --chart: #ffffff;
+  --chart-rgb: 255 255 255;
+  --chart-2: #ece7dd;
+  --chart-3: #ded6c7;
+  --rule: #c9beac;
+  --rule-soft: #ddd4c2;
+
+  --ink: #201a12;
+  --ink-rgb: 32 26 18;
+  --ink-2: #5a5040;
+  --ink-3: #857a68;
+
+  --brass: #a8641c;
+  --brass-rgb: 168 100 28;
+  --brass-2: #8a5117;
+  --brass-dim: #d9b689;
+  --sea: #1f7691;
+  --sea-rgb: 31 118 145;
+  --sea-dim: #bfe0ea;
+
+  --new: #b23a35;
+  --new-rgb: 178 58 53;
+  --learn: #a8641c;
+  --master: #16875a;
+  --master-rgb: 22 135 90;
+
+  --land: #ffffff;
+  --land-edge: #b9c3ca;
+  --ocean: #cfe0e6;
+  --map-context: #e4dccb;
+  --micro-pin: #4c6572;
+  --neighbour: #2f7e9e;
+  --neighbour-stroke: #0f5772;
+  --hover-fill: #dcebf0;
+  --hover-stroke: #3a7f95;
+  --border-default: rgba(28, 38, 46, 0.5);
+
+  --density-1: #cfe4ea;
+  --density-2: #9dc7d3;
+  --density-3: #5fa0ab;
+  --density-4: #9c8f4e;
+  --density-5: #b8843a;
+  --density-6: #a85f22;
+
+  --categorical-violet: #7c4fa8;
+  --categorical-gold: #93701a;
+  --categorical-green: #2f7d4b;
+  --categorical-terracotta: #a3502c;
+  --categorical-blue: #3c62a8;
+  --categorical-olive: #6b7a2c;
+  --categorical-slate: #5c6f7a;
+  --categorical-grey: #5a6f7a;
+
+  --flag-shadow-rim: rgba(20, 30, 38, 0.12);
+  --flag-shadow-lift: rgba(20, 30, 38, 0.24);
+  --flag-stage-bg: #e4dccb;
+  --flag-stage-shadow: rgb(var(--shadow-rgb) / 22%);
+
+  --brand-mark-a: #dce6ea;
+  --brand-mark-b: #aebfc7;
+  --swatch-border-rgb: 20 30 38;
+
+  color-scheme: light;
 }
 
 @media (max-width: 1180px) {
