@@ -411,15 +411,70 @@ function drawQuizPlace(rc: RenderContext, mark: PlaceMark, style: Style): void {
 /** Minimum on-screen width, in pixels, before a country is worth labelling. */
 const LABEL_MIN_WIDTH = 46;
 
-function drawLabels(rc: RenderContext, world: World, font: string, style: Style): void {
-  if (style.quizMode) return; // a label at the quiz's framing would print the answer — country OR capital
+/**
+ * A placed label, already resolved down to "what to draw and where" — nothing left that
+ * needs measuring or a collision test. `ux`/`uy` is the feature/place's own anchor (so it
+ * tracks a pan or pinch correctly); `dx`/`dy` is the fixed pixel offset from that anchor's
+ * own screen position, chosen once (0,0 for a country name, one of four spots around a
+ * capital's ring for a place name — see computeLabelLayout). Replaying a cached layout is
+ * exactly this: reproject `ux,uy` with whatever camera is current, add `dx,dy`, draw.
+ */
+interface LabelPlacement {
+  kind: 'country' | 'place';
+  ux: number;
+  uy: number;
+  text: string;
+  font: string;
+  align: CanvasTextAlign;
+  dx: number;
+  dy: number;
+}
+
+interface LabelLayout {
+  zoom: number;
+  time: number;
+  placements: LabelPlacement[];
+}
+
+/**
+ * The last full (non-fast) label layout — measureText and the overlap test only ever run to
+ * fill this in (computeLabelLayout), never per fast frame. A fast frame just reprojects it
+ * (drawLabelPlacements). One cache for the whole app: there is only ever one map on screen.
+ */
+let cachedLabels: LabelLayout | null = null;
+/** Text widths, keyed by "size:text" — measureText is the other expensive half of a full
+ *  layout pass, and a country's name at a given (rounded) font size never changes, so this
+ *  persists across every computeLabelLayout call, not just within one. */
+const textWidthCache = new Map<string, number>();
+
+/** A cached layout is reused during a fast frame until the zoom has drifted past this factor
+ *  either way (the label SET would likely differ by then) or this many ms have passed —
+ *  whichever comes first — so a long slow gesture still refreshes its labels periodically
+ *  instead of freezing them for the gesture's whole duration. */
+const LABEL_RELAYOUT_ZOOM_FACTOR = 1.5;
+const LABEL_RELAYOUT_INTERVAL_MS = 300;
+
+function measuredWidth(ctx: CanvasRenderingContext2D, text: string, font: string, sizeKey: number): number {
+  const key = `${sizeKey}:${text}`;
+  const cached = textWidthCache.get(key);
+  if (cached !== undefined) return cached;
+  ctx.font = font;
+  const width = ctx.measureText(text).width;
+  textWidthCache.set(key, width);
+  return width;
+}
+
+/**
+ * The expensive pass: measure every candidate label and run the overlap test, sorted by
+ * area (country names) then population (capital names, filling in around whatever country
+ * names already claimed) — same order and same collision rule as before, just building a
+ * list of placements instead of drawing immediately, so a fast frame can replay it.
+ */
+function computeLabelLayout(rc: RenderContext, world: World, font: string, style: Style): LabelPlacement[] {
   const { ctx, camera, viewport } = rc;
-  if (camera.zoom < homeZoom(viewport) * 1.4) return;
-
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
+  const placements: LabelPlacement[] = [];
   const placed: [number, number, number][] = [];
+
   const candidates = world.features
     .filter(f => f.bbox)
     .sort((a, b) => b.country.area - a.country.area);
@@ -432,9 +487,12 @@ function drawLabels(rc: RenderContext, world: World, font: string, style: Style)
     const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
     if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
 
-    const size = Math.max(10, Math.min(14, widthPx / 7));
-    ctx.font = `500 ${size}px ${font}`;
-    const textWidth = ctx.measureText(feature.country.name).width;
+    // rounded to the nearest px: a continuous size (widthPx/7) would almost never repeat,
+    // which would defeat measuredWidth's cache — imperceptible, and PIN_MAX_WIDTH-style
+    // "tune by looking" was already this rough
+    const size = Math.round(Math.max(10, Math.min(14, widthPx / 7)));
+    const labelFont = `500 ${size}px ${font}`;
+    const textWidth = measuredWidth(ctx, feature.country.name, labelFont, size);
     if (textWidth > widthPx * 1.05) continue;
 
     let clashes = false;
@@ -446,71 +504,95 @@ function drawLabels(rc: RenderContext, world: World, font: string, style: Style)
     }
     if (clashes) continue;
     placed.push([x, y, textWidth]);
-
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = COLORS.labelHalo;
-    ctx.strokeText(feature.country.name, x, y);
-    ctx.fillStyle = COLORS.labelText;
-    ctx.fillText(feature.country.name, x, y);
+    placements.push({ kind: 'country', ux: feature.ux, uy: feature.uy, text: feature.country.name, font: labelFont, align: 'center', dx: 0, dy: 0 });
   }
 
-  drawPlaceLabels(rc, world, font, style, placed);
+  if (capitalsVisible(style, camera, viewport)) {
+    const placeFont = `400 11px ${font}`;
+    const placeCandidates = world.places
+      .filter(mark => capitalShapeShowing(mark, camera, viewport))
+      .sort((a, b) => b.place.population - a.place.population);
+
+    for (const mark of placeCandidates) {
+      const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
+      if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
+
+      const textWidth = measuredWidth(ctx, mark.place.name, placeFont, 11);
+      // Beside the ring first; if a country name (which sits on a tiny country's centre, right where
+      // its capital is) or another capital is in the way, left, then below, then above. A ring
+      // without its name is the one thing this layer must not show, so it tries before giving up.
+      const gap = CAPITAL_RING_RADIUS + 5;
+      const spots: [number, number][] = [
+        [x + gap, y],
+        [x - gap - textWidth, y],
+        [x - textWidth / 2, y + 17],
+        [x - textWidth / 2, y - 17]
+      ];
+      const clashesAt = (left: number, ly: number) => {
+        const centre = left + textWidth / 2; // `placed` stores centres, like the country labels
+        return placed.some(([px, py, pw]) => Math.abs(px - centre) < (pw + textWidth) / 2 + 6 && Math.abs(py - ly) < 15);
+      };
+      const spot = spots.find(([left, ly]) => !clashesAt(left, ly));
+      if (!spot) continue;
+      const [left, labelY] = spot;
+      placed.push([left + textWidth / 2, labelY, textWidth]);
+      placements.push({
+        kind: 'place', ux: mark.ux, uy: mark.uy, text: mark.place.name, font: placeFont, align: 'left',
+        dx: left - x, dy: labelY - y
+      });
+    }
+  }
+
+  return placements;
+}
+
+/** Replays a layout: reproject each placement's own anchor with the CURRENT camera (so a
+ *  cached set still tracks a pan or pinch correctly), add its fixed offset, draw. No
+ *  measuring, no collision test — that's the whole point during a fast frame. */
+function drawLabelPlacements(rc: RenderContext, placements: LabelPlacement[]): void {
+  const { ctx, camera, viewport } = rc;
+  ctx.textBaseline = 'middle';
+  for (const p of placements) {
+    const [ax, ay] = worldToScreen(camera, viewport, p.ux, p.uy);
+    const x = ax + p.dx;
+    const y = ay + p.dy;
+    if (x < -CULL_MARGIN_PX || x > viewport.width + CULL_MARGIN_PX || y < -CULL_MARGIN_PX || y > viewport.height + CULL_MARGIN_PX) continue;
+
+    ctx.font = p.font;
+    ctx.textAlign = p.align;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = COLORS.labelHalo;
+    ctx.strokeText(p.text, x, y);
+    ctx.fillStyle = p.kind === 'country' ? COLORS.labelText : COLORS.capitalLabelText;
+    ctx.fillText(p.text, x, y);
+  }
 }
 
 /**
- * Capital names, placed to the right of their ring through the SAME `placed` list the
- * country labels just filled, so a city name and a country name compete for one pool of
- * space and can never overlap. Countries go first (they are the bigger claim on the
- * space); cities then fill in by population, so when two would collide the larger city
- * keeps its name.
+ * Country and capital names. The layout (which labels, and where) only gets recomputed —
+ * measureText plus the overlap test, the expensive part — on a full (non-fast) frame, or on
+ * a fast one whose cached layout has gone stale (see LABEL_RELAYOUT_*); every other fast
+ * frame just reprojects the cached placements (drawLabelPlacements). Labels are drawn during
+ * a gesture, unlike strokes/the graticule/full detail — they're the only way to navigate
+ * while the map is moving, and this is what keeps them cheap enough to.
  */
-function drawPlaceLabels(
-  rc: RenderContext,
-  world: World,
-  font: string,
-  style: Style,
-  placed: [number, number, number][]
-): void {
-  const { ctx, camera, viewport } = rc;
-  if (!capitalsVisible(style, camera, viewport)) return;
+function drawLabels(rc: RenderContext, world: World, font: string, style: Style): void {
+  if (style.quizMode) return; // a label at the quiz's framing would print the answer — country OR capital
+  const { camera, viewport, fast } = rc;
+  if (camera.zoom < homeZoom(viewport) * 1.4) return;
 
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.font = `400 11px ${font}`;
+  const now = performance.now();
+  const stale =
+    !cachedLabels ||
+    camera.zoom > cachedLabels.zoom * LABEL_RELAYOUT_ZOOM_FACTOR ||
+    camera.zoom < cachedLabels.zoom / LABEL_RELAYOUT_ZOOM_FACTOR ||
+    now - cachedLabels.time > LABEL_RELAYOUT_INTERVAL_MS;
 
-  const candidates = world.places
-    .filter(mark => capitalShapeShowing(mark, camera, viewport))
-    .sort((a, b) => b.place.population - a.place.population);
-  for (const mark of candidates) {
-    const [x, y] = worldToScreen(camera, viewport, mark.ux, mark.uy);
-    if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
-
-    const textWidth = ctx.measureText(mark.place.name).width;
-    // Beside the ring first; if a country name (which sits on a tiny country's centre, right where
-    // its capital is) or another capital is in the way, left, then below, then above. A ring
-    // without its name is the one thing this layer must not show, so it tries before giving up.
-    const gap = CAPITAL_RING_RADIUS + 5;
-    const spots: [number, number][] = [
-      [x + gap, y],
-      [x - gap - textWidth, y],
-      [x - textWidth / 2, y + 17],
-      [x - textWidth / 2, y - 17]
-    ];
-    const clashesAt = (left: number, ly: number) => {
-      const centre = left + textWidth / 2; // `placed` stores centres, like the country labels
-      return placed.some(([px, py, pw]) => Math.abs(px - centre) < (pw + textWidth) / 2 + 6 && Math.abs(py - ly) < 15);
-    };
-    const spot = spots.find(([left, ly]) => !clashesAt(left, ly));
-    if (!spot) continue;
-    const [left, labelY] = spot;
-    placed.push([left + textWidth / 2, labelY, textWidth]);
-
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = COLORS.labelHalo;
-    ctx.strokeText(mark.place.name, left, labelY);
-    ctx.fillStyle = COLORS.capitalLabelText;
-    ctx.fillText(mark.place.name, left, labelY);
+  if (!fast || stale) {
+    cachedLabels = { zoom: camera.zoom, time: now, placements: computeLabelLayout(rc, world, font, style) };
   }
+  // never null here: `stale` is true whenever cachedLabels was null, which forces the branch above
+  drawLabelPlacements(rc, cachedLabels!.placements);
 }
 
 /**
@@ -518,13 +600,13 @@ function drawPlaceLabels(
  * progress — see atlas.ts's setGestureActive/setFlying). Grouped here, each independent, so
  * any one can be tuned or switched back on without touching the others while chasing frame
  * time. A `true` means "keep doing this during a fast frame too" — every one starts `false`
- * because the whole point is to skip it.
+ * because the whole point is to skip it. Labels, pins and capital markers are NOT in this
+ * list — they still draw every fast frame (drawLabels stays cheap on its own, via the
+ * layout cache above; pins and capital rings were already cheap) because they're the only
+ * way to navigate while the map is moving.
  */
 const FAST_FRAME_FULL_DETAIL = false;
 const FAST_FRAME_GRATICULE = false;
-const FAST_FRAME_PINS = false;
-const FAST_FRAME_CAPITALS = false;
-const FAST_FRAME_LABELS = false;
 /** false = only `style.highlight()` features (selected + neighbours) keep their stroke. */
 const FAST_FRAME_FULL_STROKES = false;
 
@@ -604,9 +686,9 @@ export function render(
   }
 
   resetTransform(rc);
-  if (style.showPins && (!fast || FAST_FRAME_PINS)) drawPins(rc, world, style, focus);
-  if (!fast || FAST_FRAME_CAPITALS) drawCapitals(rc, world, style);
-  if (style.showLabels && (!fast || FAST_FRAME_LABELS)) drawLabels(rc, world, uiFont, style);
+  if (style.showPins) drawPins(rc, world, style, focus);
+  drawCapitals(rc, world, style);
+  if (style.showLabels) drawLabels(rc, world, uiFont, style);
   if (pulse) drawPulse(rc, pulse);
 }
 
