@@ -36,7 +36,7 @@
 import { assignRows, classifySpan, contextAt, placeLabels, type LabelCandidate, type LayoutEntry } from './layout';
 import {
   CONFIG, dateOfDecimalYear, pxToTime, ticks, timeToPx, visibleEntries,
-  type EntryKind, type Tick, type TimeRange, type Viewport
+  type EntryKind, type RevealMode, type Tick, type TimeRange, type Viewport
 } from './scale';
 
 export type Axis = 'horizontal' | 'vertical';
@@ -126,7 +126,10 @@ function smoothstep(t: number): number {
   return c * c * (3 - 2 * c);
 }
 
-function wireRevealAt(kind: EntryKind, normFrac: number): number {
+/** `mode: 'all'` skips WIRE_REVEAL_START entirely — every wire is fully revealed at every
+ *  zoom, no fade-in — the content-review mode (see RevealMode's own doc). */
+function wireRevealAt(kind: EntryKind, normFrac: number, mode: RevealMode): number {
+  if (mode === 'all') return 1;
   return smoothstep((normFrac - WIRE_REVEAL_START[kind]) / WIRE_REVEAL_BAND);
 }
 
@@ -400,14 +403,14 @@ interface WireLayout {
  */
 function layoutWires(
   visibleByKind: Readonly<Record<EntryKind, TimelineEntry[]>>, rows: ReadonlyMap<string, number>,
-  contentTop: number, contentBottom: number, normFrac: number
+  contentTop: number, contentBottom: number, normFrac: number, mode: RevealMode
 ): Partial<Record<EntryKind, WireLayout>> {
   const available = Math.max(0, contentBottom - contentTop);
   const shown: EntryKind[] = [];
   const reveal: Partial<Record<EntryKind, number>> = {};
   for (const kind of WIRE_ORDER) {
     if (visibleByKind[kind].length === 0) continue;
-    const r = wireRevealAt(kind, normFrac);
+    const r = wireRevealAt(kind, normFrac, mode);
     if (r > 0.02) {
       shown.push(kind);
       reveal[kind] = r;
@@ -626,6 +629,9 @@ export interface RenderContext {
   /** [earliest authored entry, today] — draws the out-of-range fade/labels and (via
    *  minPxPerYear upstream) is what the cylinder's growth curve is normalised against. */
   contentRange: TimeRange;
+  /** 'eased' (default reading experience) or 'all' — a content-review mode that draws
+   *  every wire at every zoom with no tier filtering. See RevealMode's own doc. */
+  revealMode: RevealMode;
 }
 
 /**
@@ -637,7 +643,7 @@ export interface RenderContext {
  * function culls to what's on screen itself, per draw call, via visibleEntries.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): void {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, revealMode } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -656,7 +662,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): vo
   const contentTop = cylinderTop + RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop;
   const contentBottom = cylinderBottom - RENDER_CONFIG.wirePaddingBottom;
 
-  const visible = visibleEntries(entries, viewport);
+  const visible = visibleEntries(entries, viewport, revealMode);
   const visibleByKind: Record<EntryKind, TimelineEntry[]> = { period: [], ruler: [], government: [], event: [] };
   for (const e of visible) visibleByKind[e.kind].push(e);
 
@@ -668,7 +674,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): vo
     (thickness / crossSizePx - CONFIG.minCylinderThicknessFrac) / (CONFIG.maxCylinderThicknessFrac - CONFIG.minCylinderThicknessFrac), 0, 1
   );
   const rows = assignRows(entries);
-  const wires = layoutWires(visibleByKind, rows, contentTop, contentBottom, normFrac);
+  const wires = layoutWires(visibleByKind, rows, contentTop, contentBottom, normFrac, revealMode);
 
   const focus = contextAt(entries, viewport.center);
   const focusIds: Partial<Record<EntryKind, string>> = {

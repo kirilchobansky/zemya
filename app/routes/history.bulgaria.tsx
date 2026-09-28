@@ -29,11 +29,15 @@ export function meta({ location }: Route.MetaArgs) {
 
 export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProps) {
   const { entries } = loaderData;
-  const { setTimelineEntries } = useAtlasContext();
+  const { setTimelineEntries, revealMode, setRevealMode } = useAtlasContext();
 
   useEffect(() => {
     setTimelineEntries(entries);
-    return () => setTimelineEntries(null);
+    return () => {
+      setTimelineEntries(null);
+      setRevealMode('eased');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup must reset the toggle regardless of setRevealMode identity
   }, [entries, setTimelineEntries]);
 
   return (
@@ -49,6 +53,14 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
         </div>
       </header>
       <div className="panel__body">
+        <button
+          type="button"
+          className="chip"
+          aria-pressed={revealMode === 'all'}
+          onClick={() => setRevealMode(mode => (mode === 'all' ? 'eased' : 'all'))}
+        >
+          Пълен изглед
+        </button>
         <div className="subject-list">
           {HISTORY_COUNTRIES.map(country => (
             <Link

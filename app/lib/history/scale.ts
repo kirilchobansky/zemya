@@ -20,6 +20,10 @@ import { dateKey, parseHistoryDate, type ParsedHistoryDate } from '../../../scri
 export type ZoomLevel = 'millennium' | 'century' | 'decade' | 'year' | 'month' | 'day';
 export type EntryKind = 'period' | 'ruler' | 'government' | 'event';
 export type TickWeight = 'major' | 'minor';
+/** 'eased' is the normal reading experience (WIRE_REVEAL_START/maxTier gate what's on
+ *  screen at each zoom). 'all' is a content-review mode: every wire draws at every zoom
+ *  and no entry is tier-filtered — see app/lib/history/renderer.ts's WIRE_REVEAL_START. */
+export type RevealMode = 'eased' | 'all';
 
 /** Coarsest first. Every table below is keyed by this same order. */
 export const ZOOM_LEVELS: readonly ZoomLevel[] = ['millennium', 'century', 'decade', 'year', 'month', 'day'];
@@ -320,9 +324,11 @@ export function kindRank(kind: EntryKind): number {
 }
 
 /** The highest tier still visible for `kind` at `level` — CONFIG.maxTier looked up and
- *  nothing else; 0 (or below `kind`'s own minimum tier) means never visible at this level. */
-export function maxTierFor(level: ZoomLevel, kind: EntryKind): number {
-  return CONFIG.maxTier[level][kind];
+ *  nothing else; 0 (or below `kind`'s own minimum tier) means never visible at this level.
+ *  `mode: 'all'` bypasses the table entirely and returns 5 (the highest tier any entry can
+ *  have — see CONFIG.maxTier's own values) so no entry is ever tier-filtered. */
+export function maxTierFor(level: ZoomLevel, kind: EntryKind, mode: RevealMode = 'eased'): number {
+  return mode === 'all' ? 5 : CONFIG.maxTier[level][kind];
 }
 
 /** A timeline entry reduced to what this module needs: already-converted decimal-year
@@ -342,13 +348,13 @@ export interface HistoryEntry {
  * zoom, then sorts by kindRank (primary) and start (secondary) — see KIND_RANK's comment
  * on why that order is fixed rather than incidental.
  */
-export function visibleEntries<T extends HistoryEntry>(entries: readonly T[], viewport: Viewport): T[] {
+export function visibleEntries<T extends HistoryEntry>(entries: readonly T[], viewport: Viewport, mode: RevealMode = 'eased'): T[] {
   const level = levelFor(viewport.pxPerYear);
   const { from, to } = visibleRangeOverscan(viewport);
 
   return entries
     .filter(e => {
-      const max = maxTierFor(level, e.kind);
+      const max = maxTierFor(level, e.kind, mode);
       if (max <= 0 || e.tier > max) return false;
       const end = e.end ?? Infinity;
       return end >= from && e.start <= to;

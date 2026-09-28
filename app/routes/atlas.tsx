@@ -18,6 +18,7 @@ import { Atlas } from '~/lib/map/atlas';
 import { refreshMapColours } from '~/lib/map/renderer';
 import { HistoryTimeline } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
+import type { RevealMode } from '~/lib/history/scale';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import { NO_INSETS, type Insets } from '~/lib/map/camera';
@@ -59,6 +60,10 @@ interface AtlasContextValue {
    *  cleared on unmount. Non-null swaps the canvas from the map to the timeline — see the
    *  effect below that owns the HistoryTimeline controller. */
   setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[] | null>>;
+  /** The timeline's reveal mode — 'eased' (normal) or 'all' (content-review: every wire at
+   *  every zoom, no tier filtering). Set by a history route's own toggle. */
+  revealMode: RevealMode;
+  setRevealMode: Dispatch<SetStateAction<RevealMode>>;
 }
 
 const AtlasContext = createContext<AtlasContextValue | null>(null);
@@ -88,6 +93,7 @@ function AtlasShell() {
   const historyCanvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HistoryTimeline | null>(null);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
+  const [revealMode, setRevealMode] = useState<RevealMode>('eased');
   /** Non-null only while a history route (routes/history.bulgaria.tsx) has handed its
    *  entries over — the canvas shows the map the rest of the time, including on the bare
    *  /history picker. */
@@ -291,6 +297,12 @@ function AtlasShell() {
     };
   }, [timelineEntries]);
 
+  /** Applies the current reveal mode to the live HistoryTimeline instance — also re-runs
+   *  when entries change (a fresh instance always starts 'eased', see setRevealMode). */
+  useEffect(() => {
+    timelineRef.current?.setRevealMode(revealMode);
+  }, [revealMode, timelineEntries]);
+
   /* a theme switch must repaint the canvas — its colours are a getComputedStyle cache
      (renderer.ts's COLORS, overlays.ts's exported palette), not a live CSS lookup */
   useEffect(() => onThemeChange(() => {
@@ -395,7 +407,10 @@ function AtlasShell() {
 
   return (
     <AtlasContext.Provider
-      value={{ atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap, setTimelineEntries }}
+      value={{
+        atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap,
+        setTimelineEntries, revealMode, setRevealMode
+      }}
     >
     <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
       <Rail

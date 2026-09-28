@@ -13,7 +13,7 @@
  * No hover, no selection, no keyboard — the first render has none of those yet.
  */
 import { render, type Axis, type RenderContext, type TimelineEntry } from './renderer';
-import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, pxToTime, type TimeRange, type Viewport } from './scale';
+import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, pxToTime, type RevealMode, type TimeRange, type Viewport } from './scale';
 
 const WHEEL_SENSITIVITY = 0.0016;
 const WHEEL_LINE_SENSITIVITY = 0.05;
@@ -61,6 +61,9 @@ export class HistoryTimeline {
    *  directly, except on the very first frame (null means "not yet initialised"). */
   private cylinderFrac: number | null = null;
   private lastAnimationFrameTime = 0;
+
+  /** 'eased' by default — see setRevealMode. */
+  private revealMode: RevealMode = 'eased';
 
   private resizeObserver: ResizeObserver;
   /** Renders are requested, never issued from an event handler — at most one per
@@ -165,8 +168,17 @@ export class HistoryTimeline {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
       crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
       cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
-      contentRange: this.contentRange
+      contentRange: this.contentRange,
+      revealMode: this.revealMode
     };
+  }
+
+  /** Switches between the normal eased reveal and the content-review 'all' mode (every
+   *  wire drawn at every zoom, no tier filtering) — see RevealMode's own doc. */
+  setRevealMode(mode: RevealMode): void {
+    if (this.revealMode === mode) return;
+    this.revealMode = mode;
+    this.draw();
   }
 
   /** The zoom floor for THIS frame's sizePx: the cylinder filling the viewport with the
