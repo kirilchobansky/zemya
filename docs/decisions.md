@@ -728,6 +728,17 @@ Type: Fraunces (display) · Archivo (UI) · IBM Plex Mono (data, labels, timers)
 Google Fonts with real system fallbacks — the app must stay usable offline, so nothing may
 depend on a webfont having loaded.
 
+**Fixed bug: `.action--primary` text vanishing on hover, dark theme.** `.action:hover:
+not(:disabled)` (specificity 0,3,0) was beating `.action--primary:hover` (0,2,0) for the
+`color` property on any element carrying both classes (every primary button/link in the
+app — Rail's nav links, root.tsx's install link, quiz "Start"/"Next", the dossier's "History
+timeline"), setting `color: var(--brass-2)` where `--brass-fill-hover` was already the
+background — in the dark theme the two tokens are the identical hex, so the text became
+literally the same colour as its own hover background. Fixed by scoping the plain rule
+`:not(.action--primary)` (`app.css`) so the two hover treatments never compete on the same
+property; not a `--brass-2`/`--brass-fill-hover` token change, since that pairing not
+colliding was never guaranteed by the token system itself.
+
 ## What counts as a country — detail
 
 Moved from CLAUDE.md, which keeps the short rule and the count.

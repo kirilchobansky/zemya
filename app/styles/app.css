@@ -186,6 +186,15 @@ a {
   border-right: none;
 }
 
+/* The panel's own collapse button sits over its head's usual left padding (top:10px,
+   left:8px, 22px square) — push the eyebrow/heading right by that button's own footprint
+   so it never sits under the arrow. :has() scopes this to exactly when the button is
+   actually there (desktop only — see atlas.tsx's `!phone` guard on rendering it), rather
+   than duplicating the rule inside a phone media query to undo it. */
+.panel:has(> .sidebar-collapse) .panel__head {
+  padding-left: 40px;
+}
+
 .rail--collapsed > .brand,
 .rail--collapsed > .rail__scroll,
 .rail--collapsed > .rail__foot,
@@ -1345,7 +1354,11 @@ a {
   font-weight: 500;
   transition: border-color 0.14s, color 0.14s;
 }
-.action:hover:not(:disabled) {
+/* :not(.action--primary) matters, not just style: without it this rule's specificity
+   (0,3,0) beats .action--primary:hover's (0,2,0) below and wins the `color` property on a
+   primary button — in the dark theme --brass-2 equals --brass-fill-hover exactly, so the
+   text became the same colour as its own hover background and visually vanished. */
+.action:hover:not(:disabled):not(.action--primary) {
   border-color: var(--brass-dim);
   color: var(--brass-2);
 }
