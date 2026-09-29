@@ -16,7 +16,8 @@ import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
 import { refreshMapColours } from '~/lib/map/renderer';
-import { HistoryTimeline } from '~/lib/history/timeline';
+import HistoryCard from '~/components/HistoryCard';
+import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
@@ -88,6 +89,7 @@ function AtlasShell() {
   const historyCanvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HistoryTimeline | null>(null);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
+  const [historyHover, setHistoryHover] = useState<HistoryHover | null>(null);
   /** Non-null only while a history route (routes/history.bulgaria.tsx) has handed its
    *  entries over — the canvas shows the map the rest of the time, including on the bare
    *  /history picker. */
@@ -283,11 +285,14 @@ function AtlasShell() {
    */
   useEffect(() => {
     if (!timelineEntries || !historyCanvasRef.current || timelineRef.current) return;
-    const timeline = new HistoryTimeline(historyCanvasRef.current, { axis: 'horizontal', entries: timelineEntries });
+    const timeline = new HistoryTimeline(historyCanvasRef.current, {
+      axis: 'horizontal', entries: timelineEntries, onHover: setHistoryHover
+    });
     timelineRef.current = timeline;
     return () => {
       timeline.destroy();
       timelineRef.current = null;
+      setHistoryHover(null);
     };
   }, [timelineEntries]);
 
@@ -415,6 +420,18 @@ function AtlasShell() {
           className={`stage__canvas${showTimeline ? '' : ' is-hidden'}`}
           aria-label="Bulgaria history timeline"
         />
+
+        {showTimeline && historyHover && timelineEntries && (
+          <HistoryCard
+            entry={historyHover.entry}
+            rect={historyHover.rect}
+            entries={timelineEntries}
+            bounds={{
+              width: historyCanvasRef.current?.clientWidth ?? 0,
+              height: historyCanvasRef.current?.clientHeight ?? 0
+            }}
+          />
+        )}
 
         {!quiz && !showTimeline && (
           <div className="hud hud--top">

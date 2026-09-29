@@ -43,7 +43,18 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   auto-generated events), adding a `period-pre` period and two new optional per-entry
   fields, `category` and `tags`, plus `color` (period band / event dot colour, adopted
   from the JSON's era/category colours) — all three now validated and passed through by
-  `scripts/lib/history.mjs`. Still data only; no UI reads `category`/`tags`/`color` yet.
+  `scripts/lib/history.mjs`. `category`/`color` now read by the hover card (below);
+  `tags` still unread by any UI.
+- Hover on the history timeline: `app/lib/history/renderer.ts`'s `render()` records a
+  hoverable region per drawn period/ruler/government capsule and event pin (not the
+  period colour wash) and returns them; `app/lib/history/timeline.ts` hit-tests the
+  pointer against last frame's regions on pointermove (throttled to one check per
+  animation frame, suppressed while dragging or pinch-zooming), brightens the hovered
+  capsule/pin on canvas, and reports it up through a `HistoryTimeline` `onHover`
+  callback. `app/routes/atlas.tsx` floats `app/components/HistoryCard.tsx` (name, dates,
+  role/category/summary per kind — see `app/lib/history/renderer.ts`'s `TimelineEntry`
+  for the fields it reads) beside the hovered entry, flipping left/up to stay on screen.
+  No selection or click behaviour yet — hover only.
 - `scripts/import-rulers.mjs` filled the rest of `content/history/source-bg.html`'s
   ruler/government tables into `bg.yaml` (Second Empire rulers 4.3, Third Kingdom
   monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from

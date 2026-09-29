@@ -24,6 +24,8 @@ interface RawHistoryEntry {
   tier: number;
   parent: string | null;
   category: string | null;
+  color: string | null;
+  blurb: { bg: string; en: string };
 }
 
 interface RawHistoryDoc {
@@ -82,7 +84,11 @@ function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
     end: raw.end == null ? (raw.kind === 'event' ? start : null) : decimalYearOf(raw.end, `${where}.end`),
     // Bulgarian, not English: this is a Bulgarian history timeline, and the canvas font
     // stack (app/lib/history/timeline.ts) is chosen to cover Cyrillic specifically for it.
-    label: raw.name.bg
+    label: raw.name.bg,
+    blurbBg: raw.blurb.bg,
+    category: raw.category,
+    color: raw.color,
+    precision: raw.precision
   };
 }
 

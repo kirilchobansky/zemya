@@ -50,6 +50,31 @@ export interface TimelineEntry extends LayoutEntry {
   /** Rulers and governments only (null for period/event) — drawn as a second, smaller
    *  line beneath the name in the capsule (see drawWireCapsules). */
   role: string | null;
+  /** Bulgarian summary (blurb.bg), one or two sentences — the hover card's body text. */
+  blurbBg: string;
+  /** Events only (null otherwise) — a key from content/history/events-bg.json's
+   *  categories[], e.g. "war", "treaty" — the hover card's coloured dot + English label. */
+  category: string | null;
+  /** "#rrggbb" or null — period band / event category colour, authored in content/
+   *  history/*.yaml. Used by the hover card's category dot. */
+  color: string | null;
+  precision: 'exact' | 'year' | 'circa' | 'disputed';
+}
+
+/** One hoverable region recorded by render(), in real canvas CSS-pixel coordinates
+ *  (the same space as PointerEvent's offsetX/offsetY) — axis-agnostic, since project()/
+ *  rectFor() have already resolved along/cross into real x/y/w/h by the time a region is
+ *  recorded. Consumed by app/lib/history/timeline.ts's hit-testing; drawn by nothing
+ *  itself. */
+export interface HitRegion {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Copied off the entry, so timeline.ts's tie-break ("ties go to the lower tier
+   *  number") doesn't need a second lookup. */
+  tier: number;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -572,7 +597,7 @@ function drawWireRails(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number
 function drawWireCapsules(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, kind: EntryKind,
   entries: readonly TimelineEntry[], rows: ReadonlyMap<string, number>, viewport: Viewport,
-  wire: WireLayout, focusId: string | null
+  wire: WireLayout, focusId: string | null, hoveredId: string | null, hits: HitRegion[]
 ): void {
   const { dim, bright, stroke } = kindCapsuleColors(kind);
   const byRow = new Map<number, TimelineEntry[]>();
@@ -590,6 +615,7 @@ function drawWireCapsules(
 
     for (const e of rowEntries) {
       const isFocus = e.id === focusId;
+      const isHovered = e.id === hoveredId;
       const h = Math.min(wire.height, baseHeight * (isFocus ? RENDER_CONFIG.capsuleFocusScale : 1));
       const fontPx = Math.min(RENDER_CONFIG.capsuleMaxFontPx, baseFontPx * (isFocus ? 1.12 : 1));
       const cross0 = rowMid - h / 2;
@@ -615,6 +641,7 @@ function drawWireCapsules(
 
       const r = rectFor(axis, fromPx, toPx, cross0, cross1);
       const radius = Math.min(RENDER_CONFIG.capsuleCornerRadiusPx, r.w / 2, r.h / 2);
+      hits.push({ id: e.id, x: r.x, y: r.y, w: r.w, h: r.h, tier: e.tier });
 
       ctx.save();
       ctx.beginPath();
@@ -622,9 +649,11 @@ function drawWireCapsules(
       const g0 = project(axis, fromPx, cross0);
       const g1 = project(axis, fromPx, cross1);
       const grad = ctx.createLinearGradient(g0.x, g0.y, g1.x, g1.y);
-      grad.addColorStop(0, dim);
-      grad.addColorStop(0.5, bright);
-      grad.addColorStop(1, dim);
+      // Hover brightens the whole gradient by lightening both stops toward white — a
+      // visible "lit up" state distinct from isFocus's own bigger/bolder treatment.
+      grad.addColorStop(0, isHovered ? shade(dim, -0.18) : dim);
+      grad.addColorStop(0.5, isHovered ? shade(bright, -0.18) : bright);
+      grad.addColorStop(1, isHovered ? shade(dim, -0.18) : dim);
       ctx.fillStyle = grad;
       ctx.fill();
       ctx.lineWidth = isFocus ? 1.5 : 1;
@@ -634,6 +663,11 @@ function drawWireCapsules(
       // one accent colour doubles as the centre-focus highlight, isFocus only thickens it.
       ctx.strokeStyle = kind === 'period' ? (isFocus ? bright : stroke) : stroke;
       ctx.stroke();
+      if (isHovered) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = COLORS.white;
+        ctx.stroke();
+      }
 
       // Every capsule's text is plain white — each kind's fill (dim/bright above) is dark
       // enough to keep it readable regardless of kind or focus state.
@@ -697,9 +731,14 @@ function formatEventDateLine(d: { year: number; month: number | null; day: numbe
  * crowded moment keeps its most important pins' labels and silently drops the rest (the
  * pin and dot still draw regardless — only the TEXT is dropped).
  */
+/** Half-width of an event pin's hit region — the 1px pin gets 6px of tolerance on each
+ *  side, per the hover brief. */
+const PIN_HIT_HALF_WIDTH_PX = 6;
+
 function drawEventPins(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, monoFont: string,
-  entries: readonly TimelineEntry[], viewport: Viewport, wire: WireLayout, level: ZoomLevel
+  entries: readonly TimelineEntry[], viewport: Viewport, wire: WireLayout, level: ZoomLevel,
+  hoveredId: string | null, hits: HitRegion[]
 ): void {
   const fontPx = RENDER_CONFIG.pinLabelFontPxByLevel[level];
   const dateFontPx = Math.round(fontPx * 0.7);
@@ -724,12 +763,15 @@ function drawEventPins(
   for (const { e, px, reveal } of onScreen) {
     const frac = RENDER_CONFIG.pinHeightFracByTier[e.tier] ?? RENDER_CONFIG.pinHeightFracByTier[3];
     const bottom = wire.top + wire.height * frac;
+    const isHovered = e.id === hoveredId;
+    const hitRect = rectFor(axis, px - PIN_HIT_HALF_WIDTH_PX, px + PIN_HIT_HALF_WIDTH_PX, wire.top, bottom);
+    hits.push({ id: e.id, x: hitRect.x, y: hitRect.y, w: hitRect.w, h: hitRect.h, tier: e.tier });
 
     ctx.save();
     ctx.globalAlpha = reveal;
 
     ctx.strokeStyle = COLORS.brass;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = isHovered ? 2 : 1;
     ctx.beginPath();
     const p0 = project(axis, px, wire.top);
     const p1 = project(axis, px, bottom);
@@ -740,7 +782,7 @@ function drawEventPins(
     const dot = project(axis, px, bottom);
     ctx.beginPath();
     ctx.fillStyle = COLORS.brass;
-    ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
+    ctx.arc(dot.x, dot.y, isHovered ? dotRadius * 1.6 : dotRadius, 0, Math.PI * 2);
     ctx.fill();
 
     if (placed.has(e.id)) {
@@ -835,6 +877,10 @@ export interface RenderContext {
   /** [earliest authored entry, today] — draws the out-of-range fade/labels and (via
    *  minPxPerYear upstream) is what the cylinder's growth curve is normalised against. */
   contentRange: TimeRange;
+  /** The id of the entry timeline.ts's hit-testing currently has under the pointer, or
+   *  null — the one capsule/pin drawn brighter + outlined (see drawWireCapsules/
+   *  drawEventPins). Never the period colour wash, which isn't hoverable. */
+  hoveredId: string | null;
 }
 
 /**
@@ -848,9 +894,13 @@ export interface RenderContext {
  * draw time instead, see drawEventPins/eventTierReveal). Zoom changes label detail (text
  * fit, pin fonts) and, for period, its own wire's share of the height — never whether an
  * entry is there at all.
+ *
+ * Returns every hoverable region drawn this frame (capsules and pins, not the period
+ * colour wash) — app/lib/history/timeline.ts keeps the latest array and hit-tests the
+ * pointer against it, throttled to once per animation frame.
  */
-export function render(rc: RenderContext, entries: readonly TimelineEntry[]): void {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange } = rc;
+export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -887,19 +937,22 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): vo
     ...(focus.government.primary ? { government: focus.government.primary.id } : {})
   };
 
+  const hits: HitRegion[] = [];
   const level = levelFor(viewport.pxPerYear);
   for (const kind of WIRE_ORDER) {
     const wire = wires[kind];
     if (!wire) continue;
     if (kind === 'event') {
-      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level);
+      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, hoveredId, hits);
       continue;
     }
     drawWireRails(ctx, axis, viewport.sizePx, wire, kindCapsuleColors(kind).stroke);
-    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null);
+    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, hoveredId, hits);
   }
 
   drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);
   drawCentreCylinderLine(ctx, axis, viewport, cylinderTop, cylinderBottom);
   drawCentreDate(ctx, axis, monoFont, viewport, cylinderTop);
+
+  return hits;
 }

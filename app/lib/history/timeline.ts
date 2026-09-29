@@ -10,10 +10,20 @@
  * axis. This class is the same pattern, one dimension smaller, driving
  * app/lib/history/scale.ts's Viewport instead of app/lib/map/camera.ts's CameraState.
  *
- * No hover, no selection, no keyboard — the first render has none of those yet.
+ * Hover: hit-testing against the regions render() hands back each frame (see
+ * HitRegion), throttled to one lookup per animation frame on pointermove, suppressed
+ * entirely while dragging or pinch-zooming (their gesture handlers clear it directly
+ * rather than letting a stale hit-test win a race). No selection, no keyboard yet.
  */
-import { render, type Axis, type RenderContext, type TimelineEntry } from './renderer';
+import { render, type Axis, type HitRegion, type RenderContext, type TimelineEntry } from './renderer';
 import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type TimeRange, type Viewport } from './scale';
+
+export interface HistoryHover {
+  entry: TimelineEntry;
+  /** The hovered region's own rect, in the same canvas CSS-pixel space as PointerEvent's
+   *  offsetX/offsetY — what atlas.tsx positions the floating HistoryCard beside. */
+  rect: { x: number; y: number; w: number; h: number };
+}
 
 const WHEEL_SENSITIVITY = 0.004;
 const WHEEL_LINE_SENSITIVITY = 0.05;
@@ -33,6 +43,9 @@ export interface TimelineOptions {
    *  case) to open fitted to the whole dataset instead — see fitToWholeHistory. */
   initialCenter?: number;
   initialPxPerYear?: number;
+  /** Called with the hovered entry + its on-screen rect, or null when nothing (or
+   *  something un-hoverable) is under the pointer — see the module header on hover. */
+  onHover?: (hover: HistoryHover | null) => void;
 }
 
 const DEFAULT_CENTER = 2000;
@@ -74,6 +87,16 @@ export class HistoryTimeline {
    *  and zoom would be thrown away every time the window changes size. */
   private fittedInitialView = false;
 
+  private onHover: (hover: HistoryHover | null) => void;
+  /** Every hoverable region drawn last frame (render()'s return value) — hit-tested
+   *  against on pointermove, never recomputed outside a frame. */
+  private hits: HitRegion[] = [];
+  private hoveredId: string | null = null;
+  /** Latest pointer position (canvas CSS px), consumed by the throttled hover check —
+   *  set on every pointermove, read at most once per animation frame. */
+  private pendingHoverPoint: { x: number; y: number } | null = null;
+  private hoverQueued = 0;
+
   private drag: { alongClient: number; center: number } | null = null;
   private moved = false;
   private pointers = new Map<number, number>(); // pointerId -> along-axis client coordinate
@@ -87,6 +110,7 @@ export class HistoryTimeline {
     if (!context) throw new Error('2d canvas context unavailable');
     this.ctx = context;
     this.axis = options.axis;
+    this.onHover = options.onHover ?? (() => {});
     const today = HistoryTimeline.todayDecimalYear();
     this.entries = HistoryTimeline.clipEntriesToToday(options.entries, today);
     const { content, pannable } = HistoryTimeline.computeRanges(this.entries, today);
@@ -167,6 +191,7 @@ export class HistoryTimeline {
   destroy(): void {
     this.resizeObserver.disconnect();
     cancelAnimationFrame(this.renderQueued);
+    cancelAnimationFrame(this.hoverQueued);
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
     c.removeEventListener('pointermove', this.onPointerMove);
@@ -183,7 +208,8 @@ export class HistoryTimeline {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
       crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
       cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
-      contentRange: this.contentRange
+      contentRange: this.contentRange,
+      hoveredId: this.hoveredId
     };
   }
 
@@ -274,7 +300,7 @@ export class HistoryTimeline {
   private renderNow(): void {
     if (!this.viewport.sizePx) return;
     this.updateCylinderAnimation();
-    render(this.renderContext, this.entries);
+    this.hits = render(this.renderContext, this.entries);
   }
 
   /* ---------------------------------------------------------------------------- events */
@@ -288,9 +314,67 @@ export class HistoryTimeline {
     return this.axis === 'horizontal' ? e.offsetX : e.offsetY;
   }
 
+  /* ------------------------------------------------------------------------------ hover */
+
+  /** Sets hoveredId (if changed), updates the cursor and fires onHover — the one place
+   *  any of those three happen, so they can never drift out of sync. */
+  private setHovered(id: string | null): void {
+    if (id === this.hoveredId) return;
+    this.hoveredId = id;
+    this.canvas.style.cursor = id ? 'pointer' : '';
+    const region = id ? this.hits.find(h => h.id === id) ?? null : null;
+    const entry = id ? this.entries.find(e => e.id === id) ?? null : null;
+    this.onHover(region && entry ? { entry, rect: { x: region.x, y: region.y, w: region.w, h: region.h } } : null);
+    this.draw(); // repaint with the new hover highlight
+  }
+
+  /** No hover while dragging or pinch-zooming (module header) — drops any pending
+   *  throttled check too, so a stale point can't win the race once the gesture ends. */
+  private clearHover(): void {
+    this.pendingHoverPoint = null;
+    cancelAnimationFrame(this.hoverQueued);
+    this.hoverQueued = 0;
+    this.setHovered(null);
+  }
+
+  /** Point-in-rect hit-test against last frame's regions: nearest to the pointer (by
+   *  distance to the region's own centre) among those containing the point; ties go to
+   *  the lower tier number, then id — see the module header. */
+  private hitTest(x: number, y: number): HitRegion | null {
+    let best: HitRegion | null = null;
+    let bestDist = Infinity;
+    for (const h of this.hits) {
+      if (x < h.x || x > h.x + h.w || y < h.y || y > h.y + h.h) continue;
+      const dist = Math.hypot(x - (h.x + h.w / 2), y - (h.y + h.h / 2));
+      const tie = dist === bestDist;
+      if (!best || dist < bestDist || (tie && (h.tier < best.tier || (h.tier === best.tier && h.id < best.id)))) {
+        best = h;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
+  private flushHoverCheck = (): void => {
+    this.hoverQueued = 0;
+    const point = this.pendingHoverPoint;
+    if (!point || this.drag || this.pinch) return;
+    this.setHovered(this.hitTest(point.x, point.y)?.id ?? null);
+  };
+
+  /** Throttled to at most one hit-test per animation frame, however many pointermove
+   *  events arrive in between. */
+  private queueHoverCheck(x: number, y: number): void {
+    this.pendingHoverPoint = { x, y };
+    if (!this.hoverQueued) this.hoverQueued = requestAnimationFrame(this.flushHoverCheck);
+  }
+
+  /* --------------------------------------------------------------------------- gestures */
+
   private onPointerDown = (e: PointerEvent): void => {
     this.canvas.setPointerCapture(e.pointerId);
     this.pointers.set(e.pointerId, this.along(e));
+    this.clearHover();
 
     if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()];
@@ -328,7 +412,10 @@ export class HistoryTimeline {
       const center = clampCenter(rawCenter, this.viewport.pxPerYear, this.viewport.sizePx, this.pannableRange);
       this.viewport = { ...this.viewport, center };
       this.draw();
+      return;
     }
+
+    this.queueHoverCheck(e.offsetX, e.offsetY);
   };
 
   private onPointerUp = (e: PointerEvent): void => {
@@ -336,10 +423,12 @@ export class HistoryTimeline {
     if (this.pointers.size < 2) this.pinch = null;
     this.canvas.classList.remove('is-dragging');
     this.drag = null;
+    this.clearHover();
   };
 
   private onWheel = (e: WheelEvent): void => {
     e.preventDefault();
+    this.clearHover();
     const along = this.along(e);
     const time = pxToTime(along, this.viewport); // the moment under the cursor
     const sensitivity = e.deltaMode === 1 ? WHEEL_LINE_SENSITIVITY : WHEEL_SENSITIVITY;
