@@ -79,7 +79,7 @@ export default function HistorySearch({ entries, timeline, onOpen }: HistorySear
         ref={inputRef}
         type="search"
         value={query}
-        placeholder="Search people, events, periods"
+        placeholder="Search people, events, periods (Latin or Cyrillic)"
         autoComplete="off"
         spellCheck={false}
         aria-label="Search the timeline"

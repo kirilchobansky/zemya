@@ -173,6 +173,11 @@ export const RENDER_CONFIG = {
   minBarWidthPx: 2,
   centreDateGap: 10,
   centreDateFontPx: 13,
+  /** Inner margin at both ends of the canvas, along the time axis — event pins, dots and
+   *  labels are held inside it (never drawn past it) and fade out over its own width as
+   *  their true time position nears the canvas edge, rather than being cut off there. The
+   *  cylinder itself (drawCylinderShell) ignores this — it still runs edge to edge. */
+  edgeMarginPx: 24,
   fadeZoneLabelFontPx: 13,
   /** Event pin geometry — see drawEventPins. Height fractions of the event wire's own
    *  full height, by tier (1 is the loudest); tiers beyond 3 fall back to the tier-3
@@ -204,6 +209,24 @@ function clamp(x: number, lo: number, hi: number): number {
 function smoothstep(t: number): number {
   const c = clamp(t, 0, 1);
   return c * c * (3 - 2 * c);
+}
+
+/** 1 through the middle of [0, sizePx], ramping linearly down to 0 as `px` crosses into
+ *  the outer `margin`-wide band at either end — the fade half of the edge-margin
+ *  treatment (see RENDER_CONFIG.edgeMarginPx and drawEventPins). Evaluated against the
+ *  entry's own TRUE (unclamped) position, so an entry approaching the edge fades out even
+ *  though clampToMargin below is holding its drawn position still. */
+function edgeFade(px: number, sizePx: number, margin: number): number {
+  if (px <= 0 || px >= sizePx) return 0;
+  if (px < margin) return px / margin;
+  if (px > sizePx - margin) return (sizePx - px) / margin;
+  return 1;
+}
+
+/** The clamp half of the edge-margin treatment: never draw past the margin band, whatever
+ *  the entry's true position — see edgeFade above for the accompanying opacity. */
+function clampToMargin(px: number, sizePx: number, margin: number): number {
+  return clamp(px, margin, sizePx - margin);
 }
 
 /** How long one full brighten/dim cycle of the arrival pulse takes (ms) — purely visual,
@@ -785,9 +808,18 @@ function drawEventPins(
   // Tier filtering (CONFIG.maxTier's `event` column, via eventTierReveal) happens HERE,
   // not upstream in the entry list — a pin below its own reveal threshold is skipped
   // entirely (pin, dot AND label), everything else fades in smoothly rather than popping.
+  // `px` is already clamped into the edge margin (RENDER_CONFIG.edgeMarginPx) — the pin,
+  // dot and label all draw at this held position; `reveal` folds in edgeFade's own
+  // proximity-to-edge fade, computed from the TRUE (unclamped) position, so a pin still
+  // fades out as it nears the edge even though its drawn position stops moving.
+  const margin = RENDER_CONFIG.edgeMarginPx;
   const onScreen = entries
-    .map(e => ({ e, px: timeToPx(e.start, viewport), reveal: eventTierReveal(e.tier, viewport.pxPerYear) }))
-    .filter(({ px, reveal }) => px >= 0 && px <= viewport.sizePx && reveal > 0.02);
+    .map(e => {
+      const rawPx = timeToPx(e.start, viewport);
+      const reveal = eventTierReveal(e.tier, viewport.pxPerYear) * edgeFade(rawPx, viewport.sizePx, margin);
+      return { e, rawPx, px: clampToMargin(rawPx, viewport.sizePx, margin), reveal };
+    })
+    .filter(({ rawPx, reveal }) => rawPx >= 0 && rawPx <= viewport.sizePx && reveal > 0.02);
 
   ctx.font = `600 ${fontPx}px ${uiFont}`;
   const candidates: LabelCandidate[] = onScreen.map(({ e, px }) =>

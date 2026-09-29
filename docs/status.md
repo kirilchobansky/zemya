@@ -118,4 +118,15 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   `HistoryTimeline.setPinnedCardRects`); an off-screen target's line stops at the canvas
   edge with a small chevron. See `docs/decisions.md`'s "Search, filters and connector
   lines" for the judgement calls.
+- `HistorySearch.tsx` now matches a Latin-typed query ("shishman") against Cyrillic text
+  ("Шишман") too, via a query-compiled regex (`search.ts`'s `translitPatternSource`).
+  `HistoryOutline.tsx`'s period sections all start closed — "you are here" is a text marker,
+  not an auto-open — unless "Follow timeline" (off by default) is turned on. Event pins hold
+  inside a 24px canvas edge margin and fade over it instead of being cut off
+  (`renderer.ts`'s `RENDER_CONFIG.edgeMarginPx`). See `docs/decisions.md`.
+- Desktop layout: the left rail and right panel are collapsible (a small edge tab brings a
+  collapsed one back) and resizable by dragging their inner edge (rail 180–320px, panel
+  300–560px; double-click a handle to reset), with `[`/`]` keyboard shortcuts. Width and
+  collapsed state persist per browser (localStorage). Phone layout is unchanged. See
+  `docs/decisions.md`'s "Sidebar collapse/resize".
 

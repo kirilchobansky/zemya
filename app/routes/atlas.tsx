@@ -6,7 +6,7 @@
  */
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
-  type Dispatch, type SetStateAction
+  type CSSProperties, type Dispatch, type PointerEvent as ReactPointerEvent, type SetStateAction
 } from 'react';
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router';
 
@@ -39,6 +39,79 @@ const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
 function isSelectedOrNeighbour(feature: Feature, s: StyleInputs): boolean {
   return feature === s.selected || Boolean(s.showNeighbours && s.selected?.neighbours.includes(feature));
 }
+
+/* ------------------------------------------------------------------- sidebar resize/collapse
+   Desktop layout only — the left rail and the right panel each get a drag handle (resize),
+   a collapse button (hide to width 0, an edge tab brings it back) and a double-click-to-
+   reset on the handle. Width and collapsed state persist in localStorage per sidebar, kept
+   deliberately simple (one JSON blob per side) rather than a shared hook file, since this
+   is the only place either sidebar is rendered. */
+
+const RAIL_MIN_PX = 180;
+const RAIL_MAX_PX = 320;
+const PANEL_MIN_PX = 300;
+const PANEL_MAX_PX = 560;
+/** Below this viewport width, a sidebar with no stored width yet opens narrower — matches
+ *  the breakpoint this file's own components/Rail.tsx-facing CSS used to key off (see
+ *  tokens.css), now decided here since collapse/resize needed JS state either way. */
+const NARROW_VIEWPORT_PX = 1440;
+const RAIL_DEFAULT_WIDE_PX = 286;
+const RAIL_DEFAULT_NARROW_PX = 238;
+const PANEL_DEFAULT_WIDE_PX = 372;
+const PANEL_DEFAULT_NARROW_PX = 330;
+
+function clampPx(px: number, min: number, max: number): number {
+  return Math.min(Math.max(px, min), max);
+}
+
+function isNarrowViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth < NARROW_VIEWPORT_PX;
+}
+
+function defaultRailWidth(): number {
+  return isNarrowViewport() ? RAIL_DEFAULT_NARROW_PX : RAIL_DEFAULT_WIDE_PX;
+}
+
+function defaultPanelWidth(): number {
+  return isNarrowViewport() ? PANEL_DEFAULT_NARROW_PX : PANEL_DEFAULT_WIDE_PX;
+}
+
+interface SidebarPersisted {
+  width: number;
+  collapsed: boolean;
+}
+
+/** Reads one sidebar's persisted {width, collapsed} — wrapped in try/catch (localStorage
+ *  can throw in a private window or with site data blocked) and sanity-checked against the
+ *  given bounds, so a value from an older build with different min/max can't wedge the
+ *  layout. */
+function loadSidebar(key: string, fallbackWidth: number, min: number, max: number): SidebarPersisted {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return { width: fallbackWidth, collapsed: false };
+    const parsed = JSON.parse(raw) as Partial<SidebarPersisted>;
+    const width = typeof parsed.width === 'number' && Number.isFinite(parsed.width) ? clampPx(parsed.width, min, max) : fallbackWidth;
+    return { width, collapsed: parsed.collapsed === true };
+  } catch {
+    return { width: fallbackWidth, collapsed: false };
+  }
+}
+
+function saveSidebar(key: string, value: SidebarPersisted): void {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // localStorage unavailable (private window, blocked site data, ...) — the sidebar just
+    // reopens at its default next time, same as CLAUDE.md asks for every localStorage use.
+  }
+}
+
+const RAIL_STORAGE_KEY = 'zemya.sidebar.rail';
+const PANEL_STORAGE_KEY = 'zemya.sidebar.panel';
+
+/** Which sidebar a drag/keyboard/double-click action targets — the two share this module's
+ *  handling almost entirely, only their min/max/default/storage differ. */
+type SidebarSide = 'rail' | 'panel';
 
 /**
  * The layout owns the canvas, so a quiz run — a child route rendered only into the right
@@ -257,6 +330,81 @@ function AtlasShell() {
   const [armingCompare, setArmingCompare] = useState(false);
   const [atlasInstance, setAtlasInstance] = useState<Atlas | null>(null);
   const [quiz, setQuiz] = useState<QuizOverride | null>(null);
+
+  /* ---------------------------------------------------------------- sidebar resize/collapse
+     Desktop only (see the module-level comment above) — lazy-initialised from localStorage
+     so a returning visitor's chosen widths/collapsed states apply on the very first paint,
+     not one render later. */
+  const [railWidth, setRailWidth] = useState(() => loadSidebar(RAIL_STORAGE_KEY, defaultRailWidth(), RAIL_MIN_PX, RAIL_MAX_PX).width);
+  const [railCollapsed, setRailCollapsed] = useState(() => loadSidebar(RAIL_STORAGE_KEY, defaultRailWidth(), RAIL_MIN_PX, RAIL_MAX_PX).collapsed);
+  const [panelWidth, setPanelWidth] = useState(() => loadSidebar(PANEL_STORAGE_KEY, defaultPanelWidth(), PANEL_MIN_PX, PANEL_MAX_PX).width);
+  const [panelCollapsed, setPanelCollapsed] = useState(() => loadSidebar(PANEL_STORAGE_KEY, defaultPanelWidth(), PANEL_MIN_PX, PANEL_MAX_PX).collapsed);
+  /** Which sidebar's handle is actively being dragged, if any — only used to suppress
+   *  .shell's own width transition (app.css's .shell.is-resizing) so the drag tracks the
+   *  pointer with no lag; the actual width updates happen straight from the pointer
+   *  handlers in startSidebarDrag below, not through this. */
+  const [resizingSide, setResizingSide] = useState<SidebarSide | null>(null);
+
+  useEffect(() => saveSidebar(RAIL_STORAGE_KEY, { width: railWidth, collapsed: railCollapsed }), [railWidth, railCollapsed]);
+  useEffect(() => saveSidebar(PANEL_STORAGE_KEY, { width: panelWidth, collapsed: panelCollapsed }), [panelWidth, panelCollapsed]);
+
+  /** Starts a drag on either sidebar's handle: tracks the pointer with plain window
+   *  listeners (simpler than pointer capture here — the pointer never needs to leave the
+   *  window, and the handle itself is about to be a fixed 0-width strip once collapsed, an
+   *  awkward capture target) and writes the clamped width straight to state every move. */
+  const startSidebarDrag = useCallback((side: SidebarSide, e: ReactPointerEvent) => {
+    e.preventDefault();
+    const handleEl = e.currentTarget as HTMLElement;
+    const startX = e.clientX;
+    const startWidth = side === 'rail' ? railWidth : panelWidth;
+    const [min, max] = side === 'rail' ? [RAIL_MIN_PX, RAIL_MAX_PX] : [PANEL_MIN_PX, PANEL_MAX_PX];
+    const setWidth = side === 'rail' ? setRailWidth : setPanelWidth;
+    const setCollapsed = side === 'rail' ? setRailCollapsed : setPanelCollapsed;
+    setCollapsed(false); // dragging a collapsed sidebar's handle (from its edge tab state) reopens it
+    setResizingSide(side);
+    handleEl.classList.add('is-dragging');
+    const onMove = (ev: PointerEvent) => {
+      const delta = ev.clientX - startX;
+      // The rail grows to the right (delta positive = wider); the panel grows to the left
+      // (delta positive, i.e. dragging right, = narrower) — each handle sits on its
+      // sidebar's INNER edge, facing the map.
+      const raw = side === 'rail' ? startWidth + delta : startWidth - delta;
+      setWidth(clampPx(raw, min, max));
+    };
+    const onUp = () => {
+      setResizingSide(null);
+      handleEl.classList.remove('is-dragging');
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [railWidth, panelWidth]);
+
+  const resetSidebarWidth = useCallback((side: SidebarSide) => {
+    (side === 'rail' ? setRailWidth : setPanelWidth)(side === 'rail' ? defaultRailWidth() : defaultPanelWidth());
+  }, []);
+
+  const toggleRailCollapsed = useCallback(() => setRailCollapsed(v => !v), []);
+  const togglePanelCollapsed = useCallback(() => setPanelCollapsed(v => !v), []);
+
+  // "[" toggles the rail, "]" toggles the panel — ignored while typing in an input, and
+  // desktop-only (phone has no rail and the panel is the bottom sheet, not this sidebar).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== '[' && e.key !== ']') return;
+      if (isPhoneLayout()) return;
+      const target = e.target;
+      if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+        return;
+      }
+      e.preventDefault();
+      if (e.key === '[') setRailCollapsed(v => !v);
+      else setPanelCollapsed(v => !v);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   /* phone layout: where the bottom sheet rests, what covers the map, and which overlay
      sheet (Layers / Progress) is open. Meaningless — and never rendered — on desktop. */
@@ -567,12 +715,22 @@ function AtlasShell() {
         historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
       }}
     >
-    <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
+    <div
+      className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}${resizingSide ? ' is-resizing' : ''}`}
+      style={{
+        '--rail-width': `${railCollapsed ? 0 : railWidth}px`,
+        '--panel-width': `${panelCollapsed ? 0 : panelWidth}px`
+      } as CSSProperties}
+    >
       <Rail
         overlay={overlay}
         onOverlayChange={setOverlay}
         countryCount={world?.features.length ?? 0}
         totals={totals}
+        collapsed={railCollapsed}
+        onToggleCollapsed={toggleRailCollapsed}
+        onHandlePointerDown={e => startSidebarDrag('rail', e)}
+        onHandleDoubleClick={() => resetSidebarWidth('rail')}
       />
 
       <main className="stage">
@@ -735,10 +893,46 @@ function AtlasShell() {
         ref={panelRef}
         data-snap={snap}
         data-hidden={immersive}
+        data-collapsed={!phone && panelCollapsed}
         aria-hidden={phone && immersive ? true : undefined}
       >
-        <SheetGrip snap={snap} onStep={() => setSnap(stepSnap(snap))} />
-        <Outlet />
+        {!phone && (
+          <>
+            <div
+              className="sidebar-handle"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize panel"
+              title="Drag to resize · Double-click to reset"
+              onPointerDown={e => startSidebarDrag('panel', e)}
+              onDoubleClick={() => resetSidebarWidth('panel')}
+            />
+            <button
+              type="button"
+              className="sidebar-collapse"
+              title={panelCollapsed ? 'Expand panel (])' : 'Collapse panel (])'}
+              aria-label={panelCollapsed ? 'Expand panel' : 'Collapse panel'}
+              onClick={togglePanelCollapsed}
+            >
+              {panelCollapsed ? '‹' : '›'}
+            </button>
+            {panelCollapsed && (
+              <button
+                type="button"
+                className="sidebar-edge-tab"
+                title="Expand panel (])"
+                aria-label="Expand panel"
+                onClick={togglePanelCollapsed}
+              >
+                ‹
+              </button>
+            )}
+          </>
+        )}
+        <div className="panel__content">
+          <SheetGrip snap={snap} onStep={() => setSnap(stepSnap(snap))} />
+          <Outlet />
+        </div>
       </aside>
 
       <TabBar overlay={overlaySheet} onOverlay={setOverlaySheet} />

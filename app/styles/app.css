@@ -79,11 +79,130 @@ a {
   grid-template-columns: var(--rail-width) 1fr var(--panel-width);
   height: 100vh;
   height: 100dvh;
+  position: relative;
+  /* Smooth, not instant, when a collapse toggles or a reset snaps to the default width —
+     suppressed (.shell.is-resizing) while a handle is actively being dragged, so the
+     sidebar tracks the pointer with no lag. */
+  transition: grid-template-columns 0.2s ease;
+}
+.shell.is-resizing {
+  transition: none;
+}
+
+/* ---------------------------------------------------------- sidebar resize / collapse
+   Shared by .rail (left) and .panel (right) — desktop layout only; both are unmounted-in-
+   place (display:none) rather than removed on phones, where .rail is already `display:none`
+   and .panel becomes the fixed bottom sheet (see the phone media query far below), so none
+   of this needs its own phone override beyond what's already there. */
+
+.sidebar-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+  background: transparent;
+}
+.sidebar-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--rule);
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+}
+.sidebar-handle:hover::before,
+.sidebar-handle.is-dragging::before {
+  opacity: 1;
+  background: var(--brass-dim);
+}
+.rail .sidebar-handle {
+  right: -5px;
+}
+.panel .sidebar-handle {
+  left: -5px;
+}
+
+.sidebar-collapse {
+  position: absolute;
+  top: 10px;
+  z-index: 5;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--chart-2);
+  border: 1px solid var(--rule-soft);
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1;
+}
+.sidebar-collapse:hover {
+  color: var(--ink);
+  border-color: var(--sea-dim);
+}
+.rail .sidebar-collapse {
+  right: 8px;
+}
+.panel .sidebar-collapse {
+  left: 8px;
+}
+
+.sidebar-edge-tab {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--chart-2);
+  border: 1px solid var(--rule-soft);
+  color: var(--ink-2);
+  font-size: 11px;
+  z-index: 5;
+}
+.sidebar-edge-tab:hover {
+  color: var(--ink);
+  border-color: var(--sea-dim);
+}
+.rail .sidebar-edge-tab {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+}
+.panel .sidebar-edge-tab {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+  border-right: none;
+}
+
+.rail--collapsed > .brand,
+.rail--collapsed > .rail__scroll,
+.rail--collapsed > .rail__foot,
+.rail--collapsed > .sidebar-handle,
+.rail--collapsed > .sidebar-collapse {
+  display: none;
+}
+.panel[data-collapsed='true'] > .panel__content,
+.panel[data-collapsed='true'] > .sidebar-handle,
+.panel[data-collapsed='true'] > .sidebar-collapse {
+  display: none;
 }
 
 /* ---------------------------------------------------------------- rail */
 
 .rail {
+  position: relative;
   background: var(--chart);
   border-right: 1px solid var(--rule-soft);
   display: flex;
@@ -629,6 +748,31 @@ a {
   flex-direction: column;
   gap: 2px;
 }
+.history-outline__follow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.history-outline__follow input {
+  accent-color: var(--brass-fill);
+}
+.history-outline__here {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--sea-dim);
+  color: var(--sea);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
 .history-outline__section + .history-outline__section {
   border-top: 1px solid var(--rule-soft);
 }
@@ -977,10 +1121,17 @@ a {
 /* ---------------------------------------------------------------- panel */
 
 .panel {
+  position: relative;
   background: var(--chart);
   border-left: 1px solid var(--rule-soft);
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+.panel__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-height: 0;
 }
 
@@ -1946,6 +2097,13 @@ kbd {
     overflow: hidden;
   }
   .rail {
+    display: none;
+  }
+  /* Collapse/resize (app/routes/atlas.tsx) is desktop-only — the panel's own copies of
+     these would otherwise float over the phone's fixed-position bottom sheet. */
+  .panel .sidebar-handle,
+  .panel .sidebar-collapse,
+  .panel .sidebar-edge-tab {
     display: none;
   }
   .stage {

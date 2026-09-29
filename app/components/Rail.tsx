@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useLocation, useMatch } from 'react-router';
 
 import { useProgress } from '~/lib/core/ProgressProvider';
@@ -11,6 +11,12 @@ interface RailProps {
   onOverlayChange(overlay: OverlayId): void;
   countryCount: number;
   totals: MasteryTotals;
+  /** Collapse/resize (desktop only — routes/atlas.tsx owns the width/collapsed state and
+   *  the drag logic; this component only renders the controls and forwards the events). */
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  onHandlePointerDown: (e: ReactPointerEvent) => void;
+  onHandleDoubleClick: () => void;
 }
 
 /** The four top-level sections, same set and same active-section rules the phone tab bar
@@ -22,14 +28,47 @@ const SECTIONS = [
   { to: '/history', label: 'History', isActive: (p: string) => p.startsWith('/history') }
 ];
 
-export function Rail({ overlay, onOverlayChange, countryCount, totals }: RailProps) {
+export function Rail({
+  overlay, onOverlayChange, countryCount, totals,
+  collapsed, onToggleCollapsed, onHandlePointerDown, onHandleDoubleClick
+}: RailProps) {
   // A page's h1 is its subject: on a country page that is the country's name, so the
   // wordmark steps down to a plain block there and is the h1 everywhere else.
   const onCountry = useMatch('/country/:slug') !== null;
   const Wordmark = onCountry ? 'div' : 'h1';
   const { pathname } = useLocation();
   return (
-    <aside className="rail">
+    <aside className={`rail${collapsed ? ' rail--collapsed' : ''}`}>
+      <div
+        className="sidebar-handle"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        title="Drag to resize · Double-click to reset"
+        onPointerDown={onHandlePointerDown}
+        onDoubleClick={onHandleDoubleClick}
+      />
+      <button
+        type="button"
+        className="sidebar-collapse"
+        title={collapsed ? 'Expand sidebar ([)' : 'Collapse sidebar ([)'}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onClick={onToggleCollapsed}
+      >
+        {collapsed ? '›' : '‹'}
+      </button>
+      {collapsed && (
+        <button
+          type="button"
+          className="sidebar-edge-tab"
+          title="Expand sidebar ([)"
+          aria-label="Expand sidebar"
+          onClick={onToggleCollapsed}
+        >
+          ›
+        </button>
+      )}
+
       <div className="brand">
         <div className="brand__mark" aria-hidden="true" />
         <div>

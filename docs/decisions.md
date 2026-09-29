@@ -606,6 +606,49 @@ target date is off screen, stops at the canvas edge with a small filled chevron 
 the direction — both left unspecified beyond "nearest edge"/"a small chevron", so kept as
 the simplest geometry that reads correctly in both directions.
 
+**Latin search, outline collapse, edge margin.** `search.ts`'s Latin-query matching compiles
+the QUERY into a regex over Cyrillic letters (`translitPatternSource`) rather than
+transliterating every entry's Cyrillic text to Latin up front — the latter needs to pick one
+spelling per ambiguous letter (а vs ъ both romanise "a") and would guess wrong for whichever
+one the entry didn't mean; a query-side regex just accepts either Cyrillic letter at that
+position instead. A pure-Cyrillic query passes through unchanged (no Latin digraph/letter
+matches, so every character falls back to itself as a literal), which is why the existing
+plain-substring tier checks still run first rather than being replaced. `HistoryOutline.tsx`
+now opens with every period section closed — "you are here" (`currentPeriodId`) is a text
+marker only, never an auto-open, unless the reader turns on its own "Follow timeline"
+checkbox (off by default, local `useState`, not persisted). `renderer.ts`'s event pins hold
+inside a 24px edge margin (`RENDER_CONFIG.edgeMarginPx`) and fade over it as their true
+(unclamped) time position nears the canvas edge (`edgeFade`/`clampToMargin`) — periods/
+rulers/governments were left alone; the brief named pins/dots/labels specifically, and the
+cylinder itself still runs edge to edge.
+
+**Sidebar collapse/resize.** The left rail and right panel (`Rail.tsx`, `routes/atlas.tsx`)
+each get a drag handle and a collapse button, desktop layout only — state (`railWidth`,
+`panelWidth`, `railCollapsed`, `panelCollapsed`) lives in `AtlasShell` and is written to
+`.shell`'s own inline style as the `--rail-width`/`--panel-width` custom properties, which
+`grid-template-columns` already read — collapsing sets the property to `0px` rather than
+unmounting anything, so a collapsed panel's `<Outlet/>` (a quiz run, the history panel) keeps
+its state via `display:none` on `.panel__content`, not removal. Bounds: rail 180–320px
+(default 286, or 238 under 1440px viewport width), panel 300–560px (default 372, or 330
+narrow) — the narrow defaults and the 1440px breakpoint replace tokens.css's old
+`@media (max-width: 1180px)` rail/panel-width override for practical purposes (an
+element-level inline style always wins the cascade over it), though that rule was left in
+place rather than touched, since it's dead-but-harmless and tokens.css wasn't in this
+change's file list. Persisted to localStorage as one JSON blob per side
+(`zemya.sidebar.rail`/`zemya.sidebar.panel`, `{width, collapsed}`), wrapped in try/catch.
+`[`/`]` toggle the two sidebars (ignored while typing in a field); a drag uses plain `window`
+pointermove/pointerup listeners rather than pointer capture, since the pointer never needs to
+leave the window and the handle itself may be mid-collapse. `.shell`'s own
+`grid-template-columns` transition (smooth on a collapse/reset, suppressed via
+`.shell.is-resizing` during an actual drag, so the sidebar doesn't lag the pointer) is what
+makes the resize "smooth" — the map/timeline canvas itself just resizes the way it already
+does on any window resize (`ResizeObserver` on the canvas's parent), which already preserves
+the current camera/viewport rather than re-homing it.
+
+**Off the given file list, touched anyway:** `HistorySearch.tsx`'s placeholder text
+(`"Search people, events, periods (Latin or Cyrillic)"`) — the brief specified that exact
+string, and it lives in the component that owns the `<input>`, not in `search.ts`.
+
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
 
 | Decision | Choice | Why |

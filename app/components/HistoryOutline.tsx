@@ -15,6 +15,12 @@
  * onPeriodChange) can never itself BE a nested period's id while the ranges overlap — the
  * container always wins as `primary` — so only top-level sections ever auto-expand as
  * "here"; a nested one is reachable only by clicking it.
+ *
+ * All sections start closed, and "you are here" is a marker only (it never auto-opens a
+ * section on its own) — reading the panel on open must not surprise the visitor with an
+ * already-expanded section they didn't ask for. "Follow timeline", off by default, opts
+ * back into the old auto-expand-as-you-pan behaviour; flipping it on immediately opens
+ * whichever section is "here" right now, same as panning into a new one would once it's on.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -125,19 +131,31 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline }: H
   );
   const sections = useMemo(() => buildSections(periods), [periods]);
 
-  const [expandedId, setExpandedId] = useState<string | null>(currentPeriodId);
-  /** True once the reader has clicked a section directly — auto-expand stops moving it
-   *  until `currentPeriodId` itself changes to a DIFFERENT period (the effect below). */
+  // Every section starts closed — "here" is a marker only (rendered from currentPeriodId
+  // directly below), never an auto-open, until the reader opts into "Follow timeline".
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [followTimeline, setFollowTimeline] = useState(false);
+  /** True once the reader has clicked a section directly while following — auto-expand
+   *  stops moving it until `currentPeriodId` itself changes to a DIFFERENT period (the
+   *  effect below). */
   const overrideRef = useRef(false);
   const lastAutoIdRef = useRef(currentPeriodId);
 
+  // Turning "Follow timeline" on always opens "here" immediately, same as panning into a
+  // new period would once it's on — reset any earlier override first so that isn't
+  // suppressed by a click from a previous stretch of following.
   useEffect(() => {
+    if (followTimeline) overrideRef.current = false;
+  }, [followTimeline]);
+
+  useEffect(() => {
+    if (!followTimeline) return;
     if (currentPeriodId !== lastAutoIdRef.current) {
       lastAutoIdRef.current = currentPeriodId;
       overrideRef.current = false;
     }
     if (!overrideRef.current) setExpandedId(currentPeriodId);
-  }, [currentPeriodId]);
+  }, [currentPeriodId, followTimeline]);
 
   function flyToEntry(entry: TimelineEntry) {
     if (!timeline) return;
@@ -147,12 +165,21 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline }: H
 
   function handlePeriodClick(period: TimelineEntry) {
     overrideRef.current = true;
-    setExpandedId(period.id);
+    setExpandedId(id => (id === period.id ? null : period.id));
     flyToEntry(period);
   }
 
   return (
     <div className="history-outline">
+      <label className="history-outline__follow">
+        <input
+          type="checkbox"
+          checked={followTimeline}
+          onChange={e => setFollowTimeline(e.target.checked)}
+        />
+        Follow timeline
+      </label>
+
       {sections.map(({ period, depth }) => (
         <div key={period.id} className="history-outline__section">
           <button
@@ -165,7 +192,10 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline }: H
           >
             <span className="history-outline__swatch" style={{ background: period.color ?? 'var(--ink-3)' }} />
             <span className="history-outline__text">
-              <span className="history-outline__name">{period.label}</span>
+              <span className="history-outline__name">
+                {period.label}
+                {period.id === currentPeriodId && <span className="history-outline__here">You are here</span>}
+              </span>
               <span className="history-outline__range">{rangeLabel(period)}</span>
             </span>
           </button>
