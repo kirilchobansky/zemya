@@ -268,8 +268,8 @@ entries:
     aliases: []
     role: хан
     start: "765"
-    end: "766"
-    precision: year
+    end: "766-01-01"
+    precision: circa
     style: old
     tier: 4
     blurb:
@@ -281,23 +281,23 @@ entries:
     name: { bg: "Умор", en: "Umor" }
     aliases: []
     role: хан
-    start: "766"
-    end: "766"
-    precision: exact
+    start: "766-01-01"
+    end: "766-02-10"
+    precision: circa
     style: old
     tier: 4
     blurb:
-      bg: "Управлява само 40 дни — най-краткото управление в българската история."
-      en: "Ruled for only 40 days — the shortest reign in Bulgarian history."
+      bg: "Управлява само 40 дни — най-краткото управление в българската история. Точните дати са неизвестни."
+      en: "Ruled for only 40 days — the shortest reign in Bulgarian history. The exact dates are unknown."
 
   - id: ruler-toktu
     kind: ruler
     name: { bg: "Токту", en: "Toktu" }
     aliases: []
     role: хан
-    start: "766"
+    start: "766-02-10"
     end: "767"
-    precision: year
+    precision: circa
     style: old
     tier: 4
     blurb:
@@ -2723,8 +2723,8 @@ entries:
     kind: event
     name: { bg: "Хан Умор управлява 40 дни", en: "" }
     aliases: []
-    start: "766"
-    precision: year
+    start: "766-01-01"
+    precision: circa
     style: old
     tier: 3
     parent: period-first-empire

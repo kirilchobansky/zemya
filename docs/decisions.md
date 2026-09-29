@@ -1001,3 +1001,16 @@ official specification is published.
   wordmark drops to a `div` on `/country/*`; it is the h1 elsewhere.
 - **og:image** is one committed 1200x630 card (`public/og-image.png`, from
   `scripts/build-og-image.mjs`). Later idea, not built: per-country cards.
+
+### History: shared duration text, Umor's 40 days, lane size (+10%)
+
+- One `formatDuration` (scale.ts) serves the card and the detail view: real calendar days
+  when either end has a month (a whole-number decimal year is year-only *or* 1 January, so a
+  fractional end makes the span day-precise); <60 days "N days", <24 months rounded months
+  (days / 30.44), else years (+ months when years < 10); year-precision spans keep whole
+  years, "less than a year" instead of "0 years".
+- Umor is 1 Jan – 10 Feb 766 (circa: the real dates are unknown); Sabin now ends and Toktu
+  starts on those boundaries. `assignRows` treats touching spans (end == next start) as
+  non-overlapping, so all three share one row.
+- Lane row heights raised another ~10% (66/50/50/72); capsule font, pin heights and pin label
+  fonts follow. The cylinder stays static and centred.

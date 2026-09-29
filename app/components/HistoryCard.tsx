@@ -25,7 +25,7 @@ import {
 
 import { contextAt } from '~/lib/history/layout';
 import type { TimelineEntry } from '~/lib/history/renderer';
-import { dateOfDecimalYear } from '~/lib/history/scale';
+import { dateOfDecimalYear, formatDuration } from '~/lib/history/scale';
 import { flyTargetFor, type HistoryTimeline } from '~/lib/history/timeline';
 
 const CARD_WIDTH = 280;
@@ -62,13 +62,11 @@ export function formatCardDate(t: number, precision: TimelineEntry['precision'])
   return `${pad2(d.day ?? 1)}.${pad2(d.month)}.${yearLabel(d.year)}`;
 }
 
-/** "1887 – 1918 · 31 years" — always plain years, regardless of the entry's own date
- *  precision (a range's duration reads oddly at day granularity). */
+/** "1887 – 1918 · 31 years" — duration via scale.ts's shared formatDuration. */
 function formatRangeLine(startT: number, endT: number): string {
   const start = dateOfDecimalYear(startT).year;
   const end = dateOfDecimalYear(endT).year;
-  const years = end - start;
-  return `${yearLabel(start)} – ${yearLabel(end)} · ${years} year${years === 1 ? '' : 's'}`;
+  return `${yearLabel(start)} – ${yearLabel(end)} · ${formatDuration(startT, endT)}`;
 }
 
 export interface HistoryCardProps {

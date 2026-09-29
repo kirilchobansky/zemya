@@ -164,8 +164,8 @@ export const RENDER_CONFIG = {
   /** Inset so two adjacent capsules never visually touch. */
   capsuleGapPx: 5,
   capsuleHPad: 10,
-  capsuleMinFontPx: 14,
-  capsuleMaxFontPx: 33,
+  capsuleMinFontPx: 15,
+  capsuleMaxFontPx: 36,
   /** Fixed corner radius for a capsule's rounded rect — no longer a full pill (radius =
    *  half the short side); capped by the capsule's own half-width/height so a very small
    *  capsule still draws cleanly. */
@@ -192,7 +192,7 @@ export const RENDER_CONFIG = {
    *  and finer (20px); millennium/century read the same as decade (nothing finer to grow
    *  into yet), year sits at the midpoint — a judgement call on the exact curve. */
   pinLabelFontPxByLevel: {
-    millennium: 14, century: 14, decade: 14, year: 16, month: 20, day: 20
+    millennium: 15, century: 15, decade: 15, year: 18, month: 22, day: 22
   } as Readonly<Record<ZoomLevel, number>>
 } as const;
 
@@ -205,8 +205,10 @@ const WIRE_ORDER: readonly EntryKind[] = ['period', 'ruler', 'government', 'even
  *  Events get the tallest row: a pin's label can carry a second, smaller exact-date line
  *  (drawEventPins) that rulers/governments don't. Values are the original constants raised
  *  ~25% (ruler/government 36 -> 45, event 52 -> 65, period 48 -> 60) now that the cylinder
- *  itself is a fixed size rather than shrinking lanes to fit an eased container. */
-const ROW_HEIGHT_BY_KIND: Readonly<Record<EntryKind, number>> = { period: 60, ruler: 45, government: 45, event: 65 };
+ *  itself is a fixed size rather than shrinking lanes to fit an eased container. Then raised
+ *  a further ~10% (60/45/45/65 -> 66/50/50/72); capsule and pin heights and the capsule
+ *  font (rowHeight * 0.42) all derive from these, and the label fonts below follow. */
+const ROW_HEIGHT_BY_KIND: Readonly<Record<EntryKind, number>> = { period: 66, ruler: 50, government: 50, event: 72 };
 
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(Math.max(x, lo), hi);

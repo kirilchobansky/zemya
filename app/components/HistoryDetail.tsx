@@ -15,7 +15,7 @@ import { CATEGORY_LABELS, formatCardDate } from './HistoryCard';
 import { entriesInSpan, neighbours, relatedByTags } from '~/lib/history/related';
 import { contextAt } from '~/lib/history/layout';
 import type { TimelineEntry } from '~/lib/history/renderer';
-import { dateOfDecimalYear } from '~/lib/history/scale';
+import { formatDuration } from '~/lib/history/scale';
 import { flyTargetFor, type HistoryTimeline } from '~/lib/history/timeline';
 
 const KIND_LABELS: Readonly<Record<TimelineEntry['kind'], string>> = {
@@ -27,11 +27,6 @@ const KIND_LABELS: Readonly<Record<TimelineEntry['kind'], string>> = {
 
 const RELATED_LIMIT = 6;
 const CONTEXT_LIST_LIMIT = 10;
-
-function formatDuration(startT: number, endT: number): string {
-  const years = dateOfDecimalYear(endT).year - dateOfDecimalYear(startT).year;
-  return `${years} year${years === 1 ? '' : 's'}`;
-}
 
 /** Full range at the entry's own date precision (dd.mm.yyyy where known, else just the
  *  year, "c." for circa — see formatCardDate), plus a plain-years duration for a real span.

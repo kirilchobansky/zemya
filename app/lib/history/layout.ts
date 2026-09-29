@@ -145,6 +145,7 @@ export function assignRows(entries: readonly LayoutEntry[]): Map<string, number>
     const sorted = [...group].sort((a, b) => a.start - b.start || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     const rowEnds: number[] = []; // last occupied end-time per row index
     for (const e of sorted) {
+      // `>=`: entries that merely touch at a boundary (end == next start) share a row.
       let row = rowEnds.findIndex(end => e.start >= end);
       if (row === -1) { row = rowEnds.length; rowEnds.push(-Infinity); }
       rowEnds[row] = endOf(e);
