@@ -734,6 +734,7 @@ function AtlasShell() {
                 height: historyCanvasRef.current?.clientHeight ?? 0
               }}
               zIndex={card.z}
+              timeline={historyTimelineInstance}
               onClose={handleCardClose}
               onFront={handleCardFront}
               onSeeMore={setSelectedHistoryEntryId}
