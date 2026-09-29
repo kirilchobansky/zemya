@@ -138,6 +138,11 @@ export interface PinnedHistoryCardProps {
   onClose: (id: string) => void;
   onFront: (id: string) => void;
   onSeeMore: (id: string) => void;
+  /** Reports this card's own current rect (CARD_WIDTH × measured height, at its current
+   *  left/top) on mount and on every drag move — atlas.tsx forwards it straight to
+   *  HistoryTimeline.setPinnedCardRects so the connector line (renderer.ts) tracks the
+   *  card live, including mid-drag. */
+  onRectChange: (id: string, rect: { x: number; y: number; w: number; h: number }) => void;
 }
 
 /**
@@ -148,7 +153,7 @@ export interface PinnedHistoryCardProps {
  * canvas at every step. Bringing to front, closing and "See more" are all owned by the
  * parent (atlas.tsx) — this component only reports the intent.
  */
-export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex, onClose, onFront, onSeeMore }: PinnedHistoryCardProps) {
+export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex, onClose, onFront, onSeeMore, onRectChange }: PinnedHistoryCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const dragRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; origLeft: number; origTop: number } | null>(null);
@@ -167,6 +172,7 @@ export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex,
     top = clampPx(top, EDGE_MARGIN_PX, bounds.height - cardH - EDGE_MARGIN_PX);
 
     setPos({ left, top });
+    onRectChange(entry.id, { x: left, y: top, w: CARD_WIDTH, h: cardH });
     // Placed once, on mount — a card instance is keyed by entry id (atlas.tsx), so this
     // never needs to re-run for the same card; afterwards its position is its own drag state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,6 +192,7 @@ export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex,
     const left = clampPx(drag.origLeft + (e.clientX - drag.startClientX), 0, Math.max(0, bounds.width - CARD_WIDTH));
     const top = clampPx(drag.origTop + (e.clientY - drag.startClientY), 0, Math.max(0, bounds.height - cardH));
     setPos({ left, top });
+    onRectChange(entry.id, { x: left, y: top, w: CARD_WIDTH, h: cardH });
   };
 
   const endDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {

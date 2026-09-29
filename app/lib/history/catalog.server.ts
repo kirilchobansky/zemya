@@ -17,6 +17,7 @@ interface RawHistoryEntry {
   id: string;
   kind: TimelineEntry['kind'];
   name: { bg: string; en: string };
+  aliases: string[];
   role: string | null;
   start: string;
   end: string | null;
@@ -92,6 +93,7 @@ function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
     color: raw.color,
     precision: raw.precision,
     tags: raw.tags,
+    aliases: raw.aliases,
     style: raw.style
   };
 }

@@ -102,4 +102,20 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   agnostic, unlike the context section's neighbours) and fly the camera there. Pinning
   from this view (no on-canvas click to seed a card position from) uses `AtlasContext`'s
   `pinHistoryEntry`, which centres the new card on the canvas.
+- The Bulgaria panel now opens with `HistorySearch.tsx` (name/alias/role/tag search over
+  `app/lib/history/search.ts`, ranked and flying to + opening a result's detail view; "/"
+  focuses it from anywhere on the page) and `HistoryFilters.tsx` below it (kind chips —
+  Rulers/Governments/Events, periods always shown — and the 9 event category chips from
+  `content/history/events-bg.json`, each on by default with a "Reset" once anything's off).
+  Filter state lives in `AtlasContext` and resets on leaving the route;
+  `HistoryTimeline.setFilters` recomputes its own filtered `entries` from a separate,
+  never-filtered `allEntries`, so a hidden kind's wire collapses (the existing "no visible
+  entries → no wire" layout path, not a special case) without moving the pan/zoom limits.
+  Event pins now draw in a brightened version of their own category colour so the filter
+  chips double as a legend. Every pinned card also gets a thin dashed connector line from
+  its own nearest edge to its entry's position on the timeline (`renderer.ts`'s
+  `drawConnectorLines`, fed live DOM rects from `HistoryCard.tsx` on mount/drag via
+  `HistoryTimeline.setPinnedCardRects`); an off-screen target's line stops at the canvas
+  edge with a small chevron. See `docs/decisions.md`'s "Search, filters and connector
+  lines" for the judgement calls.
 

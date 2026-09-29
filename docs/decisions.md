@@ -559,6 +559,53 @@ converged" pattern `updateCylinderAnimation` already uses; the pulse reuses the 
 by nothing except its own 1.5s timer — a drag/wheel/pinch cancels the FLIGHT (`flyAnim`)
 immediately, not an already-started pulse.
 
+**Search, filters and connector lines.** Owner-requested, three pieces. `app/lib/history/
+search.ts`'s `search(entries, query, limit)` is pure: ranks a name-starts-with match above
+a name-contains match above an alias match above a tag/role match (ties by earlier
+`start`), each tier checked in order so a coarser-tier hit can never lose to a finer one
+regardless of string position. `TimelineEntry` gained an `aliases: readonly string[]` field
+for it — `bg.json` always carried `aliases` (imported alongside everything else), but
+`catalog.server.ts`'s `RawHistoryEntry`/`toTimelineEntry` had nowhere to read it into until
+now, same gap `tags` had before the pinned-card detail view. `HistorySearch.tsx` and
+`HistoryFilters.tsx` both take their own slice of state as plain props (`timeline`,
+`hiddenKinds`/`onToggleKind`, etc.) rather than calling `useAtlasContext` themselves — the
+same convention `HistoryOutline`/`HistoryDetail` already established, so `history.bulgaria.tsx`
+stays the one place that reads the context.
+
+Filter state (`historyHiddenKinds`, `historyHiddenCategories` — periods are never
+filterable, only `ruler`/`government`/`event`) lives in `AtlasContext` for the same reason
+pinned cards do: it must survive a "See more" swap to the detail view, and is reset to
+empty whenever `showTimeline` goes false. `HistoryTimeline` now keeps two entry arrays:
+`allEntries` (every today-clipped entry, fixed at construction — what `contentRange`/
+`pannableRange` are computed from, so toggling a filter never moves the pan/zoom limits)
+and `entries` (`allEntries` filtered by `setFilters`, what actually renders and hit-tests).
+A kind or category going fully hidden needs no special-case in `renderer.ts`: with no
+entries of that kind reaching `render()`, `layoutWires`' existing `visibleByKind[kind].length
+> 0` check already drops that wire and lets its neighbours take the freed height — "hidden
+entries are not drawn and not hoverable" and "the remaining wires share its height" both
+fall out of code that already existed for a different reason. Event pins now draw in a
+brightened (`shade(color, -0.35)`) version of their own category colour instead of the flat
+brass accent, so `HistoryFilters.tsx`'s category chips (which show the same colour
+un-brightened) double as a legend, per the brief; category ids/labels/colours are
+transcribed once from `content/history/events-bg.json`'s `categories[]` rather than read at
+runtime, keeping `catalog.server.ts`'s "that file is never read by the app" note true.
+
+Connector lines needed a target for a pinned card whose own entry might currently be
+filtered out of `entries` — solved by resolving `PinnedCardTarget`s (id, kind, start, end,
+DOM rect) against `allEntries` instead, so a hidden pinned entry still has something real to
+point at. The DOM side: `PinnedHistoryCard` (`HistoryCard.tsx`) reports its own rect via a
+new `onRectChange` prop on mount and on every drag move; `atlas.tsx` keeps those rects in a
+plain `Map` ref (not React state — a drag would otherwise re-render the whole shell every
+frame) and forwards it straight to `HistoryTimeline.setPinnedCardRects`, which repaints.
+`renderer.ts`'s `drawConnectorLines` targets an event's exact date, or — there being no
+single "the" position for a range — the midpoint of a period/ruler/government's own span, at
+its kind's wire's vertical middle when that wire is currently drawn or the cylinder's own
+middle otherwise (unspecified by the brief, a judgement call); the line starts at whichever
+point on the card's own rect boundary faces the target (`nearestEdgePoint`) and, when the
+target date is off screen, stops at the canvas edge with a small filled chevron continuing
+the direction — both left unspecified beyond "nearest edge"/"a small chevron", so kept as
+the simplest geometry that reads correctly in both directions.
+
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
 
 | Decision | Choice | Why |

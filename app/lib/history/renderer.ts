@@ -62,6 +62,9 @@ export interface TimelineEntry extends LayoutEntry {
   /** Free-text keywords authored alongside the entry (mostly events) — shown in the
    *  pinned card's "See more" detail panel (routes/history.bulgaria.tsx), nowhere else. */
   tags: readonly string[];
+  /** Alternate spellings (Cyrillic and Latin), authored in content/history/bg.yaml —
+   *  read only by app/lib/history/search.ts, never displayed. */
+  aliases: readonly string[];
   /** "old" (Julian) before 1 April 1916, "new" (Gregorian) on/after — the detail view's
    *  "Old style (Julian calendar)" note (app/components/HistoryDetail.tsx). Not used by
    *  rendering itself, only by that note. */
@@ -798,11 +801,15 @@ function drawEventPins(
     const isHovered = e.id === hoveredId;
     const hitRect = rectFor(axis, px - PIN_HIT_HALF_WIDTH_PX, px + PIN_HIT_HALF_WIDTH_PX, wire.top, bottom);
     hits.push({ id: e.id, x: hitRect.x, y: hitRect.y, w: hitRect.w, h: hitRect.h, tier: e.tier });
+    // Brightened toward white so a category's own (often dim) authored colour still reads
+    // against the dark cylinder — HistoryFilters.tsx's chips show the same colour
+    // unbrightened, close enough in hue to double as this pin's legend.
+    const pinColor = e.color ? shade(e.color, -0.35) : COLORS.brass;
 
     ctx.save();
     ctx.globalAlpha = reveal;
 
-    ctx.strokeStyle = COLORS.brass;
+    ctx.strokeStyle = pinColor;
     ctx.lineWidth = isHovered ? 2 : 1;
     ctx.beginPath();
     const p0 = project(axis, px, wire.top);
@@ -813,7 +820,7 @@ function drawEventPins(
 
     const dot = project(axis, px, bottom);
     ctx.beginPath();
-    ctx.fillStyle = COLORS.brass;
+    ctx.fillStyle = pinColor;
     ctx.arc(dot.x, dot.y, isHovered ? dotRadius * 1.6 : dotRadius, 0, Math.PI * 2);
     ctx.fill();
 
@@ -874,6 +881,96 @@ function drawPeriodBands(
     const r = rectFor(axis, fromPx, toPx, top, bottom);
     ctx.fillRect(r.x, r.y, r.w, r.h);
   }
+}
+
+/* ------------------------------------------------------------------------- connector lines */
+
+/** What a pinned card (app/components/HistoryCard.tsx's PinnedHistoryCard, tracked by
+ *  atlas.tsx) needs handed in for its connector line — its own entry's date span (to
+ *  locate the target on the timeline) and its current on-screen DOM rect, in the same
+ *  canvas CSS-pixel space as HitRegion. Resolved by timeline.ts from its own full,
+ *  unfiltered entry list, so a pinned entry currently hidden by a filter (HistoryFilters.tsx)
+ *  still has somewhere real to point to. */
+export interface PinnedCardTarget {
+  id: string;
+  kind: EntryKind;
+  start: number;
+  end: number | null;
+  rect: { x: number; y: number; w: number; h: number };
+}
+
+const CONNECTOR_COLOR = 'rgba(255,255,255,.4)';
+const CONNECTOR_DASH: readonly [number, number] = [4, 3];
+const CONNECTOR_CHEVRON_SIZE = 5;
+
+/** The point on `rect`'s own boundary in the direction of (tx, ty) — "the card's nearest
+ *  edge" a line drawn outward from its centre would first cross. */
+function nearestEdgePoint(rect: { x: number; y: number; w: number; h: number }, tx: number, ty: number): { x: number; y: number } {
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  const dx = tx - cx;
+  const dy = ty - cy;
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  const halfW = Math.max(rect.w / 2, 1);
+  const halfH = Math.max(rect.h / 2, 1);
+  const scale = Math.min(dx !== 0 ? halfW / Math.abs(dx) : Infinity, dy !== 0 ? halfH / Math.abs(dy) : Infinity);
+  return { x: cx + dx * scale, y: cy + dy * scale };
+}
+
+/**
+ * For every pinned card, a thin dashed line from its own nearest edge to its entry's
+ * current position on the timeline — an event targets its exact date; a period/ruler/
+ * government targets the midpoint of its own span (there's no single "the" position for a
+ * range), at the vertical middle of its kind's wire when that wire is currently drawn, or
+ * the cylinder's own middle when it isn't (the kind is filtered off, or has nothing else
+ * visible right now). When the target date is off screen, the line stops at the canvas
+ * edge and a small chevron points further the way it would continue.
+ */
+function drawConnectorLines(
+  ctx: CanvasRenderingContext2D, axis: Axis, viewport: Viewport, contentRange: TimeRange,
+  wires: Partial<Record<EntryKind, WireLayout>>, cylinderTop: number, cylinderBottom: number,
+  pinnedCards: readonly PinnedCardTarget[]
+): void {
+  if (!pinnedCards.length) return;
+  ctx.save();
+  ctx.strokeStyle = CONNECTOR_COLOR;
+  ctx.lineWidth = 1;
+  ctx.setLineDash(CONNECTOR_DASH);
+
+  for (const card of pinnedCards) {
+    const t = card.kind === 'event' ? card.start : (card.start + (card.end ?? contentRange.to)) / 2;
+    const rawPx = timeToPx(t, viewport);
+    const wire = wires[card.kind];
+    const crossMid = wire ? wire.top + wire.height / 2 : (cylinderTop + cylinderBottom) / 2;
+    const onScreen = rawPx >= 0 && rawPx <= viewport.sizePx;
+    const px = clamp(rawPx, 0, viewport.sizePx);
+    const target = project(axis, px, crossMid);
+    const from = nearestEdgePoint(card.rect, target.x, target.y);
+
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.stroke();
+
+    if (!onScreen) {
+      const dir = rawPx < 0 ? -1 : 1;
+      const backAlong = px - dir * CONNECTOR_CHEVRON_SIZE * 1.6;
+      const tip = project(axis, px, crossMid);
+      const backA = project(axis, backAlong, crossMid - CONNECTOR_CHEVRON_SIZE);
+      const backB = project(axis, backAlong, crossMid + CONNECTOR_CHEVRON_SIZE);
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.fillStyle = CONNECTOR_COLOR;
+      ctx.beginPath();
+      ctx.moveTo(tip.x, tip.y);
+      ctx.lineTo(backA.x, backA.y);
+      ctx.lineTo(backB.x, backB.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
 }
 
 /* ------------------------------------------------------------------------ centre marker */
@@ -942,6 +1039,10 @@ export interface RenderContext {
    *  phase, not a 0..1 progress fraction (it has no fixed endpoint from the renderer's
    *  point of view; timeline.ts clears pulseId once its own duration elapses). */
   pulseElapsedMs: number;
+  /** Every pinned card's own date span + current DOM rect — draws a connector line from
+   *  each to its entry's position on the timeline (see drawConnectorLines). Empty outside
+   *  the history route or while nothing is pinned. */
+  pinnedCards: readonly PinnedCardTarget[];
 }
 
 /**
@@ -961,7 +1062,7 @@ export interface RenderContext {
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -1012,6 +1113,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
   }
 
   drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);
+  drawConnectorLines(ctx, axis, viewport, contentRange, wires, cylinderTop, cylinderBottom, pinnedCards);
   drawCentreCylinderLine(ctx, axis, viewport, cylinderTop, cylinderBottom);
   drawCentreDate(ctx, axis, monoFont, viewport, cylinderTop);
 

@@ -16,8 +16,8 @@
  * rather than letting a stale hit-test win a race). No selection, no keyboard yet.
  */
 import { contextAt } from './layout';
-import { render, type Axis, type HitRegion, type RenderContext, type TimelineEntry } from './renderer';
-import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type TimeRange, type Viewport } from './scale';
+import { render, type Axis, type HitRegion, type PinnedCardTarget, type RenderContext, type TimelineEntry } from './renderer';
+import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type EntryKind, type TimeRange, type Viewport } from './scale';
 
 /** Today as an exact decimal year (year + month + day, via scale.ts's decimalYearOfDate)
  *  — computed fresh in the browser, never at build time (catalog.server.ts must stay
@@ -108,7 +108,19 @@ const DEFAULT_PX_PER_YEAR = 6;
 export class HistoryTimeline {
   private ctx: CanvasRenderingContext2D;
   private axis: Axis;
+  /** Every entry, today-clipped — what HistoryFilters.tsx's toggles filter FROM (see
+   *  applyFilter) and what a pinned card's connector line resolves its target against
+   *  (pinnedCardTargets) even when that entry is currently filtered out of `entries`. */
+  private allEntries: TimelineEntry[];
+  /** `allEntries` minus whatever HistoryFilters.tsx has hidden right now — what actually
+   *  gets rendered and hit-tested (see applyFilter). Equal to `allEntries` until
+   *  setFilters is first called. */
   private entries: TimelineEntry[];
+  /** Kinds currently hidden by a filter chip — periods are never in here (CLAUDE.md/the
+   *  filters brief: "periods are always shown"). */
+  private hiddenKinds: ReadonlySet<EntryKind> = new Set();
+  /** Event categories currently hidden by a filter chip. */
+  private hiddenCategories: ReadonlySet<string> = new Set();
   private viewport: Viewport;
   /** [earliest authored start, today] — what fitToWholeHistory frames, and what
    *  minimum-zoom (the cylinder filling the viewport exactly, no padding) is measured
@@ -173,6 +185,11 @@ export class HistoryTimeline {
   /** Ids of every entry with an open pinned card (atlas.tsx) — set via setPinnedIds,
    *  passed straight through to render() for the persistent outline (renderer.ts). */
   private pinnedIds: ReadonlySet<string> = new Set();
+  /** Every pinned card's own current DOM rect (atlas.tsx, in canvas CSS-pixel space), keyed
+   *  by entry id — set via setPinnedCardRects, resolved into renderer.ts's PinnedCardTarget
+   *  shape (via allEntries, so a filtered-out entry still resolves) in the renderContext
+   *  getter below. */
+  private pinnedCardRects: ReadonlyMap<string, { x: number; y: number; w: number; h: number }> = new Map();
   /** The pointer + hit id a pointerdown started on, kept until its matching pointerup so a
    *  same-spot click can be told apart from a drag (see CLICK_MOVE_THRESHOLD_PX). Cleared
    *  on a two-pointer (pinch) gesture — a click never fires out of a pinch. */
@@ -199,8 +216,9 @@ export class HistoryTimeline {
     this.onEntryClick = options.onEntryClick ?? (() => {});
     this.onPeriodChange = options.onPeriodChange ?? (() => {});
     const today = todayDecimalYear();
-    this.entries = HistoryTimeline.clipEntriesToToday(options.entries, today);
-    const { content, pannable } = HistoryTimeline.computeRanges(this.entries, today);
+    this.allEntries = HistoryTimeline.clipEntriesToToday(options.entries, today);
+    this.entries = this.allEntries;
+    const { content, pannable } = HistoryTimeline.computeRanges(this.allEntries, today);
     this.contentRange = content;
     this.pannableRange = pannable;
     this.hasExplicitInitialView = options.initialCenter !== undefined || options.initialPxPerYear !== undefined;
@@ -290,8 +308,23 @@ export class HistoryTimeline {
       hoveredId: this.hoveredId,
       pinnedIds: this.pinnedIds,
       pulseId: this.pulse?.id ?? null,
-      pulseElapsedMs: this.pulse ? performance.now() - this.pulse.startTime : 0
+      pulseElapsedMs: this.pulse ? performance.now() - this.pulse.startTime : 0,
+      pinnedCards: this.pinnedCardTargets
     };
+  }
+
+  /** Every pinnedCardRects entry resolved against allEntries (never the filtered
+   *  `entries` — a pinned card whose kind/category is currently hidden still needs a real
+   *  target to point its connector line at) into renderer.ts's PinnedCardTarget shape. An
+   *  id with no matching entry (shouldn't happen — atlas.tsx only ever pins a real one) is
+   *  silently skipped. */
+  private get pinnedCardTargets(): readonly PinnedCardTarget[] {
+    const out: PinnedCardTarget[] = [];
+    for (const [id, rect] of this.pinnedCardRects) {
+      const entry = this.allEntries.find(e => e.id === id);
+      if (entry) out.push({ id, kind: entry.kind, start: entry.start, end: entry.end, rect });
+    }
+    return out;
   }
 
   /** The viewport's own along-axis size in CSS px — what HistoryOutline.tsx's fly-to math
@@ -304,6 +337,30 @@ export class HistoryTimeline {
    *  outline (renderer.ts) stays in sync. */
   setPinnedIds(ids: ReadonlySet<string>): void {
     this.pinnedIds = ids;
+    this.draw();
+  }
+
+  /** Sets every pinned card's current DOM rect (atlas.tsx, mount + drag) — repaints so
+   *  each card's connector line (renderer.ts's drawConnectorLines) tracks it live. Called
+   *  on every drag frame, same as any other gesture-driven repaint (see the module header). */
+  setPinnedCardRects(rects: ReadonlyMap<string, { x: number; y: number; w: number; h: number }>): void {
+    this.pinnedCardRects = rects;
+    this.draw();
+  }
+
+  /** HistoryFilters.tsx's own state (atlas.tsx), applied here: which kinds (never
+   *  `period` — "periods are always shown") and which event categories are hidden right
+   *  now. Recomputes `entries` from the full `allEntries` and repaints; contentRange/
+   *  pannableRange are untouched (computed once from allEntries at construction) so
+   *  toggling a filter never moves the pan/zoom limits under the reader. */
+  setFilters(hiddenKinds: ReadonlySet<EntryKind>, hiddenCategories: ReadonlySet<string>): void {
+    this.hiddenKinds = hiddenKinds;
+    this.hiddenCategories = hiddenCategories;
+    this.entries = this.allEntries.filter(e => {
+      if (e.kind !== 'period' && this.hiddenKinds.has(e.kind)) return false;
+      if (e.kind === 'event' && e.category && this.hiddenCategories.has(e.category)) return false;
+      return true;
+    });
     this.draw();
   }
 

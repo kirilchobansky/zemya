@@ -9,7 +9,9 @@
 import { useEffect } from 'react';
 
 import HistoryDetail from '~/components/HistoryDetail';
+import HistoryFilters from '~/components/HistoryFilters';
 import HistoryOutline from '~/components/HistoryOutline';
+import HistorySearch from '~/components/HistorySearch';
 import { bulgariaTimeline } from '~/lib/history/catalog.server';
 import { pageMeta } from '~/lib/seo';
 import { useAtlasContext } from './atlas';
@@ -31,7 +33,8 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
   const { entries } = loaderData;
   const {
     setTimelineEntries, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
-    pinHistoryEntry, historyTimeline, historyCurrentPeriodId
+    pinHistoryEntry, historyTimeline, historyCurrentPeriodId,
+    historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
   } = useAtlasContext();
 
   useEffect(() => {
@@ -54,6 +57,14 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
         </div>
       </header>
       <div className="panel__body">
+        <HistorySearch entries={entries} timeline={historyTimeline} onOpen={setSelectedHistoryEntryId} />
+        <HistoryFilters
+          hiddenKinds={historyHiddenKinds}
+          onToggleKind={toggleHistoryKind}
+          hiddenCategories={historyHiddenCategories}
+          onToggleCategory={toggleHistoryCategory}
+          onReset={resetHistoryFilters}
+        />
         <div className="history-outline__actions">
           <button type="button" className="action" onClick={() => historyTimeline?.flyToWholeHistory()}>
             Whole history

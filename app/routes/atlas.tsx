@@ -19,6 +19,7 @@ import { refreshMapColours } from '~/lib/map/renderer';
 import HistoryCard, { PinnedHistoryCard } from '~/components/HistoryCard';
 import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
+import type { EntryKind } from '~/lib/history/scale';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import { NO_INSETS, type Insets } from '~/lib/map/camera';
@@ -79,6 +80,17 @@ interface AtlasContextValue {
   /** timeline.ts's onPeriodChange, throttled to 5/s — the outline's "you are here"
    *  section. */
   historyCurrentPeriodId: string | null;
+  /** HistoryFilters.tsx's kind toggles ("Rulers"/"Governments"/"Events") — the set of
+   *  kinds currently hidden (never `period`: periods are always shown). Lives here rather
+   *  than in the history route so it survives a "See more" swap to the detail view, and is
+   *  reset to empty whenever the history route is left (see the effect below). */
+  historyHiddenKinds: ReadonlySet<EntryKind>;
+  toggleHistoryKind: (kind: EntryKind) => void;
+  /** HistoryFilters.tsx's event category chips — the set of category ids currently
+   *  hidden. Same lifetime as historyHiddenKinds. */
+  historyHiddenCategories: ReadonlySet<string>;
+  toggleHistoryCategory: (category: string) => void;
+  resetHistoryFilters: () => void;
 }
 
 const AtlasContext = createContext<AtlasContextValue | null>(null);
@@ -123,6 +135,12 @@ function AtlasShell() {
   const [selectedHistoryEntryId, setSelectedHistoryEntryId] = useState<string | null>(null);
   const [historyTimelineInstance, setHistoryTimelineInstance] = useState<HistoryTimeline | null>(null);
   const [historyCurrentPeriodId, setHistoryCurrentPeriodId] = useState<string | null>(null);
+  const [historyHiddenKinds, setHistoryHiddenKinds] = useState<ReadonlySet<EntryKind>>(() => new Set());
+  const [historyHiddenCategories, setHistoryHiddenCategories] = useState<ReadonlySet<string>>(() => new Set());
+  /** Every pinned card's own current DOM rect, mutated straight from HistoryCard.tsx's
+   *  onRectChange (mount + every drag frame) and forwarded to HistoryTimeline directly —
+   *  a ref, not React state, so a drag doesn't re-render this whole shell every frame. */
+  const pinnedRectsRef = useRef<Map<string, { x: number; y: number; w: number; h: number }>>(new Map());
   const pinZRef = useRef(0);
   const MAX_PINNED_CARDS = 8;
 
@@ -147,23 +165,62 @@ function AtlasShell() {
   const handleCardFront = useCallback((id: string) => {
     setPinnedCards(prev => prev.map(p => (p.id === id ? { ...p, z: ++pinZRef.current } : p)));
   }, []);
+  const handleCardRectChange = useCallback((id: string, rect: { x: number; y: number; w: number; h: number }) => {
+    pinnedRectsRef.current.set(id, rect);
+    timelineRef.current?.setPinnedCardRects(pinnedRectsRef.current);
+  }, []);
   const handleCardClose = useCallback((id: string) => {
     setPinnedCards(prev => prev.filter(p => p.id !== id));
     setSelectedHistoryEntryId(sel => (sel === id ? null : sel));
+    pinnedRectsRef.current.delete(id);
+    timelineRef.current?.setPinnedCardRects(pinnedRectsRef.current);
   }, []);
   const closeAllHistoryCards = useCallback(() => {
     setPinnedCards([]);
     setSelectedHistoryEntryId(null);
+    pinnedRectsRef.current.clear();
+    timelineRef.current?.setPinnedCardRects(pinnedRectsRef.current);
   }, []);
 
-  // Leaving the history route (showTimeline going false) clears every pinned card and any
-  // open detail view — "pinned cards are cleared when leaving the history route."
+  const toggleHistoryKind = useCallback((kind: EntryKind) => {
+    setHistoryHiddenKinds(prev => {
+      const next = new Set(prev);
+      if (next.has(kind)) next.delete(kind);
+      else next.add(kind);
+      return next;
+    });
+  }, []);
+  const toggleHistoryCategory = useCallback((category: string) => {
+    setHistoryHiddenCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }, []);
+  const resetHistoryFilters = useCallback(() => {
+    setHistoryHiddenKinds(new Set());
+    setHistoryHiddenCategories(new Set());
+  }, []);
+
+  // Leaving the history route (showTimeline going false) clears every pinned card, any open
+  // detail view and every filter — "pinned cards are cleared when leaving the history
+  // route" / "the [filter] state ... resets when leaving the history route."
   useEffect(() => {
     if (!showTimeline) {
       setPinnedCards([]);
       setSelectedHistoryEntryId(null);
+      setHistoryHiddenKinds(new Set());
+      setHistoryHiddenCategories(new Set());
+      pinnedRectsRef.current.clear();
     }
   }, [showTimeline]);
+
+  // Pushes HistoryFilters.tsx's own state down to the canvas controller whenever it
+  // changes (including once the controller itself first mounts, via the timelineEntries dep).
+  useEffect(() => {
+    timelineRef.current?.setFilters(historyHiddenKinds, historyHiddenCategories);
+  }, [historyHiddenKinds, historyHiddenCategories, timelineEntries]);
 
   // Esc closes the front-most pinned card (highest z) — global, since a card's own body
   // isn't necessarily focused.
@@ -506,7 +563,8 @@ function AtlasShell() {
         atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap,
         setTimelineEntries,
         historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId, pinHistoryEntry,
-        historyTimeline: historyTimelineInstance, historyCurrentPeriodId
+        historyTimeline: historyTimelineInstance, historyCurrentPeriodId,
+        historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
       }}
     >
     <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
@@ -552,6 +610,7 @@ function AtlasShell() {
               onClose={handleCardClose}
               onFront={handleCardFront}
               onSeeMore={setSelectedHistoryEntryId}
+              onRectChange={handleCardRectChange}
             />
           ))}
 
