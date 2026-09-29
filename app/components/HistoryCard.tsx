@@ -18,11 +18,15 @@
  * applied on the way in (see that module's own header on why `Date` is never used for an
  * authored date), so this never re-parses the authored YAML text itself.
  */
-import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useLayoutEffect, useRef, useState,
+  type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent
+} from 'react';
 
 import { contextAt } from '~/lib/history/layout';
 import type { TimelineEntry } from '~/lib/history/renderer';
 import { dateOfDecimalYear } from '~/lib/history/scale';
+import { flyTargetFor, type HistoryTimeline } from '~/lib/history/timeline';
 
 const CARD_WIDTH = 280;
 const GAP_PX = 10;
@@ -135,6 +139,10 @@ export interface PinnedHistoryCardProps {
   bounds: { width: number; height: number };
   /** CSS z-index — atlas.tsx bumps this on pin/click/drag so the card reads as "in front". */
   zIndex: number;
+  /** The live timeline instance, for the "locate" button — flies the canvas back to this
+   *  entry's own position, the same fly-to HistoryDetail's "Show on timeline" uses. Null
+   *  before the canvas has mounted, in which case the button is a no-op. */
+  timeline: HistoryTimeline | null;
   onClose: (id: string) => void;
   onFront: (id: string) => void;
   onSeeMore: (id: string) => void;
@@ -153,7 +161,7 @@ export interface PinnedHistoryCardProps {
  * canvas at every step. Bringing to front, closing and "See more" are all owned by the
  * parent (atlas.tsx) — this component only reports the intent.
  */
-export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex, onClose, onFront, onSeeMore, onRectChange }: PinnedHistoryCardProps) {
+export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex, timeline, onClose, onFront, onSeeMore, onRectChange }: PinnedHistoryCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const dragRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; origLeft: number; origTop: number } | null>(null);
@@ -180,9 +188,24 @@ export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex,
 
   const startDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
     onFront(entry.id);
-    if ((e.target as HTMLElement).closest('button') || !pos || !ref.current) return;
+    // Only the primary (left) button starts a drag — a middle-click closes the card
+    // instead (see onMiddleMouseDown/onMiddleClick below) and must not also pick it up.
+    if (e.button !== 0 || (e.target as HTMLElement).closest('button') || !pos || !ref.current) return;
     ref.current.setPointerCapture(e.pointerId);
     dragRef.current = { pointerId: e.pointerId, startClientX: e.clientX, startClientY: e.clientY, origLeft: pos.left, origTop: pos.top };
+  };
+
+  // Middle mouse click (scroll-wheel press) anywhere on the card closes it — plain mouse
+  // events, not pointer events, since it's auxclick (fired after mouseup for a non-primary
+  // button) that's the reliable cross-browser signal; mousedown only needs preventDefault
+  // so the browser's autoscroll circle never appears. mouseup is handled too as a fallback
+  // for the rare case a browser doesn't dispatch auxclick.
+  const onMiddleMouseDown = (e: ReactMouseEvent<HTMLDivElement>): void => {
+    if (e.button === 1) e.preventDefault();
+  };
+
+  const onMiddleClick = (e: ReactMouseEvent<HTMLDivElement>): void => {
+    if (e.button === 1) onClose(entry.id);
   };
 
   const onDragMove = (e: ReactPointerEvent<HTMLDivElement>): void => {
@@ -199,6 +222,12 @@ export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex,
     if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
   };
 
+  const locate = (): void => {
+    if (!timeline) return;
+    const { centre, pxPerYear } = flyTargetFor(entry, timeline.viewportSizePx);
+    timeline.flyTo(centre, pxPerYear, entry.id);
+  };
+
   return (
     <div
       ref={ref}
@@ -208,8 +237,17 @@ export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex,
       onPointerMove={onDragMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onMouseDown={onMiddleMouseDown}
+      onMouseUp={onMiddleClick}
+      onAuxClick={onMiddleClick}
     >
       <div className="pinned-card__header">
+        <button type="button" className="pinned-card__locate" aria-label="Show on timeline" onClick={locate}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <circle cx="8" cy="8" r="6.2" />
+            <path d="M8 1.5v2.4M8 12.1v2.4M1.5 8h2.4M12.1 8h2.4" strokeLinecap="round" />
+          </svg>
+        </button>
         <button type="button" className="pinned-card__close" aria-label="Close" onClick={() => onClose(entry.id)}>
           ×
         </button>
