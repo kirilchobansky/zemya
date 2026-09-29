@@ -69,6 +69,18 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from
   9.3) — 765 entries total now. Tier/precision/skip judgement calls not in the source
   are recorded in that script's header comment. `docs/decisions.md` has the reasoning.
+- The Bulgaria panel's default view (`history.bulgaria.tsx`, no card's "See more" open):
+  header (name, "681 – today", entry count), "Whole history"/"Today" buttons, "Close all
+  cards", then `HistoryOutline.tsx`'s vertical list — one row per period (colour swatch,
+  Bulgarian name, date range), Възраждане indented under Османско владичество (derived by
+  date-containment + tier, not authored — `docs/decisions.md`). Only one section expanded
+  at a time; the section containing the timeline's centre date auto-expands as the reader
+  pans (`HistoryTimeline`'s `onPeriodChange`, throttled to 5/s), until a manual expand
+  overrides it. Expanding shows that period's tier-1 events/rulers, sorted by date. Clicking
+  a period/event/ruler row flies the camera to it (`HistoryTimeline.flyTo`, 500ms ease-
+  in-out, log-interpolated zoom, cancelled by any drag/wheel/pinch) and pulses a white
+  outline on the target for 1.5s after arrival. Same list in the phone bottom sheet, no
+  separate layout.
 - `/history/bulgaria/list`: a plain, unstyled table of the whole `bg.yaml` dataset
   (year/range, kind, role, name.bg, tier, precision, category, parent), sorted by start
   year then kind — for proofreading the content, not a nav destination. Prerendered (a

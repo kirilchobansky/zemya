@@ -199,6 +199,18 @@ function smoothstep(t: number): number {
   return c * c * (3 - 2 * c);
 }
 
+/** How long one full brighten/dim cycle of the arrival pulse takes (ms) — purely visual,
+ *  independent of PULSE_DURATION_MS (timeline.ts), which decides when the pulse stops
+ *  entirely. */
+const PULSE_CYCLE_MS = 260;
+
+/** The pulse's own opacity at `elapsedMs` since it started: oscillates between 0.35 and 1
+ *  on a sine wave — never fully invisible, so the outline stays a smooth "pulse" rather
+ *  than a blink. */
+function pulseAlpha(elapsedMs: number): number {
+  return 0.675 + 0.325 * Math.sin((elapsedMs / PULSE_CYCLE_MS) * Math.PI * 2);
+}
+
 /** A ZoomLevel's own pxPerYear threshold, read off CONFIG.zoomThresholds — the one place
  *  this module borrows the zoom ladder's own anchors instead of hardcoding a duplicate
  *  number, for periodHeightFraction and eventTierReveal below. */
@@ -600,7 +612,8 @@ function drawWireRails(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number
 function drawWireCapsules(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, kind: EntryKind,
   entries: readonly TimelineEntry[], rows: ReadonlyMap<string, number>, viewport: Viewport,
-  wire: WireLayout, focusId: string | null, hoveredId: string | null, pinnedIds: ReadonlySet<string>, hits: HitRegion[]
+  wire: WireLayout, focusId: string | null, hoveredId: string | null, pinnedIds: ReadonlySet<string>,
+  pulseId: string | null, pulseElapsedMs: number, hits: HitRegion[]
 ): void {
   const { dim, bright, stroke } = kindCapsuleColors(kind);
   const byRow = new Map<number, TimelineEntry[]>();
@@ -675,6 +688,13 @@ function drawWireCapsules(
         ctx.strokeStyle = COLORS.white;
         ctx.stroke();
       }
+      if (e.id === pulseId) {
+        ctx.globalAlpha = pulseAlpha(pulseElapsedMs);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = COLORS.white;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
 
       // Every capsule's text is plain white — each kind's fill (dim/bright above) is dark
       // enough to keep it readable regardless of kind or focus state.
@@ -745,7 +765,8 @@ const PIN_HIT_HALF_WIDTH_PX = 6;
 function drawEventPins(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, monoFont: string,
   entries: readonly TimelineEntry[], viewport: Viewport, wire: WireLayout, level: ZoomLevel,
-  hoveredId: string | null, pinnedIds: ReadonlySet<string>, hits: HitRegion[]
+  hoveredId: string | null, pinnedIds: ReadonlySet<string>, pulseId: string | null, pulseElapsedMs: number,
+  hits: HitRegion[]
 ): void {
   const fontPx = RENDER_CONFIG.pinLabelFontPxByLevel[level];
   const dateFontPx = Math.round(fontPx * 0.7);
@@ -798,6 +819,15 @@ function drawEventPins(
       ctx.lineWidth = 1.5;
       ctx.arc(dot.x, dot.y, dotRadius + 2.5, 0, Math.PI * 2);
       ctx.stroke();
+    }
+    if (e.id === pulseId) {
+      ctx.beginPath();
+      ctx.strokeStyle = COLORS.white;
+      ctx.globalAlpha = reveal * pulseAlpha(pulseElapsedMs);
+      ctx.lineWidth = 2;
+      ctx.arc(dot.x, dot.y, dotRadius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = reveal;
     }
 
     if (placed.has(e.id)) {
@@ -900,6 +930,14 @@ export interface RenderContext {
    *  1.5px white outline (see drawWireCapsules/drawEventPins) so it's clear which entry a
    *  floating card belongs to, independent of hover. */
   pinnedIds: ReadonlySet<string>;
+  /** The entry HistoryOutline.tsx's fly-to just landed on, or null — reuses the hover
+   *  outline style (see drawWireCapsules/drawEventPins) but pulses its opacity via
+   *  `pulseElapsedMs` for PULSE_DURATION_MS after arriving (timeline.ts's updatePulse). */
+  pulseId: string | null;
+  /** Milliseconds since the pulse started (0 while none is active) — the pulse's own sine
+   *  phase, not a 0..1 progress fraction (it has no fixed endpoint from the renderer's
+   *  point of view; timeline.ts clears pulseId once its own duration elapses). */
+  pulseElapsedMs: number;
 }
 
 /**
@@ -919,7 +957,7 @@ export interface RenderContext {
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -962,11 +1000,11 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
     const wire = wires[kind];
     if (!wire) continue;
     if (kind === 'event') {
-      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, hoveredId, pinnedIds, hits);
+      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
       continue;
     }
     drawWireRails(ctx, axis, viewport.sizePx, wire, kindCapsuleColors(kind).stroke);
-    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, hoveredId, pinnedIds, hits);
+    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
   }
 
   drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);

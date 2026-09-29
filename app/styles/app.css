@@ -520,6 +520,106 @@ a {
   border-color: var(--sea-dim);
 }
 
+/* ---------------------------------------------------------------- history outline */
+
+.history-outline__actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.history-outline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.history-outline__section + .history-outline__section {
+  border-top: 1px solid var(--rule-soft);
+}
+.history-outline__period {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 4px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+.history-outline__period:hover,
+.history-outline__period:focus-visible {
+  background: var(--chart-2);
+}
+.history-outline__period--nested {
+  padding-left: 22px;
+}
+.history-outline__period.is-here .history-outline__name {
+  color: var(--sea);
+}
+.history-outline__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.history-outline__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.history-outline__name {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.history-outline__range {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.history-outline__rows {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0 8px;
+}
+.history-outline__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px 6px 26px;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+.history-outline__row:hover,
+.history-outline__row:focus-visible {
+  background: var(--chart-2);
+}
+.history-outline__row-date {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.history-outline__row-name {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-outline__row-role {
+  flex: none;
+  color: var(--ink-2);
+  font-size: 11px;
+}
+.history-outline__empty {
+  padding: 6px 4px 6px 26px;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
 .toolbar {
   display: flex;
   gap: 4px;
@@ -1884,6 +1984,12 @@ kbd {
     width: 100%;
     justify-content: center;
     font-size: 14px;
+  }
+  .history-outline__actions > .action {
+    min-height: 44px;
+    flex: 1 1 auto;
+    justify-content: center;
+    font-size: 13px;
   }
 
   /* Dossier: the sheet header already carries the flag, name and capital · population ·

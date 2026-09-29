@@ -533,6 +533,32 @@ for this comes in a later step" was explicit in the request. `TimelineEntry` gai
 `tags: readonly string[]` field for that detail view; `catalog.server.ts`'s `RawHistoryEntry`
 already had nowhere to read it from until now even though `bg.json` always carried it.
 
+**Outline panel + fly-to.** Owner-requested: the Bulgaria panel's default view (no card
+"See more" open) is now a header (name, "681 – today", entry count), "Whole history"/"Today"
+buttons, "Close all cards", then `HistoryOutline.tsx`'s vertical list of periods. This
+replaced `history.bulgaria.tsx`'s old `HISTORY_COUNTRIES` subject-card list, which was
+vestigial — `/history` (`routes/history.tsx`) already owns that picker; the Bulgaria route
+never needed a second copy of it. Nesting (Възраждане under Османско владичество) isn't an
+authored relationship (`bg.yaml` sets no `parent` on either) — `HistoryOutline.tsx`'s
+`containingPeriod()` derives it generically: a period fully date-contained by another with a
+lower tier nests under it, one level deep today but written recursively. This reuses the same
+tier-vs-containment rule `layout.ts`'s `contextAt`/`primaryOf` already applies, which has a
+side effect worth knowing: `timeline.ts`'s `onPeriodChange` (the outline's "you are here",
+throttled to 5/s) can never itself report a nested period's id while the ranges overlap — the
+containing period always wins as `primary` — so a nested section only ever expands by an
+explicit click, never by panning. A period/ruler row's fly-to target adds a 5% margin on each
+side of its own span (a ruler's span floors to 5 years first, per the brief's "minimum 5 years
+wide"); an event centres on its date with a fixed ~10 year span — none of these three numbers
+were specified beyond "with margin"/"about a 10 year span", so they're judgement calls, kept
+in one place (`timeline.ts`'s exported `flyTargetFor`). "Today" (unspecified exact behaviour)
+centres on today's date at the app's own default zoom (`DEFAULT_PX_PER_YEAR`). `flyTo`'s
+own 500ms ease-in-out animation and the 1.5s arrival pulse are both driven off
+`performance.now()` inside `renderNow()`, the same "keep re-requesting frames while not yet
+converged" pattern `updateCylinderAnimation` already uses; the pulse reuses the hover outline
+(white stroke, same path) but oscillates its alpha rather than snapping it on, and is stopped
+by nothing except its own 1.5s timer — a drag/wheel/pinch cancels the FLIGHT (`flyAnim`)
+immediately, not an already-started pulse.
+
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
 
 | Decision | Choice | Why |

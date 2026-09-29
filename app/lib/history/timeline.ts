@@ -15,8 +15,41 @@
  * entirely while dragging or pinch-zooming (their gesture handlers clear it directly
  * rather than letting a stale hit-test win a race). No selection, no keyboard yet.
  */
+import { contextAt } from './layout';
 import { render, type Axis, type HitRegion, type RenderContext, type TimelineEntry } from './renderer';
 import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type TimeRange, type Viewport } from './scale';
+
+/** Today as an exact decimal year (year + month + day, via scale.ts's decimalYearOfDate)
+ *  — computed fresh in the browser, never at build time (catalog.server.ts must stay
+ *  ignorant of "now" or it would freeze at the last deploy). `Date` is safe here
+ *  specifically because it's read for "today"/camera framing, never used to parse an
+ *  authored (possibly Julian, pre-1916) date — see the module header. */
+function todayDecimalYear(): number {
+  const now = new Date();
+  return decimalYearOfDate({ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() });
+}
+
+/** Fly-to framing per entry kind (routes/history.bulgaria.tsx's outline list —
+ *  HistoryOutline.tsx — is the only caller): a period/ruler row fits its own span plus a 5%
+ *  margin on each side (a ruler's span is floored to 5 years first, "minimum 5 years wide"
+ *  — a judgement call on top of the brief's unspecified exact margin, applying the same 5%
+ *  period uses); an event row centres on its own date with a fixed ~10 year span around it.
+ *  An open-ended span (Република България has no `end`) frames against today, same as the
+ *  canvas itself clips it (HistoryTimeline.clipEntriesToToday). */
+const PERIOD_FLY_MARGIN = 0.05;
+const EVENT_FLY_SPAN_YEARS = 10;
+const RULER_FLY_MIN_SPAN_YEARS = 5;
+
+export function flyTargetFor(entry: Pick<TimelineEntry, 'kind' | 'start' | 'end'>, sizePx: number): { centre: number; pxPerYear: number } {
+  if (entry.kind === 'event') {
+    return { centre: entry.start, pxPerYear: sizePx / EVENT_FLY_SPAN_YEARS };
+  }
+  const end = entry.end ?? todayDecimalYear();
+  const rawSpan = Math.max(end - entry.start, 0);
+  const span = entry.kind === 'ruler' ? Math.max(rawSpan, RULER_FLY_MIN_SPAN_YEARS) : rawSpan;
+  const displaySpan = Math.max(span * (1 + 2 * PERIOD_FLY_MARGIN), 1);
+  return { centre: (entry.start + end) / 2, pxPerYear: sizePx / displaySpan };
+}
 
 export interface HistoryHover {
   entry: TimelineEntry;
@@ -40,6 +73,13 @@ const CYLINDER_EASE_MS = 120;
 /** Below this, the animation is considered converged and stops re-requesting frames on
  *  its own (a real gesture still asks for more via draw()). */
 const CYLINDER_EASE_EPSILON = 0.0006;
+/** flyTo's own animation length — "animating over 500ms with ease-in-out." */
+const FLY_DURATION_MS = 500;
+/** How long the arrival pulse (renderer.ts's pulseId/pulseElapsedMs) stays on screen —
+ *  "a pulsing white outline... for 1.5 seconds after arriving." */
+const PULSE_DURATION_MS = 1500;
+/** onPeriodChange's own throttle — "at most 5 updates per second." */
+const PERIOD_CHANGE_THROTTLE_MS = 200;
 
 export interface TimelineOptions {
   axis: Axis;
@@ -55,6 +95,11 @@ export interface TimelineOptions {
    *  a click (pointerdown/pointerup within CLICK_MOVE_THRESHOLD_PX) lands on a hoverable
    *  region — pins its card (see atlas.tsx). Never fires for a drag or a pinch. */
   onEntryClick?: (hit: HistoryHover) => void;
+  /** Called with the id of the period (scale.ts's `contextAt`, evaluated at the viewport's
+   *  own centre date) currently "under" the centre marker — the outline list's (routes/
+   *  history.bulgaria.tsx's HistoryOutline.tsx) "you are here" section, throttled to at
+   *  most 5 calls/second (see reportPeriod) so a fast pan doesn't flood React state. */
+  onPeriodChange?: (periodId: string | null) => void;
 }
 
 const DEFAULT_CENTER = 2000;
@@ -98,6 +143,29 @@ export class HistoryTimeline {
 
   private onHover: (hover: HistoryHover | null) => void;
   private onEntryClick: (hit: HistoryHover) => void;
+  private onPeriodChange: (periodId: string | null) => void;
+  /** The id last actually delivered to onPeriodChange, and when — reportPeriod's own
+   *  throttle state (see PERIOD_CHANGE_THROTTLE_MS). `pendingPeriodId` is `undefined` when
+   *  nothing is queued, so a real `null` (no period at this moment) can still be pending. */
+  private lastEmittedPeriodId: string | null = null;
+  private lastPeriodEmitTime = 0;
+  private pendingPeriodId: string | null | undefined = undefined;
+  private periodChangeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** flyTo's own animation state — null when idle. Interpolated every frame in renderNow()
+   *  until `t` reaches 1, then cleared (and the arrival pulse, if any, starts). */
+  private flyAnim: {
+    startTime: number;
+    fromCenter: number;
+    toCenter: number;
+    fromLogPxPerYear: number;
+    toLogPxPerYear: number;
+    pulseEntryId: string | null;
+  } | null = null;
+  /** The entry currently showing the arrival pulse (renderer.ts), and when it started —
+   *  cleared once PULSE_DURATION_MS has elapsed. Not cancelled by a drag/wheel/pinch (only
+   *  the flight itself is — see the module header on flyTo). */
+  private pulse: { id: string; startTime: number } | null = null;
   /** Every hoverable region drawn last frame (render()'s return value) — hit-tested
    *  against on pointermove, never recomputed outside a frame. */
   private hits: HitRegion[] = [];
@@ -129,7 +197,8 @@ export class HistoryTimeline {
     this.axis = options.axis;
     this.onHover = options.onHover ?? (() => {});
     this.onEntryClick = options.onEntryClick ?? (() => {});
-    const today = HistoryTimeline.todayDecimalYear();
+    this.onPeriodChange = options.onPeriodChange ?? (() => {});
+    const today = todayDecimalYear();
     this.entries = HistoryTimeline.clipEntriesToToday(options.entries, today);
     const { content, pannable } = HistoryTimeline.computeRanges(this.entries, today);
     this.contentRange = content;
@@ -177,16 +246,6 @@ export class HistoryTimeline {
     this.resize();
   }
 
-  /** Today as an exact decimal year (year + month + day, via scale.ts's
-   *  decimalYearOfDate) — computed fresh in the browser at construction time, never at
-   *  build time (catalog.server.ts must stay ignorant of "now" or it would freeze at the
-   *  last deploy). `Date` is safe here specifically because it's read for "today", never
-   *  used to parse an authored (possibly Julian, pre-1916) date — see the module header. */
-  private static todayDecimalYear(): number {
-    const now = new Date();
-    return decimalYearOfDate({ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() });
-  }
-
   /** "Nothing is drawn after today": any open-ended span (`end: null` — an ongoing period,
    *  ruler or government) is clipped to `today` rather than left open, and any event dated
    *  after `today` is dropped outright (an event has no duration to clip). */
@@ -210,6 +269,7 @@ export class HistoryTimeline {
     this.resizeObserver.disconnect();
     cancelAnimationFrame(this.renderQueued);
     cancelAnimationFrame(this.hoverQueued);
+    if (this.periodChangeTimer) clearTimeout(this.periodChangeTimer);
     const c = this.canvas;
     c.removeEventListener('pointerdown', this.onPointerDown);
     c.removeEventListener('pointermove', this.onPointerMove);
@@ -228,8 +288,16 @@ export class HistoryTimeline {
       cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
       contentRange: this.contentRange,
       hoveredId: this.hoveredId,
-      pinnedIds: this.pinnedIds
+      pinnedIds: this.pinnedIds,
+      pulseId: this.pulse?.id ?? null,
+      pulseElapsedMs: this.pulse ? performance.now() - this.pulse.startTime : 0
     };
+  }
+
+  /** The viewport's own along-axis size in CSS px — what HistoryOutline.tsx's fly-to math
+   *  (flyTargetFor, above) converts a target span into a pxPerYear with. */
+  get viewportSizePx(): number {
+    return this.viewport.sizePx;
   }
 
   /** Sets which entries have an open pinned card (atlas.tsx) — repaints so the persistent
@@ -326,7 +394,107 @@ export class HistoryTimeline {
   private renderNow(): void {
     if (!this.viewport.sizePx) return;
     this.updateCylinderAnimation();
+    this.updateFlyAnimation();
+    this.updatePulse();
     this.hits = render(this.renderContext, this.entries);
+    this.reportPeriod();
+  }
+
+  /* ------------------------------------------------------------------------------- fly-to */
+
+  /** Flies the camera to `centreYear`/`pxPerYear`, animating over FLY_DURATION_MS with
+   *  ease-in-out (center linearly, pxPerYear log-interpolated so the zoom feels even — see
+   *  the module header). Cancelled immediately by any drag, wheel or pinch (onPointerDown/
+   *  onWheel clear `flyAnim`). `pulseEntryId`, if given, gets the 1.5s arrival outline
+   *  (renderer.ts) once the flight lands — see updatePulse. */
+  flyTo(centreYear: number, pxPerYear: number, pulseEntryId: string | null = null): void {
+    const toPxPerYear = clampPxPerYear(pxPerYear, this.viewport.sizePx, this.contentRange);
+    const toCenter = clampCenter(centreYear, toPxPerYear, this.viewport.sizePx, this.pannableRange);
+    this.flyAnim = {
+      startTime: performance.now(),
+      fromCenter: this.viewport.center,
+      toCenter,
+      fromLogPxPerYear: Math.log(this.viewport.pxPerYear),
+      toLogPxPerYear: Math.log(toPxPerYear),
+      pulseEntryId
+    };
+    this.draw();
+  }
+
+  /** "Whole history" button (routes/history.bulgaria.tsx) — flies to the same fit
+   *  fitToWholeHistory() snaps to on first mount, animated instead of instant. */
+  flyToWholeHistory(): void {
+    const { from, to } = this.contentRange;
+    const pxPerYear = clampPxPerYear(this.minPxPerYear, this.viewport.sizePx, this.contentRange);
+    this.flyTo((from + to) / 2, pxPerYear);
+  }
+
+  /** "Today" button (routes/history.bulgaria.tsx) — centres on today at the app's own
+   *  default zoom (DEFAULT_PX_PER_YEAR), clamped like any other flyTo target. */
+  flyToToday(): void {
+    this.flyTo(todayDecimalYear(), DEFAULT_PX_PER_YEAR);
+  }
+
+  private static easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+  }
+
+  /** Advances `flyAnim` by one frame, if active — interpolates center linearly and
+   *  pxPerYear on a log scale (see flyTo), re-clamping center every frame against the
+   *  CURRENT (mid-flight) pxPerYear so the clamp never lags a frame behind the zoom. Starts
+   *  the arrival pulse once the flight lands (t >= 1). */
+  private updateFlyAnimation(): void {
+    const anim = this.flyAnim;
+    if (!anim) return;
+    const t = Math.min((performance.now() - anim.startTime) / FLY_DURATION_MS, 1);
+    const eased = HistoryTimeline.easeInOutCubic(t);
+    const pxPerYear = clampPxPerYear(
+      Math.exp(anim.fromLogPxPerYear + (anim.toLogPxPerYear - anim.fromLogPxPerYear) * eased),
+      this.viewport.sizePx, this.contentRange
+    );
+    const rawCenter = anim.fromCenter + (anim.toCenter - anim.fromCenter) * eased;
+    const center = clampCenter(rawCenter, pxPerYear, this.viewport.sizePx, this.pannableRange);
+    this.viewport = { ...this.viewport, center, pxPerYear };
+    if (t < 1) {
+      this.draw();
+    } else {
+      this.flyAnim = null;
+      if (anim.pulseEntryId) this.pulse = { id: anim.pulseEntryId, startTime: performance.now() };
+    }
+  }
+
+  /** Keeps re-drawing while the arrival pulse is still within PULSE_DURATION_MS of its own
+   *  start (the pulsing alpha itself is time-based — see renderer.ts's pulseElapsedMs —
+   *  so this only needs to keep frames coming, not compute anything). */
+  private updatePulse(): void {
+    if (!this.pulse) return;
+    if (performance.now() - this.pulse.startTime >= PULSE_DURATION_MS) this.pulse = null;
+    else this.draw();
+  }
+
+  /* --------------------------------------------------------------------- "you are here" */
+
+  /** Reports the period "under" the current centre date (scale.ts's contextAt, primary
+   *  slot) to onPeriodChange, throttled to at most one call per PERIOD_CHANGE_THROTTLE_MS —
+   *  "throttled to at most 5 updates per second." Always keeps the LATEST id (never a stale
+   *  one from earlier in the throttle window): a pending call is stored in
+   *  `pendingPeriodId` and overwritten in place; only the timer that flushes it is
+   *  throttled. */
+  private reportPeriod(): void {
+    const id = contextAt(this.entries, this.viewport.center).period.primary?.id ?? null;
+    if (id === this.lastEmittedPeriodId && this.pendingPeriodId === undefined) return;
+    this.pendingPeriodId = id;
+    if (this.periodChangeTimer) return;
+    const delay = Math.max(0, PERIOD_CHANGE_THROTTLE_MS - (performance.now() - this.lastPeriodEmitTime));
+    this.periodChangeTimer = setTimeout(() => {
+      this.periodChangeTimer = null;
+      const toEmit = this.pendingPeriodId;
+      this.pendingPeriodId = undefined;
+      if (toEmit === undefined || toEmit === this.lastEmittedPeriodId) return;
+      this.lastEmittedPeriodId = toEmit;
+      this.lastPeriodEmitTime = performance.now();
+      this.onPeriodChange(toEmit);
+    }, delay);
   }
 
   /* ---------------------------------------------------------------------------- events */
@@ -401,6 +569,7 @@ export class HistoryTimeline {
     this.canvas.setPointerCapture(e.pointerId);
     this.pointers.set(e.pointerId, this.along(e));
     this.clearHover();
+    this.flyAnim = null; // any drag/pinch cancels an in-flight flyTo immediately
 
     if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()];
@@ -473,6 +642,7 @@ export class HistoryTimeline {
   private onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     this.clearHover();
+    this.flyAnim = null; // wheel cancels an in-flight flyTo immediately
     const along = this.along(e);
     const time = pxToTime(along, this.viewport); // the moment under the cursor
     const sensitivity = e.deltaMode === 1 ? WHEEL_LINE_SENSITIVITY : WHEEL_SENSITIVITY;

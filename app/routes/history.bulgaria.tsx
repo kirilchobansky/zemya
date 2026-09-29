@@ -7,11 +7,10 @@
  * as before this route joined the main nav (see CLAUDE.md's history exception).
  */
 import { useEffect } from 'react';
-import { Link } from 'react-router';
 
 import { CATEGORY_LABELS, formatCardDate } from '~/components/HistoryCard';
+import HistoryOutline from '~/components/HistoryOutline';
 import { bulgariaTimeline } from '~/lib/history/catalog.server';
-import { HISTORY_COUNTRIES } from '~/lib/history/countries';
 import type { TimelineEntry } from '~/lib/history/renderer';
 import { pageMeta } from '~/lib/seo';
 import { useAtlasContext } from './atlas';
@@ -31,7 +30,10 @@ export function meta({ location }: Route.MetaArgs) {
 
 export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProps) {
   const { entries } = loaderData;
-  const { setTimelineEntries, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId } = useAtlasContext();
+  const {
+    setTimelineEntries, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
+    historyTimeline, historyCurrentPeriodId
+  } = useAtlasContext();
 
   useEffect(() => {
     setTimelineEntries(entries);
@@ -44,37 +46,33 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
     <>
       <header className="panel__head panel__head--quiet panel__head--peek">
         <span className="panel__eyebrow">History</span>
-        <h2>България</h2>
+        <h2>Bulgaria</h2>
         <div className="peek">
           <div className="peek__text">
-            <div className="peek__title">История</div>
-            <div className="peek__sub">681 – днес</div>
+            <div className="peek__title">Bulgaria</div>
+            <div className="peek__sub">681 – today · {entries.length} entries</div>
           </div>
         </div>
       </header>
       <div className="panel__body">
-        {historyPinnedIds.length > 0 && (
-          <button type="button" className="action" onClick={closeAllHistoryCards}>
-            Close all cards ({historyPinnedIds.length})
+        <div className="history-outline__actions">
+          <button type="button" className="action" onClick={() => historyTimeline?.flyToWholeHistory()}>
+            Whole history
           </button>
-        )}
+          <button type="button" className="action" onClick={() => historyTimeline?.flyToToday()}>
+            Today
+          </button>
+          {historyPinnedIds.length > 0 && (
+            <button type="button" className="action" onClick={closeAllHistoryCards}>
+              Close all cards ({historyPinnedIds.length})
+            </button>
+          )}
+        </div>
 
         {selectedEntry ? (
           <EntryDetail entry={selectedEntry} onBack={() => setSelectedHistoryEntryId(null)} />
         ) : (
-          <div className="subject-list">
-            {HISTORY_COUNTRIES.map(country => (
-              <Link
-                key={country.slug}
-                to={`/history/${country.slug}`}
-                className="subject-card"
-                aria-current={country.slug === 'bulgaria' ? 'page' : undefined}
-              >
-                <span className="subject-card__name">{country.name}</span>
-                <span className="subject-card__blurb">{country.range}</span>
-              </Link>
-            ))}
-          </div>
+          <HistoryOutline entries={entries} currentPeriodId={historyCurrentPeriodId} timeline={historyTimeline} />
         )}
       </div>
     </>

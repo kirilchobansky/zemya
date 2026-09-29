@@ -69,6 +69,13 @@ interface AtlasContextValue {
    *  panel switches to that entry's detail view while this is non-null. */
   selectedHistoryEntryId: string | null;
   setSelectedHistoryEntryId: Dispatch<SetStateAction<string | null>>;
+  /** The HistoryTimeline controller once it's mounted (routes/history.bulgaria.tsx's
+   *  HistoryOutline.tsx calls flyTo/flyToWholeHistory/flyToToday on it directly) — null
+   *  outside the history route, and briefly while it's still constructing. */
+  historyTimeline: HistoryTimeline | null;
+  /** timeline.ts's onPeriodChange, throttled to 5/s — the outline's "you are here"
+   *  section. */
+  historyCurrentPeriodId: string | null;
 }
 
 const AtlasContext = createContext<AtlasContextValue | null>(null);
@@ -111,6 +118,8 @@ function AtlasShell() {
     { id: string; entry: TimelineEntry; rect: HistoryHover['rect']; z: number }[]
   >([]);
   const [selectedHistoryEntryId, setSelectedHistoryEntryId] = useState<string | null>(null);
+  const [historyTimelineInstance, setHistoryTimelineInstance] = useState<HistoryTimeline | null>(null);
+  const [historyCurrentPeriodId, setHistoryCurrentPeriodId] = useState<string | null>(null);
   const pinZRef = useRef(0);
   const MAX_PINNED_CARDS = 8;
 
@@ -352,12 +361,16 @@ function AtlasShell() {
   useEffect(() => {
     if (!timelineEntries || !historyCanvasRef.current || timelineRef.current) return;
     const timeline = new HistoryTimeline(historyCanvasRef.current, {
-      axis: 'horizontal', entries: timelineEntries, onHover: setHistoryHover, onEntryClick: handleEntryClick
+      axis: 'horizontal', entries: timelineEntries, onHover: setHistoryHover, onEntryClick: handleEntryClick,
+      onPeriodChange: setHistoryCurrentPeriodId
     });
     timelineRef.current = timeline;
+    setHistoryTimelineInstance(timeline);
     return () => {
       timeline.destroy();
       timelineRef.current = null;
+      setHistoryTimelineInstance(null);
+      setHistoryCurrentPeriodId(null);
       setHistoryHover(null);
     };
     // handleEntryClick is stable (useCallback, no deps) — the controller is built once per
@@ -480,7 +493,8 @@ function AtlasShell() {
       value={{
         atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap,
         setTimelineEntries,
-        historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId
+        historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
+        historyTimeline: historyTimelineInstance, historyCurrentPeriodId
       }}
     >
     <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
