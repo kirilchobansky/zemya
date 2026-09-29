@@ -13,7 +13,7 @@
  * No hover, no selection, no keyboard — the first render has none of those yet.
  */
 import { render, type Axis, type RenderContext, type TimelineEntry } from './renderer';
-import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type RevealMode, type TimeRange, type Viewport } from './scale';
+import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type TimeRange, type Viewport } from './scale';
 
 const WHEEL_SENSITIVITY = 0.004;
 const WHEEL_LINE_SENSITIVITY = 0.05;
@@ -61,14 +61,6 @@ export class HistoryTimeline {
    *  directly, except on the very first frame (null means "not yet initialised"). */
   private cylinderFrac: number | null = null;
   private lastAnimationFrameTime = 0;
-
-  /** 'all' always — the renderer itself now always draws everything (see renderer.ts's
-   *  render(), which hardcodes 'all' regardless of this field): no wire fade-in, no tier
-   *  filtering, every kind always on screen. This field and setRevealMode below are kept
-   *  only so the still-wired-up "Пълен изглед" toggle (app/routes/history.bulgaria.tsx,
-   *  app/routes/atlas.tsx) keeps typechecking; it no longer has any visible effect, and
-   *  removing it outright means deleting that button and its AtlasContext plumbing. */
-  private revealMode: RevealMode = 'all';
 
   private resizeObserver: ResizeObserver;
   /** Renders are requested, never issued from an event handler — at most one per
@@ -193,14 +185,6 @@ export class HistoryTimeline {
       cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
       contentRange: this.contentRange
     };
-  }
-
-  /** No longer changes what's drawn (see revealMode's own doc above) — kept so the
-   *  existing toggle keeps typechecking. */
-  setRevealMode(mode: RevealMode): void {
-    if (this.revealMode === mode) return;
-    this.revealMode = mode;
-    this.draw();
   }
 
   /** The zoom floor for THIS frame's sizePx: the cylinder filling the viewport with the

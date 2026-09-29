@@ -437,12 +437,10 @@ drawn; zoom only changes label font size (event pins) and whether a capsule's te
 `CONFIG.minCylinderThicknessFrac` raised 0.10 → 0.5 to give all four wires room even at
 maximum zoom-out. Wire height is now a fixed split, not reveal-proportional: period keeps
 its slim fixed height (unchanged), and the rest is split ruler:government:event = 1:1:2
-(`WIRE_HEIGHT_WEIGHT`) — events get the largest share. **Caveat:** the "Пълен изглед" toggle
-button and its `revealMode`/`setRevealMode` plumbing (`app/routes/history.bulgaria.tsx`,
-`app/routes/atlas.tsx`) were out of scope for this pass (file list didn't include routes)
-and still exist in the UI, but now have no visible effect — `HistoryTimeline.revealMode`/
-`setRevealMode` are kept only so those files keep typechecking. Actually removing the
-button needs a follow-up pass that touches those two route files.
+(`WIRE_HEIGHT_WEIGHT`) — events get the largest share. The "Пълен изглед" toggle and its
+`revealMode`/`setRevealMode`/`RevealMode` plumbing were later removed outright (button,
+`AtlasContext` fields, `HistoryTimeline`'s field/method, the type itself) once a follow-up
+pass touched the route files — see "Calm overview, toggle removed" below.
 
 **Events as pins, not capsules.** `renderer.ts` replaced event capsules with
 `drawEventPins`: a 1px vertical line at exactly `timeToPx(e.start)` (no width, no
@@ -464,7 +462,53 @@ Since pins no longer need row-packing (a point can't visually collide with anoth
 the way two overlapping bars would), `drawEventPins` ignores `assignRows`' row assignment
 for the event kind entirely and always measures pin height from the wire's own fixed top.
 
-## Locked decisions — detail
+**Calm overview, toggle removed.** The "Пълен изглед" button and everything behind it are
+gone: `app/routes/history.bulgaria.tsx`'s button, `AtlasContext`'s `revealMode`/
+`setRevealMode` fields and the effect syncing them into `HistoryTimeline`
+(`app/routes/atlas.tsx`), `HistoryTimeline.setRevealMode`/its private field, and
+`scale.ts`'s `RevealMode` type. `maxTierFor`/`visibleEntries` lost their now-pointless
+`mode` parameter but kept their exact prior ('eased') behaviour as their only behaviour —
+both are still exercised by their own unit tests and by `layout.ts`'s `densityBuckets`
+(unused in the actual UI, but not this pass's concern to touch), so their signatures
+changed without their contracts changing. `CONFIG.maxTier`'s `period`/`ruler`/`government`
+columns were left bit-for-bit unchanged for the same reason (`densityBuckets`' tests pin
+specific numbers); only the `event` column changed, to the new ladder below. The render
+path (`renderer.ts`) no longer calls `visibleEntries` at all — a new `rangeVisible` (time-
+range overlap only, no tier check) replaces it, because periods/rulers/governments must
+now always draw regardless of tier or zoom, which the tier-aware function can't express
+without also re-hiding events.
+
+- **Period as hero.** `periodHeightFraction(pxPerYear)` replaces the fixed
+  `clamp(usable * 0.22, 28, 64)` period-wire height with a continuous share of the content
+  area: 0.4 (the hero) at or below the century pxPerYear threshold, log-interpolated down
+  to 0.12 by the decade threshold, held at 0.12 past it — anchored to
+  `CONFIG.zoomThresholds` rather than a fixed pixel range, on the same log/smoothstep
+  technique `cylinderThicknessFraction` already uses. The 0.4/0.12 split and the
+  century/decade anchor choice are the owner's explicit numbers; nothing else in the file
+  suggested them.
+- **Rulers/governments always drawn.** `drawWireCapsules` no longer skips a capsule
+  narrower than 2px (`if (toPx - fromPx < 2) continue`) — every period/ruler/government bar
+  now floors to `RENDER_CONFIG.minBarWidthPx` (2px) around its own centre instead of
+  vanishing, so a far-zoom bar reads as a thin coloured strip. Text still only appears once
+  `availableTextPx` clears its own threshold, which a 2px-floored bar essentially never
+  does — "no text at far zoom, names appear as soon as a bar is wide enough" falls out of
+  the existing text-fit gate for free, with no separate code path needed.
+- **Events tier-gated again, with a fade.** `CONFIG.maxTier`'s `event` column is now
+  `{ millennium: 1, century: 1, decade: 2, year: 3, month: 5, day: 5 }` (previously
+  1/2/3/4/4/5) — tier 1 always, tier 2 from decade zoom, tier 3 from year zoom, everything
+  from month zoom on, per the owner's exact ladder. `renderer.ts`'s `eventTierReveal(tier,
+  pxPerYear)` turns that hard ladder into a fade: for a tier whose "unlock level" (the
+  coarsest level where `CONFIG.maxTier[level].event >= tier`) is `L`, reveal is 0 for
+  `pxPerYear` at or below the PRECEDING level's own threshold, 1 at or above `L`'s
+  threshold, and log-interpolated (smoothstep) in between — so, e.g., tier 2 is fully
+  absent through all of millennium zoom, then fades in across the whole of century zoom,
+  reaching full opacity exactly at the decade threshold. `drawEventPins` applies the result
+  as `ctx.globalAlpha` and skips a pin (pin, dot AND label together) below 0.02 reveal
+  outright, rather than drawing an invisible one. Fading across the WHOLE preceding named
+  level's zoom band (not some narrower slice of it) is a deliberate, simple choice — it
+  needs no extra tunable band-width constant and ties directly to the zoom ladder that
+  already exists, at the cost of the fade sometimes starting quite early in a wide zoom
+  band; no narrower width was specified, so this is the judgement call.
 
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
 

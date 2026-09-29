@@ -35,7 +35,7 @@
  */
 import { assignRows, classifySpan, contextAt, placeLabels, type LabelCandidate, type LayoutEntry } from './layout';
 import {
-  dateOfDecimalYear, levelFor, pxToTime, ticks, timeToPx, visibleEntries,
+  CONFIG, dateOfDecimalYear, levelFor, pxToTime, ticks, timeToPx, visibleRangeOverscan, ZOOM_LEVELS,
   type EntryKind, type Tick, type TimeRange, type Viewport, type ZoomLevel
 } from './scale';
 
@@ -132,6 +132,10 @@ export const RENDER_CONFIG = {
   /** How much bigger the capsule containing the centre date is than its siblings on the
    *  same wire — "the current focus." */
   capsuleFocusScale: 1.5,
+  /** A period/ruler/government bar never shrinks below this width — "always drawn as
+   *  bars... thin coloured strips with no text" at far zoom, rather than disappearing
+   *  once its true duration maps to under a pixel. */
+  minBarWidthPx: 2,
   centreDateGap: 10,
   centreDateFontPx: 13,
   fadeZoneLabelFontPx: 13,
@@ -160,6 +164,79 @@ const WIRE_HEIGHT_WEIGHT: Readonly<Partial<Record<EntryKind, number>>> = { ruler
 
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(Math.max(x, lo), hi);
+}
+
+function smoothstep(t: number): number {
+  const c = clamp(t, 0, 1);
+  return c * c * (3 - 2 * c);
+}
+
+/** A ZoomLevel's own pxPerYear threshold, read off CONFIG.zoomThresholds — the one place
+ *  this module borrows the zoom ladder's own anchors instead of hardcoding a duplicate
+ *  number, for periodHeightFraction and eventTierReveal below. */
+function pxPerYearThresholdFor(level: ZoomLevel): number {
+  return CONFIG.zoomThresholds.find(t => t.level === level)?.minPxPerYear ?? 0;
+}
+
+const PERIOD_HERO_FRAC = 0.4;
+const PERIOD_MIN_FRAC = 0.12;
+
+/**
+ * Period wire height as a fraction of the wire-splitting content area — "the hero" at
+ * maximum zoom-out (0.4), log-interpolated smoothly down to its slim minimum (0.12) by the
+ * time pxPerYear reaches decade zoom, then held there for every zoom past it. Anchored to
+ * the century and decade pxPerYear thresholds (not a fixed pixel range) so the curve
+ * tracks the same zoom ladder as everything else here, and eases on a log scale (zoom is
+ * multiplicative) the same way cylinderThicknessFraction (scale.ts) does.
+ */
+function periodHeightFraction(pxPerYear: number): number {
+  const lo = pxPerYearThresholdFor('century');
+  const hi = pxPerYearThresholdFor('decade');
+  if (!(hi > lo)) return PERIOD_MIN_FRAC;
+  const x = clamp(pxPerYear, lo, hi);
+  const t = (Math.log(x) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+  return PERIOD_HERO_FRAC + smoothstep(t) * (PERIOD_MIN_FRAC - PERIOD_HERO_FRAC);
+}
+
+/** The coarsest ZoomLevel at which `tier` first becomes fully visible, per
+ *  CONFIG.maxTier's `event` column (scale.ts) — the only column the render path still
+ *  consults for events. */
+function unlockLevelForTier(tier: number): ZoomLevel {
+  for (const level of ZOOM_LEVELS) {
+    if (CONFIG.maxTier[level].event >= tier) return level;
+  }
+  return ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+}
+
+/**
+ * How visible an event pin of `tier` is at `pxPerYear`, in [0, 1] — "event pins are
+ * filtered by tier... lower tiers fade in over the zoom band before their level, so pins
+ * never pop." 1 once the tier's own unlock level (unlockLevelForTier) is reached; 0 for
+ * the whole zoom range before the PRECEDING level (so a tier that unlocks at decade zoom
+ * is fully absent through all of millennium and the start of century); log-interpolated
+ * smoothly across that one preceding level's own zoom band in between. A tier that already
+ * unlocks at the coarsest level (millennium — tier 1) is always fully visible.
+ */
+function eventTierReveal(tier: number, pxPerYear: number): number {
+  const unlockLevel = unlockLevelForTier(tier);
+  const unlockIdx = ZOOM_LEVELS.indexOf(unlockLevel);
+  if (unlockIdx <= 0) return 1;
+  const hi = pxPerYearThresholdFor(unlockLevel);
+  const lo = pxPerYearThresholdFor(ZOOM_LEVELS[unlockIdx - 1]);
+  if (pxPerYear >= hi) return 1;
+  if (pxPerYear <= lo || !(hi > lo)) return 0;
+  const t = (Math.log(pxPerYear) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+  return smoothstep(t);
+}
+
+/** Range-only visibility (overscanned viewport, no tier check) — period/ruler/government
+ *  are always drawn regardless of zoom or tier (see the module header and CONFIG.maxTier's
+ *  own doc); events use it too, then fade per-tier at draw time (eventTierReveal) rather
+ *  than being culled outright. Replaces scale.ts's tier-aware visibleEntries for the
+ *  render path specifically. */
+function rangeVisible<T extends { start: number; end: number | null }>(entries: readonly T[], viewport: Viewport): T[] {
+  const { from, to } = visibleRangeOverscan(viewport);
+  return entries.filter(e => (e.end ?? Infinity) >= from && e.start <= to);
 }
 
 /** The one place axis direction is decided: (along-axis px, cross-axis px) -> real
@@ -412,17 +489,18 @@ interface WireLayout {
  * Splits the cylinder's inner content area into one row per visible kind, in duration
  * order — a kind with zero visible entries gets no row at all, so its space merges into
  * its neighbours ("fill the space instead of leaving it empty") rather than sitting
- * reserved and blank. Heights are FIXED shares, not zoom-dependent (every kind is always
- * fully drawn — see the module header): period gets a fixed slim height
- * (`clamp(usable * 0.22, 28, 64)`), and everything else splits whatever remains by
- * WIRE_HEIGHT_WEIGHT — rulers and governments equal, events the largest share. Each kind's
- * own sub-row count (co-occurring entries — overlapping periods, co-rulers) is read off
- * `rows` for only the entries actually on screen, so a wire's capsules get taller when
- * fewer of them are competing for the same row right now.
+ * reserved and blank. Every kind is always drawn (see the module header) — no reveal-based
+ * hiding — but period's own SHARE of the height still varies with zoom: the "hero" at
+ * maximum zoom-out, shrinking to a slim strip by decade zoom (periodHeightFraction).
+ * Everything else splits whatever remains by WIRE_HEIGHT_WEIGHT — rulers and governments
+ * equal, events the largest share. Each kind's own sub-row count (co-occurring entries —
+ * overlapping periods, co-rulers) is read off `rows` for only the entries actually on
+ * screen, so a wire's capsules get taller when fewer of them are competing for the same
+ * row right now.
  */
 function layoutWires(
   visibleByKind: Readonly<Record<EntryKind, TimelineEntry[]>>, rows: ReadonlyMap<string, number>,
-  contentTop: number, contentBottom: number
+  contentTop: number, contentBottom: number, pxPerYear: number
 ): Partial<Record<EntryKind, WireLayout>> {
   const available = Math.max(0, contentBottom - contentTop);
   const shown = WIRE_ORDER.filter(kind => visibleByKind[kind].length > 0);
@@ -430,7 +508,9 @@ function layoutWires(
 
   const usable = Math.max(0, available - RENDER_CONFIG.wireGap * (shown.length - 1));
 
-  const periodHeight = shown.includes('period') ? Math.min(clamp(usable * 0.22, 28, 64), usable) : 0;
+  const periodHeight = shown.includes('period')
+    ? clamp(usable * periodHeightFraction(pxPerYear), Math.min(24, usable), usable)
+    : 0;
   const rest = shown.filter(k => k !== 'period');
   const restUsable = Math.max(0, usable - periodHeight);
   const totalWeight = rest.reduce((sum, k) => sum + (WIRE_HEIGHT_WEIGHT[k] ?? 1), 0);
@@ -525,7 +605,13 @@ function drawWireCapsules(
         fromPx = RENDER_CONFIG.capsuleGapPx;
         toPx = viewport.sizePx - RENDER_CONFIG.capsuleGapPx;
       }
-      if (toPx - fromPx < 2) continue;
+      // "Always drawn as bars... thin coloured strips at far zoom" — never skipped for
+      // being narrow, just floored to a minimum visible width around its own centre.
+      if (toPx - fromPx < RENDER_CONFIG.minBarWidthPx) {
+        const centre = (fromPx + toPx) / 2;
+        fromPx = centre - RENDER_CONFIG.minBarWidthPx / 2;
+        toPx = centre + RENDER_CONFIG.minBarWidthPx / 2;
+      }
 
       const r = rectFor(axis, fromPx, toPx, cross0, cross1);
       const radius = Math.min(RENDER_CONFIG.capsuleCornerRadiusPx, r.w / 2, r.h / 2);
@@ -603,10 +689,13 @@ function formatEventDateLine(d: { year: number; month: number | null; day: numbe
  * exact time, so there's nothing to row-pack), with a small dot at its bottom end. Pin
  * height is a fraction of the wire's own full height, by tier (RENDER_CONFIG.
  * pinHeightFracByTier) — the loudest (tier 1) events reach the full wire height, quieter
- * ones stop short. The label sits to the right of the dot, name above an optional smaller
- * exact-date line (month zoom and finer only); candidates are collision-resolved through
- * placeLabels so a crowded moment keeps its most important pins' labels and silently drops
- * the rest (the pin and dot still draw regardless — only the TEXT is dropped).
+ * ones stop short. A pin below its own tier's reveal threshold at the current zoom
+ * (eventTierReveal) is skipped outright; everything else draws at `reveal` opacity, so a
+ * tier fades in across its own zoom band rather than popping in at a hard cutoff. The
+ * label sits to the right of the dot, name above an optional smaller exact-date line
+ * (month zoom and finer only); candidates are collision-resolved through placeLabels so a
+ * crowded moment keeps its most important pins' labels and silently drops the rest (the
+ * pin and dot still draw regardless — only the TEXT is dropped).
  */
 function drawEventPins(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, monoFont: string,
@@ -619,21 +708,25 @@ function drawEventPins(
   const gap = RENDER_CONFIG.pinLabelGapPx;
   const dotRadius = RENDER_CONFIG.pinDotRadiusPx;
 
-  const onScreen = entries.filter(e => {
-    const px = timeToPx(e.start, viewport);
-    return px >= 0 && px <= viewport.sizePx;
-  });
+  // Tier filtering (CONFIG.maxTier's `event` column, via eventTierReveal) happens HERE,
+  // not upstream in the entry list — a pin below its own reveal threshold is skipped
+  // entirely (pin, dot AND label), everything else fades in smoothly rather than popping.
+  const onScreen = entries
+    .map(e => ({ e, px: timeToPx(e.start, viewport), reveal: eventTierReveal(e.tier, viewport.pxPerYear) }))
+    .filter(({ px, reveal }) => px >= 0 && px <= viewport.sizePx && reveal > 0.02);
 
   ctx.font = `600 ${fontPx}px ${uiFont}`;
-  const candidates: LabelCandidate[] = onScreen.map(e =>
-    labelCandidate(e.id, timeToPx(e.start, viewport) + gap, ctx.measureText(e.label).width, 'left', e.tier)
+  const candidates: LabelCandidate[] = onScreen.map(({ e, px }) =>
+    labelCandidate(e.id, px + gap, ctx.measureText(e.label).width, 'left', e.tier)
   );
   const placed = new Set(placeLabels(candidates).map(c => c.id));
 
-  for (const e of onScreen) {
-    const px = timeToPx(e.start, viewport);
+  for (const { e, px, reveal } of onScreen) {
     const frac = RENDER_CONFIG.pinHeightFracByTier[e.tier] ?? RENDER_CONFIG.pinHeightFracByTier[3];
     const bottom = wire.top + wire.height * frac;
+
+    ctx.save();
+    ctx.globalAlpha = reveal;
 
     ctx.strokeStyle = COLORS.brass;
     ctx.lineWidth = 1;
@@ -650,21 +743,22 @@ function drawEventPins(
     ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    if (!placed.has(e.id)) continue;
+    if (placed.has(e.id)) {
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const centreCross = bottom;
+      const nameCross = showDate ? centreCross - (dateFontPx + lineGap) / 2 : centreCross;
 
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    const centreCross = bottom;
-    const nameCross = showDate ? centreCross - (dateFontPx + lineGap) / 2 : centreCross;
+      ctx.font = `600 ${fontPx}px ${uiFont}`;
+      drawHaloText(ctx, axis, px + gap, nameCross, e.label, COLORS.white);
 
-    ctx.font = `600 ${fontPx}px ${uiFont}`;
-    drawHaloText(ctx, axis, px + gap, nameCross, e.label, COLORS.white);
-
-    if (showDate) {
-      const dateCross = centreCross + (fontPx + lineGap) / 2;
-      ctx.font = `500 ${dateFontPx}px ${monoFont}`;
-      drawHaloText(ctx, axis, px + gap, dateCross, formatEventDateLine(dateOfDecimalYear(e.start)), COLORS.whiteDim);
+      if (showDate) {
+        const dateCross = centreCross + (fontPx + lineGap) / 2;
+        ctx.font = `500 ${dateFontPx}px ${monoFont}`;
+        drawHaloText(ctx, axis, px + gap, dateCross, formatEventDateLine(dateOfDecimalYear(e.start)), COLORS.whiteDim);
+      }
     }
+    ctx.restore();
   }
 }
 
@@ -749,9 +843,11 @@ export interface RenderContext {
  * (period, ruler, government, event, in that order — see WIRE_ORDER), the top-surface
  * ticks, then the centre line and date readout on top of everything. `entries` is the
  * WHOLE dataset — row assignment and the focus lookup both need it complete; this
- * function culls to what's on screen itself, per draw call, via visibleEntries. Everything
- * is always drawn (mode 'all' — no wire fade-in, no tier filtering): zoom only changes how
- * much label detail fits, never whether an entry is there at all.
+ * function culls to what's on screen itself, per draw call, via rangeVisible (time-range
+ * only, no tier check — period/ruler/government are always drawn; events tier-fade at
+ * draw time instead, see drawEventPins/eventTierReveal). Zoom changes label detail (text
+ * fit, pin fonts) and, for period, its own wire's share of the height — never whether an
+ * entry is there at all.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): void {
   const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange } = rc;
@@ -773,7 +869,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): vo
   const contentTop = cylinderTop + RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop;
   const contentBottom = cylinderBottom - RENDER_CONFIG.wirePaddingBottom;
 
-  const visible = visibleEntries(entries, viewport, 'all');
+  const visible = rangeVisible(entries, viewport);
   const visibleByKind: Record<EntryKind, TimelineEntry[]> = { period: [], ruler: [], government: [], event: [] };
   for (const e of visible) visibleByKind[e.kind].push(e);
 
@@ -782,7 +878,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): vo
   drawPeriodBands(ctx, axis, visibleByKind.period, periodIndexOf, viewport, contentTop, contentBottom);
 
   const rows = assignRows(entries);
-  const wires = layoutWires(visibleByKind, rows, contentTop, contentBottom);
+  const wires = layoutWires(visibleByKind, rows, contentTop, contentBottom, viewport.pxPerYear);
 
   const focus = contextAt(entries, viewport.center);
   const focusIds: Partial<Record<EntryKind, string>> = {
