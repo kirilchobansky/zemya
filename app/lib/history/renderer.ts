@@ -4,12 +4,15 @@
  * shape (one RenderContext, one entry-point `render()`, a literal COLORS object) but for
  * the 1D time axis instead of the 2D Mercator world.
  *
- * The whole page IS the cylinder: a single full-width band, vertically centred, that
- * grows and shrinks with zoom (HistoryTimeline eases its thickness frame to frame — this
- * module just draws whatever thickness it's handed). Everything except the centre date
- * readout lives INSIDE it: year ticks on its top surface, then horizontal "wires" stacked
- * by duration (periods, rulers, governments, events) with entries drawn as rounded
- * capsules sitting on them.
+ * "Calm and dark" look: a flat vertical page-background gradient (drawBackground), a
+ * single full-width content band, vertically centred, that grows and shrinks with zoom
+ * (HistoryTimeline eases its thickness frame to frame — this module just draws whatever
+ * thickness it's handed). Everything except the centre date readout lives INSIDE it: year
+ * ticks on top, then horizontal "wires" stacked by duration (periods, rulers, governments,
+ * events), each drawn as its own translucent rounded lane track (drawLaneTrack) with
+ * entries as flat rounded capsules sitting inside it — no 3D gradients, highlights or
+ * per-entry size changes; an entry containing the viewport centre only brightens (fill/
+ * border/glow, eased over ~120ms), it never grows.
  *
  * Every function takes `axis` and goes through `project()`/`rectFor()`/`drawHaloText()`
  * to turn an (along-axis, cross-axis) position into real canvas x/y — nothing below ever
@@ -21,8 +24,8 @@
  * Colors are literals, not CSS custom properties — canvas can't read a custom property
  * cheaply every frame, same reasoning as app/lib/map/renderer.ts's COLORS. Keep these in
  * sync with app/styles/tokens.css by hand where they correspond (see that file's own
- * "change one, change both") — the per-kind wire colours (sea/gov/brass/land) are new,
- * canvas-only variants with no token equivalent.
+ * "change one, change both") — the per-kind colours (period/ruler/government/event) are
+ * new, canvas-only variants with no token equivalent.
  *
  * Every label on this page — ticks, capsules, the two out-of-range zone labels — goes
  * through placeLabels() (layout.ts) or is truncated to its own capsule's width
@@ -92,6 +95,11 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${clamp(alpha, 0, 1)})`;
+}
+
 /** Mixes `hex` toward black (amount > 0) or white (amount < 0) by `Math.abs(amount)` —
  *  the one place this module derives a "dim" or "bright" gradient stop from a design base
  *  colour, instead of hand-picking a second hex per kind. */
@@ -104,34 +112,31 @@ function shade(hex: string, amount: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-// Design bases (see CLAUDE.md-linked design pass): period is the dim/base tone the
-// cylinder itself is built from; ruler/government/event are bright accent tones, each
-// used as-is for their capsules' bright stop, with a darkened variant derived below for
-// the dim stop.
-const PERIOD_BASE = '#233043';
-const RULER_BASE = '#2fd0ff';
-const GOVERNMENT_BASE = '#b98bff';
-const EVENT_BASE = '#ffb347';
+// "Calm and dark" palette (see CLAUDE.md-linked design pass): one flat accent hue per
+// kind, used at low alpha for idle fills/rails and higher alpha for the active state —
+// no gradients, no per-kind dim/bright pair.
+const PERIOD_COLOR = '#8a97e8';
+const RULER_COLOR = '#4fd1ea';
+const GOVERNMENT_COLOR = '#b59cff';
+const EVENT_COLOR = '#ffc46b';
 
 const COLORS = {
-  abyss: '#080D13', // --abyss
-  land: PERIOD_BASE, // periods — the cylinder's own dark tone
-  landBright: shade(PERIOD_BASE, -0.32), // lightened — the cylinder's lit middle, and period capsules' bright stop
-  rule: shade(PERIOD_BASE, 0.12), // period capsule stroke
+  bgTop: '#0a0e1c', // page background gradient, top
+  bgBottom: '#151b36', // page background gradient, bottom
+  period: PERIOD_COLOR,
+  ruler: RULER_COLOR,
+  government: GOVERNMENT_COLOR,
+  event: EVENT_COLOR,
   ink2: '#9FB3C0', // --ink-2 — tick labels
   ink3: '#67808F', // --ink-3 — tick labels, out-of-range zone labels
-  // All capsule text is plain white — every capsule fill (see kindCapsuleColors) is dark
-  // enough for it to stay readable regardless of kind. white is the capsule name, whiteDim
-  // the role line beneath it.
-  white: '#FFFFFF',
-  whiteDim: 'rgba(255,255,255,.75)',
-  brass: EVENT_BASE, // the centre date readout, and the event outline/focus accent
+  // Capsule text is #eef1ff regardless of kind — every fill (see kindColorHex) stays dark
+  // enough for it to read against. white is the capsule name, textDim the role line
+  // beneath it.
+  white: '#EEF1FF',
+  whiteDim: 'rgba(238,241,255,.75)',
   brass2: '#F5CE86', // --brass-2 — the centre date readout's own text
-  sea: RULER_BASE, // the ruler outline/focus accent
-  gov: GOVERNMENT_BASE, // the government outline/focus accent
-  highlight: 'rgba(245,206,134,.35)', // --brass-2, low opacity — the cylinder's specular line
   labelHalo: 'rgba(8,13,19,.85)', // --abyss, high opacity
-  centreLine: 'rgba(232,163,61,.32)' // --brass, faint — confined inside the cylinder only
+  centreLine: 'rgba(232,163,61,.32)' // --brass, faint — confined inside the content band only
 } as const;
 
 /** Background wash for period capsules' translucent bands, one colour per period so
@@ -163,10 +168,7 @@ export const RENDER_CONFIG = {
   /** Fixed corner radius for a capsule's rounded rect — no longer a full pill (radius =
    *  half the short side); capped by the capsule's own half-width/height so a very small
    *  capsule still draws cleanly. */
-  capsuleCornerRadiusPx: 12,
-  /** How much bigger the capsule containing the centre date is than its siblings on the
-   *  same wire — "the current focus." */
-  capsuleFocusScale: 1.5,
+  capsuleCornerRadiusPx: 10,
   /** A period/ruler/government bar never shrinks below this width — "always drawn as
    *  bars... thin coloured strips with no text" at far zoom, rather than disappearing
    *  once its true duration maps to under a pixel. */
@@ -176,7 +178,7 @@ export const RENDER_CONFIG = {
   /** Inner margin at both ends of the canvas, along the time axis — event pins, dots and
    *  labels are held inside it (never drawn past it) and fade out over its own width as
    *  their true time position nears the canvas edge, rather than being cut off there. The
-   *  cylinder itself (drawCylinderShell) ignores this — it still runs edge to edge. */
+   *  background and lane tracks ignore this — they still run edge to edge. */
   edgeMarginPx: 24,
   fadeZoneLabelFontPx: 13,
   /** Event pin geometry — see drawEventPins. Height fractions of the event wire's own
@@ -234,48 +236,51 @@ function clampToMargin(px: number, sizePx: number, margin: number): number {
  *  entirely. */
 const PULSE_CYCLE_MS = 260;
 
-/** Time constant (ms) for a capsule's own focus-expansion scale — "animate with easing"
- *  instead of snapping, mirroring timeline.ts's CYLINDER_EASE_MS/updateCylinderAnimation
- *  exactly (`rate = 1 - exp(-dt / MS)`). */
-const FOCUS_EASE_MS = 120;
+/** Time constant (ms) for a capsule/pin's own idle↔active blend — "animate active/idle
+ *  changes with about 120ms easing," mirroring timeline.ts's CYLINDER_EASE_MS/
+ *  updateCylinderAnimation exactly (`rate = 1 - exp(-dt / MS)`). */
+const ACTIVE_EASE_MS = 120;
 
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
-/** Cross-frame easing state for drawWireCapsules' focus expansion, keyed by entry id.
- *  Module-level, not part of RenderContext, because render() is otherwise a stateless
- *  per-frame function with no instance of its own to hold it on — safe because only one
- *  history timeline ever renders at a time (single canvas route). Holds only entries
- *  currently mid-transition; one that reaches its resting scale (1, unfocused) is dropped
- *  rather than tracked forever. */
-const focusScales = new Map<string, number>();
-let focusScalesLastTime = 0;
+/** Cross-frame easing state for every id's idle(0)↔active(1) blend (drawWireCapsules'
+ *  fill/border/glow, drawEventPins' line/dot), keyed by entry id. Module-level, not part
+ *  of RenderContext, because render() is otherwise a stateless per-frame function with no
+ *  instance of its own to hold it on — safe because only one history timeline ever renders
+ *  at a time (single canvas route). Holds only entries currently mid-transition; one that
+ *  reaches its resting value (0, idle) is dropped rather than tracked forever. */
+const activeAmounts = new Map<string, number>();
+let activeAmountsLastTime = 0;
 
 /**
- * Eases every tracked capsule's own scale toward RENDER_CONFIG.capsuleFocusScale (the one
- * whose id === expandId, "the" focus target this frame — see render()) or back down to 1
- * (everything else, including whatever held the focus a moment ago), over FOCUS_EASE_MS.
- * Returns the live map read back by drawWireCapsules; an id absent from it is simply 1
- * (never expanded, or its own ease-out already finished).
+ * Eases every id's own amount toward 1 (a member of `activeIds` — every entry whose span
+ * currently contains the viewport centre, ALL of them at once, not a single "the" focus —
+ * see render()) or back down to 0 (everything else, including whatever was active a moment
+ * ago), over ACTIVE_EASE_MS. Returns the live map read back by drawWireCapsules/
+ * drawEventPins; an id absent from it is simply 0 (never active, or its own ease-out
+ * already finished).
  */
-function updateFocusScales(expandId: string | null): ReadonlyMap<string, number> {
+function updateActiveAmounts(activeIds: ReadonlySet<string>): ReadonlyMap<string, number> {
   const now = nowMs();
-  const dt = focusScalesLastTime ? Math.min(now - focusScalesLastTime, 100) : 100;
-  focusScalesLastTime = now;
-  const rate = 1 - Math.exp(-dt / FOCUS_EASE_MS);
+  const dt = activeAmountsLastTime ? Math.min(now - activeAmountsLastTime, 100) : 100;
+  activeAmountsLastTime = now;
+  const rate = 1 - Math.exp(-dt / ACTIVE_EASE_MS);
 
-  if (expandId && !focusScales.has(expandId)) focusScales.set(expandId, 1);
-  for (const [id, scale] of focusScales) {
-    const target = id === expandId ? RENDER_CONFIG.capsuleFocusScale : 1;
-    const next = scale + (target - scale) * rate;
-    if (id !== expandId && Math.abs(next - 1) < 0.002) {
-      focusScales.delete(id);
+  for (const id of activeIds) {
+    if (!activeAmounts.has(id)) activeAmounts.set(id, 0);
+  }
+  for (const [id, amt] of activeAmounts) {
+    const target = activeIds.has(id) ? 1 : 0;
+    const next = amt + (target - amt) * rate;
+    if (!activeIds.has(id) && next < 0.002) {
+      activeAmounts.delete(id);
     } else {
-      focusScales.set(id, next);
+      activeAmounts.set(id, next);
     }
   }
-  return focusScales;
+  return activeAmounts;
 }
 
 /** The pulse's own opacity at `elapsedMs` since it started: oscillates between 0.35 and 1
@@ -422,70 +427,21 @@ function declutterByPx(candidates: readonly Tick[], minGapPx: number): Tick[] {
   return kept;
 }
 
-/* -------------------------------------------------------------------------- the cylinder */
+/* ------------------------------------------------------------------------- the background */
 
 /**
- * The whole page's stage: a full-width, rounded band with a dark-bright-dark gradient
- * across its THICKNESS (not along the timeline) so it reads as lit from above, like a
- * rotating drum — a thin highlight near the top edge, a darkening vignette just inside
- * both the top and bottom edges (the curved inner surface a real tube would show), and a
- * soft drop shadow so it sits above the background. `thickness` is whatever
- * HistoryTimeline's own eased animation currently has it at — this function draws a
- * snapshot, it doesn't know or care that it's mid-animation.
+ * The page's whole background: a flat vertical gradient (COLORS.bgTop to COLORS.bgBottom)
+ * across the canvas's real screen height — independent of the timeline axis, since it's a
+ * page backdrop, not a time-axis element. Replaces the old lit-drum cylinder shell
+ * entirely: no per-band gradient, highlight or vignette any more — each wire now draws its
+ * own flat lane track instead (see drawLaneTrack).
  */
-function drawCylinderShell(ctx: CanvasRenderingContext2D, axis: Axis, alongSizePx: number, cylinderTop: number, thickness: number): void {
-  const cylinderBottom = cylinderTop + thickness;
-  const radius = Math.min(thickness / 2, 20);
-  const band = rectFor(axis, 0, alongSizePx, cylinderTop, cylinderBottom);
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,.55)';
-  ctx.shadowBlur = 24;
-  ctx.shadowOffsetX = axis === 'vertical' ? 10 : 0;
-  ctx.shadowOffsetY = axis === 'horizontal' ? 10 : 0;
-  ctx.beginPath();
-  ctx.roundRect(band.x, band.y, band.w, band.h, radius);
-  const p0 = project(axis, 0, cylinderTop);
-  const p1 = project(axis, 0, cylinderBottom);
-  const gradient = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
-  gradient.addColorStop(0, COLORS.abyss);
-  gradient.addColorStop(0.16, COLORS.land);
-  gradient.addColorStop(0.5, COLORS.landBright);
-  gradient.addColorStop(0.84, COLORS.land);
-  gradient.addColorStop(1, COLORS.abyss);
+function drawBackground(ctx: CanvasRenderingContext2D, full: { x: number; y: number; w: number; h: number }, canvasHeightPx: number): void {
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeightPx);
+  gradient.addColorStop(0, COLORS.bgTop);
+  gradient.addColorStop(1, COLORS.bgBottom);
   ctx.fillStyle = gradient;
-  ctx.fill();
-  ctx.restore(); // the shadow must not bleed into what's drawn next
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(band.x, band.y, band.w, band.h, radius);
-  ctx.clip();
-
-  const highlightCross = cylinderTop + thickness * 0.12;
-  const h0 = project(axis, 0, highlightCross);
-  const h1 = project(axis, alongSizePx, highlightCross);
-  ctx.strokeStyle = COLORS.highlight;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(h0.x, h0.y);
-  ctx.lineTo(h1.x, h1.y);
-  ctx.stroke();
-
-  // Inner vignette: a short dark gradient just inside each edge, so the surface reads as
-  // curving away rather than ending in a flat line.
-  const vignetteDepth = Math.max(6, thickness * 0.1);
-  for (const [edgeCross, dir] of [[cylinderTop, 1], [cylinderBottom, -1]] as const) {
-    const v0 = project(axis, 0, edgeCross);
-    const v1 = project(axis, 0, edgeCross + vignetteDepth * dir);
-    const vGrad = ctx.createLinearGradient(v0.x, v0.y, v1.x, v1.y);
-    vGrad.addColorStop(0, 'rgba(0,0,0,.4)');
-    vGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = vGrad;
-    const r = rectFor(axis, 0, alongSizePx, edgeCross, edgeCross + vignetteDepth * dir);
-    ctx.fillRect(r.x, r.y, r.w, r.h);
-  }
-  ctx.restore();
+  ctx.fillRect(full.x, full.y, full.w, full.h);
 }
 
 /**
@@ -699,7 +655,7 @@ const LAYOUT_EASE_MS = 160;
 const LAYOUT_COLLAPSE_DELAY_MS = 250;
 
 /** Cross-frame animation state for the wire/lane layout, one entry per EntryKind that has
- *  ever been present — module-level for the same reason focusScales is (render() has no
+ *  ever been present — module-level for the same reason activeAmounts is (render() has no
  *  instance of its own; only one history timeline renders at a time). A kind that's fully
  *  faded out and stayed gone is dropped, so a kind that never occurs in this dataset never
  *  sits here at all. */
@@ -764,54 +720,72 @@ function animatedWireLayout(
  *  readable — derived from `stroke` (the kind's bright accent hue), which is used only
  *  for the capsule outline and, via drawWireCapsules' focus handling, the centre-focus
  *  highlight. */
-function kindCapsuleColors(kind: EntryKind): { dim: string; bright: string; stroke: string } {
+function kindColorHex(kind: EntryKind): string {
   switch (kind) {
-    case 'period': return { dim: COLORS.land, bright: COLORS.landBright, stroke: COLORS.rule };
-    case 'ruler': return { dim: shade(COLORS.sea, 0.78), bright: shade(COLORS.sea, 0.6), stroke: COLORS.sea };
-    case 'government': return { dim: shade(COLORS.gov, 0.78), bright: shade(COLORS.gov, 0.6), stroke: COLORS.gov };
-    case 'event': return { dim: shade(COLORS.brass, 0.78), bright: shade(COLORS.brass, 0.6), stroke: COLORS.brass };
+    case 'period': return COLORS.period;
+    case 'ruler': return COLORS.ruler;
+    case 'government': return COLORS.government;
+    case 'event': return COLORS.event;
   }
 }
 
-/** One faint rail per sub-row of `wire` — the literal "wire" its capsules sit on. */
-function drawWireRails(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number, wire: WireLayout, color: string): void {
-  ctx.strokeStyle = color;
-  ctx.globalAlpha = 0.35;
+const LANE_TRACK_FILL = 'rgba(255,255,255,.035)';
+const LANE_TRACK_BORDER = 'rgba(255,255,255,.07)';
+const LANE_TRACK_RADIUS = 14;
+
+/** The lane track `kind`'s wire sits on: a full-width rounded rect (radius 14, faint white
+ *  fill + border) — "each wire is a lane track", replacing the old cylinder's own shell as
+ *  the visual container. Drawn once per wire, not per sub-row (sub-rows read purely from
+ *  capsule vertical position within it). */
+function drawLaneTrack(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number, wire: WireLayout): void {
+  if (wire.height < 1) return;
+  const r = rectFor(axis, 0, sizePx, wire.top, wire.top + wire.height);
+  const radius = Math.min(LANE_TRACK_RADIUS, r.w / 2, r.h / 2);
+  ctx.beginPath();
+  ctx.roundRect(r.x, r.y, r.w, r.h, radius);
+  ctx.fillStyle = LANE_TRACK_FILL;
+  ctx.fill();
   ctx.lineWidth = 1;
-  for (let row = 0; row < wire.subRows; row++) {
-    const mid = wire.top + row * wire.rowHeight + wire.rowHeight / 2;
-    const p0 = project(axis, 0, mid);
-    const p1 = project(axis, sizePx, mid);
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
+  ctx.strokeStyle = LANE_TRACK_BORDER;
+  ctx.stroke();
+}
+
+/** Idle → active interpolation for a capsule's own fill alpha, border alpha/width and
+ *  glow — driven by `amt` (0 = idle, 1 = fully active), which render()'s activeAmounts map
+ *  eases toward its target over ~120ms (see updateActiveAmounts). No dimension in this
+ *  table ever changes the capsule's SIZE or shape — only fill/border/glow/weight, per the
+ *  "active items keep their exact size and shape" brief. */
+function activeCapsuleStyle(amt: number): { fillAlpha: number; borderAlpha: number; borderWidth: number; glowAlpha: number; bold: boolean } {
+  return {
+    fillAlpha: 0.15 + amt * 0.13,
+    borderAlpha: 0.4 + amt * 0.55,
+    borderWidth: 1 + amt * 0.6,
+    glowAlpha: amt * 0.45,
+    bold: amt > 0.5
+  };
 }
 
 /**
- * `kind`'s visible period/ruler/government entries as rounded capsules on `wire`: a
- * cross-axis gradient fill in the kind's colour (dim at the edges, bright through the
- * middle — the same "lit from above" technique as the cylinder itself), the Bulgarian name
- * inside, clipped and truncated to the capsule's own width. A capsule wider than the
- * viewport (classifySpan's "pinned" mode) still draws spanning the whole width, so it
- * never disappears just because neither of its own ends is on screen. The one entry whose
- * span contains the centre date (`focusId`) draws bolder/outlined than its siblings on the
- * same wire — "the current focus" — but only the SINGLE entry across every wire named by
- * `focusScales` (render()'s `expandId`, eased frame to frame) actually grows in size; every
- * other active entry gets that same bold/outline treatment with no size change at all, "a
- * subtle highlight" rather than a second expansion. Events are pins, not capsules — see
- * drawEventPins.
+ * `kind`'s visible period/ruler/government entries as rounded capsules (radius 10) on
+ * `wire`: a flat fill in the kind's own colour at low alpha, a 1px border at higher alpha,
+ * the Bulgarian name centred inside the capsule's own VISIBLE portion (classifySpan already
+ * clips fromPx/toPx to the viewport, so the midpoint used for centring is always the
+ * midpoint of what's actually on screen), clipped and truncated to the capsule's own width.
+ * A capsule wider than the viewport (classifySpan's "pinned" mode) still draws spanning the
+ * whole width, so it never disappears just because neither of its own ends is on screen.
+ * Every entry whose span contains the centre date is "active" (see render()'s activeIds —
+ * ALL of them at once, not just one) and gets a brighter fill/border, a soft glow and bold
+ * text, eased in/out over ~120ms (activeAmounts) — never a size change. Events are pins,
+ * not capsules — see drawEventPins.
  */
 function drawWireCapsules(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, kind: EntryKind,
   entries: readonly TimelineEntry[], rows: ReadonlyMap<string, number>, viewport: Viewport,
-  wire: WireLayout, focusId: string | null, focusScales: ReadonlyMap<string, number>,
+  wire: WireLayout, activeAmounts: ReadonlyMap<string, number>,
   hoveredId: string | null, pinnedIds: ReadonlySet<string>,
   pulseId: string | null, pulseElapsedMs: number, hits: HitRegion[]
 ): void {
-  const { dim, bright, stroke } = kindCapsuleColors(kind);
+  const kindHex = kindColorHex(kind);
   const byRow = new Map<number, TimelineEntry[]>();
   for (const e of entries) {
     const row = rows.get(e.id) ?? 0;
@@ -822,26 +796,15 @@ function drawWireCapsules(
     if (row >= wire.subRows) continue; // defensive: subRows is computed from this same set
     const rowTop = wire.top + row * wire.rowHeight;
     const rowMid = rowTop + wire.rowHeight / 2;
-    const baseFontPx = clamp(wire.rowHeight * 0.42, RENDER_CONFIG.capsuleMinFontPx, RENDER_CONFIG.capsuleMaxFontPx);
-    const baseHeight = Math.max(4, wire.rowHeight - RENDER_CONFIG.capsuleGapPx);
+    const fontPx = clamp(wire.rowHeight * 0.42, RENDER_CONFIG.capsuleMinFontPx, RENDER_CONFIG.capsuleMaxFontPx);
+    const h = Math.max(4, wire.rowHeight - RENDER_CONFIG.capsuleGapPx);
+    const cross0 = rowMid - h / 2;
+    const cross1 = rowMid + h / 2;
 
     for (const e of rowEntries) {
-      // isActive: this row's own "current" entry (contains the centre date) — a subtle
-      // highlight (bold text, brighter/thicker outline below), independent of expansion.
-      // scale: this entry's own eased focus-expansion factor (1 = unfocused); at most ONE
-      // entry across every wire is ever mid-expansion or fully expanded at a time — see
-      // render()'s expandId and updateFocusScales.
-      const isActive = e.id === focusId;
       const isHovered = e.id === hoveredId;
-      const scale = focusScales.get(e.id) ?? 1;
-      // Clamped to this row's OWN lane (never the wire's full height, which spans every
-      // sub-row) so an expanding capsule can never grow into a neighbouring lane.
-      const maxH = wire.rowHeight - RENDER_CONFIG.capsuleGapPx;
-      const h = Math.min(maxH, baseHeight * scale);
-      const growth = clamp((scale - 1) / (RENDER_CONFIG.capsuleFocusScale - 1), 0, 1);
-      const fontPx = Math.min(RENDER_CONFIG.capsuleMaxFontPx, baseFontPx * (1 + growth * 0.12));
-      const cross0 = rowMid - h / 2;
-      const cross1 = rowMid + h / 2;
+      const amt = activeAmounts.get(e.id) ?? 0;
+      const style = activeCapsuleStyle(amt);
 
       let fromPx: number;
       let toPx: number;
@@ -868,26 +831,20 @@ function drawWireCapsules(
       ctx.save();
       ctx.beginPath();
       ctx.roundRect(r.x, r.y, r.w, r.h, radius);
-      const g0 = project(axis, fromPx, cross0);
-      const g1 = project(axis, fromPx, cross1);
-      const grad = ctx.createLinearGradient(g0.x, g0.y, g1.x, g1.y);
-      // Hover brightens the whole gradient by lightening both stops toward white — a
-      // visible "lit up" state distinct from isActive's own bolder/outlined treatment.
-      grad.addColorStop(0, isHovered ? shade(dim, -0.18) : dim);
-      grad.addColorStop(0.5, isHovered ? shade(bright, -0.18) : bright);
-      grad.addColorStop(1, isHovered ? shade(dim, -0.18) : dim);
-      ctx.fillStyle = grad;
+      ctx.fillStyle = hexToRgba(kindHex, style.fillAlpha + (isHovered ? 0.08 : 0));
       ctx.fill();
-      ctx.lineWidth = isActive ? 1.5 : 1;
-      // period's own active highlight is its lightened `bright` fill tone; ruler/
-      // government/event always outline in their bright accent hue (the fill itself is
-      // now a dark shade of that hue, purely so it's never used for the outline) — that
-      // one accent colour doubles as the active highlight, isActive only thickens it. This
-      // is the "subtle highlight" every active (centre-containing) entry gets regardless of
-      // which single one is actually expanded (see the isExpanded-only size/font growth
-      // above and drawWireCapsules' own header comment).
-      ctx.strokeStyle = kind === 'period' ? (isActive ? bright : stroke) : stroke;
+
+      // The glow only applies to the border stroke — reset before any further (hover/
+      // pinned/pulse) outline so those never inherit it.
+      if (style.glowAlpha > 0.01) {
+        ctx.shadowColor = hexToRgba(kindHex, style.glowAlpha);
+        ctx.shadowBlur = 10 * amt;
+      }
+      ctx.lineWidth = style.borderWidth;
+      ctx.strokeStyle = hexToRgba(kindHex, style.borderAlpha);
       ctx.stroke();
+      ctx.shadowBlur = 0;
+
       if (isHovered) {
         ctx.lineWidth = 2;
         ctx.strokeStyle = COLORS.white;
@@ -905,8 +862,6 @@ function drawWireCapsules(
         ctx.globalAlpha = 1;
       }
 
-      // Every capsule's text is plain white — each kind's fill (dim/bright above) is dark
-      // enough to keep it readable regardless of kind or focus state.
       const nameColor = COLORS.white;
       const roleColor = COLORS.whiteDim;
 
@@ -916,6 +871,10 @@ function drawWireCapsules(
         const roleFontPx = fontPx * 0.7;
         const lineGap = 2;
         const showRole = (kind === 'ruler' || kind === 'government') && !!e.role && crossPx >= fontPx + roleFontPx + lineGap + 2;
+        // Centre text on the capsule's own VISIBLE midpoint (fromPx/toPx are already
+        // clamped to the viewport by classifySpan) — never the entry's true, possibly
+        // off-screen, midpoint.
+        const visibleMid = (fromPx + toPx) / 2;
 
         ctx.save();
         ctx.beginPath();
@@ -924,18 +883,18 @@ function drawWireCapsules(
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        ctx.font = `${isActive ? 700 : 500} ${fontPx}px ${uiFont}`;
+        ctx.font = `${style.bold ? 700 : 500} ${fontPx}px ${uiFont}`;
         const nameText = truncateToFit(ctx, e.label, availableTextPx);
 
         if (showRole) {
           const nameCross = rowMid - (roleFontPx + lineGap) / 2;
           const roleCross = rowMid + (fontPx + lineGap) / 2;
-          if (nameText) drawHaloText(ctx, axis, (fromPx + toPx) / 2, nameCross, nameText, nameColor);
+          if (nameText) drawHaloText(ctx, axis, visibleMid, nameCross, nameText, nameColor);
           ctx.font = `500 ${roleFontPx}px ${uiFont}`;
           const roleText = truncateToFit(ctx, e.role!, availableTextPx);
-          if (roleText) drawHaloText(ctx, axis, (fromPx + toPx) / 2, roleCross, roleText, roleColor);
+          if (roleText) drawHaloText(ctx, axis, visibleMid, roleCross, roleText, roleColor);
         } else if (nameText) {
-          drawHaloText(ctx, axis, (fromPx + toPx) / 2, rowMid, nameText, nameColor);
+          drawHaloText(ctx, axis, visibleMid, rowMid, nameText, nameColor);
         }
         ctx.restore();
       }
@@ -965,15 +924,24 @@ function formatEventDateLine(d: { year: number; month: number | null; day: numbe
  * label sits to the right of the dot, name above an optional smaller exact-date line
  * (month zoom and finer only); candidates are collision-resolved through placeLabels so a
  * crowded moment keeps its most important pins' labels and silently drops the rest (the
- * pin and dot still draw regardless — only the TEXT is dropped).
+ * pin and dot still draw regardless — only the TEXT is dropped). Pins close to the centre
+ * (`activeAmounts`, same id→amount map drawWireCapsules uses — see render()'s activeIds)
+ * get a thicker line and a slightly bigger dot, eased over ~120ms; the label itself never
+ * changes size.
  */
 /** Half-width of an event pin's hit region — the 1px pin gets 6px of tolerance on each
  *  side, per the hover brief. */
 const PIN_HIT_HALF_WIDTH_PX = 6;
 
+/** How close (in px) an event pin's exact date must sit to the centre marker to count as
+ *  "active" (see render()'s activeIds) — a judgement call standing in for the brief's own
+ *  unspecified exact radius. */
+const PIN_ACTIVE_RADIUS_PX = 30;
+
 function drawEventPins(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, monoFont: string,
   entries: readonly TimelineEntry[], viewport: Viewport, wire: WireLayout, level: ZoomLevel,
+  activeAmounts: ReadonlyMap<string, number>,
   hoveredId: string | null, pinnedIds: ReadonlySet<string>, pulseId: string | null, pulseElapsedMs: number,
   hits: HitRegion[]
 ): void {
@@ -1010,18 +978,19 @@ function drawEventPins(
     const frac = RENDER_CONFIG.pinHeightFracByTier[e.tier] ?? RENDER_CONFIG.pinHeightFracByTier[3];
     const bottom = wire.top + wire.height * frac;
     const isHovered = e.id === hoveredId;
+    const amt = activeAmounts.get(e.id) ?? 0;
     const hitRect = rectFor(axis, px - PIN_HIT_HALF_WIDTH_PX, px + PIN_HIT_HALF_WIDTH_PX, wire.top, bottom);
     hits.push({ id: e.id, x: hitRect.x, y: hitRect.y, w: hitRect.w, h: hitRect.h, tier: e.tier });
     // Brightened toward white so a category's own (often dim) authored colour still reads
-    // against the dark cylinder — HistoryFilters.tsx's chips show the same colour
+    // against the dark background — HistoryFilters.tsx's chips show the same colour
     // unbrightened, close enough in hue to double as this pin's legend.
-    const pinColor = e.color ? shade(e.color, -0.35) : COLORS.brass;
+    const pinColor = e.color ? shade(e.color, -0.35) : COLORS.event;
 
     ctx.save();
     ctx.globalAlpha = reveal;
 
     ctx.strokeStyle = pinColor;
-    ctx.lineWidth = isHovered ? 2 : 1;
+    ctx.lineWidth = Math.max(isHovered ? 2 : 1, 1 + amt);
     ctx.beginPath();
     const p0 = project(axis, px, wire.top);
     const p1 = project(axis, px, bottom);
@@ -1032,7 +1001,7 @@ function drawEventPins(
     const dot = project(axis, px, bottom);
     ctx.beginPath();
     ctx.fillStyle = pinColor;
-    ctx.arc(dot.x, dot.y, isHovered ? dotRadius * 1.6 : dotRadius, 0, Math.PI * 2);
+    ctx.arc(dot.x, dot.y, dotRadius * Math.max(isHovered ? 1.6 : 1, 1 + amt * 0.4), 0, Math.PI * 2);
     ctx.fill();
 
     if (pinnedIds.has(e.id)) {
@@ -1300,15 +1269,14 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
   ctx.clearRect(full.x, full.y, full.w, full.h);
-  ctx.fillStyle = COLORS.abyss;
-  ctx.fillRect(full.x, full.y, full.w, full.h);
+  const canvasHeightPx = axis === 'horizontal' ? crossSizePx : viewport.sizePx;
+  drawBackground(ctx, full, canvasHeightPx);
 
   const minThickness = RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop + RENDER_CONFIG.wirePaddingBottom + 14;
   const thickness = Math.max(minThickness, cylinderThicknessPx);
   const cylinderTop = crossSizePx / 2 - thickness / 2;
   const cylinderBottom = cylinderTop + thickness;
 
-  drawCylinderShell(ctx, axis, viewport.sizePx, cylinderTop, thickness);
   drawOutOfRangeFade(ctx, axis, monoFont, viewport, cylinderTop, cylinderBottom, contentRange);
 
   const contentTop = cylinderTop + RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop;
@@ -1325,43 +1293,33 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
   const rows = assignRows(entries);
   const wires = animatedWireLayout(visibleByKind, rows, contentTop, contentBottom, viewport.pxPerYear, layoutFrozen);
 
+  // Every period/ruler/government entry whose span contains the viewport centre is
+  // active, ALL of them at once (contextAt's `.all`, not just `.primary`) — "an item is
+  // active when the viewport centre is inside its time range... ALL overlapping items at
+  // the centre are active, not only one." No single "the" focus is picked any more (no
+  // size change to arbitrate between siblings).
   const focus = contextAt(entries, viewport.center);
-  const focusIds: Partial<Record<EntryKind, string>> = {
-    ...(focus.period.primary ? { period: focus.period.primary.id } : {}),
-    ...(focus.ruler.primary ? { ruler: focus.ruler.primary.id } : {}),
-    ...(focus.government.primary ? { government: focus.government.primary.id } : {})
-  };
+  const activeIds = new Set<string>([...focus.period.all, ...focus.ruler.all, ...focus.government.all].map(e => e.id));
 
-  // The single capsule (across every wire) that actually gets the focus-EXPANSION this
-  // frame — the hovered one if the pointer is over a capsule at all, "or if nothing is
-  // hovered, the one closest to the viewport centre." Every focusIds entry already
-  // contains the centre date (contextAt only returns containing entries), so they're all
-  // equally "at" it; the narrowest one (shortest start–end span) reads as most precisely
-  // centred, so it wins the tie. Everything else in focusIds still gets drawWireCapsules'
-  // own isActive highlight, just no size change — see that function's header comment.
-  const capsuleIds = new Set([...visibleByKind.period, ...visibleByKind.ruler, ...visibleByKind.government].map(e => e.id));
-  let expandId: string | null = hoveredId && capsuleIds.has(hoveredId) ? hoveredId : null;
-  if (!expandId) {
-    const active = Object.values(focusIds)
-      .map(id => entries.find(e => e.id === id))
-      .filter((e): e is TimelineEntry => e != null);
-    if (active.length > 0) {
-      expandId = active.reduce((best, e) => (e.end ?? Infinity) - e.start < (best.end ?? Infinity) - best.start ? e : best).id;
-    }
+  // Event pins get the same idle→active treatment (thicker line, bigger dot — never a
+  // label size change) when their exact date sits close to the centre marker, rather than
+  // by containment (an event has no range to contain anything).
+  for (const e of visibleByKind.event) {
+    if (Math.abs(timeToPx(e.start, viewport) - viewport.sizePx / 2) < PIN_ACTIVE_RADIUS_PX) activeIds.add(e.id);
   }
-  const focusScales = updateFocusScales(expandId);
+  const activeAmounts = updateActiveAmounts(activeIds);
 
   const hits: HitRegion[] = [];
   const level = levelFor(viewport.pxPerYear);
   for (const kind of WIRE_ORDER) {
     const wire = wires[kind];
     if (!wire) continue;
+    drawLaneTrack(ctx, axis, viewport.sizePx, wire);
     if (kind === 'event') {
-      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
+      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, activeAmounts, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
       continue;
     }
-    drawWireRails(ctx, axis, viewport.sizePx, wire, kindCapsuleColors(kind).stroke);
-    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, focusScales, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
+    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, activeAmounts, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
   }
 
   drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);
