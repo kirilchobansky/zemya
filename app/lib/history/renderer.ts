@@ -62,6 +62,10 @@ export interface TimelineEntry extends LayoutEntry {
   /** Free-text keywords authored alongside the entry (mostly events) — shown in the
    *  pinned card's "See more" detail panel (routes/history.bulgaria.tsx), nowhere else. */
   tags: readonly string[];
+  /** "old" (Julian) before 1 April 1916, "new" (Gregorian) on/after — the detail view's
+   *  "Old style (Julian calendar)" note (app/components/HistoryDetail.tsx). Not used by
+   *  rendering itself, only by that note. */
+  style: 'old' | 'new';
 }
 
 /** One hoverable region recorded by render(), in real canvas CSS-pixel coordinates

@@ -69,6 +69,9 @@ interface AtlasContextValue {
    *  panel switches to that entry's detail view while this is non-null. */
   selectedHistoryEntryId: string | null;
   setSelectedHistoryEntryId: Dispatch<SetStateAction<string | null>>;
+  /** Pins an entry as a floating card without a canvas click (routes/history.bulgaria.tsx's
+   *  detail view "Pin card" button) — see pinHistoryEntry's own doc below. */
+  pinHistoryEntry: (entry: TimelineEntry) => void;
   /** The HistoryTimeline controller once it's mounted (routes/history.bulgaria.tsx's
    *  HistoryOutline.tsx calls flyTo/flyToWholeHistory/flyToToday on it directly) — null
    *  outside the history route, and briefly while it's still constructing. */
@@ -132,6 +135,15 @@ function AtlasShell() {
       return next.length > MAX_PINNED_CARDS ? next.slice(1) : next;
     });
   }, []);
+  /** Pins an entry that isn't necessarily on screen (the detail view's "Pin card" button,
+   *  app/components/HistoryDetail.tsx — it has no canvas rect of its own to seed the card's
+   *  position from) — same mechanism as handleEntryClick, centred on the canvas instead of
+   *  at a click point. */
+  const pinHistoryEntry = useCallback((entry: TimelineEntry) => {
+    const canvas = historyCanvasRef.current;
+    const rect = { x: (canvas?.clientWidth ?? 0) / 2, y: (canvas?.clientHeight ?? 0) / 2, w: 0, h: 0 };
+    handleEntryClick({ entry, rect });
+  }, [handleEntryClick]);
   const handleCardFront = useCallback((id: string) => {
     setPinnedCards(prev => prev.map(p => (p.id === id ? { ...p, z: ++pinZRef.current } : p)));
   }, []);
@@ -493,7 +505,7 @@ function AtlasShell() {
       value={{
         atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap,
         setTimelineEntries,
-        historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
+        historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId, pinHistoryEntry,
         historyTimeline: historyTimelineInstance, historyCurrentPeriodId
       }}
     >

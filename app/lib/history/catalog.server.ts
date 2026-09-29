@@ -21,6 +21,7 @@ interface RawHistoryEntry {
   start: string;
   end: string | null;
   precision: 'exact' | 'year' | 'circa' | 'disputed';
+  style: 'old' | 'new';
   tier: number;
   parent: string | null;
   category: string | null;
@@ -90,7 +91,8 @@ function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
     category: raw.category,
     color: raw.color,
     precision: raw.precision,
-    tags: raw.tags
+    tags: raw.tags,
+    style: raw.style
   };
 }
 

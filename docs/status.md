@@ -61,9 +61,9 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   (`pinnedCards`/`selectedHistoryEntryId`), shared with the sidebar through
   `AtlasContext`; cleared on leaving the history route. Pinned entries get a persistent
   1.5px white outline on canvas (`HistoryTimeline.setPinnedIds` → `RenderContext.
-  pinnedIds`). A card's "See more" switches the sidebar (`history.bulgaria.tsx`) to a
-  plain, unstyled detail view (full summary, tags, dd.mm.yyyy dates) with a Back button —
-  see `docs/decisions.md`'s "Pinned cards" for the click-vs-drag and stacking mechanics.
+  pinnedIds`). A card's "See more" switches the sidebar (`history.bulgaria.tsx`) to
+  `HistoryDetail.tsx`'s full detail view — see `docs/decisions.md`'s "Pinned cards" for
+  the click-vs-drag and stacking mechanics.
 - `scripts/import-rulers.mjs` filled the rest of `content/history/source-bg.html`'s
   ruler/government tables into `bg.yaml` (Second Empire rulers 4.3, Third Kingdom
   monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from
@@ -88,4 +88,18 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   deliberately outside `routes/atlas.tsx`'s layout (no canvas, no `AtlasContext`).
   `npm run check:history` reports (read-only, like `npm run audit`) parent/period
   mismatches, >3 same-kind overlaps, future end dates and >5y ruler/government gaps.
+- A pinned card's "See more" (or a row inside this same view) opens `HistoryDetail.tsx`'s
+  full detail in the sidebar: kind/category header, Back, name/role, full dd.mm.yyyy date
+  range + duration ("Old style (Julian calendar)" note when `style: old`), full summary,
+  tags as chips, "Show on timeline"/"Pin card" buttons, a context section that varies by
+  kind (event: "When this happened" — the period/ruler(s)/government at that date, via
+  `layout.ts`'s `contextAt`; ruler/government: "Neighbours" — previous/next of the same
+  kind+role via `app/lib/history/related.ts`'s `neighbours`, excluding an overlapping
+  co-ruler, plus "During this reign" — tier 1-2 events in the span; period: "Rulers" and
+  tier-1 "Key events" in the span), each list capped at 10 with "Show all (N)", and a
+  "Related" list of up to 6 entries sharing a tag (`relatedByTags`). Top-of-view
+  Previous/Next buttons step to the chronological neighbour of the same kind (role-
+  agnostic, unlike the context section's neighbours) and fly the camera there. Pinning
+  from this view (no on-canvas click to seed a card position from) uses `AtlasContext`'s
+  `pinHistoryEntry`, which centres the new card on the canvas.
 

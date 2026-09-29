@@ -8,10 +8,9 @@
  */
 import { useEffect } from 'react';
 
-import { CATEGORY_LABELS, formatCardDate } from '~/components/HistoryCard';
+import HistoryDetail from '~/components/HistoryDetail';
 import HistoryOutline from '~/components/HistoryOutline';
 import { bulgariaTimeline } from '~/lib/history/catalog.server';
-import type { TimelineEntry } from '~/lib/history/renderer';
 import { pageMeta } from '~/lib/seo';
 import { useAtlasContext } from './atlas';
 import type { Route } from './+types/history.bulgaria';
@@ -32,7 +31,7 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
   const { entries } = loaderData;
   const {
     setTimelineEntries, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
-    historyTimeline, historyCurrentPeriodId
+    pinHistoryEntry, historyTimeline, historyCurrentPeriodId
   } = useAtlasContext();
 
   useEffect(() => {
@@ -70,48 +69,19 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
         </div>
 
         {selectedEntry ? (
-          <EntryDetail entry={selectedEntry} onBack={() => setSelectedHistoryEntryId(null)} />
+          <HistoryDetail
+            key={selectedEntry.id}
+            entry={selectedEntry}
+            entries={entries}
+            timeline={historyTimeline}
+            onOpen={setSelectedHistoryEntryId}
+            onBack={() => setSelectedHistoryEntryId(null)}
+            onPin={pinHistoryEntry}
+          />
         ) : (
           <HistoryOutline entries={entries} currentPeriodId={historyCurrentPeriodId} timeline={historyTimeline} />
         )}
       </div>
     </>
-  );
-}
-
-/** Plain detail view for a pinned card's "See more" — full, unclamped content in the
- *  sidebar rather than the card's own 3-line summary. "The bigger layout for this comes in
- *  a later step" (see the prompt this shipped from), so this is deliberately plain: no new
- *  layout, just the same fields the card already carries, spelled out in full. */
-function EntryDetail({ entry, onBack }: { entry: TimelineEntry; onBack: () => void }) {
-  const categoryLabel = entry.category ? CATEGORY_LABELS[entry.category] ?? entry.category : null;
-  const dateLine =
-    entry.end != null && entry.end !== entry.start
-      ? `${formatCardDate(entry.start, entry.precision)} – ${formatCardDate(entry.end, entry.precision)}`
-      : formatCardDate(entry.start, entry.precision);
-
-  return (
-    <div className="entry-detail">
-      <h3>{entry.label}</h3>
-      {entry.role && <p className="history-card__role">{entry.role}</p>}
-      <p className="history-card__date">{dateLine}</p>
-      {categoryLabel && (
-        <p className="history-card__category">
-          <span className="history-card__dot" style={{ background: entry.color ?? 'var(--ink-3)' }} />
-          {categoryLabel}
-        </p>
-      )}
-      {entry.blurbBg && <p>{entry.blurbBg}</p>}
-      {entry.tags.length > 0 && (
-        <div className="chips">
-          {entry.tags.map(tag => (
-            <span key={tag} className="chip">{tag}</span>
-          ))}
-        </div>
-      )}
-      <button type="button" className="action" onClick={onBack}>
-        Back
-      </button>
-    </div>
   );
 }
