@@ -83,20 +83,17 @@ const COLORS = {
   land: PERIOD_BASE, // periods — the cylinder's own dark tone
   landBright: shade(PERIOD_BASE, -0.32), // lightened — the cylinder's lit middle, and period capsules' bright stop
   rule: shade(PERIOD_BASE, 0.12), // period capsule stroke
-  ink: '#E6EEF3', // --ink — focused-capsule text (period capsules only)
-  ink2: '#9FB3C0', // --ink-2 — ordinary capsule text (period capsules only)
+  ink2: '#9FB3C0', // --ink-2 — tick labels
   ink3: '#67808F', // --ink-3 — tick labels, out-of-range zone labels
-  // Ruler/government/event capsules sit on a BRIGHT fill, so their text must be dark to
-  // stay readable — inkOnBright is the focused variant, inkOnBright2 the dimmer role line.
-  inkOnBright: '#141821',
-  inkOnBright2: 'rgba(20,24,33,.72)',
-  brass: EVENT_BASE, // events, the centre date readout
+  // All capsule text is plain white — every capsule fill (see kindCapsuleColors) is dark
+  // enough for it to stay readable regardless of kind. white is the capsule name, whiteDim
+  // the role line beneath it.
+  white: '#FFFFFF',
+  whiteDim: 'rgba(255,255,255,.75)',
+  brass: EVENT_BASE, // the centre date readout, and the event outline/focus accent
   brass2: '#F5CE86', // --brass-2 — the centre date readout's own text
-  brassDim: shade(EVENT_BASE, 0.55), // event capsules' dim stop
-  sea: RULER_BASE, // rulers
-  seaDim: shade(RULER_BASE, 0.55), // ruler capsules' dim stop
-  gov: GOVERNMENT_BASE, // governments (cabinets; distinct from period/ruler/event on purpose)
-  govDim: shade(GOVERNMENT_BASE, 0.55),
+  sea: RULER_BASE, // the ruler outline/focus accent
+  gov: GOVERNMENT_BASE, // the government outline/focus accent
   highlight: 'rgba(245,206,134,.35)', // --brass-2, low opacity — the cylinder's specular line
   labelHalo: 'rgba(8,13,19,.85)', // --abyss, high opacity
   centreLine: 'rgba(232,163,61,.32)' // --brass, faint — confined inside the cylinder only
@@ -164,9 +161,11 @@ function smoothstep(t: number): number {
 }
 
 /** `mode: 'all'` skips WIRE_REVEAL_START entirely — every wire is fully revealed at every
- *  zoom, no fade-in — the content-review mode (see RevealMode's own doc). */
+ *  zoom, no fade-in — the content-review mode (see RevealMode's own doc). The period wire
+ *  is always fully revealed too, regardless of zoom or mode — periods are the default
+ *  view's whole point, visible at maximum zoom-out same as at day level. */
 function wireRevealAt(kind: EntryKind, normFrac: number, mode: RevealMode): number {
-  if (mode === 'all') return 1;
+  if (mode === 'all' || kind === 'period') return 1;
   return smoothstep((normFrac - WIRE_REVEAL_START[kind]) / WIRE_REVEAL_BAND);
 }
 
@@ -222,15 +221,6 @@ function truncateToFit(ctx: CanvasRenderingContext2D, text: string, maxWidthPx: 
 function labelCandidate(id: string, anchorPx: number, widthPx: number, align: 'left' | 'center', tier: number, padPx = 0): LabelCandidate {
   const left = align === 'center' ? anchorPx - widthPx / 2 - padPx : anchorPx - padPx;
   return { id, px: left, widthPx: widthPx + padPx * 2, tier };
-}
-
-/** Clamps a CENTRED anchor so the text of width `widthPx` stays fully on screen —
- *  layout.ts stays font-metric-agnostic, so this is the renderer's own second clamp,
- *  after whatever positioned the anchor in the first place. */
-function clampCentredAnchor(anchorPx: number, widthPx: number, sizePx: number, padPx: number): number {
-  const half = widthPx / 2 + padPx;
-  if (half * 2 >= sizePx) return sizePx / 2; // wider than the viewport itself — centre it and let it clip
-  return Math.min(Math.max(anchorPx, half), sizePx - half);
 }
 
 /** Drops ticks whose px position is closer than `minGapPx` to a kept tick's — applies to
@@ -455,13 +445,21 @@ function layoutWires(
   }
   if (shown.length === 0) return {};
 
-  const totalReveal = shown.reduce((sum, k) => sum + (reveal[k] ?? 0), 0);
   const usable = Math.max(0, available - RENDER_CONFIG.wireGap * (shown.length - 1));
+
+  // The period wire gets a fixed, slim height — it's always fully revealed (see
+  // wireRevealAt), so zooming in must add rulers/governments/events underneath it, not
+  // enlarge it further. Everything else shares whatever height remains, in proportion to
+  // its own reveal factor, same as before.
+  const periodHeight = shown.includes('period') ? Math.min(clamp(usable * 0.22, 28, 64), usable) : 0;
+  const rest = shown.filter(k => k !== 'period');
+  const restUsable = Math.max(0, usable - periodHeight);
+  const totalReveal = rest.reduce((sum, k) => sum + (reveal[k] ?? 0), 0);
 
   const out: Partial<Record<EntryKind, WireLayout>> = {};
   let top = contentTop;
   for (const kind of shown) {
-    const height = usable * ((reveal[kind] ?? 0) / totalReveal);
+    const height = kind === 'period' ? periodHeight : restUsable * ((reveal[kind] ?? 0) / totalReveal);
     let subRows = 1;
     for (const e of visibleByKind[kind]) subRows = Math.max(subRows, (rows.get(e.id) ?? 0) + 1);
     out[kind] = { top, height, rowHeight: height / subRows, subRows, alpha: reveal[kind] ?? 1 };
@@ -470,12 +468,18 @@ function layoutWires(
   return out;
 }
 
+/** `dim`/`bright` are the capsule's OWN fill gradient stops. For period they're the
+ *  cylinder's own dark/lit tones (unchanged). For ruler/government/event they're a dark
+ *  shade of the kind's hue — NOT the bright accent itself, so white capsule text stays
+ *  readable — derived from `stroke` (the kind's bright accent hue), which is used only
+ *  for the capsule outline and, via drawWireCapsules' focus handling, the centre-focus
+ *  highlight. */
 function kindCapsuleColors(kind: EntryKind): { dim: string; bright: string; stroke: string } {
   switch (kind) {
     case 'period': return { dim: COLORS.land, bright: COLORS.landBright, stroke: COLORS.rule };
-    case 'ruler': return { dim: COLORS.seaDim, bright: COLORS.sea, stroke: COLORS.sea };
-    case 'government': return { dim: COLORS.govDim, bright: COLORS.gov, stroke: COLORS.gov };
-    case 'event': return { dim: COLORS.brassDim, bright: COLORS.brass, stroke: COLORS.brass };
+    case 'ruler': return { dim: shade(COLORS.sea, 0.78), bright: shade(COLORS.sea, 0.6), stroke: COLORS.sea };
+    case 'government': return { dim: shade(COLORS.gov, 0.78), bright: shade(COLORS.gov, 0.6), stroke: COLORS.gov };
+    case 'event': return { dim: shade(COLORS.brass, 0.78), bright: shade(COLORS.brass, 0.6), stroke: COLORS.brass };
   }
 }
 
@@ -539,9 +543,13 @@ function drawWireCapsules(
         ctx.font = `600 ${fontPx}px ${uiFont}`;
         const textWidth = ctx.measureText(e.label).width;
         const capsuleWidth = Math.max(RENDER_CONFIG.eventCapsuleMinWidthPx, textWidth + RENDER_CONFIG.capsuleHPad * 2);
-        const centre = clampCentredAnchor(timeToPx(e.start, viewport), capsuleWidth, viewport.sizePx, 0);
+        // Centred on the event's own moment, never dragged onto screen — an event only
+        // ever draws at its own time, so if the whole capsule falls outside the viewport
+        // it's skipped rather than clamped into view.
+        const centre = timeToPx(e.start, viewport);
         fromPx = centre - capsuleWidth / 2;
         toPx = centre + capsuleWidth / 2;
+        if (toPx < 0 || fromPx > viewport.sizePx) continue;
       } else {
         const span = classifySpan(e, viewport);
         if (span.mode === 'bar') {
@@ -570,14 +578,17 @@ function drawWireCapsules(
       ctx.fillStyle = grad;
       ctx.fill();
       ctx.lineWidth = isFocus ? 1.5 : 1;
-      ctx.strokeStyle = isFocus ? bright : stroke;
+      // period's own focus highlight is its lightened `bright` fill tone; ruler/
+      // government/event always outline in their bright accent hue (the fill itself is
+      // now a dark shade of that hue, purely so it's never used for the outline) — that
+      // one accent colour doubles as the centre-focus highlight, isFocus only thickens it.
+      ctx.strokeStyle = kind === 'period' ? (isFocus ? bright : stroke) : stroke;
       ctx.stroke();
 
-      // period capsules sit on the cylinder's own dark tone (light text); ruler/
-      // government/event capsules sit on a bright accent fill, so their text must be
-      // dark to stay readable (WCAG AA against `bright`/`dim`, both light saturated hues).
-      const nameColor = kind === 'period' ? (isFocus ? COLORS.ink : COLORS.ink2) : (isFocus ? COLORS.inkOnBright : COLORS.inkOnBright2);
-      const roleColor = COLORS.inkOnBright2;
+      // Every capsule's text is plain white — each kind's fill (dim/bright above) is dark
+      // enough to keep it readable regardless of kind or focus state.
+      const nameColor = COLORS.white;
+      const roleColor = COLORS.whiteDim;
 
       const availableTextPx = (axis === 'horizontal' ? r.w : r.h) - RENDER_CONFIG.capsuleHPad * 2;
       if (availableTextPx > 6) {
