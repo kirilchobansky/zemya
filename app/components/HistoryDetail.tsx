@@ -1,5 +1,5 @@
 /**
- * The full detail view for a history timeline entry (routes/history.bulgaria.tsx, shown
+ * The full detail view for a history timeline entry (routes/history.$slug.tsx, shown
  * whenever a pinned card's "See more" — or a row inside this same view — has set
  * `selectedHistoryEntryId`). Replaces the plain detail block that shipped first; unlike
  * that block, this one shows context (what else was true at the same moment), related
@@ -65,7 +65,7 @@ export interface HistoryDetailProps {
   onOpen: (id: string) => void;
   onBack: () => void;
   /** Pins `entry` as a floating card (same mechanism as clicking it on the canvas) — routes/
-   *  history.bulgaria.tsx wires this to the atlas context's pin-by-id helper, since this
+   *  history.$slug.tsx wires this to the atlas context's pin-by-id helper, since this
    *  view has no canvas rect of its own to seed the card's position from. */
   onPin: (entry: TimelineEntry) => void;
 }

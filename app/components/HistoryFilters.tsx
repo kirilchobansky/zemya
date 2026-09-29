@@ -1,5 +1,5 @@
 /**
- * Filter chips for the Bulgaria history panel (routes/history.bulgaria.tsx, below
+ * Filter chips for the history panel (routes/history.$slug.tsx, below
  * HistorySearch) — kind toggles (periods excluded: always shown, per CLAUDE.md/the
  * filters brief) and event category toggles, all on by default. State lives in
  * AtlasContext (routes/atlas.tsx) and is only ever read there — same convention as

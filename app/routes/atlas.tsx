@@ -13,7 +13,7 @@ import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router';
 import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName } from '~/components/MobileChrome';
 import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
-import { AtlasContext } from '~/lib/atlas-context';
+import { AtlasContext, type TimelineLabels } from '~/lib/atlas-context';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
 import { refreshMapColours } from '~/lib/map/renderer';
@@ -133,8 +133,9 @@ function AtlasShell() {
   const historyCanvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HistoryTimeline | null>(null);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
+  const [timelineLabels, setTimelineLabels] = useState<TimelineLabels>({ pastLabel: '', futureLabel: '' });
   const [historyHover, setHistoryHover] = useState<HistoryHover | null>(null);
-  /** Non-null only while a history route (routes/history.bulgaria.tsx) has handed its
+  /** Non-null only while a history route (routes/history.$slug.tsx) has handed its
    *  entries over — the canvas shows the map the rest of the time, including on the bare
    *  /history picker. */
   const showTimeline = timelineEntries !== null;
@@ -547,7 +548,8 @@ function AtlasShell() {
   useEffect(() => {
     if (!timelineEntries || !historyCanvasRef.current || timelineRef.current) return;
     const timeline = new HistoryTimeline(historyCanvasRef.current, {
-      axis: 'horizontal', entries: timelineEntries, onHover: setHistoryHover, onEntryClick: handleEntryClick,
+      axis: 'horizontal', entries: timelineEntries, pastLabel: timelineLabels.pastLabel, futureLabel: timelineLabels.futureLabel,
+      onHover: setHistoryHover, onEntryClick: handleEntryClick,
       onPeriodChange: setHistoryCurrentPeriodId
     });
     timelineRef.current = timeline;
@@ -678,7 +680,7 @@ function AtlasShell() {
     <AtlasContext.Provider
       value={{
         atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap,
-        setTimelineEntries,
+        setTimelineEntries, setTimelineLabels,
         historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId, pinHistoryEntry,
         historyTimeline: historyTimelineInstance, historyCurrentPeriodId,
         historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
@@ -707,7 +709,7 @@ function AtlasShell() {
         <canvas
           ref={historyCanvasRef}
           className={`stage__canvas${showTimeline ? '' : ' is-hidden'}`}
-          aria-label="Bulgaria history timeline"
+          aria-label="History timeline"
         />
 
         {showTimeline && historyHover && timelineEntries && !historyPinnedIds.includes(historyHover.entry.id) && (

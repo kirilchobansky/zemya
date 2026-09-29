@@ -94,9 +94,9 @@ export default {
   ssr: true,
   // '/study' and '/quiz': old names, kept as permanent-redirect stubs (routes/study.tsx,
   // routes/quiz.tsx) — prerendered (a static host needs a real file for every path) but
-  // deliberately left out of `indexable`, noindex in their own <meta>. '/history/bulgaria/list'
+  // deliberately left out of `indexable`, noindex in their own <meta>. '/history/<slug>/list'
   // is the same shape for a different reason: a proofreading tool, not a redirect.
-  prerender: () => [...indexable, '/study', '/quiz', '/history/bulgaria/list', ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
+  prerender: () => [...indexable, '/study', '/quiz', ...HISTORY_COUNTRIES.map(c => `/history/${c.slug}/list`), ...oldCatalogueRuns, ...legacyQuizRuns, ...legacyScopeRuns],
 
   /** robots.txt and sitemap.xml are generated here, from the same lists that were just
    *  prerendered, and written next to the pages. Never hand-maintained. */

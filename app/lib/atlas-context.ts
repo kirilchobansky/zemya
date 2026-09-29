@@ -25,6 +25,11 @@ import type { QuizOverride } from '~/lib/geography/overlays';
  * search box and the hover tooltip and turns off the default neighbour glow — one state,
  * checked in the few places that need it, rather than four independent booleans.
  */
+export interface TimelineLabels {
+  pastLabel: string;
+  futureLabel: string;
+}
+
 export interface AtlasContextValue {
   atlas: Atlas | null;
   quiz: QuizOverride | null;
@@ -33,12 +38,14 @@ export interface AtlasContextValue {
    *  no tab bar, no search — until its results, which open the sheet at `full`. */
   setImmersive: Dispatch<SetStateAction<boolean>>;
   setSheetSnap: Dispatch<SetStateAction<SheetSnap>>;
-  /** Set by a history route (routes/history.bulgaria.tsx) once its loader data is in hand;
+  /** Set by a history route (routes/history.$slug.tsx) once its loader data is in hand;
    *  cleared on unmount. Non-null swaps the canvas from the map to the timeline — see
    *  routes/atlas.tsx's effect that owns the HistoryTimeline controller. */
   setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[] | null>>;
+  /** Fade-zone texts of the country being shown; set alongside setTimelineEntries. */
+  setTimelineLabels: Dispatch<SetStateAction<TimelineLabels>>;
   /** Ids of every entry currently pinned (click-to-pin on the timeline canvas), in pin
-   *  order — read by routes/history.bulgaria.tsx for its "Close all cards (N)" button.
+   *  order — read by routes/history.$slug.tsx for its "Close all cards (N)" button.
    *  Cleared whenever the history route is left (see routes/atlas.tsx's showTimeline
    *  effect). */
   historyPinnedIds: readonly string[];
@@ -47,10 +54,10 @@ export interface AtlasContextValue {
    *  panel switches to that entry's detail view while this is non-null. */
   selectedHistoryEntryId: string | null;
   setSelectedHistoryEntryId: Dispatch<SetStateAction<string | null>>;
-  /** Pins an entry as a floating card without a canvas click (routes/history.bulgaria.tsx's
+  /** Pins an entry as a floating card without a canvas click (routes/history.$slug.tsx's
    *  detail view "Pin card" button) — see routes/atlas.tsx's pinHistoryEntry for how. */
   pinHistoryEntry: (entry: TimelineEntry) => void;
-  /** The HistoryTimeline controller once it's mounted (routes/history.bulgaria.tsx's
+  /** The HistoryTimeline controller once it's mounted (routes/history.$slug.tsx's
    *  HistoryOutline.tsx calls flyTo/flyToWholeHistory/flyToToday on it directly) — null
    *  outside the history route, and briefly while it's still constructing. */
   historyTimeline: HistoryTimeline | null;

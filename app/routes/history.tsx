@@ -2,7 +2,7 @@
  * The History nav section's picker: which countries have a timeline. Renders into the
  * atlas layout's right-hand panel exactly like the quiz subject picker (routes/quizzes.tsx)
  * — the canvas underneath keeps showing the map until a country is picked (see
- * routes/history.bulgaria.tsx, which is what actually swaps it to the timeline).
+ * routes/history.$slug.tsx, which is what actually swaps it to the timeline).
  */
 import { Link } from 'react-router';
 

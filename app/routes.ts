@@ -31,10 +31,10 @@ export default [
     // route's data reaches AtlasContext. See CLAUDE.md's history exception for what
     // changed and why.
     route('history', 'routes/history.tsx'),
-    route('history/bulgaria', 'routes/history.bulgaria.tsx')
+    route('history/:slug', 'routes/history.$slug.tsx')
   ]),
 
-  // Proofreading table for content/history/bg.yaml — deliberately outside the atlas
+  // Proofreading table for content/history/<file>.yaml — deliberately outside the atlas
   // layout: it has no canvas and needs no AtlasContext.
-  route('history/bulgaria/list', 'routes/history.bulgaria.list.tsx')
+  route('history/:slug/list', 'routes/history.$slug.list.tsx')
 ] satisfies RouteConfig;

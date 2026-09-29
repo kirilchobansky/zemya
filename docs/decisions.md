@@ -1014,3 +1014,13 @@ official specification is published.
   non-overlapping, so all three share one row.
 - Lane row heights raised another ~10% (66/50/50/72); capsule font, pin heights and pin label
   fonts follow. The cylinder stays static and centred.
+
+### History is data-driven per country
+
+`/history/:slug` and `/history/:slug/list` replace the Bulgaria-specific routes; an unknown
+slug is a 404. `HistoryCountry` (`app/lib/history/countries.ts`) carries `file`, `nameEn`,
+`adjectiveEn`, `startYear`, `pastLabel` and `futureLabel`; `catalog.server.ts` exposes
+`timelineFor(slug)` / `historyListFor(slug)` with a per-slug cache. The fade-zone labels
+travel `HistoryCountry` → `AtlasContext.setTimelineLabels` → `HistoryTimeline` options →
+`RenderContext` → `drawOutOfRangeFade`. The canvas's aria-label is now the generic "History
+timeline" (was "Bulgaria history timeline"). Recipe: CLAUDE.md, "How to add a history country".

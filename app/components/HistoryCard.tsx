@@ -54,7 +54,7 @@ function yearLabel(year: number): string {
 
 /** dd.mm.yyyy; year only when the month is unknown; "c. <year>" for circa precision —
  *  see the hover brief. Exported for the pinned card's detail panel (routes/
- *  history.bulgaria.tsx), which formats the same way rather than re-deriving it. */
+ *  history.$slug.tsx), which formats the same way rather than re-deriving it. */
 export function formatCardDate(t: number, precision: TimelineEntry['precision']): string {
   const d = dateOfDecimalYear(t);
   if (precision === 'circa') return `c. ${yearLabel(d.year)}`;

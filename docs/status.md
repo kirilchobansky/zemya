@@ -81,7 +81,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   in-out, log-interpolated zoom, cancelled by any drag/wheel/pinch) and pulses a white
   outline on the target for 1.5s after arrival. Same list in the phone bottom sheet, no
   separate layout.
-- `/history/bulgaria/list`: a plain, unstyled table of the whole `bg.yaml` dataset
+- `/history/:slug/list`: a plain, unstyled table of the whole `bg.yaml` dataset
   (year/range, kind, role, name.bg, tier, precision, category, parent), sorted by start
   year then kind — for proofreading the content, not a nav destination. Prerendered (a
   real file for the static host) but `noindex` and left out of the sitemap, and

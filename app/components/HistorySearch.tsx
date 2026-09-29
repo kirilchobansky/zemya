@@ -1,5 +1,5 @@
 /**
- * Search box for the Bulgaria history panel (routes/history.bulgaria.tsx, above
+ * Search box for the history panel (routes/history.$slug.tsx, above
  * HistoryFilters) — a thin UI shell over the pure app/lib/history/search.ts. Mirrors
  * components/SearchBox.tsx's shape (same keyboard handling, same "glass" results dropdown)
  * but flies the history canvas and opens HistoryDetail instead of navigating.
@@ -30,7 +30,7 @@ export interface HistorySearchProps {
    *  as HistoryOutline/HistoryDetail) — a result click still opens the detail view, it just
    *  can't fly the canvas until this is set. */
   timeline: HistoryTimeline | null;
-  /** Opens the matched entry's detail view (routes/history.bulgaria.tsx's
+  /** Opens the matched entry's detail view (routes/history.$slug.tsx's
    *  setSelectedHistoryEntryId) — the same "clicking it behaves like clicking it on the
    *  timeline" convention HistoryDetail's own rows use. */
   onOpen: (id: string) => void;

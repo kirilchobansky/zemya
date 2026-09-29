@@ -1,5 +1,5 @@
 /**
- * The Bulgaria history panel's outline list (routes/history.bulgaria.tsx, shown whenever
+ * The history panel's outline list (routes/history.$slug.tsx, shown whenever
  * no pinned card's "See more" has swapped the panel to a detail view) — a vertical list of
  * periods, one section each, in date order. Only one section is expanded at a time; the
  * section containing the timeline's own centre date ("you are here") auto-expands as the
@@ -49,7 +49,7 @@ function yearLabel(year: number): string {
 }
 
 /** "1185 – 1396", or "1989 – today" for an ongoing period (`end: null` — matches the
- *  header's own "681 – today" wording, routes/history.bulgaria.tsx). */
+ *  header's own "681 – today" wording, routes/history.$slug.tsx). */
 function rangeLabel(period: TimelineEntry): string {
   const start = yearLabel(dateOfDecimalYear(period.start).year);
   if (period.end == null) return `${start} – today`;

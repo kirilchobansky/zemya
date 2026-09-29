@@ -18,7 +18,7 @@
  * Every function takes `axis` and goes through `project()`/`rectFor()`/`drawHaloText()`
  * to turn an (along-axis, cross-axis) position into real canvas x/y — nothing below ever
  * writes `ctx.something(x, y)` with x or y read directly off a Viewport or a screen
- * event. Only "horizontal" is driven by a route today (app/routes/history.bulgaria.tsx);
+ * event. Only "horizontal" is driven by a route today (app/routes/history.$slug.tsx);
  * "vertical" exists so a later globe-timeline or sidebar layout costs a parameter, not a
  * rewrite.
  *
@@ -64,7 +64,7 @@ export interface TimelineEntry extends LayoutEntry {
   color: string | null;
   precision: 'exact' | 'year' | 'circa' | 'disputed';
   /** Free-text keywords authored alongside the entry (mostly events) — shown in the
-   *  pinned card's "See more" detail panel (routes/history.bulgaria.tsx), nowhere else. */
+   *  pinned card's "See more" detail panel (routes/history.$slug.tsx), nowhere else. */
   tags: readonly string[];
   /** Alternate spellings (Cyrillic and Latin), authored in content/history/bg.yaml —
    *  read only by app/lib/history/search.ts, never displayed. */
@@ -439,13 +439,13 @@ function drawBackground(ctx: CanvasRenderingContext2D, full: { x: number; y: num
  * Darkens the cylinder outside the dataset's own [contentRange.from, contentRange.to] —
  * "fade the cylinder's brightness towards both outer regions" — and, where enough of that
  * empty zone is on screen to read comfortably, a muted label: "Преди <earliest year> —
- * Стара Велика България" to the left, "Бъдеще" to the right. Both zones are always
+ * <pastLabel>" to the left, <futureLabel> to the right (both per country, countries.ts). Both zones are always
  * reachable (never fully off the pannable range) since HistoryTimeline's pan limit is
  * exactly half a viewport past each edge at maximum zoom-out.
  */
 function drawOutOfRangeFade(
   ctx: CanvasRenderingContext2D, axis: Axis, monoFont: string, viewport: Viewport,
-  cylinderTop: number, cylinderBottom: number, contentRange: TimeRange
+  cylinderTop: number, cylinderBottom: number, contentRange: TimeRange, pastLabel: string, futureLabel: string
 ): void {
   const startPx = timeToPx(contentRange.from, viewport);
   const endPx = timeToPx(contentRange.to, viewport);
@@ -471,7 +471,7 @@ function drawOutOfRangeFade(
       ctx.font = `600 ${RENDER_CONFIG.fadeZoneLabelFontPx}px ${monoFont}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      drawHaloText(ctx, axis, edge / 2, midCross, `Преди ${earliestYear} — Стара Велика България`, COLORS.ink3);
+      drawHaloText(ctx, axis, edge / 2, midCross, `Преди ${earliestYear} — ${pastLabel}`, COLORS.ink3);
     }
   }
   if (endPx < viewport.sizePx) {
@@ -481,7 +481,7 @@ function drawOutOfRangeFade(
       ctx.font = `600 ${RENDER_CONFIG.fadeZoneLabelFontPx}px ${monoFont}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      drawHaloText(ctx, axis, (edge + viewport.sizePx) / 2, midCross, 'Бъдеще', COLORS.ink3);
+      drawHaloText(ctx, axis, (edge + viewport.sizePx) / 2, midCross, futureLabel, COLORS.ink3);
     }
   }
 }
@@ -1073,6 +1073,9 @@ export interface RenderContext {
   monoFont: string;
   /** [earliest authored entry, today] — draws the out-of-range fade/labels. */
   contentRange: TimeRange;
+  /** Text of the fade zones before the earliest entry and after today. */
+  pastLabel: string;
+  futureLabel: string;
   /** The id of the entry timeline.ts's hit-testing currently has under the pointer, or
    *  null — the one capsule/pin drawn brighter + outlined (see drawWireCapsules/
    *  drawEventPins). Never the period colour wash, which isn't hoverable. */
@@ -1112,7 +1115,7 @@ export interface RenderContext {
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, contentRange, pastLabel, futureLabel, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -1131,7 +1134,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
   const cylinderTop = crossSizePx / 2 - thickness / 2;
   const cylinderBottom = cylinderTop + thickness;
 
-  drawOutOfRangeFade(ctx, axis, monoFont, viewport, cylinderTop, cylinderBottom, contentRange);
+  drawOutOfRangeFade(ctx, axis, monoFont, viewport, cylinderTop, cylinderBottom, contentRange, pastLabel, futureLabel);
 
   const contentTop = cylinderTop + RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop;
   const wires = layoutWires(subRowCounts, contentTop);

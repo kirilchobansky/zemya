@@ -1,21 +1,25 @@
 /**
- * Plain proofreading table for content/history/bg.yaml — no canvas, no atlas shell,
+ * Plain proofreading table for content/history/<file>.yaml — no canvas, no atlas shell,
  * intentionally outside routes/atlas.tsx's layout (this is a content QA tool, not a nav
  * destination). noindex: it exists so the owner can read the data, not for search.
  */
-import { bulgariaHistoryList } from '~/lib/history/catalog.server';
+import { historyListFor } from '~/lib/history/catalog.server';
+import { historyCountryFor } from '~/lib/history/countries';
 import { pageMeta } from '~/lib/seo';
-import type { Route } from './+types/history.bulgaria.list';
+import type { Route } from './+types/history.$slug.list';
 
-export function loader() {
-  return { rows: bulgariaHistoryList() };
+export function loader({ params }: Route.LoaderArgs) {
+  const country = historyCountryFor(params.slug);
+  if (!country) throw new Response('Not found', { status: 404 });
+  return { country, rows: historyListFor(country.slug) };
 }
 
-export function meta() {
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const name = loaderData?.country.nameEn ?? 'History';
   return pageMeta({
-    title: 'Bulgaria history — list — Zemya',
-    description: 'Plain table of the Bulgaria history timeline data, for proofreading.',
-    path: '/history/bulgaria/list',
+    title: `${name} history — list — Zemya`,
+    description: `Plain table of the ${name} history timeline data, for proofreading.`,
+    path: location.pathname,
     noindex: true
   });
 }
@@ -24,7 +28,7 @@ function range(start: string, end: string | null): string {
   return end && end !== start ? `${start} – ${end}` : start;
 }
 
-export default function HistoryBulgariaList({ loaderData }: Route.ComponentProps) {
+export default function HistoryList({ loaderData }: Route.ComponentProps) {
   const { rows } = loaderData;
   return (
     <table>

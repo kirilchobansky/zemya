@@ -31,7 +31,7 @@ function todayDecimalYear(): number {
   return decimalYearOfDate({ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() });
 }
 
-/** Fly-to framing per entry kind (routes/history.bulgaria.tsx's outline list —
+/** Fly-to framing per entry kind (routes/history.$slug.tsx's outline list —
  *  HistoryOutline.tsx — is the only caller): a period/ruler row fits its own span plus a 5%
  *  margin on each side (a ruler's span is floored to 5 years first, "minimum 5 years wide"
  *  — a judgement call on top of the brief's unspecified exact margin, applying the same 5%
@@ -82,6 +82,9 @@ export interface TimelineOptions {
    *  case) to open fitted to the whole dataset instead — see fitToWholeHistory. */
   initialCenter?: number;
   initialPxPerYear?: number;
+  /** Fade-zone texts (countries.ts's pastLabel/futureLabel), see renderer.ts. */
+  pastLabel: string;
+  futureLabel: string;
   /** Called with the hovered entry + its on-screen rect, or null when nothing (or
    *  something un-hoverable) is under the pointer — see the module header on hover. */
   onHover?: (hover: HistoryHover | null) => void;
@@ -91,7 +94,7 @@ export interface TimelineOptions {
   onEntryClick?: (hit: HistoryHover) => void;
   /** Called with the id of the period (scale.ts's `contextAt`, evaluated at the viewport's
    *  own centre date) currently "under" the centre marker — the outline list's (routes/
-   *  history.bulgaria.tsx's HistoryOutline.tsx) "you are here" section, throttled to at
+   *  history.$slug.tsx's HistoryOutline.tsx) "you are here" section, throttled to at
    *  most 5 calls/second (see reportPeriod) so a fast pan doesn't flood React state. */
   onPeriodChange?: (periodId: string | null) => void;
 }
@@ -119,6 +122,8 @@ export class HistoryTimeline {
   /** [earliest authored start, today] — what fitToWholeHistory frames, and what
    *  minimum-zoom (the cylinder filling the viewport exactly, no padding) is measured
    *  against. */
+  private pastLabel: string;
+  private futureLabel: string;
   private contentRange: TimeRange;
   /** contentRange padded by half of ITS OWN width on each side — "half a viewport beyond
    *  the data... so 681 and today can each be brought to the centre marker at maximum
@@ -200,6 +205,8 @@ export class HistoryTimeline {
     if (!context) throw new Error('2d canvas context unavailable');
     this.ctx = context;
     this.axis = options.axis;
+    this.pastLabel = options.pastLabel;
+    this.futureLabel = options.futureLabel;
     this.onHover = options.onHover ?? (() => {});
     this.onEntryClick = options.onEntryClick ?? (() => {});
     this.onPeriodChange = options.onPeriodChange ?? (() => {});
@@ -292,6 +299,7 @@ export class HistoryTimeline {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
       crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
       contentRange: this.contentRange,
+      pastLabel: this.pastLabel, futureLabel: this.futureLabel,
       hoveredId: this.hoveredId,
       pinnedIds: this.pinnedIds,
       pulseId: this.pulse?.id ?? null,
@@ -446,7 +454,7 @@ export class HistoryTimeline {
     this.draw();
   }
 
-  /** "Whole history" button (routes/history.bulgaria.tsx) — flies to the same fit
+  /** "Whole history" button (routes/history.$slug.tsx) — flies to the same fit
    *  fitToWholeHistory() snaps to on first mount, animated instead of instant. */
   flyToWholeHistory(): void {
     const { from, to } = this.contentRange;
@@ -454,7 +462,7 @@ export class HistoryTimeline {
     this.flyTo((from + to) / 2, pxPerYear);
   }
 
-  /** "Today" button (routes/history.bulgaria.tsx) — centres on today at the app's own
+  /** "Today" button (routes/history.$slug.tsx) — centres on today at the app's own
    *  default zoom (DEFAULT_PX_PER_YEAR), clamped like any other flyTo target. */
   flyToToday(): void {
     this.flyTo(todayDecimalYear(), DEFAULT_PX_PER_YEAR);

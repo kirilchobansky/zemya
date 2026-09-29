@@ -1,5 +1,5 @@
 /**
- * Bulgaria's history timeline. Renders into the atlas layout's right-hand panel like every
+ * A country's history timeline (/history/:slug). Renders into the atlas layout's right-hand panel like every
  * other child route; the canvas itself lives in routes/atlas.tsx (AtlasShell), which swaps
  * to the timeline the moment this route hands it entries over the shared context — the
  * same "child route drives the layout through AtlasContext" pattern the quiz run routes use
@@ -12,35 +12,42 @@ import HistoryDetail from '~/components/HistoryDetail';
 import HistoryFilters from '~/components/HistoryFilters';
 import HistoryOutline from '~/components/HistoryOutline';
 import HistorySearch from '~/components/HistorySearch';
-import { bulgariaTimeline } from '~/lib/history/catalog.server';
+import { timelineFor } from '~/lib/history/catalog.server';
+import { historyCountryFor } from '~/lib/history/countries';
 import { pageMeta } from '~/lib/seo';
 import { useAtlasContext } from '~/lib/atlas-context';
-import type { Route } from './+types/history.bulgaria';
+import type { Route } from './+types/history.$slug';
 
-export function loader() {
-  return { entries: bulgariaTimeline() };
+export function loader({ params }: Route.LoaderArgs) {
+  const country = historyCountryFor(params.slug);
+  if (!country) throw new Response('Not found', { status: 404 });
+  return { country, entries: timelineFor(country.slug) };
 }
 
-export function meta({ location }: Route.MetaArgs) {
+export function meta({ loaderData, location }: Route.MetaArgs) {
+  const country = loaderData?.country;
   return pageMeta({
-    title: 'Bulgaria — история — Zemya',
-    description: 'An interactive timeline of Bulgarian history, 681 to today.',
+    title: `${country?.nameEn ?? 'History'} — история — Zemya`,
+    description: country
+      ? `An interactive timeline of ${country.adjectiveEn} history, ${country.startYear} to today.`
+      : 'An interactive timeline of history.',
     path: location.pathname
   });
 }
 
-export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProps) {
-  const { entries } = loaderData;
+export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps) {
+  const { country, entries } = loaderData;
   const {
-    setTimelineEntries, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
+    setTimelineEntries, setTimelineLabels, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
     pinHistoryEntry, historyTimeline, historyCurrentPeriodId,
     historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
   } = useAtlasContext();
 
   useEffect(() => {
+    setTimelineLabels({ pastLabel: country.pastLabel, futureLabel: country.futureLabel });
     setTimelineEntries(entries);
     return () => setTimelineEntries(null);
-  }, [entries, setTimelineEntries]);
+  }, [entries, country, setTimelineEntries, setTimelineLabels]);
 
   const selectedEntry = selectedHistoryEntryId ? entries.find(e => e.id === selectedHistoryEntryId) ?? null : null;
 
@@ -48,11 +55,11 @@ export default function HistoryBulgariaPanel({ loaderData }: Route.ComponentProp
     <>
       <header className="panel__head panel__head--quiet panel__head--peek">
         <span className="panel__eyebrow">History</span>
-        <h2>Bulgaria</h2>
+        <h2>{country.nameEn}</h2>
         <div className="peek">
           <div className="peek__text">
-            <div className="peek__title">Bulgaria</div>
-            <div className="peek__sub">681 – today · {entries.length} entries</div>
+            <div className="peek__title">{country.nameEn}</div>
+            <div className="peek__sub">{country.startYear} – today · {entries.length} entries</div>
           </div>
         </div>
       </header>

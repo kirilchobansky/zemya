@@ -13,7 +13,7 @@ Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 
 Four top-level sections — Map, Quizzes, Questions, History — share one shell
 (`routes/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), three quizzes on
-one engine (Countries, Flags, Capitals), a Bulgaria history timeline (`/history/bulgaria`,
+one engine (Countries, Flags, Capitals), a Bulgaria history timeline (`/history/:slug`, only `bulgaria` today,
 canvas-only — see "Do not"). Deployed on Vercel at https://zemya.study, indexed, MIT code /
 ODbL data. Full current-state list: `docs/status.md`; narrative and "Next" items: `docs/decisions.md`.
 
@@ -105,11 +105,17 @@ changes nothing — a human fixes each case. Mechanism, current list and example
 ## Do not
 
 - Do not add subjects beyond geography until geography ships and has users, beyond the
-  owner-requested History exceptions already built (quiz-picker placeholder, `bg.yaml` +
-  its build, `app/lib/history/*`, `/history` + `/history/bulgaria` as a nav section, and a
+  owner-requested History exceptions already built (quiz-picker placeholder, `content/history/*.yaml` +
+  its build, `app/lib/history/*`, `/history` + `/history/:slug` as a nav section, and a
   "History timeline" link in the country dossier for any `HISTORY_COUNTRIES` slug) — no
-  hover, selection, quiz, second country or further logic/UI there without asking again.
-  Full narrative and exact file list: `docs/decisions.md`.
+  quiz or further logic/UI there without asking again. Full narrative and exact file list:
+  `docs/decisions.md`.
+- **How to add a history country** (the History section is data-driven; Bulgaria is the only
+  one so far): add `content/history/<file>.yaml`, run `npm run build:content` (writes
+  `public/data/history/<file>.json`, commit it), add one entry to `HISTORY_COUNTRIES` in
+  `app/lib/history/countries.ts` (slug, file, names, startYear, range, pastLabel,
+  futureLabel). Routes, prerender, sitemap, dossier link, `build-history` and `check-history`
+  pick it up with no code change.
 - Do not add accounts, a database, or any server call in the first release; a map tile
   provider or API key; or secrets in the repo (`.env` is gitignored, `.env.example`
   committed). Do not use `localStorage` as the primary store — IndexedDB, guarded fallback,
