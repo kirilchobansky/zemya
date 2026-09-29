@@ -28,6 +28,11 @@ export interface HistoryHover {
 const WHEEL_SENSITIVITY = 0.004;
 const WHEEL_LINE_SENSITIVITY = 0.05;
 const DRAG_THRESHOLD_PX = 3;
+/** A pointerdown/pointerup pair counts as a click (pins the entry under it) when they're
+ *  within this many CSS px of each other — "a click means pointerup with less than 4px of
+ *  movement, so drags still pan the timeline" (touch has no hover, so a tap pins the same
+ *  way). */
+const CLICK_MOVE_THRESHOLD_PX = 4;
 /** Time constant (ms) for the cylinder's own eased grow/shrink — "smooth, eased
  *  transitions, never a snap": a discrete wheel notch (one event, one target change)
  *  still animates over several frames rather than jumping straight to the new size. */
@@ -46,6 +51,10 @@ export interface TimelineOptions {
   /** Called with the hovered entry + its on-screen rect, or null when nothing (or
    *  something un-hoverable) is under the pointer — see the module header on hover. */
   onHover?: (hover: HistoryHover | null) => void;
+  /** Called with the clicked/tapped entry + its on-screen rect (same shape as onHover) when
+   *  a click (pointerdown/pointerup within CLICK_MOVE_THRESHOLD_PX) lands on a hoverable
+   *  region — pins its card (see atlas.tsx). Never fires for a drag or a pinch. */
+  onEntryClick?: (hit: HistoryHover) => void;
 }
 
 const DEFAULT_CENTER = 2000;
@@ -88,10 +97,18 @@ export class HistoryTimeline {
   private fittedInitialView = false;
 
   private onHover: (hover: HistoryHover | null) => void;
+  private onEntryClick: (hit: HistoryHover) => void;
   /** Every hoverable region drawn last frame (render()'s return value) — hit-tested
    *  against on pointermove, never recomputed outside a frame. */
   private hits: HitRegion[] = [];
   private hoveredId: string | null = null;
+  /** Ids of every entry with an open pinned card (atlas.tsx) — set via setPinnedIds,
+   *  passed straight through to render() for the persistent outline (renderer.ts). */
+  private pinnedIds: ReadonlySet<string> = new Set();
+  /** The pointer + hit id a pointerdown started on, kept until its matching pointerup so a
+   *  same-spot click can be told apart from a drag (see CLICK_MOVE_THRESHOLD_PX). Cleared
+   *  on a two-pointer (pinch) gesture — a click never fires out of a pinch. */
+  private clickCandidate: { pointerId: number; clientX: number; clientY: number; id: string | null } | null = null;
   /** Latest pointer position (canvas CSS px), consumed by the throttled hover check —
    *  set on every pointermove, read at most once per animation frame. */
   private pendingHoverPoint: { x: number; y: number } | null = null;
@@ -111,6 +128,7 @@ export class HistoryTimeline {
     this.ctx = context;
     this.axis = options.axis;
     this.onHover = options.onHover ?? (() => {});
+    this.onEntryClick = options.onEntryClick ?? (() => {});
     const today = HistoryTimeline.todayDecimalYear();
     this.entries = HistoryTimeline.clipEntriesToToday(options.entries, today);
     const { content, pannable } = HistoryTimeline.computeRanges(this.entries, today);
@@ -209,8 +227,16 @@ export class HistoryTimeline {
       crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
       cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
       contentRange: this.contentRange,
-      hoveredId: this.hoveredId
+      hoveredId: this.hoveredId,
+      pinnedIds: this.pinnedIds
     };
+  }
+
+  /** Sets which entries have an open pinned card (atlas.tsx) — repaints so the persistent
+   *  outline (renderer.ts) stays in sync. */
+  setPinnedIds(ids: ReadonlySet<string>): void {
+    this.pinnedIds = ids;
+    this.draw();
   }
 
   /** The zoom floor for THIS frame's sizePx: the cylinder filling the viewport with the
@@ -380,6 +406,7 @@ export class HistoryTimeline {
       const [a, b] = [...this.pointers.values()];
       this.pinch = { distance: Math.abs(a - b), pxPerYear: this.viewport.pxPerYear, time: pxToTime((a + b) / 2, this.viewport) };
       this.drag = null;
+      this.clickCandidate = null;
       this.canvas.classList.remove('is-dragging');
       return;
     }
@@ -387,6 +414,7 @@ export class HistoryTimeline {
     this.drag = { alongClient: this.along(e), center: this.viewport.center };
     this.moved = false;
     this.canvas.classList.add('is-dragging');
+    this.clickCandidate = { pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY, id: this.hitTest(e.offsetX, e.offsetY)?.id ?? null };
   };
 
   private onPointerMove = (e: PointerEvent): void => {
@@ -418,7 +446,23 @@ export class HistoryTimeline {
     this.queueHoverCheck(e.offsetX, e.offsetY);
   };
 
+  /** Resolves this frame's pending click candidate (set on pointerdown) into a fired
+   *  onEntryClick, if the matching pointerup landed within CLICK_MOVE_THRESHOLD_PX of it —
+   *  a real 'pointerup' only, never pointercancel/pointerleave (both routed here too), and
+   *  never mid-pinch (pointers.size is still 1, checked BEFORE the delete below). */
+  private resolveClick(e: PointerEvent): void {
+    const candidate = this.clickCandidate;
+    if (e.type !== 'pointerup' || !candidate || candidate.pointerId !== e.pointerId || !candidate.id || this.pointers.size !== 1) return;
+    const dist = Math.hypot(e.clientX - candidate.clientX, e.clientY - candidate.clientY);
+    if (dist >= CLICK_MOVE_THRESHOLD_PX) return;
+    const region = this.hits.find(h => h.id === candidate.id);
+    const entry = this.entries.find(en => en.id === candidate.id);
+    if (region && entry) this.onEntryClick({ entry, rect: { x: region.x, y: region.y, w: region.w, h: region.h } });
+  }
+
   private onPointerUp = (e: PointerEvent): void => {
+    this.resolveClick(e);
+    this.clickCandidate = null;
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) this.pinch = null;
     this.canvas.classList.remove('is-dragging');

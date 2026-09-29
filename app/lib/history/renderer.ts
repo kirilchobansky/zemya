@@ -59,6 +59,9 @@ export interface TimelineEntry extends LayoutEntry {
    *  history/*.yaml. Used by the hover card's category dot. */
   color: string | null;
   precision: 'exact' | 'year' | 'circa' | 'disputed';
+  /** Free-text keywords authored alongside the entry (mostly events) — shown in the
+   *  pinned card's "See more" detail panel (routes/history.bulgaria.tsx), nowhere else. */
+  tags: readonly string[];
 }
 
 /** One hoverable region recorded by render(), in real canvas CSS-pixel coordinates
@@ -597,7 +600,7 @@ function drawWireRails(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number
 function drawWireCapsules(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, kind: EntryKind,
   entries: readonly TimelineEntry[], rows: ReadonlyMap<string, number>, viewport: Viewport,
-  wire: WireLayout, focusId: string | null, hoveredId: string | null, hits: HitRegion[]
+  wire: WireLayout, focusId: string | null, hoveredId: string | null, pinnedIds: ReadonlySet<string>, hits: HitRegion[]
 ): void {
   const { dim, bright, stroke } = kindCapsuleColors(kind);
   const byRow = new Map<number, TimelineEntry[]>();
@@ -665,6 +668,10 @@ function drawWireCapsules(
       ctx.stroke();
       if (isHovered) {
         ctx.lineWidth = 2;
+        ctx.strokeStyle = COLORS.white;
+        ctx.stroke();
+      } else if (pinnedIds.has(e.id)) {
+        ctx.lineWidth = 1.5;
         ctx.strokeStyle = COLORS.white;
         ctx.stroke();
       }
@@ -738,7 +745,7 @@ const PIN_HIT_HALF_WIDTH_PX = 6;
 function drawEventPins(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, monoFont: string,
   entries: readonly TimelineEntry[], viewport: Viewport, wire: WireLayout, level: ZoomLevel,
-  hoveredId: string | null, hits: HitRegion[]
+  hoveredId: string | null, pinnedIds: ReadonlySet<string>, hits: HitRegion[]
 ): void {
   const fontPx = RENDER_CONFIG.pinLabelFontPxByLevel[level];
   const dateFontPx = Math.round(fontPx * 0.7);
@@ -784,6 +791,14 @@ function drawEventPins(
     ctx.fillStyle = COLORS.brass;
     ctx.arc(dot.x, dot.y, isHovered ? dotRadius * 1.6 : dotRadius, 0, Math.PI * 2);
     ctx.fill();
+
+    if (pinnedIds.has(e.id)) {
+      ctx.beginPath();
+      ctx.strokeStyle = COLORS.white;
+      ctx.lineWidth = 1.5;
+      ctx.arc(dot.x, dot.y, dotRadius + 2.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     if (placed.has(e.id)) {
       ctx.textAlign = 'left';
@@ -881,6 +896,10 @@ export interface RenderContext {
    *  null — the one capsule/pin drawn brighter + outlined (see drawWireCapsules/
    *  drawEventPins). Never the period colour wash, which isn't hoverable. */
   hoveredId: string | null;
+  /** Ids of every entry with an open pinned card (atlas.tsx) — each gets a persistent
+   *  1.5px white outline (see drawWireCapsules/drawEventPins) so it's clear which entry a
+   *  floating card belongs to, independent of hover. */
+  pinnedIds: ReadonlySet<string>;
 }
 
 /**
@@ -900,7 +919,7 @@ export interface RenderContext {
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -943,11 +962,11 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
     const wire = wires[kind];
     if (!wire) continue;
     if (kind === 'event') {
-      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, hoveredId, hits);
+      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, hoveredId, pinnedIds, hits);
       continue;
     }
     drawWireRails(ctx, axis, viewport.sizePx, wire, kindCapsuleColors(kind).stroke);
-    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, hoveredId, hits);
+    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, hoveredId, pinnedIds, hits);
   }
 
   drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);

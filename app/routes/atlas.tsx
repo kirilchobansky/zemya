@@ -16,7 +16,7 @@ import { SearchBox } from '~/components/SearchBox';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
 import { refreshMapColours } from '~/lib/map/renderer';
-import HistoryCard from '~/components/HistoryCard';
+import HistoryCard, { PinnedHistoryCard } from '~/components/HistoryCard';
 import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
@@ -60,6 +60,15 @@ interface AtlasContextValue {
    *  cleared on unmount. Non-null swaps the canvas from the map to the timeline — see the
    *  effect below that owns the HistoryTimeline controller. */
   setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[] | null>>;
+  /** Ids of every entry currently pinned (click-to-pin on the timeline canvas), in pin
+   *  order — read by routes/history.bulgaria.tsx for its "Close all cards (N)" button.
+   *  Cleared whenever the history route is left (see the showTimeline effect below). */
+  historyPinnedIds: readonly string[];
+  closeAllHistoryCards: () => void;
+  /** Set by a pinned card's "See more" (components/HistoryCard.tsx) — the history route's
+   *  panel switches to that entry's detail view while this is non-null. */
+  selectedHistoryEntryId: string | null;
+  setSelectedHistoryEntryId: Dispatch<SetStateAction<string | null>>;
 }
 
 const AtlasContext = createContext<AtlasContextValue | null>(null);
@@ -94,6 +103,63 @@ function AtlasShell() {
    *  entries over — the canvas shows the map the rest of the time, including on the bare
    *  /history picker. */
   const showTimeline = timelineEntries !== null;
+
+  /** Pinned timeline cards (click-to-pin — see HistoryTimeline's onEntryClick below), in
+   *  pin order: appended on a new pin, never reordered by bring-to-front (`z` alone drives
+   *  stacking), so array order is what "close the oldest" (max 8) reads off. */
+  const [pinnedCards, setPinnedCards] = useState<
+    { id: string; entry: TimelineEntry; rect: HistoryHover['rect']; z: number }[]
+  >([]);
+  const [selectedHistoryEntryId, setSelectedHistoryEntryId] = useState<string | null>(null);
+  const pinZRef = useRef(0);
+  const MAX_PINNED_CARDS = 8;
+
+  const handleEntryClick = useCallback((hit: HistoryHover) => {
+    setPinnedCards(prev => {
+      const z = ++pinZRef.current;
+      const existing = prev.find(p => p.id === hit.entry.id);
+      if (existing) return prev.map(p => (p.id === hit.entry.id ? { ...p, z } : p));
+      const next = [...prev, { id: hit.entry.id, entry: hit.entry, rect: hit.rect, z }];
+      return next.length > MAX_PINNED_CARDS ? next.slice(1) : next;
+    });
+  }, []);
+  const handleCardFront = useCallback((id: string) => {
+    setPinnedCards(prev => prev.map(p => (p.id === id ? { ...p, z: ++pinZRef.current } : p)));
+  }, []);
+  const handleCardClose = useCallback((id: string) => {
+    setPinnedCards(prev => prev.filter(p => p.id !== id));
+    setSelectedHistoryEntryId(sel => (sel === id ? null : sel));
+  }, []);
+  const closeAllHistoryCards = useCallback(() => {
+    setPinnedCards([]);
+    setSelectedHistoryEntryId(null);
+  }, []);
+
+  // Leaving the history route (showTimeline going false) clears every pinned card and any
+  // open detail view — "pinned cards are cleared when leaving the history route."
+  useEffect(() => {
+    if (!showTimeline) {
+      setPinnedCards([]);
+      setSelectedHistoryEntryId(null);
+    }
+  }, [showTimeline]);
+
+  // Esc closes the front-most pinned card (highest z) — global, since a card's own body
+  // isn't necessarily focused.
+  useEffect(() => {
+    if (!showTimeline) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setPinnedCards(prev => {
+        if (!prev.length) return prev;
+        const front = prev.reduce((a, b) => (b.z > a.z ? b : a));
+        setSelectedHistoryEntryId(sel => (sel === front.id ? null : sel));
+        return prev.filter(p => p.id !== front.id);
+      });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showTimeline]);
   const navigate = useNavigate();
   const location = useLocation();
   const navigation = useNavigation();
@@ -286,7 +352,7 @@ function AtlasShell() {
   useEffect(() => {
     if (!timelineEntries || !historyCanvasRef.current || timelineRef.current) return;
     const timeline = new HistoryTimeline(historyCanvasRef.current, {
-      axis: 'horizontal', entries: timelineEntries, onHover: setHistoryHover
+      axis: 'horizontal', entries: timelineEntries, onHover: setHistoryHover, onEntryClick: handleEntryClick
     });
     timelineRef.current = timeline;
     return () => {
@@ -294,7 +360,16 @@ function AtlasShell() {
       timelineRef.current = null;
       setHistoryHover(null);
     };
+    // handleEntryClick is stable (useCallback, no deps) — the controller is built once per
+    // entries array, same as before this effect took a second callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timelineEntries]);
+
+  /** Keeps the canvas's persistent pinned-entry outline (renderer.ts) in sync with React's
+   *  own pinned-card state, without rebuilding the controller. */
+  useEffect(() => {
+    timelineRef.current?.setPinnedIds(new Set(pinnedCards.map(p => p.id)));
+  }, [pinnedCards]);
 
   /* a theme switch must repaint the canvas — its colours are a getComputedStyle cache
      (renderer.ts's COLORS, overlays.ts's exported palette), not a live CSS lookup */
@@ -391,6 +466,8 @@ function AtlasShell() {
     setArmingCompare(true);
   };
 
+  const historyPinnedIds = useMemo(() => pinnedCards.map(p => p.id), [pinnedCards]);
+
   const canvasClass = [
     'stage__canvas',
     armingCompare ? 'is-picking' : '',
@@ -402,7 +479,8 @@ function AtlasShell() {
     <AtlasContext.Provider
       value={{
         atlas: atlasInstance, quiz, setQuiz, setImmersive, setSheetSnap: setSnap,
-        setTimelineEntries
+        setTimelineEntries,
+        historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId
       }}
     >
     <div className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}`}>
@@ -421,7 +499,7 @@ function AtlasShell() {
           aria-label="Bulgaria history timeline"
         />
 
-        {showTimeline && historyHover && timelineEntries && (
+        {showTimeline && historyHover && timelineEntries && !historyPinnedIds.includes(historyHover.entry.id) && (
           <HistoryCard
             entry={historyHover.entry}
             rect={historyHover.rect}
@@ -432,6 +510,24 @@ function AtlasShell() {
             }}
           />
         )}
+
+        {showTimeline && timelineEntries &&
+          pinnedCards.map(card => (
+            <PinnedHistoryCard
+              key={card.id}
+              entry={card.entry}
+              entries={timelineEntries}
+              initialRect={card.rect}
+              bounds={{
+                width: historyCanvasRef.current?.clientWidth ?? 0,
+                height: historyCanvasRef.current?.clientHeight ?? 0
+              }}
+              zIndex={card.z}
+              onClose={handleCardClose}
+              onFront={handleCardFront}
+              onSeeMore={setSelectedHistoryEntryId}
+            />
+          ))}
 
         {!quiz && !showTimeline && (
           <div className="hud hud--top">

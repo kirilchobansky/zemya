@@ -510,6 +510,29 @@ without also re-hiding events.
   already exists, at the cost of the fade sometimes starting quite early in a wide zoom
   band; no narrower width was specified, so this is the judgement call.
 
+**Pinned cards.** Owner-requested: click (or tap) an entry to pin its card on top of the
+hover card, same content and 280px width, closable and draggable. Click-vs-drag is told
+apart in `timeline.ts` by tracking each pointerdown's client position and hit id
+(`clickCandidate`) and firing `onEntryClick` on the matching pointerup only if it landed
+within 4px and no second pointer joined (so a pinch never fires one) — a threshold
+independent of the existing 3px `DRAG_THRESHOLD_PX`, which gates panning, not clicking.
+Pinned-card React state (`pinnedCards`, `selectedHistoryEntryId`) lives in `atlas.tsx`, not
+the history route, because it must survive `history.bulgaria.tsx`'s own remounts and is
+read by both the canvas overlay and the sidebar; it's cleared whenever `showTimeline` goes
+false, i.e. on leaving the history route entirely. Array order is pin order (never
+reordered by bring-to-front, which only bumps a separate per-card `z`), so "pinning a ninth
+closes the oldest" is just `slice(1)` on that array. `HistoryTimeline.setPinnedIds()` feeds
+the id set into `render()` as `RenderContext.pinnedIds`, drawn as a persistent 1.5px white
+outline (capsules) or ring (event pins) — kept as a separate `else if` from the hover
+outline (2px) rather than drawn underneath it, since both render white and stacking them
+would be invisible. `HistoryCardBody` was factored out of `HistoryCard.tsx`'s per-kind
+switch so the hover card and `PinnedHistoryCard` render identical content from one place.
+The sidebar's entry detail view (`EntryDetail` in `history.bulgaria.tsx`) is deliberately
+unstyled beyond existing `.history-card__*`/`.chip`/`.action` classes — "the bigger layout
+for this comes in a later step" was explicit in the request. `TimelineEntry` gained a
+`tags: readonly string[]` field for that detail view; `catalog.server.ts`'s `RawHistoryEntry`
+already had nowhere to read it from until now even though `bg.json` always carried it.
+
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
 
 | Decision | Choice | Why |

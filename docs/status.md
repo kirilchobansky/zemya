@@ -43,8 +43,8 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   auto-generated events), adding a `period-pre` period and two new optional per-entry
   fields, `category` and `tags`, plus `color` (period band / event dot colour, adopted
   from the JSON's era/category colours) — all three now validated and passed through by
-  `scripts/lib/history.mjs`. `category`/`color` now read by the hover card (below);
-  `tags` still unread by any UI.
+  `scripts/lib/history.mjs`. `category`/`color` read by the hover card; `tags` now read
+  by the pinned card's detail view (below).
 - Hover on the history timeline: `app/lib/history/renderer.ts`'s `render()` records a
   hoverable region per drawn period/ruler/government capsule and event pin (not the
   period colour wash) and returns them; `app/lib/history/timeline.ts` hit-tests the
@@ -54,7 +54,16 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   callback. `app/routes/atlas.tsx` floats `app/components/HistoryCard.tsx` (name, dates,
   role/category/summary per kind — see `app/lib/history/renderer.ts`'s `TimelineEntry`
   for the fields it reads) beside the hovered entry, flipping left/up to stay on screen.
-  No selection or click behaviour yet — hover only.
+  Suppressed for an entry that already has a pinned card (below).
+- Click (or tap) an entry to pin its card on top of the hover card: same content and
+  width, draggable (clamped inside the canvas), closable (× or Esc for the front-most),
+  up to 8 at once (a 9th closes the oldest). State lives in `atlas.tsx`
+  (`pinnedCards`/`selectedHistoryEntryId`), shared with the sidebar through
+  `AtlasContext`; cleared on leaving the history route. Pinned entries get a persistent
+  1.5px white outline on canvas (`HistoryTimeline.setPinnedIds` → `RenderContext.
+  pinnedIds`). A card's "See more" switches the sidebar (`history.bulgaria.tsx`) to a
+  plain, unstyled detail view (full summary, tags, dd.mm.yyyy dates) with a Back button —
+  see `docs/decisions.md`'s "Pinned cards" for the click-vs-drag and stacking mechanics.
 - `scripts/import-rulers.mjs` filled the rest of `content/history/source-bg.html`'s
   ruler/government tables into `bg.yaml` (Second Empire rulers 4.3, Third Kingdom
   monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from

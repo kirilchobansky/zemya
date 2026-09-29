@@ -1,21 +1,24 @@
 /**
- * Floating hover card for the history timeline (app/lib/history/timeline.ts's onHover) —
- * a DOM element positioned beside whatever entry the canvas has under the pointer, since
- * canvas itself can't render crisp, selectable, wrapping text. Mirrors the map's `.tip`
- * (routes/atlas.tsx) in spirit — floated over the canvas, pointer-events: none — but
- * carries real body copy, so it needs its own layout pass rather than a one-line label.
+ * Floating cards for the history timeline: the hover card (app/lib/history/timeline.ts's
+ * onHover) and the pinned card it clicks into (onEntryClick) — both DOM elements
+ * positioned beside whatever entry the canvas has under the pointer, since canvas itself
+ * can't render crisp, selectable, wrapping text. The hover card mirrors the map's `.tip`
+ * (routes/atlas.tsx) in spirit — floated over the canvas, pointer-events: none, no
+ * animation; the pinned card is the same shell (HistoryCardBody) made interactive:
+ * pointer-events: auto, a close button, draggable, stays until closed.
  *
  * Positioning is measured, not guessed: a layout effect reads the rendered card's own
  * height (its width is fixed, but a 3-line-clamped summary still varies in height with
  * font metrics) and flips left/up whenever the naive right/centred placement would run
- * off the canvas — see the effect below.
+ * off the canvas — see the effects below. A pinned card only runs this once, on mount;
+ * afterwards its position is drag state the card owns itself, not re-derived from its rect.
  *
  * Dates read straight off the entry's decimal-year `start`/`end` via scale.ts's
  * dateOfDecimalYear — the exact, `Date`-free inverse of the conversion catalog.server.ts
  * applied on the way in (see that module's own header on why `Date` is never used for an
  * authored date), so this never re-parses the authored YAML text itself.
  */
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { contextAt } from '~/lib/history/layout';
 import type { TimelineEntry } from '~/lib/history/renderer';
@@ -25,7 +28,7 @@ const CARD_WIDTH = 280;
 const GAP_PX = 10;
 const EDGE_MARGIN_PX = 4;
 
-const CATEGORY_LABELS: Readonly<Record<string, string>> = {
+export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
   war: 'War',
   treaty: 'Treaty',
   uprising: 'Uprising',
@@ -46,8 +49,9 @@ function yearLabel(year: number): string {
 }
 
 /** dd.mm.yyyy; year only when the month is unknown; "c. <year>" for circa precision —
- *  see the hover brief. */
-function formatCardDate(t: number, precision: TimelineEntry['precision']): string {
+ *  see the hover brief. Exported for the pinned card's detail panel (routes/
+ *  history.bulgaria.tsx), which formats the same way rather than re-deriving it. */
+export function formatCardDate(t: number, precision: TimelineEntry['precision']): string {
   const d = dateOfDecimalYear(t);
   if (precision === 'circa') return `c. ${yearLabel(d.year)}`;
   if (d.month == null) return yearLabel(d.year);
@@ -99,9 +103,118 @@ export default function HistoryCard({ entry, rect, entries, bounds }: HistoryCar
 
   return (
     <div ref={ref} className="history-card" style={style}>
+      <HistoryCardBody entry={entry} entries={entries} />
+    </div>
+  );
+}
+
+/** The card's content, by entry kind — shared between the hover card above and the
+ *  pinned card below (routes/atlas.tsx), which show identical content, just inside a
+ *  different (draggable, closable) shell. */
+export function HistoryCardBody({ entry, entries }: { entry: TimelineEntry; entries: readonly TimelineEntry[] }) {
+  return (
+    <>
       {entry.kind === 'event' && <EventBody entry={entry} entries={entries} />}
       {(entry.kind === 'ruler' || entry.kind === 'government') && <RulerBody entry={entry} />}
       {entry.kind === 'period' && <PeriodBody entry={entry} />}
+    </>
+  );
+}
+
+function clampPx(x: number, lo: number, hi: number): number {
+  return Math.min(Math.max(x, lo), hi);
+}
+
+export interface PinnedHistoryCardProps {
+  entry: TimelineEntry;
+  /** The whole dataset — passed straight through to HistoryCardBody, see its own doc. */
+  entries: readonly TimelineEntry[];
+  /** The clicked region's rect (same shape as HistoryCardProps.rect) — only used once, to
+   *  place the card the first time it renders; dragging afterwards is the card's own state. */
+  initialRect: { x: number; y: number; w: number; h: number };
+  bounds: { width: number; height: number };
+  /** CSS z-index — atlas.tsx bumps this on pin/click/drag so the card reads as "in front". */
+  zIndex: number;
+  onClose: (id: string) => void;
+  onFront: (id: string) => void;
+  onSeeMore: (id: string) => void;
+}
+
+/**
+ * A pinned, draggable, closable version of the hover card — click-to-pin's on-canvas
+ * result (see app/lib/history/timeline.ts's onEntryClick and CLAUDE.md's "pinned cards"
+ * brief). Positioned the same way HistoryCard is on first render (measured height, flipped
+ * off the canvas edges), then freely draggable by its header or body, clamped inside the
+ * canvas at every step. Bringing to front, closing and "See more" are all owned by the
+ * parent (atlas.tsx) — this component only reports the intent.
+ */
+export function PinnedHistoryCard({ entry, entries, initialRect, bounds, zIndex, onClose, onFront, onSeeMore }: PinnedHistoryCardProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; startClientX: number; startClientY: number; origLeft: number; origTop: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const cardH = el.offsetHeight;
+
+    let left = initialRect.x + initialRect.w + GAP_PX;
+    if (left + CARD_WIDTH > bounds.width - EDGE_MARGIN_PX) left = initialRect.x - CARD_WIDTH - GAP_PX;
+    left = clampPx(left, EDGE_MARGIN_PX, bounds.width - CARD_WIDTH - EDGE_MARGIN_PX);
+
+    let top = initialRect.y + initialRect.h / 2 - cardH / 2;
+    if (top + cardH > bounds.height - EDGE_MARGIN_PX) top = initialRect.y - cardH - GAP_PX;
+    top = clampPx(top, EDGE_MARGIN_PX, bounds.height - cardH - EDGE_MARGIN_PX);
+
+    setPos({ left, top });
+    // Placed once, on mount — a card instance is keyed by entry id (atlas.tsx), so this
+    // never needs to re-run for the same card; afterwards its position is its own drag state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    onFront(entry.id);
+    if ((e.target as HTMLElement).closest('button') || !pos || !ref.current) return;
+    ref.current.setPointerCapture(e.pointerId);
+    dragRef.current = { pointerId: e.pointerId, startClientX: e.clientX, startClientY: e.clientY, origLeft: pos.left, origTop: pos.top };
+  };
+
+  const onDragMove = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId || !ref.current) return;
+    const cardH = ref.current.offsetHeight;
+    const left = clampPx(drag.origLeft + (e.clientX - drag.startClientX), 0, Math.max(0, bounds.width - CARD_WIDTH));
+    const top = clampPx(drag.origTop + (e.clientY - drag.startClientY), 0, Math.max(0, bounds.height - cardH));
+    setPos({ left, top });
+  };
+
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="pinned-card"
+      style={{ left: pos?.left ?? initialRect.x, top: pos?.top ?? initialRect.y, visibility: pos ? 'visible' : 'hidden', zIndex }}
+      onPointerDown={startDrag}
+      onPointerMove={onDragMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
+      <div className="pinned-card__header">
+        <button type="button" className="pinned-card__close" aria-label="Close" onClick={() => onClose(entry.id)}>
+          ×
+        </button>
+      </div>
+      <div className="pinned-card__body">
+        <HistoryCardBody entry={entry} entries={entries} />
+      </div>
+      <div className="pinned-card__footer">
+        <button type="button" className="pinned-card__see-more" onClick={() => onSeeMore(entry.id)}>
+          See more
+        </button>
+      </div>
     </div>
   );
 }

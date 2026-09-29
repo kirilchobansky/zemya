@@ -26,6 +26,7 @@ interface RawHistoryEntry {
   category: string | null;
   color: string | null;
   blurb: { bg: string; en: string };
+  tags: string[];
 }
 
 interface RawHistoryDoc {
@@ -88,7 +89,8 @@ function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
     blurbBg: raw.blurb.bg,
     category: raw.category,
     color: raw.color,
-    precision: raw.precision
+    precision: raw.precision,
+    tags: raw.tags
   };
 }
 

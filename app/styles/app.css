@@ -458,6 +458,68 @@ a {
   font-size: 11px;
 }
 
+/* Pinned version of the same card (components/HistoryCard.tsx's PinnedHistoryCard) —
+   same tone and 280px width as .history-card, but interactive: draggable, a close button,
+   pointer-events enabled. touch-action: none so pointer-capture dragging works on touch. */
+.pinned-card {
+  position: absolute;
+  width: 280px;
+  border-radius: var(--radius);
+  background: rgb(var(--chart-rgb) / 96%);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  line-height: 1.4;
+  pointer-events: auto;
+  touch-action: none;
+}
+.pinned-card__header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 6px 0;
+  cursor: move;
+}
+.pinned-card__body {
+  padding: 2px 12px 8px;
+  cursor: move;
+}
+.pinned-card__footer {
+  padding: 0 12px 10px;
+}
+.pinned-card__close {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--ink-3);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pinned-card__close:hover {
+  background: var(--chart-2);
+  color: var(--ink);
+}
+.pinned-card__see-more {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+.pinned-card__see-more:hover {
+  color: var(--ink);
+  border-color: var(--sea-dim);
+}
+
 .toolbar {
   display: flex;
   gap: 4px;
