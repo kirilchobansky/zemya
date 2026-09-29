@@ -17,8 +17,7 @@
  */
 import { contextAt } from './layout';
 import {
-  historyLayoutStillAnimating, render, type Axis, type HitRegion, type PinnedCardTarget, type RenderContext,
-  type TimelineEntry
+  render, type Axis, type HitRegion, type PinnedCardTarget, type RenderContext, type TimelineEntry
 } from './renderer';
 import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type EntryKind, type TimeRange, type Viewport } from './scale';
 
@@ -83,21 +82,6 @@ const FLY_DURATION_MS = 500;
 const PULSE_DURATION_MS = 1500;
 /** onPeriodChange's own throttle — "at most 5 updates per second." */
 const PERIOD_CHANGE_THROTTLE_MS = 200;
-/** Smoothing time constant (ms) for layoutVelocity, same `rate = 1 - exp(-dt/MS)` shape as
- *  CYLINDER_EASE_MS — so one noisy frame's delta doesn't trip (or release) the wire/lane
- *  layout freeze on its own (renderer.ts's RenderContext.layoutFrozen). */
-const LAYOUT_VELOCITY_SMOOTH_MS = 120;
-/** Below this, layoutVelocity is treated as settled and stops re-requesting frames on its
- *  own — mirrors CYLINDER_EASE_EPSILON. */
-const LAYOUT_VELOCITY_EPSILON = 0.02;
-/** Combined pan+zoom speed above which the wire/lane layout freezes (renderer.ts's
- *  animatedWireLayout) — "freeze the lane assignment... while velocity is high," item 3 of
- *  the layout-stability brief. Units: px/ms of centre movement, plus a log-scale zoom-rate
- *  term weighted to read as roughly comparable (see updateLayoutVelocity) — a judgement
- *  call on the exact threshold, tuned to sit above ordinary deliberate panning and below a
- *  fast drag/fling/pinch. */
-const LAYOUT_FREEZE_VELOCITY = 1.4;
-
 export interface TimelineOptions {
   axis: Axis;
   entries: TimelineEntry[];
@@ -157,13 +141,6 @@ export class HistoryTimeline {
    *  directly, except on the very first frame (null means "not yet initialised"). */
   private cylinderFrac: number | null = null;
   private lastAnimationFrameTime = 0;
-
-  /** Combined pan+zoom "speed" this frame, smoothed — see LAYOUT_FREEZE_VELOCITY and
-   *  updateLayoutVelocity. Drives RenderContext.layoutFrozen. */
-  private layoutVelocity = 0;
-  private layoutVelocityLastTime = 0;
-  private layoutVelocityLastCenter = 0;
-  private layoutVelocityLastPxPerYear = 0;
 
   private resizeObserver: ResizeObserver;
   /** Renders are requested, never issued from an event handler — at most one per
@@ -333,8 +310,7 @@ export class HistoryTimeline {
       pinnedIds: this.pinnedIds,
       pulseId: this.pulse?.id ?? null,
       pulseElapsedMs: this.pulse ? performance.now() - this.pulse.startTime : 0,
-      pinnedCards: this.pinnedCardTargets,
-      layoutFrozen: this.layoutVelocity > LAYOUT_FREEZE_VELOCITY
+      pinnedCards: this.pinnedCardTargets
     };
   }
 
@@ -478,38 +454,8 @@ export class HistoryTimeline {
     this.updateCylinderAnimation();
     this.updateFlyAnimation();
     this.updatePulse();
-    this.updateLayoutVelocity();
     this.hits = render(this.renderContext, this.entries);
-    if (historyLayoutStillAnimating()) this.draw();
     this.reportPeriod();
-  }
-
-  /** Updates layoutVelocity from how far the viewport itself moved since the last frame —
-   *  centre panning converted to px (via the CURRENT pxPerYear, so it reads consistently
-   *  across zoom levels) plus a log-scale zoom-rate term (pxPerYear changes
-   *  multiplicatively, not additively, so a raw delta would read very differently at
-   *  opposite ends of the zoom range). Smoothed exponentially, same shape as
-   *  updateCylinderAnimation, so a single noisy frame doesn't trip/release the freeze on
-   *  its own. Keeps asking for frames (draw()) while still decaying, so a fast fling that
-   *  ends with no further input still relaxes out of the frozen state on its own rather
-   *  than staying frozen until the next gesture. */
-  private updateLayoutVelocity(): void {
-    const now = performance.now();
-    if (this.layoutVelocityLastTime) {
-      const dt = Math.max(now - this.layoutVelocityLastTime, 1);
-      const panPxPerMs = Math.abs(this.viewport.center - this.layoutVelocityLastCenter) * this.viewport.pxPerYear / dt;
-      const zoomPerMs = Math.abs(Math.log(this.viewport.pxPerYear) - Math.log(this.layoutVelocityLastPxPerYear)) / dt;
-      // A log-scale zoom rate of 1/ms (pxPerYear changing by a factor of e every
-      // millisecond — an extreme pinch) is weighted to read as roughly as "fast" as
-      // 800px/ms of panning; both are judgement calls, not measured equivalences.
-      const raw = panPxPerMs + zoomPerMs * 800;
-      const rate = 1 - Math.exp(-dt / LAYOUT_VELOCITY_SMOOTH_MS);
-      this.layoutVelocity += (raw - this.layoutVelocity) * rate;
-    }
-    this.layoutVelocityLastTime = now;
-    this.layoutVelocityLastCenter = this.viewport.center;
-    this.layoutVelocityLastPxPerYear = this.viewport.pxPerYear;
-    if (this.layoutVelocity > LAYOUT_VELOCITY_EPSILON) this.draw();
   }
 
   /* ------------------------------------------------------------------------------- fly-to */

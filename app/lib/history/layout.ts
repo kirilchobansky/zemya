@@ -154,6 +154,22 @@ export function assignRows(entries: readonly LayoutEntry[]): Map<string, number>
   return rows;
 }
 
+/**
+ * How many sub-rows each kind needs to reserve, computed once from the WHOLE dataset (same
+ * input as assignRows, whose row assignment this reuses) — never from what's currently on
+ * screen. A kind with zero entries still reserves 1 (its lane stays visible as an empty
+ * track rather than collapsing). Stable across pan/zoom for the same reason assignRows is:
+ * it depends only on entries' dates, never on the viewport.
+ */
+export function laneSubRowCounts(entries: readonly LayoutEntry[]): Record<EntryKind, number> {
+  const rows = assignRows(entries);
+  const counts: Record<EntryKind, number> = { period: 1, ruler: 1, government: 1, event: 1 };
+  for (const e of entries) {
+    counts[e.kind] = Math.max(counts[e.kind], (rows.get(e.id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 /* --------------------------------------------------------------------------------- density */
 
 /**
