@@ -234,6 +234,50 @@ function clampToMargin(px: number, sizePx: number, margin: number): number {
  *  entirely. */
 const PULSE_CYCLE_MS = 260;
 
+/** Time constant (ms) for a capsule's own focus-expansion scale — "animate with easing"
+ *  instead of snapping, mirroring timeline.ts's CYLINDER_EASE_MS/updateCylinderAnimation
+ *  exactly (`rate = 1 - exp(-dt / MS)`). */
+const FOCUS_EASE_MS = 120;
+
+function nowMs(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+/** Cross-frame easing state for drawWireCapsules' focus expansion, keyed by entry id.
+ *  Module-level, not part of RenderContext, because render() is otherwise a stateless
+ *  per-frame function with no instance of its own to hold it on — safe because only one
+ *  history timeline ever renders at a time (single canvas route). Holds only entries
+ *  currently mid-transition; one that reaches its resting scale (1, unfocused) is dropped
+ *  rather than tracked forever. */
+const focusScales = new Map<string, number>();
+let focusScalesLastTime = 0;
+
+/**
+ * Eases every tracked capsule's own scale toward RENDER_CONFIG.capsuleFocusScale (the one
+ * whose id === expandId, "the" focus target this frame — see render()) or back down to 1
+ * (everything else, including whatever held the focus a moment ago), over FOCUS_EASE_MS.
+ * Returns the live map read back by drawWireCapsules; an id absent from it is simply 1
+ * (never expanded, or its own ease-out already finished).
+ */
+function updateFocusScales(expandId: string | null): ReadonlyMap<string, number> {
+  const now = nowMs();
+  const dt = focusScalesLastTime ? Math.min(now - focusScalesLastTime, 100) : 100;
+  focusScalesLastTime = now;
+  const rate = 1 - Math.exp(-dt / FOCUS_EASE_MS);
+
+  if (expandId && !focusScales.has(expandId)) focusScales.set(expandId, 1);
+  for (const [id, scale] of focusScales) {
+    const target = id === expandId ? RENDER_CONFIG.capsuleFocusScale : 1;
+    const next = scale + (target - scale) * rate;
+    if (id !== expandId && Math.abs(next - 1) < 0.002) {
+      focusScales.delete(id);
+    } else {
+      focusScales.set(id, next);
+    }
+  }
+  return focusScales;
+}
+
 /** The pulse's own opacity at `elapsedMs` since it started: oscillates between 0.35 and 1
  *  on a sine wave — never fully invisible, so the outline stays a smooth "pulse" rather
  *  than a blink. */
@@ -636,13 +680,18 @@ function drawWireRails(ctx: CanvasRenderingContext2D, axis: Axis, sizePx: number
  * inside, clipped and truncated to the capsule's own width. A capsule wider than the
  * viewport (classifySpan's "pinned" mode) still draws spanning the whole width, so it
  * never disappears just because neither of its own ends is on screen. The one entry whose
- * span contains the centre date (`focusId`) draws larger and brighter than its siblings on
- * the same wire — "the current focus." Events are pins, not capsules — see drawEventPins.
+ * span contains the centre date (`focusId`) draws bolder/outlined than its siblings on the
+ * same wire — "the current focus" — but only the SINGLE entry across every wire named by
+ * `focusScales` (render()'s `expandId`, eased frame to frame) actually grows in size; every
+ * other active entry gets that same bold/outline treatment with no size change at all, "a
+ * subtle highlight" rather than a second expansion. Events are pins, not capsules — see
+ * drawEventPins.
  */
 function drawWireCapsules(
   ctx: CanvasRenderingContext2D, axis: Axis, uiFont: string, kind: EntryKind,
   entries: readonly TimelineEntry[], rows: ReadonlyMap<string, number>, viewport: Viewport,
-  wire: WireLayout, focusId: string | null, hoveredId: string | null, pinnedIds: ReadonlySet<string>,
+  wire: WireLayout, focusId: string | null, focusScales: ReadonlyMap<string, number>,
+  hoveredId: string | null, pinnedIds: ReadonlySet<string>,
   pulseId: string | null, pulseElapsedMs: number, hits: HitRegion[]
 ): void {
   const { dim, bright, stroke } = kindCapsuleColors(kind);
@@ -660,10 +709,20 @@ function drawWireCapsules(
     const baseHeight = Math.max(4, wire.rowHeight - RENDER_CONFIG.capsuleGapPx);
 
     for (const e of rowEntries) {
-      const isFocus = e.id === focusId;
+      // isActive: this row's own "current" entry (contains the centre date) — a subtle
+      // highlight (bold text, brighter/thicker outline below), independent of expansion.
+      // scale: this entry's own eased focus-expansion factor (1 = unfocused); at most ONE
+      // entry across every wire is ever mid-expansion or fully expanded at a time — see
+      // render()'s expandId and updateFocusScales.
+      const isActive = e.id === focusId;
       const isHovered = e.id === hoveredId;
-      const h = Math.min(wire.height, baseHeight * (isFocus ? RENDER_CONFIG.capsuleFocusScale : 1));
-      const fontPx = Math.min(RENDER_CONFIG.capsuleMaxFontPx, baseFontPx * (isFocus ? 1.12 : 1));
+      const scale = focusScales.get(e.id) ?? 1;
+      // Clamped to this row's OWN lane (never the wire's full height, which spans every
+      // sub-row) so an expanding capsule can never grow into a neighbouring lane.
+      const maxH = wire.rowHeight - RENDER_CONFIG.capsuleGapPx;
+      const h = Math.min(maxH, baseHeight * scale);
+      const growth = clamp((scale - 1) / (RENDER_CONFIG.capsuleFocusScale - 1), 0, 1);
+      const fontPx = Math.min(RENDER_CONFIG.capsuleMaxFontPx, baseFontPx * (1 + growth * 0.12));
       const cross0 = rowMid - h / 2;
       const cross1 = rowMid + h / 2;
 
@@ -696,18 +755,21 @@ function drawWireCapsules(
       const g1 = project(axis, fromPx, cross1);
       const grad = ctx.createLinearGradient(g0.x, g0.y, g1.x, g1.y);
       // Hover brightens the whole gradient by lightening both stops toward white — a
-      // visible "lit up" state distinct from isFocus's own bigger/bolder treatment.
+      // visible "lit up" state distinct from isActive's own bolder/outlined treatment.
       grad.addColorStop(0, isHovered ? shade(dim, -0.18) : dim);
       grad.addColorStop(0.5, isHovered ? shade(bright, -0.18) : bright);
       grad.addColorStop(1, isHovered ? shade(dim, -0.18) : dim);
       ctx.fillStyle = grad;
       ctx.fill();
-      ctx.lineWidth = isFocus ? 1.5 : 1;
-      // period's own focus highlight is its lightened `bright` fill tone; ruler/
+      ctx.lineWidth = isActive ? 1.5 : 1;
+      // period's own active highlight is its lightened `bright` fill tone; ruler/
       // government/event always outline in their bright accent hue (the fill itself is
       // now a dark shade of that hue, purely so it's never used for the outline) — that
-      // one accent colour doubles as the centre-focus highlight, isFocus only thickens it.
-      ctx.strokeStyle = kind === 'period' ? (isFocus ? bright : stroke) : stroke;
+      // one accent colour doubles as the active highlight, isActive only thickens it. This
+      // is the "subtle highlight" every active (centre-containing) entry gets regardless of
+      // which single one is actually expanded (see the isExpanded-only size/font growth
+      // above and drawWireCapsules' own header comment).
+      ctx.strokeStyle = kind === 'period' ? (isActive ? bright : stroke) : stroke;
       ctx.stroke();
       if (isHovered) {
         ctx.lineWidth = 2;
@@ -745,7 +807,7 @@ function drawWireCapsules(
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        ctx.font = `${isFocus ? 700 : 500} ${fontPx}px ${uiFont}`;
+        ctx.font = `${isActive ? 700 : 500} ${fontPx}px ${uiFont}`;
         const nameText = truncateToFit(ctx, e.label, availableTextPx);
 
         if (showRole) {
@@ -1131,6 +1193,25 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
     ...(focus.government.primary ? { government: focus.government.primary.id } : {})
   };
 
+  // The single capsule (across every wire) that actually gets the focus-EXPANSION this
+  // frame — the hovered one if the pointer is over a capsule at all, "or if nothing is
+  // hovered, the one closest to the viewport centre." Every focusIds entry already
+  // contains the centre date (contextAt only returns containing entries), so they're all
+  // equally "at" it; the narrowest one (shortest start–end span) reads as most precisely
+  // centred, so it wins the tie. Everything else in focusIds still gets drawWireCapsules'
+  // own isActive highlight, just no size change — see that function's header comment.
+  const capsuleIds = new Set([...visibleByKind.period, ...visibleByKind.ruler, ...visibleByKind.government].map(e => e.id));
+  let expandId: string | null = hoveredId && capsuleIds.has(hoveredId) ? hoveredId : null;
+  if (!expandId) {
+    const active = Object.values(focusIds)
+      .map(id => entries.find(e => e.id === id))
+      .filter((e): e is TimelineEntry => e != null);
+    if (active.length > 0) {
+      expandId = active.reduce((best, e) => (e.end ?? Infinity) - e.start < (best.end ?? Infinity) - best.start ? e : best).id;
+    }
+  }
+  const focusScales = updateFocusScales(expandId);
+
   const hits: HitRegion[] = [];
   const level = levelFor(viewport.pxPerYear);
   for (const kind of WIRE_ORDER) {
@@ -1141,7 +1222,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
       continue;
     }
     drawWireRails(ctx, axis, viewport.sizePx, wire, kindCapsuleColors(kind).stroke);
-    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
+    drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, focusIds[kind] ?? null, focusScales, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
   }
 
   drawTopTicks(ctx, axis, monoFont, viewport, cylinderTop);
