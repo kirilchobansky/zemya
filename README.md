@@ -63,6 +63,12 @@ Zemya is an interactive atlas built for learning, not for looking things up. Eve
 | **Build & test** | Vite · Vitest · Playwright                                    |
 | **Hosting**      | Vercel (static files)                                         |
 
+## 📊 Analytics
+
+Vercel Web Analytics and Speed Insights are enabled (`@vercel/analytics`,
+`@vercel/speed-insights`, rendered in [app/root.tsx](app/root.tsx)). They collect page views
+and performance timings only — no cookies, no personal data.
+
 ## 🚀 Getting Started
 
 ```bash
