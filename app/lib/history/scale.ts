@@ -55,11 +55,6 @@ export const CONFIG = {
    *  granularity with comfortably spaced labels. Distinct from zoomThresholds' day entry
    *  (that's where day ticks switch ON, not a camera limit) — see clampPxPerYear. */
   maxPxPerYear: 20000,
-  /** The cylinder's own height, as a fraction of the canvas's cross-axis size — "about
-   *  12% at maximum zoom-out, up to about 85% at day-level zoom" — see
-   *  cylinderThicknessFraction below. */
-  minCylinderThicknessFrac: 0.5,
-  maxCylinderThicknessFrac: 0.88,
   /**
    * Highest entry.tier visible per (zoom level, entry kind). 0 means "never at this
    * level, regardless of tier". Only the `event` column is consulted by the actual render
@@ -291,28 +286,6 @@ export function clampCenter(center: number, pxPerYear: number, sizePx: number, r
   if (visibleSpan >= span) return (range.from + range.to) / 2;
   const half = visibleSpan / 2;
   return Math.min(Math.max(center, range.from + half), range.to - half);
-}
-
-/**
- * How much of the canvas's cross-axis the cylinder occupies, as a fraction, given the
- * current zoom (`pxPerYear`) and the zoom range it can ever take (`minPxPerYear` —
- * whatever currently fills the viewport with the whole content range, so this varies with
- * window size — to `CONFIG.maxPxPerYear`, the fixed day-level ceiling). Interpolates on a
- * LOG scale (zoom is multiplicative, not additive — the century-to-decade jump and the
- * month-to-day jump should feel like comparable "amounts of zoom") between
- * `minCylinderThicknessFrac` and `maxCylinderThicknessFrac`, smoothstep-eased so the curve
- * itself has no kink — the caller (HistoryTimeline) is what turns this into a
- * frame-to-frame animation; this function alone is a pure snapshot for a given pxPerYear.
- */
-export function cylinderThicknessFraction(pxPerYear: number, minPxPerYear: number, maxPxPerYear: number): number {
-  const { minCylinderThicknessFrac: minFrac, maxCylinderThicknessFrac: maxFrac } = CONFIG;
-  if (!(maxPxPerYear > minPxPerYear)) return minFrac;
-  const lo = Math.log(Math.max(minPxPerYear, 1e-6));
-  const hi = Math.log(Math.max(maxPxPerYear, minPxPerYear * 1.0001));
-  const x = Math.log(Math.min(Math.max(pxPerYear, minPxPerYear), maxPxPerYear));
-  const t = (x - lo) / (hi - lo);
-  const eased = t * t * (3 - 2 * t); // smoothstep
-  return minFrac + eased * (maxFrac - minFrac);
 }
 
 /* -------------------------------------------------------------------------------- visibility */

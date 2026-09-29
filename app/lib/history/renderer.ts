@@ -5,9 +5,10 @@
  * the 1D time axis instead of the 2D Mercator world.
  *
  * "Calm and dark" look: a flat vertical page-background gradient (drawBackground), a
- * single full-width content band, vertically centred, that grows and shrinks with zoom
- * (HistoryTimeline eases its thickness frame to frame — this module just draws whatever
- * thickness it's handed). Everything except the centre date readout lives INSIDE it: year
+ * single full-width content band, vertically centred and completely static — same size,
+ * same position at every zoom level and pan position, a pure function of the lane layout
+ * (see totalWiresHeightPx/layoutWires), never of viewport.pxPerYear. Everything except the
+ * centre date readout lives INSIDE it: year
  * ticks on top, then horizontal "wires" stacked by duration (periods, rulers, governments,
  * events), each drawn as its own translucent rounded lane track (drawLaneTrack) with
  * entries as flat rounded capsules sitting inside it — no 3D gradients, highlights or
@@ -163,8 +164,8 @@ export const RENDER_CONFIG = {
   /** Inset so two adjacent capsules never visually touch. */
   capsuleGapPx: 5,
   capsuleHPad: 10,
-  capsuleMinFontPx: 11,
-  capsuleMaxFontPx: 26,
+  capsuleMinFontPx: 14,
+  capsuleMaxFontPx: 33,
   /** Fixed corner radius for a capsule's rounded rect — no longer a full pill (radius =
    *  half the short side); capped by the capsule's own half-width/height so a very small
    *  capsule still draws cleanly. */
@@ -187,11 +188,11 @@ export const RENDER_CONFIG = {
   pinHeightFracByTier: { 1: 1, 2: 0.65, 3: 0.4 } as Readonly<Record<number, number>>,
   pinDotRadiusPx: 2.5,
   pinLabelGapPx: 5,
-  /** Event label font size by zoom level — grows from decade zoom (11px) to month zoom
-   *  and finer (16px); millennium/century read the same as decade (nothing finer to grow
+  /** Event label font size by zoom level — grows from decade zoom (14px) to month zoom
+   *  and finer (20px); millennium/century read the same as decade (nothing finer to grow
    *  into yet), year sits at the midpoint — a judgement call on the exact curve. */
   pinLabelFontPxByLevel: {
-    millennium: 11, century: 11, decade: 11, year: 13, month: 16, day: 16
+    millennium: 14, century: 14, decade: 14, year: 16, month: 20, day: 20
   } as Readonly<Record<ZoomLevel, number>>
 } as const;
 
@@ -199,11 +200,13 @@ export const RENDER_CONFIG = {
  *  shortest (a single moment). Fixed, mirrors scale.ts's KIND_RANK. */
 const WIRE_ORDER: readonly EntryKind[] = ['period', 'ruler', 'government', 'event'];
 
-/** Fixed row height (px) for every non-period lane — "every lane has ONE fixed height per
- *  lane," constant at every zoom level. Events get the tallest row: a pin's label can carry
- *  a second, smaller exact-date line (drawEventPins) that rulers/governments don't. Period
- *  has no entry here — its row height is periodHeightPx's own zoom-only curve instead. */
-const ROW_HEIGHT_BY_KIND: Readonly<Partial<Record<EntryKind, number>>> = { ruler: 36, government: 36, event: 52 };
+/** Fixed row height (px) for every lane, including period — "every lane has ONE fixed
+ *  height," constant at every zoom level and never dependent on the cylinder's own size.
+ *  Events get the tallest row: a pin's label can carry a second, smaller exact-date line
+ *  (drawEventPins) that rulers/governments don't. Values are the original constants raised
+ *  ~25% (ruler/government 36 -> 45, event 52 -> 65, period 48 -> 60) now that the cylinder
+ *  itself is a fixed size rather than shrinking lanes to fit an eased container. */
+const ROW_HEIGHT_BY_KIND: Readonly<Record<EntryKind, number>> = { period: 60, ruler: 45, government: 45, event: 65 };
 
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(Math.max(x, lo), hi);
@@ -238,8 +241,7 @@ function clampToMargin(px: number, sizePx: number, margin: number): number {
 const PULSE_CYCLE_MS = 260;
 
 /** Time constant (ms) for a capsule/pin's own idle↔active blend — "animate active/idle
- *  changes with about 120ms easing," mirroring timeline.ts's CYLINDER_EASE_MS/
- *  updateCylinderAnimation exactly (`rate = 1 - exp(-dt / MS)`). */
+ *  changes with about 120ms easing" (`rate = 1 - exp(-dt / MS)`). */
 const ACTIVE_EASE_MS = 120;
 
 function nowMs(): number {
@@ -293,36 +295,15 @@ function pulseAlpha(elapsedMs: number): number {
 
 /** A ZoomLevel's own pxPerYear threshold, read off CONFIG.zoomThresholds — the one place
  *  this module borrows the zoom ladder's own anchors instead of hardcoding a duplicate
- *  number, for periodHeightPx and eventTierReveal below. */
+ *  number, for eventTierReveal below. */
 function pxPerYearThresholdFor(level: ZoomLevel): number {
   return CONFIG.zoomThresholds.find(t => t.level === level)?.minPxPerYear ?? 0;
 }
 
-const PERIOD_HERO_PX = 160;
-const PERIOD_SLIM_PX = 48;
-
-/**
- * Period row height in px — the one lane whose height is a function of zoom at all: "the
- * hero" at maximum zoom-out (160px), log-interpolated smoothly down to its slim minimum
- * (48px) by the time pxPerYear reaches decade zoom, then held there for every zoom past it.
- * Anchored to the century and decade pxPerYear thresholds (not a fixed pixel range) so the
- * curve tracks the same zoom ladder as everything else here, and eases on a log scale (zoom
- * is multiplicative) the same way cylinderThicknessFraction (scale.ts) does. A pure function
- * of pxPerYear alone — never of what's currently visible or how many periods overlap.
- */
-function periodHeightPx(pxPerYear: number): number {
-  const lo = pxPerYearThresholdFor('century');
-  const hi = pxPerYearThresholdFor('decade');
-  if (!(hi > lo)) return PERIOD_SLIM_PX;
-  const x = clamp(pxPerYear, lo, hi);
-  const t = (Math.log(x) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
-  return PERIOD_HERO_PX + smoothstep(t) * (PERIOD_SLIM_PX - PERIOD_HERO_PX);
-}
-
-/** Every lane's own row height at this zoom — period's is the zoom-varying curve above,
- *  every other kind's is its own fixed constant (ROW_HEIGHT_BY_KIND), unaffected by zoom. */
-function rowHeightFor(kind: EntryKind, pxPerYear: number): number {
-  return kind === 'period' ? periodHeightPx(pxPerYear) : (ROW_HEIGHT_BY_KIND[kind] ?? 36);
+/** Every lane's own row height — a fixed constant per kind (ROW_HEIGHT_BY_KIND), the same
+ *  at every zoom level and independent of the cylinder's own size. */
+function rowHeightFor(kind: EntryKind): number {
+  return ROW_HEIGHT_BY_KIND[kind];
 }
 
 /** The coarsest ZoomLevel at which `tier` first becomes fully visible, per
@@ -567,22 +548,22 @@ interface WireLayout {
  * One row per kind, ALWAYS, in duration order (WIRE_ORDER) — a kind reserves its lane
  * whether or not anything of that kind is on screen right now, so a lane never collapses,
  * hides or fades for lack of visible items ("empty lanes stay visible as a faint empty
- * track"). A pure function of pxPerYear (period's own row height, rowHeightFor) and
- * `subRowCounts` (laneSubRowCounts, computed once from the whole dataset by the caller,
- * never from what's currently visible) — nothing here depends on the viewport's pan
- * position or on which entries are on screen, so the whole wire/lane structure is stable
- * while panning; only entries' own along-axis position moves (drawWireCapsules/
- * drawEventPins, via classifySpan/timeToPx). Each lane's total height is simply its own
- * fixed row height times its own fixed sub-row count — no lane ever stretches to fill
- * spare space, and no capsule ever stretches to fill its lane (drawWireCapsules always
- * draws at rowHeightFor's own height, never wire.height itself when subRows > 1).
+ * track"). A pure function of `subRowCounts` (laneSubRowCounts, computed once from the
+ * whole dataset by the caller, never from what's currently visible) — nothing here depends
+ * on zoom, the viewport's pan position, or which entries are on screen, so the whole
+ * wire/lane structure (and the cylinder it's held in) is completely static; only entries'
+ * own along-axis position moves (drawWireCapsules/drawEventPins, via classifySpan/
+ * timeToPx). Each lane's total height is simply its own fixed row height times its own
+ * fixed sub-row count — no lane ever stretches to fill spare space, and no capsule ever
+ * stretches to fill its lane (drawWireCapsules always draws at rowHeightFor's own height,
+ * never wire.height itself when subRows > 1).
  */
-function layoutWires(subRowCounts: Readonly<Record<EntryKind, number>>, contentTop: number, pxPerYear: number): Record<EntryKind, WireLayout> {
+function layoutWires(subRowCounts: Readonly<Record<EntryKind, number>>, contentTop: number): Record<EntryKind, WireLayout> {
   const out = {} as Record<EntryKind, WireLayout>;
   let top = contentTop;
   for (const kind of WIRE_ORDER) {
     const subRows = Math.max(1, subRowCounts[kind] ?? 1);
-    const rowHeight = rowHeightFor(kind, pxPerYear);
+    const rowHeight = rowHeightFor(kind);
     const height = rowHeight * subRows;
     out[kind] = { top, height, rowHeight, subRows };
     top += height + RENDER_CONFIG.wireGap;
@@ -590,14 +571,13 @@ function layoutWires(subRowCounts: Readonly<Record<EntryKind, number>>, contentT
   return out;
 }
 
-/** The total px height every lane together needs at this zoom — what render() grows the
- *  cylinder to fit (see RENDER_CONFIG.tickStripHeight's own use there), so the fixed-height
- *  lanes above are never cramped or clipped regardless of how big the animated cylinder
- *  band itself happens to be this frame. */
-function totalWiresHeightPx(subRowCounts: Readonly<Record<EntryKind, number>>, pxPerYear: number): number {
+/** The total px height every lane together needs — a constant per dataset shape
+ *  (`subRowCounts`), never a function of zoom. This IS the cylinder's own thickness (see
+ *  render()) rather than a floor some separately-animated size is grown to fit. */
+function totalWiresHeightPx(subRowCounts: Readonly<Record<EntryKind, number>>): number {
   let total = RENDER_CONFIG.wireGap * (WIRE_ORDER.length - 1);
   for (const kind of WIRE_ORDER) {
-    total += rowHeightFor(kind, pxPerYear) * Math.max(1, subRowCounts[kind] ?? 1);
+    total += rowHeightFor(kind) * Math.max(1, subRowCounts[kind] ?? 1);
   }
   return total;
 }
@@ -1089,11 +1069,7 @@ export interface RenderContext {
   dpr: number;
   uiFont: string;
   monoFont: string;
-  /** The cylinder's current height, in px — HistoryTimeline's own eased animation target,
-   *  already resolved to a concrete number by the time this reaches render(). */
-  cylinderThicknessPx: number;
-  /** [earliest authored entry, today] — draws the out-of-range fade/labels and (via
-   *  minPxPerYear upstream) is what the cylinder's growth curve is normalised against. */
+  /** [earliest authored entry, today] — draws the out-of-range fade/labels. */
   contentRange: TimeRange;
   /** The id of the entry timeline.ts's hit-testing currently has under the pointer, or
    *  null — the one capsule/pin drawn brighter + outlined (see drawWireCapsules/
@@ -1125,16 +1101,16 @@ export interface RenderContext {
  * WHOLE dataset — row assignment and the focus lookup both need it complete; this
  * function culls to what's on screen itself, per draw call, via rangeVisible (time-range
  * only, no tier check — period/ruler/government are always drawn; events tier-fade at
- * draw time instead, see drawEventPins/eventTierReveal). Zoom changes label detail (text
- * fit, pin fonts) and, for period, its own wire's share of the height — never whether an
- * entry is there at all.
+ * draw time instead, see drawEventPins/eventTierReveal). Zoom changes label detail only
+ * (text fit, pin fonts) — the cylinder and every lane inside it are a fixed size, never
+ * whether an entry is there at all.
  *
  * Returns every hoverable region drawn this frame (capsules and pins, not the period
  * colour wash) — app/lib/history/timeline.ts keeps the latest array and hit-tests the
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -1144,20 +1120,19 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
 
   const rows = assignRows(entries);
   const subRowCounts = laneSubRowCounts(entries);
-  // The lanes' own fixed-height layout (layoutWires) needs a cylinder tall enough to hold
-  // it in full, whatever size the eased, purely zoom-driven cylinderThicknessPx (timeline.ts)
-  // happens to be this frame — never the other way around, or a fixed-height lane could get
-  // clipped by a cylinder that hadn't finished easing to size yet.
-  const requiredThickness = RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop
-    + RENDER_CONFIG.wirePaddingBottom + totalWiresHeightPx(subRowCounts, viewport.pxPerYear);
-  const thickness = Math.max(requiredThickness, cylinderThicknessPx);
+  // The cylinder is completely static: same size, same centred position at every zoom
+  // level and every pan position — a pure function of the lane layout (subRowCounts, which
+  // depends only on the dataset's own shape), never of viewport.pxPerYear or any eased
+  // animation target.
+  const thickness = RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop
+    + RENDER_CONFIG.wirePaddingBottom + totalWiresHeightPx(subRowCounts);
   const cylinderTop = crossSizePx / 2 - thickness / 2;
   const cylinderBottom = cylinderTop + thickness;
 
   drawOutOfRangeFade(ctx, axis, monoFont, viewport, cylinderTop, cylinderBottom, contentRange);
 
   const contentTop = cylinderTop + RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop;
-  const wires = layoutWires(subRowCounts, contentTop, viewport.pxPerYear);
+  const wires = layoutWires(subRowCounts, contentTop);
   const contentBottom = wires.event.top + wires.event.height;
 
   const visible = rangeVisible(entries, viewport);

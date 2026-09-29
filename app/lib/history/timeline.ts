@@ -19,7 +19,7 @@ import { contextAt } from './layout';
 import {
   render, type Axis, type HitRegion, type PinnedCardTarget, type RenderContext, type TimelineEntry
 } from './renderer';
-import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type EntryKind, type TimeRange, type Viewport } from './scale';
+import { clampCenter, clampPxPerYear, decimalYearOfDate, pxToTime, type EntryKind, type TimeRange, type Viewport } from './scale';
 
 /** Today as an exact decimal year (year + month + day, via scale.ts's decimalYearOfDate)
  *  — computed fresh in the browser, never at build time (catalog.server.ts must stay
@@ -68,13 +68,6 @@ const DRAG_THRESHOLD_PX = 3;
  *  movement, so drags still pan the timeline" (touch has no hover, so a tap pins the same
  *  way). */
 const CLICK_MOVE_THRESHOLD_PX = 4;
-/** Time constant (ms) for the cylinder's own eased grow/shrink — "smooth, eased
- *  transitions, never a snap": a discrete wheel notch (one event, one target change)
- *  still animates over several frames rather than jumping straight to the new size. */
-const CYLINDER_EASE_MS = 120;
-/** Below this, the animation is considered converged and stops re-requesting frames on
- *  its own (a real gesture still asks for more via draw()). */
-const CYLINDER_EASE_EPSILON = 0.0006;
 /** flyTo's own animation length — "animating over 500ms with ease-in-out." */
 const FLY_DURATION_MS = 500;
 /** How long the arrival pulse (renderer.ts's pulseId/pulseElapsedMs) stays on screen —
@@ -135,12 +128,6 @@ export class HistoryTimeline {
   private dpr = 1;
   private uiFont = 'system-ui, sans-serif';
   private monoFont = 'ui-monospace, monospace';
-
-  /** The cylinder's current height as a fraction of crossSizePx — eased toward
-   *  cylinderThicknessFraction(viewport.pxPerYear, ...) every frame, never snapped to it
-   *  directly, except on the very first frame (null means "not yet initialised"). */
-  private cylinderFrac: number | null = null;
-  private lastAnimationFrameTime = 0;
 
   private resizeObserver: ResizeObserver;
   /** Renders are requested, never issued from an event handler — at most one per
@@ -304,7 +291,6 @@ export class HistoryTimeline {
     return {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
       crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
-      cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
       contentRange: this.contentRange,
       hoveredId: this.hoveredId,
       pinnedIds: this.pinnedIds,
@@ -375,24 +361,6 @@ export class HistoryTimeline {
     return this.viewport.sizePx > 0 ? this.viewport.sizePx / span : DEFAULT_PX_PER_YEAR;
   }
 
-  /** Eases `cylinderFrac` toward this frame's target fraction — never snaps, except to
-   *  set the very first value with no prior frame to ease from. Keeps requesting frames
-   *  (via draw()) while still visibly short of the target, so a single discrete wheel
-   *  notch still animates smoothly over several frames instead of jumping once. */
-  private updateCylinderAnimation(): void {
-    const target = cylinderThicknessFraction(this.viewport.pxPerYear, this.minPxPerYear, CONFIG.maxPxPerYear);
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (this.cylinderFrac === null) {
-      this.cylinderFrac = target;
-    } else {
-      const dt = this.lastAnimationFrameTime ? Math.min(now - this.lastAnimationFrameTime, 100) : 100;
-      const rate = 1 - Math.exp(-dt / CYLINDER_EASE_MS);
-      this.cylinderFrac += (target - this.cylinderFrac) * rate;
-    }
-    this.lastAnimationFrameTime = now;
-    if (Math.abs(target - this.cylinderFrac) > CYLINDER_EASE_EPSILON) this.draw();
-  }
-
   private resize = (): void => {
     const host = this.canvas.parentElement ?? this.canvas;
     const rect = host.getBoundingClientRect();
@@ -451,7 +419,6 @@ export class HistoryTimeline {
 
   private renderNow(): void {
     if (!this.viewport.sizePx) return;
-    this.updateCylinderAnimation();
     this.updateFlyAnimation();
     this.updatePulse();
     this.hits = render(this.renderContext, this.entries);

@@ -716,6 +716,22 @@ active/idle ease (`ACTIVE_EASE_MS`) were kept as they were.
 (`"Search people, events, periods (Latin or Cyrillic)"`) — the brief specified that exact
 string, and it lives in the component that owns the `<input>`, not in `search.ts`.
 
+**Fully static cylinder (supersedes the "period is the one exception" paragraph above).**
+The cylinder no longer grows or shrinks with zoom at all: `render()` computes its thickness
+once from `totalWiresHeightPx(subRowCounts)` alone (`RENDER_CONFIG.tickStripHeight` +
+padding + every lane's fixed height) and centres it vertically
+(`cylinderTop = crossSizePx / 2 - thickness / 2`) — a pure function of the dataset's own
+shape, never of `viewport.pxPerYear`. `periodHeightPx`'s log/smoothstep hero-to-slim curve
+(160 → 48) is gone; period is now a fixed row like every other lane, in `ROW_HEIGHT_BY_KIND`
+alongside ruler/government/event. `timeline.ts`'s whole eased-growth stack —
+`cylinderFrac`/`lastAnimationFrameTime`/`updateCylinderAnimation`/`CYLINDER_EASE_MS`/
+`CYLINDER_EASE_EPSILON`, and `scale.ts`'s `cylinderThicknessFraction` +
+`minCylinderThicknessFrac`/`maxCylinderThicknessFrac` — was removed outright, since nothing
+animates a size that no longer changes. At the same pass, every lane got bigger by ~25%
+(row heights: ruler/government 36 → 45, event 52 → 65, period 48 → 60 flat; capsule font
+clamp 11–26px → 14–33px; event pin label font by zoom level 11–16px → 14–20px — pin *height*
+needed no separate change, since it's already a fraction of its own wire's now-taller row).
+
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.
 
 | Decision | Choice | Why |
