@@ -94,25 +94,30 @@ export type Span =
   | { mode: 'pinned'; labelPx: number };
 
 /**
- * Whether `entry` draws as a normal bar or, when it is wider than the viewport, as a
- * label pinned inside the visible area instead (so a period spanning centuries still has
- * a readable label while you're zoomed into a handful of years inside it). An ongoing
- * entry (`end: null`) is treated as running at least to the viewport's right edge, so it
- * classifies exactly like a bounded one whose end happens to sit at that edge.
+ * Whether `entry` draws as a normal bar, clipped to the visible viewport, or — only when
+ * NEITHER of its own edges is on screen (the viewport sits entirely inside the span) — as
+ * a label pinned at the viewport's centre instead, since there's no real boundary left to
+ * clip a bar to. A span with only one edge on screen (e.g. a reign that starts on screen
+ * but ends off it) is still a bar: it draws clipped at 0/sizePx on the off-screen side and
+ * at its own real position on the visible side — a wide span whose raw pixel width merely
+ * EXCEEDS the viewport is not by itself "pinned", or its visible edge would be dragged all
+ * the way to the far side of the screen instead of staying where it actually is. An
+ * ongoing entry (`end: null`) is treated as running at least to the viewport's right edge,
+ * so it classifies exactly like a bounded one whose end happens to sit at that edge.
  */
 export function classifySpan(entry: LayoutEntry, viewport: Viewport): Span {
   const endT = entry.end ?? pxToTime(viewport.sizePx, viewport);
   const rawFromPx = timeToPx(entry.start, viewport);
   const rawToPx = timeToPx(endT, viewport);
 
-  if (rawToPx - rawFromPx <= viewport.sizePx) {
-    return {
-      mode: 'bar',
-      fromPx: clamp(rawFromPx, 0, viewport.sizePx),
-      toPx: clamp(rawToPx, 0, viewport.sizePx)
-    };
+  if (rawFromPx <= 0 && rawToPx >= viewport.sizePx) {
+    return { mode: 'pinned', labelPx: viewport.sizePx / 2 };
   }
-  return { mode: 'pinned', labelPx: clamp(rawFromPx, 0, viewport.sizePx) };
+  return {
+    mode: 'bar',
+    fromPx: clamp(rawFromPx, 0, viewport.sizePx),
+    toPx: clamp(rawToPx, 0, viewport.sizePx)
+  };
 }
 
 /* ------------------------------------------------------------------------------------ rows */

@@ -422,6 +422,48 @@ moved from `tier: 1` to `tier: 2` — the only main period NOT meant to draw by 
 full zoom-out, since it deliberately overlaps Ottoman rule (see the alignment note above)
 and would otherwise crowd the initial view.
 
+**Span-clip fix and always-on reveal.** `classifySpan` (`layout.ts`) was pinning (full-
+width, edge-to-edge capsule) any span whose raw pixel WIDTH exceeded the viewport, even
+when one of its real edges — e.g. Ferdinand's reign starting 1887 — was genuinely on
+screen; that dragged the visible edge all the way to the far side of the screen instead of
+drawing it where it actually falls. Fixed to pin only when NEITHER edge is on screen
+(`rawFromPx <= 0 && rawToPx >= sizePx`); every other case is a bar clipped to `0..sizePx`,
+which by construction keeps a partially-visible span's real boundary in the right place and
+keeps the label centred in the clipped, visible portion. `RevealMode`'s 'eased' tier-
+filtering and per-wire fade-in are gone from the actual render path: `render()` now calls
+`visibleEntries(entries, viewport, 'all')` unconditionally and `layoutWires` no longer
+takes a reveal factor at all — periods, rulers, governments and events are always fully
+drawn; zoom only changes label font size (event pins) and whether a capsule's text fits.
+`CONFIG.minCylinderThicknessFrac` raised 0.10 → 0.5 to give all four wires room even at
+maximum zoom-out. Wire height is now a fixed split, not reveal-proportional: period keeps
+its slim fixed height (unchanged), and the rest is split ruler:government:event = 1:1:2
+(`WIRE_HEIGHT_WEIGHT`) — events get the largest share. **Caveat:** the "Пълен изглед" toggle
+button and its `revealMode`/`setRevealMode` plumbing (`app/routes/history.bulgaria.tsx`,
+`app/routes/atlas.tsx`) were out of scope for this pass (file list didn't include routes)
+and still exist in the UI, but now have no visible effect — `HistoryTimeline.revealMode`/
+`setRevealMode` are kept only so those files keep typechecking. Actually removing the
+button needs a follow-up pass that touches those two route files.
+
+**Events as pins, not capsules.** `renderer.ts` replaced event capsules with
+`drawEventPins`: a 1px vertical line at exactly `timeToPx(e.start)` (no width, no
+`classifySpan`, no drag-into-view — an off-screen instant is simply skipped), hanging from
+the event wire's fixed top, height a fraction of the wire's own full height by tier
+(`RENDER_CONFIG.pinHeightFracByTier`: 1→100%, 2→65%, 3→40%, 4+ falls back to the tier-3
+fraction — the ladder past tier 3 wasn't specified, so it's held flat rather than
+extrapolated further down), with a small dot at the bottom end. Label text sits to the
+pin's right, positioned through `placeLabels()` exactly like tick labels (tier 1 wins,
+ties by id) so a crowded moment silently drops lower-tier labels while every pin and dot
+still draws. Font size by zoom level (`RENDER_CONFIG.pinLabelFontPxByLevel`) grows from
+11px at decade zoom to 16px at month zoom and finer, with millennium/century held at the
+same 11px as decade (nothing finer to grow into yet) and year at a 13px midpoint — the
+exact curve between the two given endpoints is an unspecified judgement call. At month zoom
+and finer a second, smaller (70%), dimmer line adds the exact date under the name via
+`formatEventDateLine` (`3.03.1878`; year-only, no dot, when the month itself is unknown) —
+distinct from `formatHistoryDate`'s "3 March 1878" style used by the centre-date readout.
+Since pins no longer need row-packing (a point can't visually collide with another point
+the way two overlapping bars would), `drawEventPins` ignores `assignRows`' row assignment
+for the event kind entirely and always measures pin height from the wire's own fixed top.
+
 ## Locked decisions — detail
 
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.

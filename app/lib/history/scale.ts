@@ -62,7 +62,7 @@ export const CONFIG = {
   /** The cylinder's own height, as a fraction of the canvas's cross-axis size — "about
    *  12% at maximum zoom-out, up to about 85% at day-level zoom" — see
    *  cylinderThicknessFraction below. */
-  minCylinderThicknessFrac: 0.10,
+  minCylinderThicknessFrac: 0.5,
   maxCylinderThicknessFrac: 0.88,
   /**
    * Highest entry.tier visible per (zoom level, entry kind). 0 means "never at this

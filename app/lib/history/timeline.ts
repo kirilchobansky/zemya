@@ -62,8 +62,13 @@ export class HistoryTimeline {
   private cylinderFrac: number | null = null;
   private lastAnimationFrameTime = 0;
 
-  /** 'eased' by default — see setRevealMode. */
-  private revealMode: RevealMode = 'eased';
+  /** 'all' always — the renderer itself now always draws everything (see renderer.ts's
+   *  render(), which hardcodes 'all' regardless of this field): no wire fade-in, no tier
+   *  filtering, every kind always on screen. This field and setRevealMode below are kept
+   *  only so the still-wired-up "Пълен изглед" toggle (app/routes/history.bulgaria.tsx,
+   *  app/routes/atlas.tsx) keeps typechecking; it no longer has any visible effect, and
+   *  removing it outright means deleting that button and its AtlasContext plumbing. */
+  private revealMode: RevealMode = 'all';
 
   private resizeObserver: ResizeObserver;
   /** Renders are requested, never issued from an event handler — at most one per
@@ -186,13 +191,12 @@ export class HistoryTimeline {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
       crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
       cylinderThicknessPx: (this.cylinderFrac ?? CONFIG.minCylinderThicknessFrac) * this.crossSizePx,
-      contentRange: this.contentRange,
-      revealMode: this.revealMode
+      contentRange: this.contentRange
     };
   }
 
-  /** Switches between the normal eased reveal and the content-review 'all' mode (every
-   *  wire drawn at every zoom, no tier filtering) — see RevealMode's own doc. */
+  /** No longer changes what's drawn (see revealMode's own doc above) — kept so the
+   *  existing toggle keeps typechecking. */
   setRevealMode(mode: RevealMode): void {
     if (this.revealMode === mode) return;
     this.revealMode = mode;

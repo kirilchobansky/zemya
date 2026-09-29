@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assignRows, classifySpan, contextAt, densityBuckets, type LabelCandidate, type LayoutEntry, placeLabels
 } from '~/lib/history/layout';
-import type { Viewport } from '~/lib/history/scale';
+import { timeToPx, type Viewport } from '~/lib/history/scale';
 
 const entry = (over: Partial<LayoutEntry> & Pick<LayoutEntry, 'id' | 'kind' | 'start'>): LayoutEntry => ({
   tier: 1, end: null, parent: null, ...over
@@ -117,12 +117,35 @@ describe('classifySpan', () => {
     expect(span.mode).toBe('pinned');
   });
 
-  it('clamps a pinned label to stay inside the viewport even when the start is off-screen', () => {
+  it('pins a label at the viewport centre when neither edge of the span is on screen', () => {
     const vp = viewport({ center: 1700, pxPerYear: 5, sizePx: 1000 });
     const span = classifySpan(entry({ id: 'ottoman', kind: 'period', start: 1396, end: 1878 }), vp);
     if (span.mode !== 'pinned') throw new Error('expected pinned');
-    expect(span.labelPx).toBeGreaterThanOrEqual(0);
-    expect(span.labelPx).toBeLessThanOrEqual(vp.sizePx);
+    expect(span.labelPx).toBe(vp.sizePx / 2);
+  });
+
+  it('a span with only its END on screen is a bar clipped to 0, not stretched from the left edge', () => {
+    // Regression: Ottoman rule (1396-1878) here only has its END (1878) on screen — the
+    // raw pixel width of the whole span is much wider than the viewport, but that alone
+    // must not make it "pinned" (which would draw a capsule spanning the full width,
+    // hiding where 1878 actually falls).
+    const vp = viewport({ center: 1900, pxPerYear: 5, sizePx: 1000 }); // visible ~1700..2100
+    const span = classifySpan(entry({ id: 'ottoman', kind: 'period', start: 1396, end: 1878 }), vp);
+    expect(span.mode).toBe('bar');
+    if (span.mode !== 'bar') throw new Error('expected bar');
+    expect(span.fromPx).toBe(0); // 1396 is off-screen to the left, clipped to the edge
+    expect(span.toPx).toBeCloseTo(timeToPx(1878, vp), 5); // 1878 is genuinely on screen
+    expect(span.toPx).toBeLessThan(vp.sizePx);
+  });
+
+  it('a span with only its START on screen is a bar starting at the real position (e.g. Ferdinand from 1887), not stretched from the left edge', () => {
+    const vp = viewport({ center: 1900, pxPerYear: 5, sizePx: 1000 }); // visible ~1700..2100
+    const span = classifySpan(entry({ id: 'ferdinand', kind: 'ruler', start: 1887, end: 2200 }), vp);
+    expect(span.mode).toBe('bar');
+    if (span.mode !== 'bar') throw new Error('expected bar');
+    expect(span.fromPx).toBeCloseTo(timeToPx(1887, vp), 5); // 1887 is genuinely on screen
+    expect(span.fromPx).toBeGreaterThan(0);
+    expect(span.toPx).toBe(vp.sizePx); // 2200 is off-screen to the right, clipped to the edge
   });
 
   it('switches from bar to pinned as the viewport zooms in on a fixed span, never the reverse', () => {
