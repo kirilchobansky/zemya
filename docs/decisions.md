@@ -379,6 +379,49 @@ block; mobile's per-child `order` list for `.dossier`'s direct children (same fi
 `@media` block reordering the sheet's sections) got a matching `order: 6` entry so it stays
 last on phones too.
 
+**Design pass (owner-specified values).** `renderer.ts`'s `COLORS` are now derived from
+four design bases (`PERIOD_BASE #233043`, `RULER_BASE #2fd0ff`, `GOVERNMENT_BASE #b98bff`,
+`EVENT_BASE #ffb347`) via a small `shade()` mix-toward-black/white helper, rather than four
+independent bright/dim hex pairs hand-picked per kind — period's dim tone IS the base, with
+`landBright` lightened from it; ruler/government/event's bright tone IS the base, with a
+darkened dim stop derived from it. Ruler/government/event capsules therefore sit on a
+bright fill, so their text switched from the period-only `ink`/`ink2` (light, for the dark
+period capsules) to new `inkOnBright`/`inkOnBright2` (dark) for WCAG AA contrast — `period`
+capsules alone still use `ink`/`ink2`. Capsule corners are now a fixed
+`capsuleCornerRadiusPx` (12, capped by the capsule's own half-width/height) instead of a
+full pill (`radius = min(w,h)/2`).
+
+**Role line.** `TimelineEntry` gained a `role: string | null` field (`catalog.server.ts`
+passes `raw.role` straight through — the raw field already existed for the list view).
+`ruler`/`government` capsules draw it as a second line beneath the name, at 70% the name's
+font size, in `inkOnBright2` — only when the capsule's cross-axis size actually fits both
+lines plus a gap (`crossPx >= fontPx + roleFontPx + lineGap + 2`); otherwise the role line
+is dropped first, and only then does the existing `truncateToFit` shorten the name. `period`
+and `event` entries never show a role line (period has none; an event's `role` is always
+null by the parser).
+
+**Exact "today".** `HistoryTimeline` used to seed `contentRange.to` from
+`new Date().getFullYear()` — a rounded year, so the "Бъдеще" fade zone's boundary jumped a
+full year late every 1 January instead of tracking the actual date. It now computes
+`todayDecimalYear()` once per instance via `scale.ts`'s `decimalYearOfDate` (still reading
+wall-clock `Date`, never used to parse an authored — possibly Julian — date) and threads
+that exact value through `computeRanges`. The same value also clips every entry before it's
+stored: `clipEntriesToToday` sets any open-ended span's (`end: null` — an ongoing period,
+ruler or government) `end` to `today`, and drops any `event` dated after `today` outright —
+"nothing is drawn after today." This happens client-side, in the constructor, never in
+`catalog.server.ts` (a build-time computation of "today" would freeze at the last deploy).
+
+**Reveal tuning.** `CONFIG.maxTier` (`scale.ts`) now surfaces rulers/events at `century`
+zoom (tier ≤ 2, up from ruler 1 / event 1), rulers/governments/events one tier further at
+`decade` zoom, and all four kinds up to tier 4 (from a mix of tiers up to 5) at `year` zoom
+— "loosen so more shows earlier," an explicit owner call on the exact numbers, not derived
+from anything else in the file. `WIRE_REVEAL_START`/`WIRE_REVEAL_BAND` (`renderer.ts`)
+tightened correspondingly (ruler 0.10, government 0.30, event 0.55; band 0.08, down from
+0.12) so wires fade in faster as the cylinder grows. `Възраждане` (`content/history/bg.yaml`)
+moved from `tier: 1` to `tier: 2` — the only main period NOT meant to draw by default at
+full zoom-out, since it deliberately overlaps Ottoman rule (see the alignment note above)
+and would otherwise crowd the initial view.
+
 ## Locked decisions — detail
 
 Moved from CLAUDE.md, which keeps the short list. Do not reopen any of these without asking.

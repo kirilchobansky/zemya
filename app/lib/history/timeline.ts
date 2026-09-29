@@ -13,15 +13,15 @@
  * No hover, no selection, no keyboard — the first render has none of those yet.
  */
 import { render, type Axis, type RenderContext, type TimelineEntry } from './renderer';
-import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, pxToTime, type RevealMode, type TimeRange, type Viewport } from './scale';
+import { clampCenter, clampPxPerYear, CONFIG, cylinderThicknessFraction, decimalYearOfDate, pxToTime, type RevealMode, type TimeRange, type Viewport } from './scale';
 
-const WHEEL_SENSITIVITY = 0.0016;
+const WHEEL_SENSITIVITY = 0.004;
 const WHEEL_LINE_SENSITIVITY = 0.05;
 const DRAG_THRESHOLD_PX = 3;
 /** Time constant (ms) for the cylinder's own eased grow/shrink — "smooth, eased
  *  transitions, never a snap": a discrete wheel notch (one event, one target change)
  *  still animates over several frames rather than jumping straight to the new size. */
-const CYLINDER_EASE_MS = 160;
+const CYLINDER_EASE_MS = 120;
 /** Below this, the animation is considered converged and stops re-requesting frames on
  *  its own (a real gesture still asks for more via draw()). */
 const CYLINDER_EASE_EPSILON = 0.0006;
@@ -90,8 +90,9 @@ export class HistoryTimeline {
     if (!context) throw new Error('2d canvas context unavailable');
     this.ctx = context;
     this.axis = options.axis;
-    this.entries = options.entries;
-    const { content, pannable } = HistoryTimeline.computeRanges(options.entries);
+    const today = HistoryTimeline.todayDecimalYear();
+    this.entries = HistoryTimeline.clipEntriesToToday(options.entries, today);
+    const { content, pannable } = HistoryTimeline.computeRanges(this.entries, today);
     this.contentRange = content;
     this.pannableRange = pannable;
     this.hasExplicitInitialView = options.initialCenter !== undefined || options.initialPxPerYear !== undefined;
@@ -137,13 +138,30 @@ export class HistoryTimeline {
     this.resize();
   }
 
-  /** Computes both ranges once from the (immutable, per-instance) entry list: the raw
-   *  content span (earliest authored `start` to today's actual wall-clock year — `Date`
-   *  used only for "today", never for parsing an authored date) and that span padded by
-   *  half its own width on each side for pan clamping. */
-  private static computeRanges(entries: readonly TimelineEntry[]): { content: TimeRange; pannable: TimeRange } {
+  /** Today as an exact decimal year (year + month + day, via scale.ts's
+   *  decimalYearOfDate) — computed fresh in the browser at construction time, never at
+   *  build time (catalog.server.ts must stay ignorant of "now" or it would freeze at the
+   *  last deploy). `Date` is safe here specifically because it's read for "today", never
+   *  used to parse an authored (possibly Julian, pre-1916) date — see the module header. */
+  private static todayDecimalYear(): number {
+    const now = new Date();
+    return decimalYearOfDate({ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() });
+  }
+
+  /** "Nothing is drawn after today": any open-ended span (`end: null` — an ongoing period,
+   *  ruler or government) is clipped to `today` rather than left open, and any event dated
+   *  after `today` is dropped outright (an event has no duration to clip). */
+  private static clipEntriesToToday(entries: readonly TimelineEntry[], today: number): TimelineEntry[] {
+    return entries
+      .filter(e => e.kind !== 'event' || e.start <= today)
+      .map(e => (e.end === null ? { ...e, end: today } : e));
+  }
+
+  /** Computes both ranges once from the (already today-clipped) entry list: the raw
+   *  content span (earliest authored `start` to `today`) and that span padded by half its
+   *  own width on each side for pan clamping. */
+  private static computeRanges(entries: readonly TimelineEntry[], today: number): { content: TimeRange; pannable: TimeRange } {
     const earliest = entries.length ? Math.min(...entries.map(e => e.start)) : DEFAULT_CENTER - 1;
-    const today = new Date().getFullYear();
     const content: TimeRange = { from: earliest, to: Math.max(today, earliest + 1) };
     const half = (content.to - content.from) / 2;
     return { content, pannable: { from: content.from - half, to: content.to + half } };

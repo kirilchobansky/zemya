@@ -67,6 +67,7 @@ function toTimelineEntry(raw: RawHistoryEntry): TimelineEntry {
     kind: raw.kind,
     tier: raw.tier,
     parent: raw.parent,
+    role: raw.role,
     start,
     // `end: null` means "ongoing" for a period/ruler/government (scale.ts's
     // visibleEntries treats it as extending to +Infinity, correctly — the Republic of

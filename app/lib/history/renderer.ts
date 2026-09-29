@@ -47,23 +47,56 @@ export type Axis = 'horizontal' | 'vertical';
  *  not English — see catalog.server.ts. */
 export interface TimelineEntry extends LayoutEntry {
   label: string;
+  /** Rulers and governments only (null for period/event) — drawn as a second, smaller
+   *  line beneath the name in the capsule (see drawWireCapsules). */
+  role: string | null;
 }
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** Mixes `hex` toward black (amount > 0) or white (amount < 0) by `Math.abs(amount)` —
+ *  the one place this module derives a "dim" or "bright" gradient stop from a design base
+ *  colour, instead of hand-picking a second hex per kind. */
+function shade(hex: string, amount: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  const toward = amount >= 0 ? 0 : 255;
+  const f = Math.abs(amount);
+  const mix = (v: number) => Math.round(v + (toward - v) * f);
+  const toHex = (v: number) => mix(v).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// Design bases (see CLAUDE.md-linked design pass): period is the dim/base tone the
+// cylinder itself is built from; ruler/government/event are bright accent tones, each
+// used as-is for their capsules' bright stop, with a darkened variant derived below for
+// the dim stop.
+const PERIOD_BASE = '#233043';
+const RULER_BASE = '#2fd0ff';
+const GOVERNMENT_BASE = '#b98bff';
+const EVENT_BASE = '#ffb347';
 
 const COLORS = {
   abyss: '#080D13', // --abyss
-  land: '#31485A', // --land — periods
-  landBright: '#4A6E86', // a lightened --land — the cylinder's lit middle, and period capsules' bright stop
-  rule: '#243543', // --rule — period capsule stroke
-  ink: '#E6EEF3', // --ink — focused-capsule text
-  ink2: '#9FB3C0', // --ink-2 — ordinary capsule text
+  land: PERIOD_BASE, // periods — the cylinder's own dark tone
+  landBright: shade(PERIOD_BASE, -0.32), // lightened — the cylinder's lit middle, and period capsules' bright stop
+  rule: shade(PERIOD_BASE, 0.12), // period capsule stroke
+  ink: '#E6EEF3', // --ink — focused-capsule text (period capsules only)
+  ink2: '#9FB3C0', // --ink-2 — ordinary capsule text (period capsules only)
   ink3: '#67808F', // --ink-3 — tick labels, out-of-range zone labels
-  brass: '#E8A33D', // --brass — events, the centre date readout
+  // Ruler/government/event capsules sit on a BRIGHT fill, so their text must be dark to
+  // stay readable — inkOnBright is the focused variant, inkOnBright2 the dimmer role line.
+  inkOnBright: '#141821',
+  inkOnBright2: 'rgba(20,24,33,.72)',
+  brass: EVENT_BASE, // events, the centre date readout
   brass2: '#F5CE86', // --brass-2 — the centre date readout's own text
-  brassDim: '#8A6425', // --brass-dim — event capsules' dim stop
-  sea: '#4EA9C9', // --sea — rulers
-  seaDim: '#2A5F75', // --sea-dim — ruler capsules' dim stop
-  gov: '#8B84C7', // a muted violet, canvas-only — governments (cabinets; no token: distinct from period/ruler/event on purpose)
-  govDim: '#3E3A5C',
+  brassDim: shade(EVENT_BASE, 0.55), // event capsules' dim stop
+  sea: RULER_BASE, // rulers
+  seaDim: shade(RULER_BASE, 0.55), // ruler capsules' dim stop
+  gov: GOVERNMENT_BASE, // governments (cabinets; distinct from period/ruler/event on purpose)
+  govDim: shade(GOVERNMENT_BASE, 0.55),
   highlight: 'rgba(245,206,134,.35)', // --brass-2, low opacity — the cylinder's specular line
   labelHalo: 'rgba(8,13,19,.85)', // --abyss, high opacity
   centreLine: 'rgba(232,163,61,.32)' // --brass, faint — confined inside the cylinder only
@@ -89,15 +122,19 @@ export const RENDER_CONFIG = {
   wirePaddingBottom: 12,
   /** Gap between adjacent wires (period/ruler/government/event), and between two
    *  overlapping entries' sub-rows on the SAME wire. */
-  wireGap: 5,
+  wireGap: 6,
   /** Inset so two adjacent capsules never visually touch. */
-  capsuleGapPx: 4,
+  capsuleGapPx: 5,
   capsuleHPad: 10,
-  capsuleMinFontPx: 10,
-  capsuleMaxFontPx: 22,
+  capsuleMinFontPx: 11,
+  capsuleMaxFontPx: 26,
+  /** Fixed corner radius for a capsule's rounded rect — no longer a full pill (radius =
+   *  half the short side); capped by the capsule's own half-width/height so a very small
+   *  capsule still draws cleanly. */
+  capsuleCornerRadiusPx: 12,
   /** How much bigger the capsule containing the centre date is than its siblings on the
    *  same wire — "the current focus." */
-  capsuleFocusScale: 1.28,
+  capsuleFocusScale: 1.5,
   eventCapsuleMinWidthPx: 14,
   centreDateGap: 10,
   centreDateFontPx: 13,
@@ -114,8 +151,8 @@ const WIRE_ORDER: readonly EntryKind[] = ['period', 'ruler', 'government', 'even
  *  shows." Tied to the cylinder's OWN eased size (not raw pxPerYear), so a wire's
  *  appearance inherits the same smooth, never-a-snap animation the cylinder's growth
  *  already has, for free. A judgement call on exact thresholds — see CLAUDE.md. */
-const WIRE_REVEAL_START: Readonly<Record<EntryKind, number>> = { period: 0, ruler: 0.22, government: 0.46, event: 0.68 };
-const WIRE_REVEAL_BAND = 0.12;
+const WIRE_REVEAL_START: Readonly<Record<EntryKind, number>> = { period: 0, ruler: 0.10, government: 0.30, event: 0.55 };
+const WIRE_REVEAL_BAND = 0.08;
 
 function clamp(x: number, lo: number, hi: number): number {
   return Math.min(Math.max(x, lo), hi);
@@ -224,7 +261,7 @@ function declutterByPx(candidates: readonly Tick[], minGapPx: number): Tick[] {
  */
 function drawCylinderShell(ctx: CanvasRenderingContext2D, axis: Axis, alongSizePx: number, cylinderTop: number, thickness: number): void {
   const cylinderBottom = cylinderTop + thickness;
-  const radius = Math.min(thickness / 2, 26);
+  const radius = Math.min(thickness / 2, 20);
   const band = rectFor(axis, 0, alongSizePx, cylinderTop, cylinderBottom);
 
   ctx.save();
@@ -518,7 +555,7 @@ function drawWireCapsules(
       if (toPx - fromPx < 2) continue;
 
       const r = rectFor(axis, fromPx, toPx, cross0, cross1);
-      const radius = Math.min(r.w, r.h) / 2;
+      const radius = Math.min(RENDER_CONFIG.capsuleCornerRadiusPx, r.w / 2, r.h / 2);
 
       ctx.save();
       ctx.globalAlpha = wire.alpha;
@@ -536,20 +573,40 @@ function drawWireCapsules(
       ctx.strokeStyle = isFocus ? bright : stroke;
       ctx.stroke();
 
+      // period capsules sit on the cylinder's own dark tone (light text); ruler/
+      // government/event capsules sit on a bright accent fill, so their text must be
+      // dark to stay readable (WCAG AA against `bright`/`dim`, both light saturated hues).
+      const nameColor = kind === 'period' ? (isFocus ? COLORS.ink : COLORS.ink2) : (isFocus ? COLORS.inkOnBright : COLORS.inkOnBright2);
+      const roleColor = COLORS.inkOnBright2;
+
       const availableTextPx = (axis === 'horizontal' ? r.w : r.h) - RENDER_CONFIG.capsuleHPad * 2;
       if (availableTextPx > 6) {
+        const crossPx = axis === 'horizontal' ? r.h : r.w;
+        const roleFontPx = fontPx * 0.7;
+        const lineGap = 2;
+        const showRole = (kind === 'ruler' || kind === 'government') && !!e.role && crossPx >= fontPx + roleFontPx + lineGap + 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(r.x, r.y, r.w, r.h);
+        ctx.clip();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
         ctx.font = `${isFocus ? 700 : 500} ${fontPx}px ${uiFont}`;
-        const text = truncateToFit(ctx, e.label, availableTextPx);
-        if (text) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(r.x, r.y, r.w, r.h);
-          ctx.clip();
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          drawHaloText(ctx, axis, (fromPx + toPx) / 2, rowMid, text, isFocus ? COLORS.ink : COLORS.ink2);
-          ctx.restore();
+        const nameText = truncateToFit(ctx, e.label, availableTextPx);
+
+        if (showRole) {
+          const nameCross = rowMid - (roleFontPx + lineGap) / 2;
+          const roleCross = rowMid + (fontPx + lineGap) / 2;
+          if (nameText) drawHaloText(ctx, axis, (fromPx + toPx) / 2, nameCross, nameText, nameColor);
+          ctx.font = `500 ${roleFontPx}px ${uiFont}`;
+          const roleText = truncateToFit(ctx, e.role!, availableTextPx);
+          if (roleText) drawHaloText(ctx, axis, (fromPx + toPx) / 2, roleCross, roleText, roleColor);
+        } else if (nameText) {
+          drawHaloText(ctx, axis, (fromPx + toPx) / 2, rowMid, nameText, nameColor);
         }
+        ctx.restore();
       }
       ctx.restore();
     }

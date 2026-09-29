@@ -62,8 +62,8 @@ export const CONFIG = {
   /** The cylinder's own height, as a fraction of the canvas's cross-axis size — "about
    *  12% at maximum zoom-out, up to about 85% at day-level zoom" — see
    *  cylinderThicknessFraction below. */
-  minCylinderThicknessFrac: 0.12,
-  maxCylinderThicknessFrac: 0.85,
+  minCylinderThicknessFrac: 0.10,
+  maxCylinderThicknessFrac: 0.88,
   /**
    * Highest entry.tier visible per (zoom level, entry kind). 0 means "never at this
    * level, regardless of tier" — governments (cabinets; heads of state are `ruler`, not
@@ -72,9 +72,9 @@ export const CONFIG = {
    */
   maxTier: {
     millennium: { period: 1, ruler: 0, government: 0, event: 1 },
-    century: { period: 2, ruler: 1, government: 0, event: 1 },
-    decade: { period: 3, ruler: 2, government: 1, event: 2 },
-    year: { period: 5, ruler: 3, government: 2, event: 3 },
+    century: { period: 2, ruler: 2, government: 0, event: 2 },
+    decade: { period: 3, ruler: 3, government: 2, event: 3 },
+    year: { period: 4, ruler: 4, government: 4, event: 4 },
     month: { period: 5, ruler: 4, government: 3, event: 4 },
     day: { period: 5, ruler: 5, government: 5, event: 5 }
   } satisfies Record<ZoomLevel, Record<EntryKind, number>>
