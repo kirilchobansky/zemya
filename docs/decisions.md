@@ -678,6 +678,40 @@ API beyond that yet; the two consumers (`routes/history.bulgaria.tsx`,
 (CLAUDE.md's usual four) — it's atlas-shell-specific state, not general-purpose, so none of
 those fit, and a flat file beat inventing a same-purpose subfolder for one file.
 
+**Fixed-height lanes, zoom-only layout (supersedes `WIRE_HEIGHT_WEIGHT`/`periodHeightFraction`
+above).** The wire/lane layout was rebuilt to depend only on `pxPerYear` and the dataset's own
+shape, never on which entries currently happen to be visible or in view. `layout.ts` gained
+`laneSubRowCounts(entries)`: one pass over the whole (already-filtered) entry list, reusing
+`assignRows`' own row assignment, giving each kind its max overlap count — floored to 1 so a
+kind with zero entries still reserves a lane. `renderer.ts` replaced the whole animated
+wire-splitting stack (`layoutWiresFromAnim`, `KindLayoutAnim`, `Hysteresis`/`applyHysteresis`,
+`animatedWireLayout`, `layoutAnims`, `historyLayoutStillAnimating`) with a single pure
+`layoutWires(subRowCounts, contentTop, pxPerYear)`: always all four kinds, in `WIRE_ORDER`,
+each lane's height = its own fixed row height × its own fixed sub-row count, stacked with
+`RENDER_CONFIG.wireGap` between them — nothing ever collapses, hides or reshapes because a
+lane's visible content changed; only along-axis position (`timeToPx`) moves while panning.
+Row height is a literal px constant per kind (`ROW_HEIGHT_BY_KIND`: ruler/government 36,
+event 52 — events get more room for the optional exact-date sub-line) — genuinely constant
+across every zoom level, not a share of some other variable size, per the owner's explicit
+"every other lane keeps its height at all zoom levels." Period is the one exception:
+`periodHeightFraction`'s 0.4/0.12 fraction-of-content-area became `periodHeightPx`, the same
+log/smoothstep curve anchored to the same century/decade thresholds but returning literal px
+(160 hero → 48 slim) instead of a fraction — a fraction would still make its absolute height
+track whatever the (separately, zoom-eased) cylinder container happened to be that frame,
+which was no longer meant to vary. Because lane sizes no longer split a container's given
+size, the dependency inverts: `render()` computes `totalWiresHeightPx` (sum of every lane's
+own fixed height) and grows the cylinder to `Math.max(that, cylinderThicknessPx)` — the
+already-existing eased `cylinderThicknessPx` (`timeline.ts`'s `updateCylinderAnimation`,
+unchanged) still gives the drum its own smooth zoom-driven growth, but never gets to clip a
+fixed-height lane short. `timeline.ts`'s pan/zoom-velocity "freeze" mechanism
+(`updateLayoutVelocity`, `LAYOUT_FREEZE_VELOCITY`, `RenderContext.layoutFrozen`) was removed
+outright along with it — it existed only to hold the old animated split still during a fast
+fling; with layout now a pure function of zoom and a stable dataset shape, there is nothing
+left that could jitter, so nothing to freeze. Capsule idle/active fill and border alpha were
+also raised (0.30/0.65 idle → 0.55/1.0 active, active fill mixed slightly toward white via
+`shade()`) for a less-transparent look, per an explicit ask; the glow and the 120ms
+active/idle ease (`ACTIVE_EASE_MS`) were kept as they were.
+
 **Off the given file list, touched anyway:** `HistorySearch.tsx`'s placeholder text
 (`"Search people, events, periods (Latin or Cyrillic)"`) — the brief specified that exact
 string, and it lives in the component that owns the `<input>`, not in `search.ts`.
