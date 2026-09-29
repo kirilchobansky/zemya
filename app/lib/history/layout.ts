@@ -128,7 +128,11 @@ export function classifySpan(entry: LayoutEntry, viewport: Viewport): Span {
  * WHOLE dataset, not the visible subset, and only from dates — so an entry's row never
  * changes as the viewport pans or zooms, which is the point: a row flip mid-pan would be
  * visually jarring. Deterministic: sorts by start (ties by id) before the greedy pack, so
- * the same input always yields the same row for the same entry.
+ * the same input always yields the same row for the same entry. This is also why
+ * renderer.ts's own wire/lane animation (animatedWireLayout) never needs to touch this
+ * assignment itself to keep an item's lane stable frame to frame — only a wire's/sub-row's
+ * own SIZE (how many rows are visible right now, how tall each is) is ever animated, never
+ * which row a given entry sits in.
  */
 export function assignRows(entries: readonly LayoutEntry[]): Map<string, number> {
   const rows = new Map<string, number>();

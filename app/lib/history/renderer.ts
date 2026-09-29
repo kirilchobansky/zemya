@@ -600,45 +600,162 @@ interface WireLayout {
 }
 
 /**
- * Splits the cylinder's inner content area into one row per visible kind, in duration
- * order — a kind with zero visible entries gets no row at all, so its space merges into
- * its neighbours ("fill the space instead of leaving it empty") rather than sitting
- * reserved and blank. Every kind is always drawn (see the module header) — no reveal-based
- * hiding — but period's own SHARE of the height still varies with zoom: the "hero" at
- * maximum zoom-out, shrinking to a slim strip by decade zoom (periodHeightFraction).
- * Everything else splits whatever remains by WIRE_HEIGHT_WEIGHT — rulers and governments
- * equal, events the largest share. Each kind's own sub-row count (co-occurring entries —
- * overlapping periods, co-rulers) is read off `rows` for only the entries actually on
- * screen, so a wire's capsules get taller when fewer of them are competing for the same
- * row right now.
+ * Splits the cylinder's inner content area into one row per PRESENT kind (presence > 0 —
+ * see animatedWireLayout below), in duration order — a kind with no presence at all merges
+ * its space into its neighbours ("fill the space instead of leaving it empty") rather than
+ * sitting reserved and blank. Period's own SHARE of the height still varies with zoom: the
+ * "hero" at maximum zoom-out, shrinking to a slim strip by decade zoom
+ * (periodHeightFraction). Everything else splits whatever remains by WIRE_HEIGHT_WEIGHT —
+ * rulers and governments equal, events the largest share.
+ *
+ * Pure geometry only — every input here (`presence`, `subRows`) is already-eased animation
+ * state; this function itself has no memory of its own and knows nothing about frames or
+ * time. A kind's `presence` scales both its own share of the split AND (via the `shown`
+ * filter) whether it's in the split at all, so a kind easing from 1 toward 0 continuously
+ * shrinks while its neighbours continuously grow to fill the freed space — that continuity
+ * is what makes drawWireCapsules' whole wire/lane reflow animate smoothly (item 1 of the
+ * layout-stability brief) purely as a side effect of `presence` itself being eased
+ * frame to frame, with no separate top/height easing needed here.
  */
-function layoutWires(
-  visibleByKind: Readonly<Record<EntryKind, TimelineEntry[]>>, rows: ReadonlyMap<string, number>,
-  contentTop: number, contentBottom: number, pxPerYear: number
+function layoutWiresFromAnim(
+  anims: ReadonlyMap<EntryKind, KindLayoutAnim>, contentTop: number, contentBottom: number, pxPerYear: number
 ): Partial<Record<EntryKind, WireLayout>> {
   const available = Math.max(0, contentBottom - contentTop);
-  const shown = WIRE_ORDER.filter(kind => visibleByKind[kind].length > 0);
+  const shown = WIRE_ORDER.filter(kind => (anims.get(kind)?.presence ?? 0) > 0.001);
   if (shown.length === 0) return {};
 
   const usable = Math.max(0, available - RENDER_CONFIG.wireGap * (shown.length - 1));
 
-  const periodHeight = shown.includes('period')
-    ? clamp(usable * periodHeightFraction(pxPerYear), Math.min(24, usable), usable)
-    : 0;
+  const periodPresence = anims.get('period')?.presence ?? 0;
+  const periodHeightFull = clamp(usable * periodHeightFraction(pxPerYear), Math.min(24, usable), usable);
+  const periodHeight = shown.includes('period') ? periodHeightFull * periodPresence : 0;
+
   const rest = shown.filter(k => k !== 'period');
   const restUsable = Math.max(0, usable - periodHeight);
-  const totalWeight = rest.reduce((sum, k) => sum + (WIRE_HEIGHT_WEIGHT[k] ?? 1), 0);
+  const totalWeight = rest.reduce((sum, k) => sum + (WIRE_HEIGHT_WEIGHT[k] ?? 1) * (anims.get(k)?.presence ?? 0), 0);
 
   const out: Partial<Record<EntryKind, WireLayout>> = {};
   let top = contentTop;
   for (const kind of shown) {
-    const height = kind === 'period' ? periodHeight : restUsable * ((WIRE_HEIGHT_WEIGHT[kind] ?? 1) / totalWeight);
-    let subRows = 1;
-    for (const e of visibleByKind[kind]) subRows = Math.max(subRows, (rows.get(e.id) ?? 0) + 1);
+    const weight = (WIRE_HEIGHT_WEIGHT[kind] ?? 1) * (anims.get(kind)?.presence ?? 0);
+    const height = kind === 'period' ? periodHeight : totalWeight > 0 ? restUsable * (weight / totalWeight) : 0;
+    const subRows = Math.max(1, anims.get(kind)?.subRows ?? 1);
     out[kind] = { top, height, rowHeight: height / subRows, subRows };
     top += height + RENDER_CONFIG.wireGap;
   }
   return out;
+}
+
+/** Per-kind wire/lane animation state, eased frame to frame — see animatedWireLayout. */
+interface KindLayoutAnim {
+  /** 0..1, eased toward presenceHyst.stable — 0 fully collapses the kind's wire out of
+   *  layoutWiresFromAnim's split; fading between the two is what animates a whole wire
+   *  appearing/disappearing (item 1). */
+  presence: number;
+  presenceHyst: Hysteresis;
+  /** Continuous (not integer) eased row count — see layoutWiresFromAnim's `rowHeight =
+   *  height / subRows`; a trailing sub-row losing its last visible item shrinks this
+   *  smoothly instead of snapping the remaining rows straight to their final height. */
+  subRows: number;
+  subRowsHyst: Hysteresis;
+}
+
+/** Hysteresis state for one eased target value (item 2: "a subline that just appeared does
+ *  not vanish and reappear when items flicker at the viewport edge"). An INCREASE always
+ *  applies immediately (an appearing wire/row should never feel laggy); a DECREASE only
+ *  actually lands once the lower value has held continuously for `delayMs` — flicker back
+ *  up before then cancels it outright, so `stable` never even starts easing toward it. */
+interface Hysteresis {
+  stable: number;
+  pendingValue: number | null;
+  pendingSince: number | null;
+}
+
+function applyHysteresis(h: Hysteresis, raw: number, now: number, delayMs: number): void {
+  if (raw >= h.stable) {
+    h.stable = raw;
+    h.pendingValue = null;
+    h.pendingSince = null;
+    return;
+  }
+  if (h.pendingValue !== raw) {
+    h.pendingValue = raw;
+    h.pendingSince = now;
+    return;
+  }
+  if (h.pendingSince !== null && now - h.pendingSince >= delayMs) {
+    h.stable = raw;
+    h.pendingValue = null;
+    h.pendingSince = null;
+  }
+}
+
+/** Time constant (ms) for wire/lane presence and row-count easing — mirrors
+ *  timeline.ts's own CYLINDER_EASE_MS (`rate = 1 - exp(-dt / MS)`). */
+const LAYOUT_EASE_MS = 160;
+/** How long a wire/subline that's lost every visible item holds its space before its
+ *  target actually drops to "gone" (Hysteresis's delayMs) — "fade out and collapse with a
+ *  short delay," judged against the brief's own ~250ms. */
+const LAYOUT_COLLAPSE_DELAY_MS = 250;
+
+/** Cross-frame animation state for the wire/lane layout, one entry per EntryKind that has
+ *  ever been present — module-level for the same reason focusScales is (render() has no
+ *  instance of its own; only one history timeline renders at a time). A kind that's fully
+ *  faded out and stayed gone is dropped, so a kind that never occurs in this dataset never
+ *  sits here at all. */
+const layoutAnims = new Map<EntryKind, KindLayoutAnim>();
+let layoutAnimsLastTime = 0;
+
+/**
+ * Advances `layoutAnims` by one frame and returns the resulting WireLayout per kind
+ * (layoutWiresFromAnim). While `frozen` (render()'s own RenderContext.layoutFrozen, driven
+ * by timeline.ts's pan/zoom velocity), this SKIPS updating every target and easing step
+ * entirely — item 3, "freeze the lane assignment... only apply layout changes when
+ * velocity drops below a threshold" — and simply re-lays-out the geometry from whatever
+ * `layoutAnims` already held, so a fast pan still moves capsules along the time axis (that
+ * part never freezes) without their cross-axis row/wire structure jittering mid-fling.
+ */
+function animatedWireLayout(
+  visibleByKind: Readonly<Record<EntryKind, TimelineEntry[]>>, rows: ReadonlyMap<string, number>,
+  contentTop: number, contentBottom: number, pxPerYear: number, frozen: boolean
+): Partial<Record<EntryKind, WireLayout>> {
+  const now = nowMs();
+  const dt = layoutAnimsLastTime ? Math.min(now - layoutAnimsLastTime, 100) : 100;
+  if (!frozen) layoutAnimsLastTime = now;
+  const rate = 1 - Math.exp(-dt / LAYOUT_EASE_MS);
+
+  if (!frozen) {
+    for (const kind of WIRE_ORDER) {
+      const visible = visibleByKind[kind];
+      const rawShown = visible.length > 0 ? 1 : 0;
+      if (rawShown === 0 && !layoutAnims.has(kind)) continue; // never seen, nothing to animate
+
+      let anim = layoutAnims.get(kind);
+      if (!anim) {
+        anim = {
+          presence: 0, presenceHyst: { stable: 0, pendingValue: null, pendingSince: null },
+          subRows: 1, subRowsHyst: { stable: 1, pendingValue: null, pendingSince: null }
+        };
+        layoutAnims.set(kind, anim);
+      }
+
+      let rawSubRows = 1;
+      for (const e of visible) rawSubRows = Math.max(rawSubRows, (rows.get(e.id) ?? 0) + 1);
+
+      applyHysteresis(anim.presenceHyst, rawShown, now, LAYOUT_COLLAPSE_DELAY_MS);
+      // Row count only tracks the live overlap count while actually shown — hidden, its
+      // stable target snaps straight back to 1 (no delay: nothing is visible to lag on)
+      // so a wire that reappears later doesn't remember a stale tall row count.
+      applyHysteresis(anim.subRowsHyst, anim.presenceHyst.stable === 1 ? rawSubRows : 1, now, LAYOUT_COLLAPSE_DELAY_MS);
+
+      anim.presence += (anim.presenceHyst.stable - anim.presence) * rate;
+      anim.subRows += (anim.subRowsHyst.stable - anim.subRows) * rate;
+
+      if (anim.presenceHyst.stable === 0 && anim.presence < 0.002) layoutAnims.delete(kind);
+    }
+  }
+
+  return layoutWiresFromAnim(layoutAnims, contentTop, contentBottom, pxPerYear);
 }
 
 /** `dim`/`bright` are the capsule's OWN fill gradient stops. For period they're the
@@ -1137,6 +1254,11 @@ export interface RenderContext {
    *  each to its entry's position on the timeline (see drawConnectorLines). Empty outside
    *  the history route or while nothing is pinned. */
   pinnedCards: readonly PinnedCardTarget[];
+  /** True while timeline.ts's own pan/zoom velocity is above its freeze threshold — see
+   *  animatedWireLayout. Entries still slide continuously along the time axis regardless;
+   *  this only holds the wire/lane structure (heights, row counts) still, so a fast fling
+   *  doesn't fight the same animation trying to catch up frame to frame. */
+  layoutFrozen: boolean;
 }
 
 /**
@@ -1155,8 +1277,25 @@ export interface RenderContext {
  * colour wash) — app/lib/history/timeline.ts keeps the latest array and hit-tests the
  * pointer against it, throttled to once per animation frame.
  */
+/**
+ * Whether the wire/lane layout (layoutAnims) is still mid-transition after the frame
+ * render() just drew — either actively easing, or holding a pending hysteresis countdown
+ * that hasn't committed yet (see Hysteresis/applyHysteresis). timeline.ts polls this right
+ * after render() and keeps asking for frames while it's true, the same way it already does
+ * for the cylinder's own ease and the arrival pulse — render() itself has no scheduler of
+ * its own to ask on its own behalf.
+ */
+export function historyLayoutStillAnimating(): boolean {
+  for (const anim of layoutAnims.values()) {
+    if (anim.presenceHyst.pendingSince !== null || anim.subRowsHyst.pendingSince !== null) return true;
+    if (Math.abs(anim.presence - anim.presenceHyst.stable) > 0.001) return true;
+    if (Math.abs(anim.subRows - anim.subRowsHyst.stable) > 0.01) return true;
+  }
+  return false;
+}
+
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
+  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, cylinderThicknessPx, contentRange, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards, layoutFrozen } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -1184,7 +1323,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
   drawPeriodBands(ctx, axis, visibleByKind.period, periodIndexOf, viewport, contentTop, contentBottom);
 
   const rows = assignRows(entries);
-  const wires = layoutWires(visibleByKind, rows, contentTop, contentBottom, viewport.pxPerYear);
+  const wires = animatedWireLayout(visibleByKind, rows, contentTop, contentBottom, viewport.pxPerYear, layoutFrozen);
 
   const focus = contextAt(entries, viewport.center);
   const focusIds: Partial<Record<EntryKind, string>> = {
