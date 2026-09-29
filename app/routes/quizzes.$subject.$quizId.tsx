@@ -22,7 +22,7 @@ import {
   useSearchParams,
 } from "react-router";
 
-import { useAtlasContext } from "./atlas";
+import { useAtlasContext } from "~/lib/atlas-context";
 import { allCountries } from "~/lib/geography/catalog.server";
 import { quizPageSeo } from "~/lib/geography/quizSeo";
 import { pageMeta } from "~/lib/seo";

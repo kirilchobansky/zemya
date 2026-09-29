@@ -5,14 +5,15 @@
  * navigation's state rather than inferred from the selection itself.
  */
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
-  type CSSProperties, type Dispatch, type PointerEvent as ReactPointerEvent, type SetStateAction
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+  type CSSProperties, type PointerEvent as ReactPointerEvent
 } from 'react';
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router';
 
 import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName } from '~/components/MobileChrome';
 import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
+import { AtlasContext } from '~/lib/atlas-context';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
 import { refreshMapColours } from '~/lib/map/renderer';
@@ -51,9 +52,9 @@ const RAIL_MIN_PX = 180;
 const RAIL_MAX_PX = 320;
 const PANEL_MIN_PX = 300;
 const PANEL_MAX_PX = 560;
-/** Below this viewport width, a sidebar with no stored width yet opens narrower — matches
- *  the breakpoint this file's own components/Rail.tsx-facing CSS used to key off (see
- *  tokens.css), now decided here since collapse/resize needed JS state either way. */
+/** Below this viewport width, a sidebar with no stored width yet opens narrower — applied
+ *  post-mount only (the useLayoutEffect below), never during the first render, since
+ *  window.innerWidth isn't available (or wouldn't match) during the server's prerender. */
 const NARROW_VIEWPORT_PX = 1440;
 const RAIL_DEFAULT_WIDE_PX = 286;
 const RAIL_DEFAULT_NARROW_PX = 238;
@@ -112,67 +113,6 @@ const PANEL_STORAGE_KEY = 'zemya.sidebar.panel';
 /** Which sidebar a drag/keyboard/double-click action targets — the two share this module's
  *  handling almost entirely, only their min/max/default/storage differ. */
 type SidebarSide = 'rail' | 'panel';
-
-/**
- * The layout owns the canvas, so a quiz run — a child route rendered only into the right
- * panel — reaches the Atlas controller (to fly the camera) and the map's style (to paint
- * answered countries) through this context rather than through props. `quiz` is the
- * single flag CLAUDE.md's Quizzes section asks for: setting it swaps the map into quiz
- * mode (see the style effect below) and, at the JSX call sites in this file, hides the
- * search box and the hover tooltip and turns off the default neighbour glow — one state,
- * checked in the few places that need it, rather than four independent booleans.
- */
-interface AtlasContextValue {
-  atlas: Atlas | null;
-  quiz: QuizOverride | null;
-  setQuiz: Dispatch<SetStateAction<QuizOverride | null>>;
-  /** Phone layout only (no effect on desktop): a quiz run takes the whole screen — no sheet,
-   *  no tab bar, no search — until its results, which open the sheet at `full`. */
-  setImmersive: Dispatch<SetStateAction<boolean>>;
-  setSheetSnap: Dispatch<SetStateAction<SheetSnap>>;
-  /** Set by a history route (routes/history.bulgaria.tsx) once its loader data is in hand;
-   *  cleared on unmount. Non-null swaps the canvas from the map to the timeline — see the
-   *  effect below that owns the HistoryTimeline controller. */
-  setTimelineEntries: Dispatch<SetStateAction<TimelineEntry[] | null>>;
-  /** Ids of every entry currently pinned (click-to-pin on the timeline canvas), in pin
-   *  order — read by routes/history.bulgaria.tsx for its "Close all cards (N)" button.
-   *  Cleared whenever the history route is left (see the showTimeline effect below). */
-  historyPinnedIds: readonly string[];
-  closeAllHistoryCards: () => void;
-  /** Set by a pinned card's "See more" (components/HistoryCard.tsx) — the history route's
-   *  panel switches to that entry's detail view while this is non-null. */
-  selectedHistoryEntryId: string | null;
-  setSelectedHistoryEntryId: Dispatch<SetStateAction<string | null>>;
-  /** Pins an entry as a floating card without a canvas click (routes/history.bulgaria.tsx's
-   *  detail view "Pin card" button) — see pinHistoryEntry's own doc below. */
-  pinHistoryEntry: (entry: TimelineEntry) => void;
-  /** The HistoryTimeline controller once it's mounted (routes/history.bulgaria.tsx's
-   *  HistoryOutline.tsx calls flyTo/flyToWholeHistory/flyToToday on it directly) — null
-   *  outside the history route, and briefly while it's still constructing. */
-  historyTimeline: HistoryTimeline | null;
-  /** timeline.ts's onPeriodChange, throttled to 5/s — the outline's "you are here"
-   *  section. */
-  historyCurrentPeriodId: string | null;
-  /** HistoryFilters.tsx's kind toggles ("Rulers"/"Governments"/"Events") — the set of
-   *  kinds currently hidden (never `period`: periods are always shown). Lives here rather
-   *  than in the history route so it survives a "See more" swap to the detail view, and is
-   *  reset to empty whenever the history route is left (see the effect below). */
-  historyHiddenKinds: ReadonlySet<EntryKind>;
-  toggleHistoryKind: (kind: EntryKind) => void;
-  /** HistoryFilters.tsx's event category chips — the set of category ids currently
-   *  hidden. Same lifetime as historyHiddenKinds. */
-  historyHiddenCategories: ReadonlySet<string>;
-  toggleHistoryCategory: (category: string) => void;
-  resetHistoryFilters: () => void;
-}
-
-const AtlasContext = createContext<AtlasContextValue | null>(null);
-
-export function useAtlasContext(): AtlasContextValue {
-  const value = useContext(AtlasContext);
-  if (!value) throw new Error('useAtlasContext must be used inside the atlas layout');
-  return value;
-}
 
 /**
  * The provider wraps the shell rather than the app root because progress is only ever read
@@ -332,21 +272,50 @@ function AtlasShell() {
   const [quiz, setQuiz] = useState<QuizOverride | null>(null);
 
   /* ---------------------------------------------------------------- sidebar resize/collapse
-     Desktop only (see the module-level comment above) — lazy-initialised from localStorage
-     so a returning visitor's chosen widths/collapsed states apply on the very first paint,
-     not one render later. */
-  const [railWidth, setRailWidth] = useState(() => loadSidebar(RAIL_STORAGE_KEY, defaultRailWidth(), RAIL_MIN_PX, RAIL_MAX_PX).width);
-  const [railCollapsed, setRailCollapsed] = useState(() => loadSidebar(RAIL_STORAGE_KEY, defaultRailWidth(), RAIL_MIN_PX, RAIL_MAX_PX).collapsed);
-  const [panelWidth, setPanelWidth] = useState(() => loadSidebar(PANEL_STORAGE_KEY, defaultPanelWidth(), PANEL_MIN_PX, PANEL_MAX_PX).width);
-  const [panelCollapsed, setPanelCollapsed] = useState(() => loadSidebar(PANEL_STORAGE_KEY, defaultPanelWidth(), PANEL_MIN_PX, PANEL_MAX_PX).collapsed);
+     Desktop only (see the module-level comment above). The very first render — server AND
+     client — must produce the same `.shell` markup, so it always starts from the same fixed
+     constants; reading localStorage or window.innerWidth here (both browser-only, both
+     absent or different during the server's prerender) would make the client's first render
+     disagree with the prerendered HTML it's hydrating onto, a hydration mismatch on `.shell`
+     itself. The real, possibly-narrower, possibly-stored width/collapsed state is applied
+     right after mount instead, in the useLayoutEffect below — synchronously before the
+     browser paints, so there's no visible flash of the default width first. */
+  const [railWidth, setRailWidth] = useState(RAIL_DEFAULT_WIDE_PX);
+  const [railCollapsed, setRailCollapsed] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_WIDE_PX);
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   /** Which sidebar's handle is actively being dragged, if any — only used to suppress
    *  .shell's own width transition (app.css's .shell.is-resizing) so the drag tracks the
    *  pointer with no lag; the actual width updates happen straight from the pointer
    *  handlers in startSidebarDrag below, not through this. */
   const [resizingSide, setResizingSide] = useState<SidebarSide | null>(null);
+  /** False until the post-mount hydration effect below has run once — guards the
+   *  persist-to-localStorage effects so they can't fire for the fixed first-render
+   *  defaults and overwrite a returning visitor's real saved width with them. State, not a
+   *  ref: each persist effect must see the value that was current AT ITS OWN RENDER (a ref
+   *  would already read `true` by the time ANY passive effect runs, since the layout effect
+   *  below sets it before every passive effect this commit — state keeps the two renders'
+   *  effect instances honestly telling apart "before" from "after" hydration). */
+  const [sidebarHydrated, setSidebarHydrated] = useState(false);
 
-  useEffect(() => saveSidebar(RAIL_STORAGE_KEY, { width: railWidth, collapsed: railCollapsed }), [railWidth, railCollapsed]);
-  useEffect(() => saveSidebar(PANEL_STORAGE_KEY, { width: panelWidth, collapsed: panelCollapsed }), [panelWidth, panelCollapsed]);
+  useLayoutEffect(() => {
+    const rail = loadSidebar(RAIL_STORAGE_KEY, defaultRailWidth(), RAIL_MIN_PX, RAIL_MAX_PX);
+    setRailWidth(rail.width);
+    setRailCollapsed(rail.collapsed);
+    const panel = loadSidebar(PANEL_STORAGE_KEY, defaultPanelWidth(), PANEL_MIN_PX, PANEL_MAX_PX);
+    setPanelWidth(panel.width);
+    setPanelCollapsed(panel.collapsed);
+    setSidebarHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarHydrated) return;
+    saveSidebar(RAIL_STORAGE_KEY, { width: railWidth, collapsed: railCollapsed });
+  }, [sidebarHydrated, railWidth, railCollapsed]);
+  useEffect(() => {
+    if (!sidebarHydrated) return;
+    saveSidebar(PANEL_STORAGE_KEY, { width: panelWidth, collapsed: panelCollapsed });
+  }, [sidebarHydrated, panelWidth, panelCollapsed]);
 
   /** Starts a drag on either sidebar's handle: tracks the pointer with plain window
    *  listeners (simpler than pointer capture here — the pointer never needs to leave the

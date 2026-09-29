@@ -116,6 +116,14 @@
   --font-ui: 'Archivo', 'Helvetica Neue', Helvetica, system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  /* The atlas shell's own defaults, used for its very first render (server and client
+     alike, before any JS has run) so hydration has nothing to disagree on — see
+     routes/atlas.tsx's own comment on why that first render can't read localStorage or
+     window.innerWidth. AtlasShell then sets these two as an inline style straight on
+     .shell once it has mounted (collapse/resize state, and — narrower than these — a
+     viewport-width-aware default), which always wins the cascade over this :root rule for
+     .shell and everything under it; there is deliberately no narrow-viewport @media
+     override of these two here any more, since JS already owns that after mount. */
   --rail-width: 286px;
   --panel-width: 372px;
 
@@ -269,11 +277,4 @@
   --swatch-border-rgb: 20 30 38;
 
   color-scheme: light;
-}
-
-@media (max-width: 1180px) {
-  :root {
-    --rail-width: 238px;
-    --panel-width: 330px;
-  }
 }

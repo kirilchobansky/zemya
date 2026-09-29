@@ -630,11 +630,7 @@ each get a drag handle and a collapse button, desktop layout only — state (`ra
 unmounting anything, so a collapsed panel's `<Outlet/>` (a quiz run, the history panel) keeps
 its state via `display:none` on `.panel__content`, not removal. Bounds: rail 180–320px
 (default 286, or 238 under 1440px viewport width), panel 300–560px (default 372, or 330
-narrow) — the narrow defaults and the 1440px breakpoint replace tokens.css's old
-`@media (max-width: 1180px)` rail/panel-width override for practical purposes (an
-element-level inline style always wins the cascade over it), though that rule was left in
-place rather than touched, since it's dead-but-harmless and tokens.css wasn't in this
-change's file list. Persisted to localStorage as one JSON blob per side
+narrow). Persisted to localStorage as one JSON blob per side
 (`zemya.sidebar.rail`/`zemya.sidebar.panel`, `{width, collapsed}`), wrapped in try/catch.
 `[`/`]` toggle the two sidebars (ignored while typing in a field); a drag uses plain `window`
 pointermove/pointerup listeners rather than pointer capture, since the pointer never needs to
@@ -644,6 +640,43 @@ leave the window and the handle itself may be mid-collapse. `.shell`'s own
 makes the resize "smooth" — the map/timeline canvas itself just resizes the way it already
 does on any window resize (`ResizeObserver` on the canvas's parent), which already preserves
 the current camera/viewport rather than re-homing it.
+
+**Fixed bug: hydration mismatch on `.shell`.** The first cut above read localStorage and
+`window.innerWidth` straight in `useState`'s lazy initialiser — both browser-only, so the
+server's prerender (no `window`) and the client's first render (has one, and may be a
+different width) produced different `--rail-width`/`--panel-width` inline-style values on
+`.shell`, a hydration mismatch. Fixed by always starting both widths from the same fixed
+constants (`RAIL_DEFAULT_WIDE_PX`/`PANEL_DEFAULT_WIDE_PX`, not-collapsed) on every first
+render, server or client, and applying the real value — `defaultRailWidth()`/
+`defaultPanelWidth()`'s viewport check plus whatever `loadSidebar` finds — in a
+`useLayoutEffect` that runs once after mount, so it's applied synchronously before the
+browser's first paint (no visible flash of the default width first). The two
+persist-to-localStorage effects are gated on a `sidebarHydrated` **state** flag (not a ref)
+set `true` at the end of that layout effect: a ref would already read `true` by the time
+ANY passive effect fires this commit (the layout effect sets it before every one of them,
+regardless of which render scheduled them), while state is captured per-render, so the
+effect instance scheduled by the first (default-value) render still closes over `false` and
+skips, and only the corrected render's own effect instance (closing over `true`) saves.
+tokens.css's old `@media (max-width: 1180px)` rail/panel-width override, made fully dead by
+the inline style always winning the cascade over it, was removed as part of this fix (it's
+now the CSS file `AtlasContext`/`useAtlasContext` also moved out of, see below, since it
+touched this same bug).
+
+**`AtlasContext`/`useAtlasContext` moved to `app/lib/atlas-context.ts`.** Living in
+`routes/atlas.tsx` meant the route module's exports were the context/hook/interface plus the
+route's own default export — React Router's framework mode gives a route module's exports
+meaning (`loader`, `meta`, `action`, …), so a plain context pair sitting there too was never
+quite at home, and (found while chasing the hydration bug above) it's also a Vite Fast-Refresh
+hazard: a module that exports both a component and other bindings doesn't get a clean
+same-identity hot reload, which can leave an already-loaded child chunk holding a stale
+`AtlasContext` reference — `useAtlasContext must be used inside the atlas layout` thrown from
+a component that IS inside the layout, only after live-editing that file with the dev server
+running. `routes/atlas.tsx` now exports only `AtlasLayout` (its default export) and no route
+API beyond that yet; the two consumers (`routes/history.bulgaria.tsx`,
+`routes/quizzes.$subject.$quizId.tsx`) import from `~/lib/atlas-context` instead. Placement:
+`app/lib/atlas-context.ts` rather than nested under `core/`/`map/`/`geography/`/`history/`
+(CLAUDE.md's usual four) — it's atlas-shell-specific state, not general-purpose, so none of
+those fit, and a flat file beat inventing a same-purpose subfolder for one file.
 
 **Off the given file list, touched anyway:** `HistorySearch.tsx`'s placeholder text
 (`"Search people, events, periods (Latin or Cyrillic)"`) — the brief specified that exact

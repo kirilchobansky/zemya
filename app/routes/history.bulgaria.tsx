@@ -14,7 +14,7 @@ import HistoryOutline from '~/components/HistoryOutline';
 import HistorySearch from '~/components/HistorySearch';
 import { bulgariaTimeline } from '~/lib/history/catalog.server';
 import { pageMeta } from '~/lib/seo';
-import { useAtlasContext } from './atlas';
+import { useAtlasContext } from '~/lib/atlas-context';
 import type { Route } from './+types/history.bulgaria';
 
 export function loader() {
