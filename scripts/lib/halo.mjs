@@ -5,7 +5,7 @@
  * checks it.
  *
  * Qualifying countries are derived (`qualifiesForHalo`), never listed: no land borders
- * and under HALO_MAX_AREA_KM2. Land micro-states (Monaco, Vatican City) keep their pins.
+ * and under HALO_MAX_AREA_KM2, minus HALO_EXCLUDED. Land micro-states (Monaco, Vatican City) keep their pins.
  */
 
 export const HALO_MAX_AREA_KM2 = 25000;
@@ -22,8 +22,14 @@ const RAD = Math.PI / 180;
 /** Points per full circle when rounding the hull's corners. */
 const CORNER_STEPS = 24;
 
+/** Owner's call: the Caribbean, Malta and Cyprus keep their dots (and their land shapes once
+ *  zoomed in) — a halo there read as clutter over a crowded or already-legible region. */
+export const HALO_EXCLUDED = new Set([
+  'BHS', 'JAM', 'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'TTO', 'MLT', 'CYP'
+]);
+
 export function qualifiesForHalo(country) {
-  return country.borders.length === 0 && country.area < HALO_MAX_AREA_KM2;
+  return country.borders.length === 0 && country.area < HALO_MAX_AREA_KM2 && !HALO_EXCLUDED.has(country.iso3);
 }
 
 /* Longitude unwrapping — the SAME rules as app/lib/map/topology.ts (unwrapRing, then a

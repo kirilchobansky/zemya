@@ -826,8 +826,10 @@ colliding was never guaranteed by the token system itself.
 
 Island nations are specks at world zoom, so the quiz used to fly the camera to a 9 px dot.
 Each country with **no land borders and under 25,000 km2** (derived in `scripts/lib/halo.mjs`'s
-`qualifiesForHalo`, 30 today) gets a `halo` ring instead.
+`qualifiesForHalo`, 30 before the exclusions below) gets a `halo` ring instead.
 
+- **Exclusions** (`HALO_EXCLUDED`, owner request after seeing it): Bahamas, Jamaica, every Caribbean
+  island nation (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta and Cyprus keep pins — **18 halos remain**.
 - **Build** (`build-content.mjs`, pure maths in `scripts/lib/halo.mjs`): every outer-ring vertex
   of the full geometry, unwrapped by the same rules as `topology.ts` (ring unwrap, then a rigid
   per-polygon shift to the branch nearest the country's own longitude — keep the two in sync), convex hull in a
@@ -844,8 +846,8 @@ Each country with **no land borders and under 25,000 km2** (derived in `scripts/
   the smaller country wins an overlap. Not gated on the "Micro-states" toggle (the halo is the country's
   area, not a marker); the toggle still controls the land micro-states' pins.
 - **Quiz camera** (`Atlas#followTarget`): the target box is the halo's, so the 12 px minimum measures
-  the halo. The 120 km floor means the smallest halos are still under 12 px at world zoom (desktop
-  1440x900: 12 of 30, 8-11 px; 390 px phone: 27 of 30), so those still get a modest zoom — far less
+  the halo. The 120 km floor means the smallest halos are still under 12 px at world zoom (before the exclusions: desktop
+  1440x900 12 of 30, 8-11 px; 390 px phone 27 of 30), so those still get a modest zoom — far less
   than the old fly to a dot. Lowering the floor or the minimum is a one-constant decision, not made here.
 - **Not measured**: `npm run perf` could not launch a browser in the session that built this.
 

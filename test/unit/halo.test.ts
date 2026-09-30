@@ -29,13 +29,13 @@ describe('halo payload', () => {
   const qualifying = data.countries.filter(qualifiesForHalo);
 
   it('every qualifying country has one, and nobody else does', () => {
-    expect(qualifying.length).toBe(30);
+    expect(qualifying.length).toBe(18);
     expect(data.halos.map(h => h.id).sort()).toEqual(qualifying.map(c => c.id).sort());
   });
 
-  it('keeps land micro-states on pins', () => {
+  it('keeps land micro-states, the Caribbean, Malta and Cyprus on pins', () => {
     const ids = new Set(data.halos.map(h => h.id));
-    for (const iso3 of ['MCO', 'VAT', 'SMR', 'LIE']) {
+    for (const iso3 of ['MCO', 'VAT', 'SMR', 'LIE', 'BHS', 'JAM', 'CYP', 'MLT', 'ATG', 'TTO']) {
       expect(ids.has(data.countries.find(c => c.iso3 === iso3)!.id)).toBe(false);
     }
   });
@@ -65,7 +65,7 @@ describe('halo payload', () => {
       expect(Math.min(...lats), feature.country.iso3).toBeLessThanOrEqual(minLat);
       expect(Math.max(...lats), feature.country.iso3).toBeGreaterThanOrEqual(maxLat);
     }
-    expect(world.haloFeatures.length).toBe(30);
+    expect(world.haloFeatures.length).toBe(18);
     const areas = world.haloFeatures.map(f => f.halo!.area);
     expect(areas).toEqual([...areas].sort((a, b) => a - b));
   });
