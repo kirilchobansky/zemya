@@ -1,7 +1,6 @@
 /**
- * "Fill the list" — the first History quiz type. One quiz per (kind, period): every ruler
- * (or government) whose dates lie inside a period is an empty rectangle showing only its
- * years, and the player types names in any order. Pure logic only (no React, no DOM, no
+ * "Fill the list" — the first History quiz type. One quiz per row of fill-quiz-config.ts:
+ * every ruler (or government) it selects is an empty rectangle showing only its years, and the player types names in any order. Pure logic only (no React, no DOM, no
  * Node) — HistoryFillQuiz.tsx draws it, catalog.server.ts feeds it at build time, and
  * react-router.config.ts derives the prerendered quiz URLs from it, so this file must stay
  * loadable outside the app's bundler (relative imports only).
@@ -18,6 +17,7 @@
  */
 import { latinToCyrillicRegExp } from './search';
 import { decimalYearOf } from './scale';
+import { FILL_QUIZ_CONFIG, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
 
 export type FillKind = 'ruler' | 'government';
 
@@ -89,6 +89,8 @@ export interface FillEntry {
   /** The authored date strings, for the dd.mm.yyyy tooltip. */
   startRaw: string;
   endRaw: string | null;
+  /** False when the office was not filled by a public vote (bg.yaml `elected`). */
+  elected: boolean;
 }
 
 export interface PreparedFillEntry {
@@ -209,11 +211,12 @@ export interface FillQuiz {
   id: string;
   slug: string;
   kind: FillKind;
-  periodId: string;
-  /** "Rulers: First Bulgarian Empire" */
+  /** "Rulers of the First Bulgarian Empire" */
   title: string;
-  /** Chronological: by start, then end. */
+  /** Chronological: by start, then end. Everything the row selects, toggle off. */
   entries: FillEntry[];
+  /** Set when the row has a toggle; the entries it drops are those with `elected: false`. */
+  toggle: FillQuizToggle | null;
 }
 
 /** The authored shape of a public/data/history/<file>.json entry — only what quizzes read. */
@@ -222,58 +225,60 @@ export interface FillRawEntry {
   kind: string;
   name: { bg: string; en: string };
   aliases: readonly string[];
+  role?: string | null;
+  elected?: boolean;
   start: string;
   end: string | null;
 }
 
-const KIND_TITLE: Readonly<Record<FillKind, string>> = { ruler: 'Rulers', government: 'Governments' };
-const MIN_ENTRIES = 3;
-
-/**
- * Every quiz a country's timeline yields: for each period holding at least 3 rulers, one
- * "Rulers: <period>", and likewise "Governments: <period>" — all rulers first, then all
- * governments, each in period order. An entry belongs to a period when both its start and
- * its end lie inside the period's range (an open end only fits an open-ended period).
- * Nothing is sampled: every such entry is included.
- */
-export function fillQuizzesFromRaw(raw: readonly FillRawEntry[], slug: string): FillQuiz[] {
-  const toEntry = (r: FillRawEntry, kind: FillKind): FillEntry => ({
-    id: r.id,
-    kind,
-    nameBg: r.name.bg,
-    nameEn: r.name.en,
-    aliases: r.aliases,
-    start: decimalYearOf(r.start, `${r.id}.start`),
-    end: r.end == null ? null : decimalYearOf(r.end, `${r.id}.end`),
-    startRaw: r.start,
-    endRaw: r.end
-  });
-  const periods = raw
-    .filter(r => r.kind === 'period')
-    .map(r => ({ raw: r, ...span(toEntry(r, 'ruler')) }))
-    .sort((a, b) => a.start - b.start);
-  const quizzes: FillQuiz[] = [];
-  for (const kind of ['ruler', 'government'] as const) {
-    for (const p of periods) {
-      const entries = raw
-        .filter(r => r.kind === kind)
-        .map(r => toEntry(r, kind))
-        .filter(e => e.start >= p.start && (e.end ?? Infinity) <= p.end)
-        .sort((a, b) => a.start - b.start || (a.end ?? Infinity) - (b.end ?? Infinity));
-      if (entries.length < MIN_ENTRIES) continue;
-      quizzes.push({
-        id: `${slug}-${kind === 'ruler' ? 'rulers' : 'governments'}-${p.raw.id.replace(/^period-/, '')}`,
-        slug,
-        kind,
-        periodId: p.raw.id,
-        title: `${KIND_TITLE[kind]}: ${p.raw.name.en || p.raw.name.bg}`,
-        entries
-      });
-    }
-  }
-  return quizzes;
+/** The entries a run plays: all of them, or with the toggle on only the elected ones. */
+export function entriesFor(quiz: Pick<FillQuiz, 'entries' | 'toggle'>, toggleOn: boolean): FillEntry[] {
+  return quiz.toggle && toggleOn ? quiz.entries.filter(e => e.elected) : quiz.entries;
 }
 
-function span(e: FillEntry): { start: number; end: number } {
-  return { start: e.start, end: e.end ?? Infinity };
+/** Does `entry` belong to the row? Kind, role regex and the start window (from inclusive,
+ *  before exclusive). The toggle is not applied here — see `entriesFor`. */
+export function selectedBy(config: FillQuizConfig, entry: FillEntry, role: string | null): boolean {
+  if (entry.kind !== config.kind || !config.role.test(role ?? '')) return false;
+  if (config.from !== undefined && entry.start < decimalYearOf(config.from, `${config.id}.from`)) return false;
+  if (config.before !== undefined && entry.start >= decimalYearOf(config.before, `${config.id}.before`)) return false;
+  return true;
+}
+
+/**
+ * Every quiz a country's timeline yields, one per config row and in the config's order
+ * (`config` defaults to the country's own table, fill-quiz-config.ts). Nothing is sampled:
+ * every entry a row selects is included. A row selecting nothing is dropped.
+ */
+export function fillQuizzesFromRaw(
+  raw: readonly FillRawEntry[],
+  slug: string,
+  config: readonly FillQuizConfig[] = FILL_QUIZ_CONFIG[slug] ?? []
+): FillQuiz[] {
+  const quizzes: FillQuiz[] = [];
+  for (const row of config) {
+    const entries = raw
+      .filter(r => r.kind === row.kind)
+      .map(r => ({
+        role: r.role ?? null,
+        entry: {
+          id: r.id,
+          kind: row.kind,
+          nameBg: r.name.bg,
+          nameEn: r.name.en,
+          aliases: r.aliases,
+          start: decimalYearOf(r.start, `${r.id}.start`),
+          end: r.end == null ? null : decimalYearOf(r.end, `${r.id}.end`),
+          startRaw: r.start,
+          endRaw: r.end,
+          elected: r.elected !== false
+        } satisfies FillEntry
+      }))
+      .filter(({ entry, role }) => selectedBy(row, entry, role))
+      .map(({ entry }) => entry)
+      .sort((a, b) => a.start - b.start || (a.end ?? Infinity) - (b.end ?? Infinity));
+    if (!entries.length) continue;
+    quizzes.push({ id: row.id, slug, kind: row.kind, title: row.title, entries, toggle: row.toggle ?? null });
+  }
+  return quizzes;
 }

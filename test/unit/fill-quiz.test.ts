@@ -8,12 +8,13 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
-  dateRangeLabel, fillQuizzesFromRaw, formatFillDate, matchFill, normaliseFill, prepareFill, yearLabel,
-  type FillEntry, type FillRawEntry
+  dateRangeLabel, entriesFor, fillQuizzesFromRaw, formatFillDate, matchFill, normaliseFill, prepareFill, yearLabel,
+  type FillEntry, type FillQuiz, type FillRawEntry
 } from '~/lib/history/fill-quiz';
+import type { FillQuizConfig } from '~/lib/history/fill-quiz-config';
 
 function entry(id: string, nameBg: string, nameEn: string, start: number, aliases: string[] = []): FillEntry {
-  return { id, kind: 'ruler', nameBg, nameEn, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10) };
+  return { id, kind: 'ruler', nameBg, nameEn, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10), elected: true };
 }
 
 const LIST = [
@@ -148,40 +149,114 @@ describe('labels', () => {
 });
 
 describe('fillQuizzesFromRaw', () => {
-  const raw = (id: string, kind: string, start: string, end: string | null, en = id): FillRawEntry =>
-    ({ id, kind, name: { bg: id, en }, aliases: [], start, end });
+  const raw = (
+    id: string, kind: string, start: string, end: string | null, role: string | null = null, elected?: boolean
+  ): FillRawEntry => ({ id, kind, name: { bg: id, en: '' }, aliases: [], role, start, end, ...(elected === undefined ? {} : { elected }) });
+  const row = (over: Partial<FillQuizConfig>): FillQuizConfig =>
+    ({ id: 'q', title: 'Q', kind: 'ruler', role: /(?:)/, ...over });
 
-  it('makes a quiz for each period with 3+ entries of a kind, including only entries inside it', () => {
-    const quizzes = fillQuizzesFromRaw([
-      raw('period-one', 'period', '100', '200', 'One'),
-      raw('period-two', 'period', '200', null, 'Two'),
-      raw('r1', 'ruler', '100', '120'), raw('r2', 'ruler', '120', '150'), raw('r3', 'ruler', '150', '200'),
-      raw('r4', 'ruler', '190', '210'), // straddles the boundary: in neither
-      raw('r5', 'ruler', '200', '210'), raw('r6', 'ruler', '210', '220'), // two in "Two": too few
-      raw('g1', 'government', '1', '2')
-    ], 'x');
-    expect(quizzes.map(q => q.id)).toEqual(['x-rulers-one']);
-    expect(quizzes[0].title).toBe('Rulers: One');
-    expect(quizzes[0].entries.map(e => e.id)).toEqual(['r1', 'r2', 'r3']);
-  });
-  it('yields governments too, and lets an open end fit an open-ended period', () => {
-    const quizzes = fillQuizzesFromRaw([
-      raw('period-now', 'period', '1989', null, 'Now'),
-      raw('g1', 'government', '1990-01-01', '1991-01-01'), raw('g2', 'government', '1991-01-01', '1992-01-01'),
-      raw('g3', 'government', '1992-01-01', null)
-    ], 'x');
-    expect(quizzes.map(q => q.title)).toEqual(['Governments: Now']);
-    expect(quizzes[0].entries).toHaveLength(3);
+  it('filters by kind, role regex and a start window (from inclusive, before exclusive)', () => {
+    const data = [
+      raw('a', 'ruler', '100', '120', 'хан'), raw('b', 'ruler', '150', '160', 'цар'),
+      raw('c', 'ruler', '200', '210', 'хан'), raw('d', 'ruler', '180', null, null),
+      raw('e', 'government', '150', '160', 'хан')
+    ];
+    const ids = (config: FillQuizConfig) => fillQuizzesFromRaw(data, 'x', [config])[0]?.entries.map(e => e.id);
+    expect(ids(row({ from: '100', before: '200' }))).toEqual(['a', 'b', 'd']);
+    expect(ids(row({ role: /хан/, from: '100', before: '201' }))).toEqual(['a', 'c']);
+    expect(ids(row({ kind: 'government' }))).toEqual(['e']);
+    expect(ids(row({ role: /няма/ }))).toBeUndefined(); // nothing selected: no quiz
   });
 
-  it('builds Rulers of the First Bulgarian Empire from the shipped data, none skipped', () => {
-    const doc = JSON.parse(readFileSync('public/data/history/bg.json', 'utf8')) as { entries: FillRawEntry[] };
-    const quizzes = fillQuizzesFromRaw(doc.entries, 'bulgaria');
-    const first = quizzes.find(q => q.id === 'bulgaria-rulers-first-empire');
-    expect(first?.title).toBe('Rulers: First Bulgarian Empire');
-    expect(first!.entries.length).toBe(26); // every ruler inside 681-1018, none skipped
-    expect(first!.entries[0].nameBg).toBe('Аспарух');
-    expect(first!.entries.at(-1)!.nameBg).toBe('Иван Владислав');
-    for (let i = 1; i < first!.entries.length; i++) expect(first!.entries[i].start).toBeGreaterThanOrEqual(first!.entries[i - 1].start);
+  it('keeps the config order and carries the title and toggle', () => {
+    const quizzes = fillQuizzesFromRaw([raw('a', 'ruler', '1', '2', 'хан')], 'x', [
+      row({ id: 'two', title: 'Two' }), row({ id: 'one', title: 'One', toggle: { label: 'T' } })
+    ]);
+    expect(quizzes.map(q => q.id)).toEqual(['two', 'one']);
+    expect(quizzes.map(q => q.toggle)).toEqual([null, { label: 'T' }]);
+  });
+
+  it('entriesFor drops elected:false only with the toggle on, and a missing flag counts as elected', () => {
+    const [quiz] = fillQuizzesFromRaw(
+      [raw('a', 'ruler', '1', '2', 'x'), raw('b', 'ruler', '3', '4', 'x', false), raw('c', 'ruler', '5', '6', 'x', true)],
+      'x', [row({ toggle: { label: 'T' } })]
+    );
+    expect(entriesFor(quiz, false).map(e => e.id)).toEqual(['a', 'b', 'c']);
+    expect(entriesFor(quiz, true).map(e => e.id)).toEqual(['a', 'c']);
+    const [plain] = fillQuizzesFromRaw([raw('b', 'ruler', '3', '4', 'x', false)], 'x', [row({})]);
+    expect(entriesFor(plain, true).map(e => e.id)).toEqual(['b']); // no toggle: nothing is dropped
+  });
+});
+
+describe('the Bulgarian quiz table on the shipped timeline', () => {
+  const doc = JSON.parse(readFileSync('public/data/history/bg.json', 'utf8')) as { entries: FillRawEntry[] };
+  const quizzes = fillQuizzesFromRaw(doc.entries, 'bulgaria');
+  const quiz = (id: string) => quizzes.find(q => q.id === `bulgaria-${id}`)!;
+  const ids = (q: FillQuiz, on = false) => entriesFor(q, on).map(e => e.id);
+
+  it('has the nine quizzes, with English titles and non-empty lists', () => {
+    expect(quizzes.map(q => q.title)).toEqual([
+      'Rulers of the First Bulgarian Empire', 'Rulers of the Second Bulgarian Empire',
+      'Princes and Tsars of Bulgaria', 'Heads of state, People\'s Republic', 'BKP leaders', 'Presidents',
+      'Prime ministers, Principality and Kingdom', 'Prime ministers, People\'s Republic', 'Prime ministers, Republic'
+    ]);
+    expect(quizzes.filter(q => q.toggle).map(q => q.id)).toEqual(['bulgaria-presidents']);
+  });
+
+  it('First Bulgarian Empire: every ruler from 681 to 1018, in order', () => {
+    const first = quiz('rulers-first-empire');
+    expect(first.entries.length).toBe(26);
+    expect(first.entries[0].nameBg).toBe('Аспарух');
+    expect(first.entries.at(-1)!.nameBg).toBe('Иван Владислав');
+    for (let i = 1; i < first.entries.length; i++) expect(first.entries[i].start).toBeGreaterThanOrEqual(first.entries[i - 1].start);
+  });
+
+  it('Second Bulgarian Empire starts with Asen and Peter and stays inside 1185..1396', () => {
+    const second = quiz('rulers-second-empire');
+    expect(second.entries.length).toBeGreaterThan(10);
+    for (const e of second.entries) expect(Math.floor(e.start)).toBeGreaterThanOrEqual(1185);
+    for (const e of second.entries) expect(Math.floor(e.start)).toBeLessThanOrEqual(1396);
+  });
+
+  it('Princes and Tsars includes Simeon II (1943) and stops before the 1946 republic', () => {
+    const r = ids(quiz('rulers-principality-kingdom'));
+    expect(r).toEqual([
+      'ruler-aleksandar-1-batenberg', 'ruler-ferdinand-1', 'ruler-boris-3', 'ruler-simeon-2'
+    ].filter(id => r.includes(id)));
+    expect(r).toContain('ruler-simeon-2');
+    expect(r).not.toContain('ruler-georgi-dimitrov-bkp');
+  });
+
+  it('heads of state, BKP leaders and presidents pick their roles only', () => {
+    expect(ids(quiz('heads-of-state-peoples-republic'))).toContain('ruler-vasil-kolarov-state-head');
+    expect(quiz('bkp-leaders').entries.length).toBe(4);
+    const presidents = ids(quiz('presidents'));
+    expect(presidents).toContain('pres-todorov-acting'); // "и.д. президент" matches too
+    expect(presidents.every(id => id.startsWith('pres-'))).toBe(true);
+  });
+
+  it('the elected toggle removes Mladenov, Todorov (acting) and Yotova, and nobody else', () => {
+    const presidents = quiz('presidents');
+    const all = ids(presidents, false);
+    const elected = ids(presidents, true);
+    expect(all).toEqual(expect.arrayContaining(['pres-mladenov', 'pres-todorov-acting', 'pres-yotova']));
+    expect(elected).not.toContain('pres-mladenov');
+    expect(elected).not.toContain('pres-todorov-acting');
+    expect(elected).not.toContain('pres-yotova');
+    expect(elected).toEqual(expect.arrayContaining(['pres-zhelev', 'pres-stoyanov', 'pres-parvanov', 'pres-plevneliev', 'pres-radev']));
+    expect(all.length - elected.length).toBe(3);
+  });
+
+  it('the three prime-minister quizzes cover every prime minister exactly once: no overlap, no gap', () => {
+    const pmQuizzes = ['pms-principality-kingdom', 'pms-peoples-republic', 'pms-republic'].map(quiz);
+    const listed = pmQuizzes.flatMap(q => ids(q));
+    expect(new Set(listed).size).toBe(listed.length); // no overlap
+    const allPms = doc.entries.filter(e => e.kind === 'government').map(e => e.id);
+    expect([...listed].sort()).toEqual([...allPms].sort()); // no gap
+    // and the boundaries fall where the periods do
+    expect(ids(pmQuizzes[0])).toContain('pm-kimon-georgiev-3'); // 31.03.1946
+    expect(ids(pmQuizzes[1])).toContain('pm-georgi-dimitrov'); // 22.11.1946
+    expect(ids(pmQuizzes[1])).toContain('pm-atanasov'); // last PM before 10.11.1989
+    expect(ids(pmQuizzes[2])).toContain('pm-lukanov');
   });
 });

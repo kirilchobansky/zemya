@@ -377,22 +377,37 @@ target or map, so it does not use the engine (`app/lib/quiz/engine.ts`). Logic:
 `components/HistoryFillQuiz.tsx`; run URL: `/quizzes/history/:quizId` (no scope, no size — a
 second route id on the same file, `routes.ts`, which dispatches on the missing `:scope`).
 
-- **Quizzes are generated, never listed.** `fillQuizzesFromRaw(timeline)`: for each period, one
-  "Rulers: <period>" if it holds >= 3 rulers, one "Governments: <period>" if >= 3 governments; an
-  entry belongs to a period when its start and end both lie inside the period's range. Every such
-  entry is included — no sampling. Ids are `<slug>-rulers|governments-<period id minus "period-">`
-  (Bulgaria: 8 quizzes, e.g. `bulgaria-rulers-first-empire`, 26 rulers). The list route's loader
-  and `react-router.config.ts` (prerendered URLs, sitemap) call the same function, so a new
-  period/ruler/government adds a page with no list to edit. `Subject.fillQuizzes` marks the
-  subject whose list comes from that loader data rather than `Subject.quizzes`.
+- **Quizzes are an explicit table.** `app/lib/history/fill-quiz-config.ts` has one row per quiz
+  (per country slug): `id`, English `title`, `kind` (ruler | government), a `role` regex tested
+  against the entry's role, an optional start window (`from` inclusive, `before` exclusive) and an
+  optional `toggle`. `fillQuizzesFromRaw(timeline, slug)` applies each row — every selected entry is
+  included, no sampling; a row selecting nothing is dropped. Bulgaria has nine: rulers of the
+  First (681..1018) and Second (1185..1396) Empire, Princes and Tsars (1878 to before 15.09.1946),
+  Heads of state (People's Republic), BKP leaders, Presidents, and Prime ministers for the
+  Principality and Kingdom / People's Republic (15.09.1946 to before 10.11.1989) / Republic (from
+  10.11.1989) — the three PM windows tile the timeline, a unit test checks no overlap and no gap.
+  Entry names stay Bulgarian; titles are English. Ids are hand-written in the table
+  (`bulgaria-rulers-first-empire`, ... — bests are keyed by them, so never rename one). The list
+  route's loader and `react-router.config.ts` (prerendered URLs, sitemap) call the same function.
+  `Subject.fillQuizzes` marks the subject whose list comes from that loader data rather than
+  `Subject.quizzes`.
+- **Toggle.** A row may carry `toggle: { label }`; on, the run drops entries whose `elected` is
+  false (`elected` is an optional boolean on any history entry in `bg.yaml`, missing = true,
+  validated by the build and `check:history`). Shown on the start screen and again on the result
+  screen (it applies to the next run; a finished run keeps the setting it was played with, named in
+  the result label), hidden — not removed — while a run is going so the grid never jumps. The
+  setting is the run's `size`: `"all"` off, `"elected"` on (`toggleSize`), so best times are kept
+  separately per setting; the History list shows the toggle-off best. Only Presidents has one
+  ("Democratically elected only"; off by default): Mladenov, acting Todorov and Yotova are
+  `elected: false` (succession / not chosen by public vote).
 - **Screen.** A centred panel (portalled to `<body>`, full-screen on a phone) with one always-focused
   input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up" (reveals the
   missing names in red; the run is **not** saved), and a grid of fixed-height rectangles in
   chronological order — dates only until filled, then the Bulgarian name in the kind colour (`--sea`
   ruler, `--categorical-violet` government) with a short fill animation. Hover/`title` on a filled
   cell shows the exact dates as dd.mm.yyyy. The timer starts at the first keystroke.
-- **Runs** are saved like geography's (`saveQuizRun`, `quizId` = the quiz id, scope and size both
-  `"all"`), so personal bests, export/import and reset already cover them; the History list shows
+- **Runs** are saved like geography's (`saveQuizRun`, `quizId` = the quiz id, scope `"all"`, size
+  `"all"` or `"elected"` — see Toggle), so personal bests, export/import and reset already cover them; the History list shows
   each quiz's best time.
 - **Matching** (`normaliseFill` / `matchFill`): lower-case; spaces, hyphens, dots and other
   non-letters ignored; title words хан, княз, цар, khan, prince, tsar stripped; Roman = Arabic

@@ -21,7 +21,8 @@ import { keepFocus } from '~/components/quiz/QuizControls';
 import { useAtlasContext } from '~/lib/atlas-context';
 import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
-import { dateRangeLabel, matchFill, prepareFill, yearLabel, type FillQuiz } from '~/lib/history/fill-quiz';
+import { dateRangeLabel, entriesFor, matchFill, prepareFill, yearLabel, type FillQuiz } from '~/lib/history/fill-quiz';
+import { toggleSize } from '~/lib/history/fill-quiz-config';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
 
@@ -35,10 +36,17 @@ const NO_FILLED: ReadonlySet<string> = new Set();
 
 export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: string }) {
   const { setQuiz, setImmersive } = useAtlasContext();
-  const prepared = useMemo(() => prepareFill(quiz.entries), [quiz]);
-  const total = quiz.entries.length;
-
   const [phase, setPhase] = useState<Phase>('idle');
+  /* The quiz's toggle, as currently chosen. The finished run keeps the setting it was played
+     with (`runToggle`) while the result screen lets the player pick the next one. */
+  const [toggleOn, setToggleOn] = useState(false);
+  const [runToggle, setRunToggle] = useState(false);
+  const shownToggle = phase === 'idle' || phase === 'running' ? toggleOn : runToggle;
+  const entries = useMemo(() => entriesFor(quiz, shownToggle), [quiz, shownToggle]);
+  const prepared = useMemo(() => prepareFill(entries), [entries]);
+  const total = entries.length;
+  const size = toggleSize(quiz.toggle !== null && toggleOn);
+
   const [filled, setFilled] = useState<ReadonlySet<string>>(NO_FILLED);
   const [input, setInput] = useState('');
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -69,9 +77,9 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
 
   useEffect(() => {
     let cancelled = false;
-    bestQuizTime(quiz.id, 'all', 'all').then(best => { if (!cancelled) setPriorBest(best); });
+    bestQuizTime(quiz.id, 'all', size).then(best => { if (!cancelled) setPriorBest(best); });
     return () => { cancelled = true; };
-  }, [quiz.id]);
+  }, [quiz.id, size]);
 
   useEffect(() => {
     if (phase !== 'running') return;
@@ -87,16 +95,17 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
 
   const finish = useCallback((next: Phase, timeMs: number) => {
     setElapsedMs(timeMs);
+    setRunToggle(toggleOn);
     setPhase(next);
     if (next !== 'done') return;
     const beatBest = priorBest === null || timeMs < priorBest;
     setOutcome({ timeMs, beatBest, previousBest: priorBest });
     setPriorBest(prev => (prev === null ? timeMs : Math.min(prev, timeMs)));
     saveQuizRun({
-      quizId: quiz.id, scope: 'all', size: 'all', timeMs,
+      quizId: quiz.id, scope: 'all', size, timeMs,
       totalCount: total, firstTryCount: total, revealedCount: 0, at: Date.now()
     });
-  }, [priorBest, quiz.id, total]);
+  }, [priorBest, quiz.id, size, toggleOn, total]);
 
   const accept = useCallback((index: number) => {
     const next = new Set(filledRef.current).add(prepared[index].id);
@@ -145,6 +154,16 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     inputRef.current?.focus({ preventScroll: true });
   };
 
+  const toggleBox = (hidden: boolean) => quiz.toggle && (
+    <label
+      className={`fill-quiz__toggle${hidden ? ' fill-quiz__toggle--off' : ''}`}
+      onMouseDown={keepFocus}
+      onPointerDown={keepFocus}
+    >
+      <input type="checkbox" checked={toggleOn} onChange={e => setToggleOn(e.target.checked)} />
+      {quiz.toggle.label}
+    </label>
+  );
   const revealing = phase === 'gaveup';
   const missed = total - filled.size;
 
@@ -193,8 +212,11 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           </button>
         </div>
 
+        {/* hidden, not removed, once a run starts: the grid below never jumps */}
+        {toggleBox(phase !== 'idle')}
+
         <ol className="fill-quiz__grid">
-          {quiz.entries.map(entry => {
+          {entries.map(entry => {
             const isFilled = filled.has(entry.id);
             const isMissed = revealing && !isFilled;
             const shown = isFilled || isMissed;
@@ -218,7 +240,10 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
         {(phase === 'done' || phase === 'gaveup') && (
           <div className="fill-quiz__result">
             <div className="hook">
-              <div className="hook__label">{phase === 'done' ? 'Result' : 'Gave up'}</div>
+              <div className="hook__label">
+                {phase === 'done' ? 'Result' : 'Gave up'}
+                {quiz.toggle && runToggle && <> · {quiz.toggle.label.toLowerCase()}</>}
+              </div>
               <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
               <p style={{ marginBottom: 0 }}>
                 <b>{filled.size} / {total}</b> filled
@@ -233,6 +258,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
                 {phase === 'gaveup' && <>A given-up run is not saved.</>}
               </p>
             </div>
+            {toggleBox(false)}
             <div className="actions">
               <button type="button" className="action action--primary" onClick={restart}>Try again</button>
               <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
@@ -251,7 +277,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
       </header>
       <div className="panel__body">
         <p className="quiz-desc">
-          {total} {quiz.kind === 'ruler' ? 'rulers' : 'governments'}, in chronological order. Type a name to fill
+          {quiz.entries.length} {quiz.kind === 'ruler' ? 'rulers' : 'governments'}, in chronological order. Type a name to fill
           its rectangle — order doesn't matter, the title is optional, Latin letters work.
         </p>
         <div className="actions">

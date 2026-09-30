@@ -75,6 +75,7 @@ export function validateHistory(doc, where) {
 
     if (raw.aliases !== undefined && !Array.isArray(raw.aliases)) throw new Error(`${at}: "aliases" must be a list`);
     if (raw.tags !== undefined && !Array.isArray(raw.tags)) throw new Error(`${at}: "tags" must be a list`);
+    if (raw.elected !== undefined && typeof raw.elected !== 'boolean') throw new Error(`${at}: "elected" must be true or false`);
     if (raw.color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(raw.color)) throw new Error(`${at}: "color" must be a "#rrggbb" hex string`);
 
     if (raw.start === undefined || raw.start === null || raw.start === '') throw new Error(`${at}: missing "start"`);
@@ -90,6 +91,8 @@ export function validateHistory(doc, where) {
       name: { bg: String(raw.name.bg), en: String(raw.name.en ?? '') },
       aliases: (raw.aliases ?? []).map(String),
       role: raw.role != null ? String(raw.role) : null,
+      // Absent means elected; written only when false so the JSON stays as it was for everyone else.
+      ...(raw.elected === false ? { elected: false } : {}),
       start: start.raw,
       end: end ? end.raw : null,
       startYear: start.year,

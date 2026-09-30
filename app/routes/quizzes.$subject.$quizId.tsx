@@ -141,7 +141,7 @@ export function meta({ params, loaderData, location }: Route.MetaArgs) {
     return fill
       ? pageMeta({
           title: `${fill.title} — History Quiz — Zemya`,
-          description: `Name all ${fill.entries.length} ${fill.kind === "ruler" ? "rulers" : "governments"} of the ${fill.title.split(": ")[1]} from their dates — a timed fill-the-list quiz.`,
+          description: `${fill.title}: name all ${fill.entries.length} ${fill.kind === "ruler" ? "rulers" : "governments"} from their dates — a timed fill-the-list quiz.`,
           path: location.pathname,
         })
       : pageMeta({

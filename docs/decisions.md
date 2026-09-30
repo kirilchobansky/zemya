@@ -1042,13 +1042,33 @@ The owner asked for the first History quiz type (see CLAUDE.md's Do Not exceptio
 - **Registry.** `Subject.quizzes` (a `QuizDefinition[]`) stays empty for History; `Subject.fillQuizzes`
   flags that its list comes from loader data. The fill quiz is not a `QuizDefinition` — no
   queue/target/map, so the geography engine would be wrong for it.
-- **Personal bests** reuse `saveQuizRun` with `scope`/`size` = `"all"`; a given-up run is not saved.
+- **Personal bests** reuse `saveQuizRun` with `scope` = `"all"` and `size` = `"all"` (or `"elected"`
+  for a quiz's toggle-on setting); a given-up run is not saved.
   The timer starts at the first keystroke rather than on a START button (there is no START: the
   input is focused on open).
-- **Names.** Quiz titles use the period's English name, falling back to Bulgarian where none is
-  authored. Filled names are Bulgarian, coloured with existing tokens (`--sea`, `--categorical-violet`,
+- **Names.** Quiz titles are English and hand-written in the config table; filled names are Bulgarian, coloured with existing tokens (`--sea`, `--categorical-violet`,
   `--new`) rather than new ones; filled cells sit on `--chart` because the light theme's `--sea` on
   `--chart-2` is under 4.5:1.
 - **Typo rule** and the instant-accept rule are in `docs/quizzes.md`; a transposition counts as two
   edits (plain Levenshtein), deliberately.
 
+
+#### Revision: explicit quiz table instead of one quiz per period
+
+Auto-generating "Rulers/Governments: <period>" gave quizzes nobody chose (and split modern
+history awkwardly), so `app/lib/history/fill-quiz-config.ts` now lists every quiz: role regex + start
+window + optional toggle. Decisions the brief left open:
+
+- **Window semantics:** `from` inclusive, `before` exclusive, on the entry's START only (an end
+  never matters); "681..1018" is written `from: '681', before: '1019'`. A null role is tested as `""`.
+- **Ids are hand-written**, `bulgaria-rulers-first-empire` kept from the generated era so existing
+  personal bests still count; never rename one.
+- **Toggle = the run's `size`** (`"all"` / `"elected"`), the smallest change that keeps best times
+  per setting without touching the progress schema, export or import. The History list shows the
+  toggle-off best. `elected` lives on the entry (missing = true, written to JSON only when false),
+  not in the config, so any row can use it.
+- **Dates edited for the windows:** `period-principality-kingdom` ends 1946-09-15 (the republic
+  referendum); `pm-georgi-dimitrov` starts 1946-11-22 (exact) — the previous PM (Kimon Georgiev,
+  third) ran to that day, so the three PM windows tile with no gap or overlap.
+- **Off the given file list, touched anyway:** `app/styles/app.css` (toggle style) and the
+  meta description in `routes/quizzes.$subject.$quizId.tsx` (it split the old "Rulers: X" title).

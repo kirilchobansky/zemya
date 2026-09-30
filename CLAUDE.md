@@ -14,8 +14,8 @@ Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 Four top-level sections — Map, Quizzes, Questions, History — share one shell
 (`routes/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), three quizzes on
 one engine (Countries, Flags, Capitals), a Bulgaria history timeline (`/history/:slug`, only `bulgaria` today,
-canvas-only — see "Do not") plus one History quiz type, "fill the list" (Quizzes -> History: a
-"Rulers: <period>" / "Governments: <period>" quiz generated per period from the timeline,
+canvas-only — see "Do not") plus one History quiz type, "fill the list" (Quizzes -> History: nine quizzes listed in an explicit table (`app/lib/history/fill-quiz-config.ts`, e.g. "Presidents",
+"Prime ministers, Republic"), each selected from the timeline by role and start date,
 `/quizzes/history/:quizId`; `docs/quizzes.md`). Deployed on Vercel at https://zemya.study, indexed, MIT code /
 ODbL data. Full current-state list: `docs/status.md`; narrative and "Next" items: `docs/decisions.md`.
 

@@ -2178,6 +2178,18 @@ a.quiz-list__row {
 .fill-cell.is-missed .fill-cell__name {
   color: var(--new);
 }
+.fill-quiz__toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  align-self: flex-start;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.fill-quiz__toggle--off {
+  visibility: hidden;
+}
 .fill-quiz__result {
   display: flex;
   flex-direction: column;

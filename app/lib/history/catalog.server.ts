@@ -22,6 +22,8 @@ interface RawHistoryEntry {
   name: { bg: string; en: string };
   aliases: string[];
   role: string | null;
+  /** Absent means true; see content/history/bg.yaml's schema header. */
+  elected?: boolean;
   start: string;
   end: string | null;
   precision: 'exact' | 'year' | 'circa' | 'disputed';
@@ -139,8 +141,8 @@ export function historyListFor(slug: string): HistoryListRow[] {
 }
 
 /** Every "fill the list" quiz (app/lib/history/fill-quiz.ts) of every history country —
- *  generated from the timeline itself, so a new period, ruler or government changes the list
- *  with no code edit. Build-time only, like the rest of this file. */
+ *  one per row of fill-quiz-config.ts, its entries selected from the timeline by that row's
+ *  filters. Build-time only, like the rest of this file. */
 export function fillQuizzes(): FillQuiz[] {
   return HISTORY_COUNTRIES.flatMap(c => fillQuizzesFromRaw(rawEntries(c.slug), c.slug));
 }

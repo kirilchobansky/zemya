@@ -6,12 +6,14 @@
  *
  *   node scripts/check-history.mjs
  *
- * Four checks, each best-effort rather than a hard rule (a real history has legitimate
+ * Five checks, each best-effort rather than a hard rule (a real history has legitimate
  * gaps and overlaps — this flags candidates for a human to look at, not violations):
  *   1. an entry whose dates fall outside its parent's period
  *   2. more than three entries of the same kind overlapping at any moment
  *   3. any end date after today
  *   4. a ruler or government with a gap of more than 5 years to the next one of its kind
+ *   5. an `elected` field that is not a boolean, or is set on anything but a ruler or
+ *      government (it only feeds the fill-the-list quiz toggle)
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
@@ -106,6 +108,13 @@ for (const file of files) {
   }
   console.log(`\n4. Ruler/government gap over 5 years to the next: ${gaps.length}`);
   gaps.forEach(m => console.log(m));
+
+  /* ------------------------------------------------------------ 5. elected field sanity */
+  const badElected = entries.filter(
+    e => 'elected' in e && (typeof e.elected !== 'boolean' || (e.kind !== 'ruler' && e.kind !== 'government'))
+  );
+  console.log(`\n5. Bad "elected" field: ${badElected.length}`);
+  badElected.forEach(e => console.log(`   ${e.id} (${e.kind}) elected=${JSON.stringify(e.elected)}`));
 
   console.log(`\n${line}\nnothing was changed — this is a report only\n${line}\n`);
 }

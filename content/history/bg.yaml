@@ -11,6 +11,9 @@
 #   name       { bg: "...", en: "..." } — both keys always present, en may be empty
 #   aliases    alternate spellings (Cyrillic and Latin), for future quiz matching
 #   role       Bulgarian title text: хан, цар, княз, президент, министър-председател...
+#   elected    optional boolean, rulers only in practice — false when the office was not filled by
+#              a public vote (succession, acting head of state); missing means true. Read by
+#              the "Democratically elected only" toggle of a fill-the-list quiz
 #   start/end  signed year ("681", "-450") or full date ("811-07-26"); end omitted if ongoing
 #   precision  exact | year | circa | disputed
 #   style      old | new — old for any date before 1 April 1916 (Julian calendar)
@@ -127,7 +130,7 @@ entries:
     name: { bg: "Княжество и царство България", en: "Principality and Kingdom of Bulgaria" }
     aliases: ["Third Bulgarian State", "Trето българско царство"]
     start: "1878"
-    end: "1946"
+    end: "1946-09-15"
     precision: year
     style: old
     tier: 1
@@ -1518,9 +1521,9 @@ entries:
     name: { bg: "Георги Димитров", en: "" }
     aliases: []
     role: министър-председател
-    start: "1946"
+    start: "1946-11-22"
     end: "1949"
-    precision: year
+    precision: exact
     style: new
     tier: 3
     blurb:
@@ -1729,6 +1732,7 @@ entries:
     name: { bg: "Петър Младенов", en: "Petar Mladenov" }
     aliases: []
     role: президент
+    elected: false
     start: "1989-11-17"
     end: "1990-07-06"
     precision: exact
@@ -1743,6 +1747,7 @@ entries:
     name: { bg: "Николай Тодоров", en: "Nikolay Todorov" }
     aliases: []
     role: и.д. президент
+    elected: false
     start: "1990"
     end: "1990-08-01"
     precision: year
@@ -1827,6 +1832,7 @@ entries:
     name: { bg: "Илияна Йотова", en: "Iliana Yotova" }
     aliases: []
     role: президент
+    elected: false
     start: "2026-01-23"
     precision: exact
     style: new
