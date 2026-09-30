@@ -38,7 +38,7 @@ const QUIZ_IDS = ['countries', 'flags', 'capitals'];
 const historyQuizRuns = HISTORY_COUNTRIES.flatMap(c => {
   const file = join('public', 'data', 'history', `${c.file}.json`);
   const doc = JSON.parse(readFileSync(file, 'utf8')) as { entries: Parameters<typeof fillQuizzesFromRaw>[0] };
-  return fillQuizzesFromRaw(doc.entries, c.slug).map(q => `/quizzes/history/${q.id}`);
+  return fillQuizzesFromRaw(doc.entries, c.slug).map(q => `/quizzes/history/${c.slug}/${q.id}`);
 });
 
 /** The quizzes that existed before scopes did — only these have old bookmarks to keep
@@ -81,6 +81,7 @@ const indexable = [
   '/', '/questions', '/quizzes', '/history',
   ...SUBJECT_IDS.map(id => `/quizzes/${id}`),
   ...quizRuns,
+  ...HISTORY_COUNTRIES.map(c => `/quizzes/history/${c.slug}`),
   ...historyQuizRuns,
   ...slugs.map(slug => `/country/${slug}`),
   ...HISTORY_COUNTRIES.map(c => `/history/${c.slug}`)

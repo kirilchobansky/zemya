@@ -20,11 +20,11 @@ feature alongside the atlas and study mode.
 
 **Subjects.** A thin layer sits above the quiz catalogue: `/quizzes` (`routes/quizzes.tsx`)
 picks a subject (Geography, History), `/quizzes/:subject` (`routes/quizzes.$subject.tsx`)
-lists that subject's quizzes, and a run is `/quizzes/:subject/:quizId/:scope/:size`
+lists that subject's quizzes (History adds a country level, below), and a run is `/quizzes/:subject/:quizId/:scope/:size`
 (`routes/quizzes.$subject.$quizId.tsx`). `app/lib/quiz/subjects.ts` is the registry: `{ id,
 name, blurb, quizzes: QuizDefinition[] }`; geography's `quizzes` is the same
-`QUIZ_DEFINITIONS` array below, unchanged, and history's is empty — its list page renders a
-"coming soon" empty state rather than crashing on nothing to map over. This is UI scaffolding
+`QUIZ_DEFINITIONS` array below, unchanged, and history's is empty (`fillQuizzes: true` instead —
+its quizzes are listed per country, see "History: fill the list"). This is UI scaffolding
 for the picker, **not** a start on history content — see CLAUDE.md's Do Not section on
 subjects, and its note on this specific deviation. The old flat `/quiz`, `/quiz/:quizId/:scope/:size`
 and `/quiz/:quizId/:size` paths (indexed on Google before this layer existed) are kept as
@@ -374,9 +374,16 @@ as a dossier link — "the ones worth another look", the actual point of the scr
 The first History quiz type, and the first that is not a `QuizDefinition` — there is no queue,
 target or map, so it does not use the engine (`app/lib/quiz/engine.ts`). Logic:
 `app/lib/history/fill-quiz.ts` (pure, unit-tested in `test/unit/fill-quiz.test.ts`); screen:
-`components/HistoryFillQuiz.tsx`; run URL: `/quizzes/history/:quizId` (no scope, no size — a
+`components/HistoryFillQuiz.tsx`; run URL: `/quizzes/history/:slug/:quizId` (no scope, no size — a
 second route id on the same file, `routes.ts`, which dispatches on the missing `:scope`).
 
+- **Navigation is subject -> country -> quiz.** `/quizzes/history` lists `HISTORY_COUNTRIES`
+  (one card each, with its quiz count), `/quizzes/history/:slug` lists that country's quizzes in the
+  config's order under Rulers / Governments, and the run is `/quizzes/history/:slug/:quizId`.
+  The last two are second route ids on `quizzes.$subject.tsx` / `quizzes.$subject.$quizId.tsx`
+  (`routes.ts`), dispatching on the params they lack. The breadcrumb in each panel header links
+  one level up; the run's "Back to quizzes" goes to the country's list. The config is keyed by
+  country slug (`FILL_QUIZ_CONFIG`), so another country adds its own rows.
 - **Quizzes are an explicit table.** `app/lib/history/fill-quiz-config.ts` has one row per quiz
   (per country slug): `id`, English `title`, `kind` (ruler | government), a `role` regex tested
   against the entry's role, an optional start window (`from` inclusive, `before` exclusive) and an
@@ -400,7 +407,8 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   separately per setting; the History list shows the toggle-off best. Only Presidents has one
   ("Democratically elected only"; off by default): Mladenov, acting Todorov and Yotova are
   `elected: false` (succession / not chosen by public vote).
-- **Screen.** A centred panel (portalled to `<body>`, full-screen on a phone) with one always-focused
+- **Screen.** A centred panel on a plain stage — `.fill-quiz` covers the map/timeline with
+  `--flag-stage-bg`, exactly like the Flags quiz's `.quiz-flag-stage` (portalled to `<body>`, full-screen on a phone) with one always-focused
   input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up" (reveals the
   missing names in red; the run is **not** saved), and a grid of fixed-height rectangles in
   chronological order — dates only until filled, then the Bulgarian name in the kind colour (`--sea`

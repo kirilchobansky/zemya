@@ -96,7 +96,7 @@ function measureInsets(): Insets {
   };
 }
 
-/** A history "fill the list" run has no :scope — its URL is /quizzes/history/:quizId, and it
+/** A history "fill the list" run has no :scope — its URL is /quizzes/history/:slug/:quizId, and it
  *  is the loader's job (build time, so the timeline never ships as a separate fetch) to hand
  *  over that quiz's entries. `fill` is null for every geography run. */
 type RunData = { poolSize: number; fill: FillQuiz | null };
@@ -107,7 +107,7 @@ export function loader({ params }: Route.LoaderArgs): RunData {
   if (!params.scope) {
     return {
       poolSize: 0,
-      fill: fillQuizzes().find((q) => q.id === params.quizId) ?? null,
+      fill: fillQuizzes().find((q) => q.slug === params.slug && q.id === params.quizId) ?? null,
     };
   }
   const scope = params.scope;
@@ -185,7 +185,7 @@ export default function QuizRoute({ loaderData }: Route.ComponentProps) {
   const params = useParams<{ scope?: string }>();
   if (params.scope) return <QuizRun />;
   if (loaderData.fill) {
-    return <HistoryFillQuiz key={loaderData.fill.id} quiz={loaderData.fill} backTo="/quizzes/history" />;
+    return <HistoryFillQuiz key={loaderData.fill.id} quiz={loaderData.fill} backTo={`/quizzes/history/${loaderData.fill.slug}`} />;
   }
   return (
     <>

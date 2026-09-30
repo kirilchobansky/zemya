@@ -17,14 +17,13 @@ export interface Subject {
   blurb: string;
   quizzes: QuizDefinition[];
   /** The subject's quizzes are "fill the list" quizzes (app/lib/history/fill-quiz.ts), not
-   *  QuizDefinitions — generated from the timeline by the list route's loader, so `quizzes`
-   *  stays empty and routes/quizzes.$subject.tsx lists them from loader data instead. */
+   *  QuizDefinitions — listed per country from fill-quiz-config.ts by the list route's loader,
+   *  so `quizzes` stays empty and routes/quizzes.$subject.tsx shows a country list instead. */
   fillQuizzes?: boolean;
 }
 
-/** Geography ships three quizzes. History's are the generated "fill the list" quizzes — see
- *  `fillQuizzes` and docs/quizzes.md; a subject with neither is still rendered as "coming
- *  soon" by routes/quizzes.$subject.tsx rather than crashing on an empty list. */
+/** Geography ships three quizzes. History's are the "fill the list" quizzes — see
+ *  `fillQuizzes` and docs/quizzes.md. */
 export const SUBJECTS: Subject[] = [
   {
     id: 'geography',
@@ -37,7 +36,7 @@ export const SUBJECTS: Subject[] = [
     id: 'history',
     name: 'History',
     icon: '🕓',
-    blurb: 'Fill the list — name every ruler or government of a period from its dates.',
+    blurb: 'Fill the list — name every ruler, president or prime minister from their dates.',
     quizzes: [],
     fillQuizzes: true
   }

@@ -2048,10 +2048,10 @@ a.quiz-list__row {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  pointer-events: none;
+  /* a plain stage, exactly like .quiz-flag-stage: it covers the map/timeline canvas outright */
+  background: var(--flag-stage-bg);
 }
 .fill-quiz__panel {
-  pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;

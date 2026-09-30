@@ -22,6 +22,7 @@ import { useAtlasContext } from '~/lib/atlas-context';
 import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
 import { dateRangeLabel, entriesFor, matchFill, prepareFill, yearLabel, type FillQuiz } from '~/lib/history/fill-quiz';
+import { historyCountryFor } from '~/lib/history/countries';
 import { toggleSize } from '~/lib/history/fill-quiz-config';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
@@ -272,7 +273,10 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   return (
     <>
       <header className="panel__head">
-        <span className="panel__eyebrow">Quiz · History</span>
+        <span className="panel__eyebrow">
+          <Link to="/quizzes">Quizzes</Link> · <Link to="/quizzes/history">History</Link> ·{' '}
+          <Link to={backTo}>{historyCountryFor(quiz.slug)?.nameEn ?? quiz.slug}</Link>
+        </span>
         <h2>{quiz.title}</h2>
       </header>
       <div className="panel__body">

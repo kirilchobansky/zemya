@@ -7,6 +7,7 @@ import { Link } from 'react-router';
 
 import { pageMeta } from '~/lib/seo';
 import { SUBJECTS } from '~/lib/quiz/subjects';
+import { HISTORY_COUNTRIES } from '~/lib/history/countries';
 
 export function meta() {
   return pageMeta({
@@ -39,8 +40,8 @@ export default function SubjectPicker() {
               </span>
               <span className="subject-card__blurb">{subject.blurb}</span>
               <span className="subject-card__count">
-                {subject.quizzes.length === 0
-                  ? 'Coming soon'
+                {subject.fillQuizzes
+                  ? `${HISTORY_COUNTRIES.length} ${HISTORY_COUNTRIES.length === 1 ? 'country' : 'countries'}`
                   : `${subject.quizzes.length} ${subject.quizzes.length === 1 ? 'quiz' : 'quizzes'}`}
               </span>
             </Link>

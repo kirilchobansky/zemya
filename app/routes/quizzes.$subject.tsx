@@ -1,11 +1,13 @@
 /**
- * The quiz list for one subject — geography's three quizzes today, history empty. Listed
+ * The quiz list for one subject — geography's three quizzes; for History this same file
+ * serves two more levels (see the default export): /quizzes/history is a list of countries
+ * and /quizzes/history/:slug (a second route id, routes.ts) is that country's quizzes. Listed
  * compact (name only); clicking a name expands its scope chips, size ladder and history
  * inline, one quiz open at a time. Same markup on desktop's right panel and the phone sheet
  * (app.css handles the width difference). See CLAUDE.md's Quizzes section and
  * docs/quizzes.md's "Route shape".
  */
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import {
@@ -28,6 +30,7 @@ import {
 } from "~/lib/geography/scopes";
 import { allCountries } from "~/lib/geography/catalog.server";
 import { fillQuizzes } from "~/lib/history/catalog.server";
+import { HISTORY_COUNTRIES, historyCountryFor } from "~/lib/history/countries";
 import { peekWorld } from "~/lib/geography/world";
 import type { Route } from "./+types/quizzes.$subject";
 
@@ -37,6 +40,7 @@ type ScopeCounts = Record<QuizScope, number>;
  *  shipping every entry to a page that only lists them. */
 interface FillSummary {
   id: string;
+  slug: string;
   title: string;
   kind: "ruler" | "government";
   count: number;
@@ -47,12 +51,10 @@ interface ListData {
   fill: FillSummary[];
 }
 
-/** Stable identity: an effect depends on the list, and a fresh [] each render would loop. */
-const NO_FILL: FillSummary[] = [];
-
 const summariseFill = (): FillSummary[] =>
   fillQuizzes().map((q) => ({
     id: q.id,
+    slug: q.slug,
     title: q.title,
     kind: q.kind,
     count: q.entries.length,
@@ -91,6 +93,21 @@ export async function clientLoader({
 
 export function meta({ params }: Route.MetaArgs) {
   const subject = params.subject ? subjectById(params.subject) : undefined;
+  if (params.slug) {
+    const country = historyCountryFor(params.slug);
+    return country
+      ? pageMeta({
+          title: `${country.nameEn} History Quizzes — Zemya`,
+          description: `Timed ${country.adjectiveEn} history quizzes: name every ruler, president or prime minister from their dates.`,
+          path: `/quizzes/history/${country.slug}`,
+        })
+      : pageMeta({
+          title: "Quizzes — Zemya",
+          description: "No such country.",
+          path: `/quizzes/history/${params.slug}`,
+          noindex: true,
+        });
+  }
   if (!subject) {
     return pageMeta({
       title: "Quizzes — Zemya",
@@ -102,10 +119,8 @@ export function meta({ params }: Route.MetaArgs) {
   return pageMeta({
     title: `${subject.name} Quizzes — Zemya`,
     description: subject.fillQuizzes
-      ? `Timed ${subject.name.toLowerCase()} quizzes: name every ruler or government of a period from its dates.`
-      : subject.quizzes.length
-        ? `Timed ${subject.name.toLowerCase()} quizzes: ${subject.quizzes.map((q) => q.title).join(", ")}.`
-        : `${subject.name} quizzes are coming to Zemya.`,
+      ? `Timed ${subject.name.toLowerCase()} quizzes: pick a country, then name every ruler, president or prime minister from their dates.`
+      : `Timed ${subject.name.toLowerCase()} quizzes: ${subject.quizzes.map((q) => q.title).join(", ")}.`,
     path: `/quizzes/${subject.id}`,
   });
 }
@@ -117,11 +132,11 @@ const bestKey = (quizId: string, scope: QuizScope, size: QuizSize) =>
  *  min-height and this row count are computed from the same number. */
 const SIZE_COLUMNS = 3;
 
-export default function QuizList({
+function QuizList({
   params,
   loaderData,
 }: Route.ComponentProps) {
-  const { scopeCounts, fill } = loaderData;
+  const { scopeCounts } = loaderData;
   const subject = params.subject ? subjectById(params.subject) : undefined;
 
   /** Rows in the tallest size grid any scope can produce — every quiz's grid reserves this
@@ -152,23 +167,6 @@ export default function QuizList({
     size: QuizSize;
   } | null>(null);
   const [runs, setRuns] = useState<QuizRunEntry[]>([]);
-  /** History's fill quizzes: quiz id -> fastest time. Same after-mount fill as bestTimes. */
-  const [fillBest, setFillBest] = useState<Record<string, number | null>>({});
-  const fillList = subject?.fillQuizzes ? fill : NO_FILL;
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all(
-      fillList.map(
-        async (q) => [q.id, await bestQuizTime(q.id, "all", "all")] as const,
-      ),
-    ).then((entries) => {
-      if (!cancelled) setFillBest(Object.fromEntries(entries));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [fillList]);
-
   const refreshBestTimes = useCallback(
     async (quizId: string, scope: QuizScope) => {
       const entries = await Promise.all(
@@ -244,60 +242,16 @@ export default function QuizList({
           <div className="peek__text">
             <div className="peek__title">{subject.name}</div>
             <div className="peek__sub">
-              {subject.quizzes.length || fillList.length
-                ? "Timed rounds, one tap to start"
-                : "Coming soon"}
+              Timed rounds, one tap to start
             </div>
           </div>
         </div>
       </header>
       <div className="panel__body">
-        {fillList.length > 0 ? (
-          <>
-            {(["ruler", "government"] as const).map((kind) => {
-              const group = fillList.filter((q) => q.kind === kind);
-              if (group.length === 0) return null;
-              return (
-                <section key={kind}>
-                  <h3 className="subhead">
-                    {kind === "ruler" ? "Rulers" : "Governments"} — fill the
-                    list
-                  </h3>
-                  <div className="quiz-list">
-                    {group.map((q) => {
-                      const best = fillBest[q.id];
-                      return (
-                        <section key={q.id} className="quiz-list__item">
-                          <Link
-                            className="quiz-list__row"
-                            to={`/quizzes/${subject.id}/${q.id}`}
-                          >
-                            <span className="quiz-list__name">
-                              {q.title}
-                              <span className="quiz-list__meta">
-                                {q.count} {kind === "ruler" ? "rulers" : "governments"}
-                                {best != null && ` · best ${formatDuration(best)}`}
-                              </span>
-                            </span>
-                            <span
-                              className="quiz-list__chevron"
-                              aria-hidden="true"
-                            >
-                              ›
-                            </span>
-                          </Link>
-                        </section>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </>
-        ) : subject.quizzes.length === 0 ? (
+        {subject.quizzes.length === 0 ? (
           <div className="empty">
             <div className="empty__icon">🕓</div>
-            <p>{subject.name} quizzes are coming soon.</p>
+            <p>There are no {subject.name} quizzes yet.</p>
             <Link to="/quizzes" className="action">
               Back to subjects
             </Link>
@@ -475,6 +429,160 @@ export default function QuizList({
             })}
           </div>
         )}
+      </div>
+    </>
+  );
+}
+
+/** One file, three levels: the geography list (`/quizzes/geography`), History's country list
+ *  (`/quizzes/history`) and one country's History quizzes (`/quizzes/history/:slug`, which
+ *  has `:slug` and no `:subject`). Dispatching here keeps each component's hooks unconditional. */
+export default function QuizzesRoute(props: Route.ComponentProps) {
+  const { params, loaderData } = props;
+  if (params.slug) return <HistoryCountryQuizzes slug={params.slug} fill={loaderData.fill} />;
+  const subject = params.subject ? subjectById(params.subject) : undefined;
+  if (subject?.fillQuizzes) return <HistoryCountries fill={loaderData.fill} />;
+  return <QuizList {...props} />;
+}
+
+function NotFound({ what, eyebrow, back, backLabel }: { what: string; eyebrow: ReactNode; back: string; backLabel: string }) {
+  return (
+    <>
+      <header className="panel__head">
+        <span className="panel__eyebrow">{eyebrow}</span>
+        <h2>Not found</h2>
+      </header>
+      <div className="panel__body">
+        <div className="empty">
+          <div className="empty__icon">?</div>
+          <p>{what}</p>
+        </div>
+        <Link to={back} className="action">
+          {backLabel}
+        </Link>
+      </div>
+    </>
+  );
+}
+
+/** /quizzes/history — the countries that have a timeline, from HISTORY_COUNTRIES. */
+function HistoryCountries({ fill }: { fill: FillSummary[] }) {
+  return (
+    <>
+      <header className="panel__head panel__head--quiet panel__head--peek">
+        <span className="panel__eyebrow">
+          <Link to="/quizzes">Quizzes</Link> · History
+        </span>
+        <h2>Pick a country</h2>
+        {/* phone layout only: the sheet's lowest snap point */}
+        <div className="peek">
+          <div className="peek__text">
+            <div className="peek__title">History</div>
+            <div className="peek__sub">Pick a country</div>
+          </div>
+        </div>
+      </header>
+      <div className="panel__body">
+        <div className="subject-list">
+          {HISTORY_COUNTRIES.map((country) => {
+            const count = fill.filter((q) => q.slug === country.slug).length;
+            return (
+              <Link
+                key={country.slug}
+                to={`/quizzes/history/${country.slug}`}
+                className="subject-card"
+              >
+                <span className="subject-card__name">{country.nameEn}</span>
+                <span className="subject-card__blurb">
+                  {country.name} · {country.range}
+                </span>
+                <span className="subject-card__count">
+                  {count} {count === 1 ? "quiz" : "quizzes"}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** /quizzes/history/:slug — the country's "fill the list" quizzes, in fill-quiz-config.ts's
+ *  order, under a Rulers / Governments heading each. */
+function HistoryCountryQuizzes({ slug, fill }: { slug: string; fill: FillSummary[] }) {
+  const country = historyCountryFor(slug);
+  const list = useMemo(() => fill.filter((q) => q.slug === slug), [fill, slug]);
+  /** quiz id -> fastest time (toggle off); fills in after mount, IndexedDB has no prerender. */
+  const [best, setBest] = useState<Record<string, number | null>>({});
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      list.map(async (q) => [q.id, await bestQuizTime(q.id, "all", "all")] as const),
+    ).then((entries) => {
+      if (!cancelled) setBest(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [list]);
+
+  if (!country) {
+    return (
+      <NotFound
+        what={`There is no history for "${slug}".`}
+        eyebrow={<Link to="/quizzes/history">History</Link>}
+        back="/quizzes/history"
+        backLabel="Back to countries"
+      />
+    );
+  }
+
+  return (
+    <>
+      <header className="panel__head panel__head--quiet panel__head--peek">
+        <span className="panel__eyebrow">
+          <Link to="/quizzes">Quizzes</Link> · <Link to="/quizzes/history">History</Link> · {country.nameEn}
+        </span>
+        <h2>Pick a quiz</h2>
+        {/* phone layout only: the sheet's lowest snap point */}
+        <div className="peek">
+          <div className="peek__text">
+            <div className="peek__title">{country.nameEn}</div>
+            <div className="peek__sub">Timed rounds, one tap to start</div>
+          </div>
+        </div>
+      </header>
+      <div className="panel__body">
+        {(["ruler", "government"] as const).map((kind) => {
+          const group = list.filter((q) => q.kind === kind);
+          if (group.length === 0) return null;
+          return (
+            <section key={kind}>
+              <h3 className="subhead">
+                {kind === "ruler" ? "Rulers" : "Governments"} — fill the list
+              </h3>
+              <div className="quiz-list">
+                {group.map((q) => (
+                  <section key={q.id} className="quiz-list__item">
+                    <Link className="quiz-list__row" to={`/quizzes/history/${slug}/${q.id}`}>
+                      <span className="quiz-list__name">
+                        {q.title}
+                        <span className="quiz-list__meta">
+                          {q.count} {kind === "ruler" ? "rulers" : "governments"}
+                          {best[q.id] != null && ` · best ${formatDuration(best[q.id]!)}`}
+                        </span>
+                      </span>
+                      <span className="quiz-list__chevron" aria-hidden="true">
+                        ›
+                      </span>
+                    </Link>
+                  </section>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </>
   );

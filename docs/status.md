@@ -41,7 +41,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
 - History quizzes: Quizzes -> History lists nine "fill the list" quizzes from an explicit table
   (`fill-quiz-config.ts`: rulers of the two Empires, Princes and Tsars, heads of state, BKP
   leaders, Presidents with a "Democratically elected only" toggle, three PM eras), selected from
-  the timeline by role regex and start window (`/quizzes/history/:quizId`, prerendered). Type names in any order into empty date-labelled
+  the timeline by role regex and start window (Quizzes -> History -> country, `/quizzes/history/:slug/:quizId`, prerendered). Type names in any order into empty date-labelled
   rectangles; Latin letters, Roman/Arabic numerals, titles and one typo are accepted; best
   times saved like geography's. Details: `docs/quizzes.md`.
 - `content/history/bg.yaml` grew from a 106-entry hand-authored first pass to 680 entries:
