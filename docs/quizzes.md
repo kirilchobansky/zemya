@@ -181,11 +181,12 @@ quiz camera decides (`follow.ts` is the pure maths under it). Earlier, the route
 now lives in one function, and the route just calls it when the target changes. Two steps, one
 animation, decided against where the camera is _heading_ (`Atlas#target`), so quick answers chain:
 
-1. Zoomed past `QUIZ_WORLD_VIEW_FACTOR` (1.25x home)? Start from the home view (the continent, in a
-   continent scope), else from where the camera is.
-2. `cameraForTarget` from there: **(a)** comfortably inside the visible area and big enough -> leave
+1. `cameraForTarget` from where the camera is. If it says "leave it", done — even zoomed in. If it
+   wants to move AND the player is zoomed past `QUIZ_WORLD_VIEW_FACTOR` (1.25x home), start again
+   from the home view (the continent, in a continent scope).
+2. `cameraForTarget`: **(a)** whole box inside the visible area (`QUIZ_VISIBLE_MARGIN`, 2%) and big enough -> leave
    it; **(b)** too small -> zoom **in** until legible, even off the overview; **(c)** too big ->
-   zoom out the minimum to fit; **(d)** otherwise centre it (only the axis that failed).
+   zoom out the minimum to fit; **(d)** otherwise SLIDE it just into view (least shift per failing axis, to the comfort margin) — never a re-centre, unless the zoom changed.
 
 - **Comfortable** = inside the visible area by `QUIZ_COMFORT_MARGIN` (10%) of each dimension, or the
   floor for the target kind (12 px shape, 48 px pin, 60 px capital dot). `QUIZ_FRAME_PADDING` is

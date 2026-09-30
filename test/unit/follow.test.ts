@@ -48,12 +48,19 @@ describe('cameraForTarget', () => {
     expect(next.x).toBeGreaterThan(camera.x);
   });
 
-  it('centres the target in the VISIBLE area, not the canvas — above the dock', () => {
-    const cy = 0.4 + 900 / camera.zoom; // off the bottom as well as far right, so both axes are recentred
+  it('SLIDES the target just inside the comfort margin of the VISIBLE area — no re-centre', () => {
+    const cy = 0.4 + 900 / camera.zoom; // off the bottom as well as far right, so both axes slide
     const target = box(0.5 + 1500 / camera.zoom, cy, 120, 90, camera.zoom);
     const next = cameraForTarget(camera, viewport, dock, target, options)!;
     const sy = viewport.height / 2 + (cy - next.y) * next.zoom;
-    expect(sy).toBeCloseTo((0 + (viewport.height - dock.bottom)) / 2, 5);
+    const sx = viewport.width / 2 + (target.focus.x - next.x) * next.zoom;
+    expect(sy + 45).toBeCloseTo(viewport.height - dock.bottom - QUIZ_COMFORT_MARGIN * (viewport.height - dock.bottom), 5);
+    expect(sx + 60).toBeCloseTo(viewport.width - QUIZ_COMFORT_MARGIN * viewport.width, 5);
+  });
+
+  it('leaves a country fully on screen alone even when it is off-centre', () => {
+    const t = box(0.5 + 380 / camera.zoom, 0.4, 100, 60, camera.zoom); // whole box inside, off-centre
+    expect(cameraForTarget(camera, viewport, NO_INSETS, t, options)).toBeNull();
   });
 
   it('treats a target merely TOUCHING or near an edge as not visible — it needs a comfortable margin', () => {
@@ -68,7 +75,7 @@ describe('cameraForTarget', () => {
 
   it('treats a target hidden under the dock as NOT visible', () => {
     const y = 0.4 + (viewport.height / 2 - 60) / camera.zoom; // inside the 120 px dock band
-    expect(cameraForTarget(camera, viewport, NO_INSETS, box(0.5, y, 100, 30, camera.zoom), options)).not.toBeNull(); // still near the edge
+    expect(cameraForTarget(camera, viewport, NO_INSETS, box(0.5, y, 100, 30, camera.zoom), options)).toBeNull(); // fully visible: stay
     expect(cameraForTarget(camera, viewport, dock, box(0.5, y, 100, 30, camera.zoom), options)).not.toBeNull();
     const middle = box(0.5, 0.4 - 100 / camera.zoom, 100, 30, camera.zoom);
     expect(cameraForTarget(camera, viewport, dock, middle, options)).toBeNull();

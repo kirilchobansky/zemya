@@ -9,7 +9,7 @@
  *   a) target comfortably inside the visible area AND big enough -> null, leave it alone
  *   b) too small to read as a shape       -> zoom IN until it is, even off the world view
  *   c) too big for the view               -> zoom out the MINIMUM needed
- *   d) otherwise, not comfortably inside  -> centre it, at the same zoom
+ *   d) otherwise, not fully inside        -> slide it just into view, at the same zoom
  *
  * Seeing the question matters more than keeping the overview, so (b) beats staying zoomed out.
  * "Visible" is measured against the map area actually in view — the canvas minus whatever sits
@@ -50,6 +50,10 @@ export interface FollowTarget {
  */
 export const QUIZ_COMFORT_MARGIN = 0.1;
 /** When zooming out to fit, the target may take up this share of the visible area. */
+/** The looser test for "already visible, leave the camera alone": the whole box on screen, a
+ *  hair from the edge at most. Much smaller than the comfort margin on purpose — a country
+ *  you can already see in full must not make the camera twitch. */
+export const QUIZ_VISIBLE_MARGIN = 0.02;
 export const QUIZ_FRAME_PADDING = 1 - 2 * QUIZ_COMFORT_MARGIN;
 /** The smallest a target country may be on screen, in px of WIDTH (the measure the renderer
  *  uses to decide pin vs shape). Below it the camera zooms in until it isn't. About twice
@@ -172,20 +176,33 @@ export function cameraForTarget(
   const halfW = target.fit ? ((box.x1 - box.x0) / 2) * zoom : 0;
   const halfH = target.fit ? ((box.y1 - box.y0) / 2) * zoom : 0;
 
-  const mx = Math.max(target.marginPx, QUIZ_COMFORT_MARGIN * visibleW);
-  const my = Math.max(target.marginPx, QUIZ_COMFORT_MARGIN * visibleH);
-  const insideX = sx - halfW >= left + mx && sx + halfW <= right - mx;
-  const insideY = sy - halfH >= top + my && sy + halfH <= bottom - my;
+  const vx = Math.max(target.marginPx, QUIZ_VISIBLE_MARGIN * visibleW);
+  const vy = Math.max(target.marginPx, QUIZ_VISIBLE_MARGIN * visibleH);
+  const insideX = sx - halfW >= left + vx && sx + halfW <= right - vx;
+  const insideY = sy - halfH >= top + vy && sy + halfH <= bottom - vy;
   if (!rezoomed && insideX && insideY) return null;
 
-  // (d) centre — only the axis that failed, unless the zoom changed and both must follow. The
-  // focus goes in the middle of the VISIBLE area, not of the canvas.
+  // (d) not rezoomed: SLIDE, don't re-centre — shift each failing axis by the least that puts
+  // the target inside the comfort margin, so the view nudges instead of jumping.
+  if (!rezoomed) {
+    const mx = Math.max(target.marginPx, QUIZ_COMFORT_MARGIN * visibleW);
+    const my = Math.max(target.marginPx, QUIZ_COMFORT_MARGIN * visibleH);
+    const slide = (lo: number, hi: number, min: number, max: number, m: number) => {
+      if (hi - lo > max - min - 2 * m) return (min + max) / 2 - (lo + hi) / 2; // too big: centre
+      return lo < min + m ? min + m - lo : hi > max - m ? max - m - hi : 0;
+    };
+    const dx = insideX ? 0 : slide(sx - halfW, sx + halfW, left, right, mx);
+    const dy = insideY ? 0 : slide(sy - halfH, sy + halfH, top, bottom, my);
+    return { x: camera.x - dx / zoom, y: camera.y - dy / zoom, zoom };
+  }
+
+  // the zoom changed: centre the focus in the middle of the VISIBLE area, not of the canvas.
   const visibleCx = (left + right) / 2, visibleCy = (top + bottom) / 2;
   const centredX = target.focus.x - (visibleCx - viewport.width / 2) / zoom;
   const centredY = target.focus.y - (visibleCy - viewport.height / 2) / zoom;
   return {
-    x: rezoomed || !insideX ? centredX : camera.x,
-    y: rezoomed || !insideY ? centredY : camera.y,
+    x: centredX,
+    y: centredY,
     zoom
   };
 }

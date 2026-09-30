@@ -242,7 +242,7 @@ export class Atlas {
     const { feature, place } = request;
     const cam = this.target;
     const home = this.homeView();
-    const base = cam.zoom > home.zoom * QUIZ_WORLD_VIEW_FACTOR ? home : cam;
+    const zoomedIn = cam.zoom > home.zoom * QUIZ_WORLD_VIEW_FACTOR;
 
     // A country whose minimum width can't be reached even at maximum zoom (Vatican City: degenerate
     // geometry, drawn as a pin at every zoom) has no width to guarantee — zooming to the cap
@@ -263,9 +263,15 @@ export class Atlas {
       : box
         ? { box, focus: { x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 }, fit: true, marginPx: QUIZ_EDGE_MARGIN_PX, minWidthPx }
         : { box: null, focus: { x: feature.ux, y: feature.uy }, fit: false, marginPx: QUIZ_PIN_MARGIN_PX, minWidthPx };
-    const next = cameraForTarget(base, this.viewport, insets, target, {
-      noShapeZoom: homeZoom(this.viewport) * NO_SHAPE_ZOOM_FACTOR
-    });
+    const options = { noShapeZoom: homeZoom(this.viewport) * NO_SHAPE_ZOOM_FACTOR };
+    // A target already fully in view leaves the camera alone, even zoomed in; only when the
+    // camera would have to move does a zoomed-in player start again from the overview.
+    let base = cam;
+    let next = cameraForTarget(base, this.viewport, insets, target, options);
+    if (next && zoomedIn) {
+      base = home;
+      next = cameraForTarget(base, this.viewport, insets, target, options);
+    }
 
     const dest = clamp(next ?? base, this.viewport);
     const now = clamp(cam, this.viewport);
