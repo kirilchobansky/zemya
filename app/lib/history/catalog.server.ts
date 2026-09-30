@@ -13,7 +13,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { decimalYearOf, KIND_RANK } from '~/lib/history/scale';
 import type { TimelineEntry } from '~/lib/history/renderer';
-import { historyCountryFor } from '~/lib/history/countries';
+import { HISTORY_COUNTRIES, historyCountryFor } from '~/lib/history/countries';
+import { fillQuizzesFromRaw, type FillQuiz } from '~/lib/history/fill-quiz';
 
 interface RawHistoryEntry {
   id: string;
@@ -135,4 +136,11 @@ export function historyListFor(slug: string): HistoryListRow[] {
       parent: raw.parent
     }))
     .sort((a, b) => parseInt(a.start, 10) - parseInt(b.start, 10) || KIND_RANK[a.kind] - KIND_RANK[b.kind]);
+}
+
+/** Every "fill the list" quiz (app/lib/history/fill-quiz.ts) of every history country —
+ *  generated from the timeline itself, so a new period, ruler or government changes the list
+ *  with no code edit. Build-time only, like the rest of this file. */
+export function fillQuizzes(): FillQuiz[] {
+  return HISTORY_COUNTRIES.flatMap(c => fillQuizzesFromRaw(rawEntries(c.slug), c.slug));
 }

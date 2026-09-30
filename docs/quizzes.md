@@ -369,6 +369,46 @@ override, which is only cleared on unmounting the route) and the panel shows the
 the personal-best comparison, a first-try-vs-revealed tally, and every revealed country
 as a dossier link — "the ones worth another look", the actual point of the screen.
 
+## History: "fill the list"
+
+The first History quiz type, and the first that is not a `QuizDefinition` — there is no queue,
+target or map, so it does not use the engine (`app/lib/quiz/engine.ts`). Logic:
+`app/lib/history/fill-quiz.ts` (pure, unit-tested in `test/unit/fill-quiz.test.ts`); screen:
+`components/HistoryFillQuiz.tsx`; run URL: `/quizzes/history/:quizId` (no scope, no size — a
+second route id on the same file, `routes.ts`, which dispatches on the missing `:scope`).
+
+- **Quizzes are generated, never listed.** `fillQuizzesFromRaw(timeline)`: for each period, one
+  "Rulers: <period>" if it holds >= 3 rulers, one "Governments: <period>" if >= 3 governments; an
+  entry belongs to a period when its start and end both lie inside the period's range. Every such
+  entry is included — no sampling. Ids are `<slug>-rulers|governments-<period id minus "period-">`
+  (Bulgaria: 8 quizzes, e.g. `bulgaria-rulers-first-empire`, 26 rulers). The list route's loader
+  and `react-router.config.ts` (prerendered URLs, sitemap) call the same function, so a new
+  period/ruler/government adds a page with no list to edit. `Subject.fillQuizzes` marks the
+  subject whose list comes from that loader data rather than `Subject.quizzes`.
+- **Screen.** A centred panel (portalled to `<body>`, full-screen on a phone) with one always-focused
+  input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up" (reveals the
+  missing names in red; the run is **not** saved), and a grid of fixed-height rectangles in
+  chronological order — dates only until filled, then the Bulgarian name in the kind colour (`--sea`
+  ruler, `--categorical-violet` government) with a short fill animation. Hover/`title` on a filled
+  cell shows the exact dates as dd.mm.yyyy. The timer starts at the first keystroke.
+- **Runs** are saved like geography's (`saveQuizRun`, `quizId` = the quiz id, scope and size both
+  `"all"`), so personal bests, export/import and reset already cover them; the History list shows
+  each quiz's best time.
+- **Matching** (`normaliseFill` / `matchFill`): lower-case; spaces, hyphens, dots and other
+  non-letters ignored; title words хан, княз, цар, khan, prince, tsar stripped; Roman = Arabic
+  numerals. An entry's typeable forms are name.bg, name.en and each alias, each also without its
+  numeral ("Борис") and cut at it ("Симеон I Велики" -> "Симеон 1", "Симеон"). Latin typed for a
+  Cyrillic name goes through `search.ts`'s `latinToCyrillicRegExp`, matched against the whole
+  form. Filled entries are ignored; an ambiguous name ("Борис") fills the earliest unfilled entry, a
+  typed numeral pins one.
+- **Accept** instantly when the text is a valid match and no *other* unfilled entry has a longer form
+  starting with it (the target's own "Борис 2" doesn't block "Борис" once Борис I is filled);
+  otherwise on Enter. A wrong Enter shakes the input and clears nothing — no penalty.
+- **One typo** (Levenshtein 1: insert, delete, substitute — a transposition is two) is forgiven for
+  names of 6+ letters, **on Enter only** (instant would fire on "Симео"), never across a numeral
+  (Борис 3 must not become Борис 2), never for Latin-typed text (a regex, not a string), never when
+  the text is itself a name of any entry, and never when it is one edit from two unfilled entries.
+
 ## On a phone
 
 Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author needs to know:

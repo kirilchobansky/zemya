@@ -24,6 +24,9 @@ import {
 
 import { useAtlasContext } from "~/lib/atlas-context";
 import { allCountries } from "~/lib/geography/catalog.server";
+import { fillQuizzes } from "~/lib/history/catalog.server";
+import type { FillQuiz } from "~/lib/history/fill-quiz";
+import { HistoryFillQuiz } from "~/components/HistoryFillQuiz";
 import { quizPageSeo } from "~/lib/geography/quizSeo";
 import { pageMeta } from "~/lib/seo";
 import type { Route } from "./+types/quizzes.$subject.$quizId";
@@ -93,14 +96,26 @@ function measureInsets(): Insets {
   };
 }
 
+/** A history "fill the list" run has no :scope — its URL is /quizzes/history/:quizId, and it
+ *  is the loader's job (build time, so the timeline never ships as a separate fetch) to hand
+ *  over that quiz's entries. `fill` is null for every geography run. */
+type RunData = { poolSize: number; fill: FillQuiz | null };
+
 /** Build-time only: the size of the scope's pool, which the title says ("All 46 Countries")
- *  and which only the catalogue knows. */
-export function loader({ params }: Route.LoaderArgs) {
-  const scope = params.scope ?? "";
+ *  and which only the catalogue knows; for a history run, the quiz itself. */
+export function loader({ params }: Route.LoaderArgs): RunData {
+  if (!params.scope) {
+    return {
+      poolSize: 0,
+      fill: fillQuizzes().find((q) => q.id === params.quizId) ?? null,
+    };
+  }
+  const scope = params.scope;
   return {
     poolSize: isQuizScope(scope)
       ? poolForScope(allCountries(), scope).length
       : 0,
+    fill: null,
   };
 }
 
@@ -108,18 +123,34 @@ export function loader({ params }: Route.LoaderArgs) {
 export async function clientLoader({
   params,
   serverLoader,
-}: Route.ClientLoaderArgs) {
+}: Route.ClientLoaderArgs): Promise<RunData> {
   const world = peekWorld();
-  if (!world) return serverLoader();
-  const scope = params.scope ?? "";
+  if (!world || !params.scope) return serverLoader();
+  const scope = params.scope;
   return {
     poolSize: isQuizScope(scope)
       ? poolForScope(world.data.countries, scope).length
       : 0,
+    fill: null,
   };
 }
 
 export function meta({ params, loaderData, location }: Route.MetaArgs) {
+  if (!params.scope) {
+    const fill = loaderData?.fill;
+    return fill
+      ? pageMeta({
+          title: `${fill.title} — History Quiz — Zemya`,
+          description: `Name all ${fill.entries.length} ${fill.kind === "ruler" ? "rulers" : "governments"} of the ${fill.title.split(": ")[1]} from their dates — a timed fill-the-list quiz.`,
+          path: location.pathname,
+        })
+      : pageMeta({
+          title: "Quiz — Zemya",
+          description: "A timed quiz.",
+          path: location.pathname,
+          noindex: true,
+        });
+  }
   const subject = params.subject ? subjectById(params.subject) : undefined;
   const definition =
     subject && params.quizId
@@ -148,7 +179,34 @@ export function meta({ params, loaderData, location }: Route.MetaArgs) {
   });
 }
 
-export default function QuizRun() {
+/** One file, two kinds of run: a geography run carries :scope/:size, a history "fill the
+ *  list" run (routes.ts) has neither. Dispatching here keeps QuizRun's hooks unconditional. */
+export default function QuizRoute({ loaderData }: Route.ComponentProps) {
+  const params = useParams<{ scope?: string }>();
+  if (params.scope) return <QuizRun />;
+  if (loaderData.fill) {
+    return <HistoryFillQuiz key={loaderData.fill.id} quiz={loaderData.fill} backTo="/quizzes/history" />;
+  }
+  return (
+    <>
+      <header className="panel__head">
+        <span className="panel__eyebrow">Quiz</span>
+        <h2>Not found</h2>
+      </header>
+      <div className="panel__body">
+        <div className="empty">
+          <div className="empty__icon">?</div>
+          <p>There is no such History quiz.</p>
+        </div>
+        <Link to="/quizzes/history" className="action">
+          Back to quizzes
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function QuizRun() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams<{

@@ -1024,3 +1024,31 @@ slug is a 404. `HistoryCountry` (`app/lib/history/countries.ts`) carries `file`,
 travel `HistoryCountry` → `AtlasContext.setTimelineLabels` → `HistoryTimeline` options →
 `RenderContext` → `drawOutOfRangeFade`. The canvas's aria-label is now the generic "History
 timeline" (was "Bulgaria history timeline"). Recipe: CLAUDE.md, "How to add a history country".
+
+### History quiz: "fill the list"
+
+The owner asked for the first History quiz type (see CLAUDE.md's Do Not exception; behaviour in
+`docs/quizzes.md`). Choices the brief left open:
+
+- **Route.** `/quizzes/history/:quizId`, not `/quizzes/history/:quizId/:scope/:size`: a fill quiz
+  has neither a scope nor a size. `routes.ts` gives `routes/quizzes.$subject.$quizId.tsx` a second
+  route id for it and the component dispatches on the missing `:scope` (hooks stay unconditional in
+  the two components). Its loader hands the page the quiz's entries at build time.
+- **Off the given file list, touched anyway:** `react-router.config.ts` — every route loader runs at
+  build time and a static host has no fallback, so each quiz URL has to be prerendered (and is
+  in the sitemap); it derives them with the same `fillQuizzesFromRaw` the loader uses.
+  `app/lib/history/scale.ts` and `renderer.ts` untouched: English names aren't on `TimelineEntry`,
+  so quizzes are built from the raw JSON entries in `catalog.server.ts` instead.
+- **Registry.** `Subject.quizzes` (a `QuizDefinition[]`) stays empty for History; `Subject.fillQuizzes`
+  flags that its list comes from loader data. The fill quiz is not a `QuizDefinition` — no
+  queue/target/map, so the geography engine would be wrong for it.
+- **Personal bests** reuse `saveQuizRun` with `scope`/`size` = `"all"`; a given-up run is not saved.
+  The timer starts at the first keystroke rather than on a START button (there is no START: the
+  input is focused on open).
+- **Names.** Quiz titles use the period's English name, falling back to Bulgarian where none is
+  authored. Filled names are Bulgarian, coloured with existing tokens (`--sea`, `--categorical-violet`,
+  `--new`) rather than new ones; filled cells sit on `--chart` because the light theme's `--sea` on
+  `--chart-2` is under 4.5:1.
+- **Typo rule** and the instant-accept rule are in `docs/quizzes.md`; a transposition counts as two
+  edits (plain Levenshtein), deliberately.
+

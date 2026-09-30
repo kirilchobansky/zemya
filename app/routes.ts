@@ -18,6 +18,10 @@ export default [
     // subject -> quiz list -> run. See docs/quizzes.md's "Route shape".
     route('quizzes', 'routes/quizzes.tsx'),
     route('quizzes/:subject', 'routes/quizzes.$subject.tsx'),
+    // History's "fill the list" quizzes have no scope or size: /quizzes/history/:quizId, served by
+    // the same file as a geography run (which dispatches on the missing :scope). A second
+    // route id because one file can't be two routes under one id.
+    route('quizzes/history/:quizId', 'routes/quizzes.$subject.$quizId.tsx', { id: 'routes/quizzes.history.$quizId' }),
     route('quizzes/:subject/:quizId/:scope/:size', 'routes/quizzes.$subject.$quizId.tsx'),
 
     // permanent redirects from the old flat /quiz paths (pre-dates the subject layer)

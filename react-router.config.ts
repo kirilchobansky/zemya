@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { siteUrl } from './scripts/lib/site.mjs';
 import { LEGACY_SCOPES, poolForScope, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
 import { HISTORY_COUNTRIES } from './app/lib/history/countries';
+import { fillQuizzesFromRaw } from './app/lib/history/fill-quiz';
 
 /**
  * Every country page is prerendered to static HTML at build time, so `/country/bulgaria`
@@ -30,6 +31,15 @@ const SUBJECT_IDS = ['geography', 'history'];
  *  for exactly this reason, so the prerendered set is derived from the data. Geography is
  *  the only subject with quizzes today; history has none to prerender runs for. */
 const QUIZ_IDS = ['countries', 'flags', 'capitals'];
+
+/** History's "fill the list" quizzes — one page per quiz, derived from each country's built
+ *  timeline by the same function the run route's loader uses (app/lib/history/fill-quiz.ts),
+ *  so a new period/ruler/government adds a page with no list to edit. */
+const historyQuizRuns = HISTORY_COUNTRIES.flatMap(c => {
+  const file = join('public', 'data', 'history', `${c.file}.json`);
+  const doc = JSON.parse(readFileSync(file, 'utf8')) as { entries: Parameters<typeof fillQuizzesFromRaw>[0] };
+  return fillQuizzesFromRaw(doc.entries, c.slug).map(q => `/quizzes/history/${q.id}`);
+});
 
 /** The quizzes that existed before scopes did — only these have old bookmarks to keep
  *  alive, so the legacy redirect pages are prerendered for these and not for newer quizzes. */
@@ -71,6 +81,7 @@ const indexable = [
   '/', '/questions', '/quizzes', '/history',
   ...SUBJECT_IDS.map(id => `/quizzes/${id}`),
   ...quizRuns,
+  ...historyQuizRuns,
   ...slugs.map(slug => `/country/${slug}`),
   ...HISTORY_COUNTRIES.map(c => `/history/${c.slug}`)
 ];

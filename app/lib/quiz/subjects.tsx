@@ -16,12 +16,15 @@ export interface Subject {
   icon: string;
   blurb: string;
   quizzes: QuizDefinition[];
+  /** The subject's quizzes are "fill the list" quizzes (app/lib/history/fill-quiz.ts), not
+   *  QuizDefinitions — generated from the timeline by the list route's loader, so `quizzes`
+   *  stays empty and routes/quizzes.$subject.tsx lists them from loader data instead. */
+  fillQuizzes?: boolean;
 }
 
-/** Geography ships three quizzes; history is a placeholder with none — see CLAUDE.md's Do
- *  Not section for why a full history subject isn't being built yet. This is UI scaffolding
- *  for the picker, not a start on history content. routes/quizzes.$subject.tsx renders an
- *  empty subject as "coming soon" rather than crashing on an empty list. */
+/** Geography ships three quizzes. History's are the generated "fill the list" quizzes — see
+ *  `fillQuizzes` and docs/quizzes.md; a subject with neither is still rendered as "coming
+ *  soon" by routes/quizzes.$subject.tsx rather than crashing on an empty list. */
 export const SUBJECTS: Subject[] = [
   {
     id: 'geography',
@@ -34,8 +37,9 @@ export const SUBJECTS: Subject[] = [
     id: 'history',
     name: 'History',
     icon: '🕓',
-    blurb: 'Coming soon.',
-    quizzes: []
+    blurb: 'Fill the list — name every ruler or government of a period from its dates.',
+    quizzes: [],
+    fillQuizzes: true
   }
 ];
 

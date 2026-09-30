@@ -27,27 +27,66 @@ import {
   type QuizSize,
 } from "~/lib/geography/scopes";
 import { allCountries } from "~/lib/geography/catalog.server";
+import { fillQuizzes } from "~/lib/history/catalog.server";
 import { peekWorld } from "~/lib/geography/world";
 import type { Route } from "./+types/quizzes.$subject";
 
-/** How many countries each scope holds, read from the shipped catalogue at build time —
- *  the size ladder is derived from these. Unused by a subject with no quizzes (history). */
-export function loader() {
-  const countries = allCountries();
-  return Object.fromEntries(
-    QUIZ_SCOPES.map((scope) => [scope, poolForScope(countries, scope).length]),
-  ) as Record<QuizScope, number>;
+type ScopeCounts = Record<QuizScope, number>;
+
+/** One row of History's list: enough to draw and link a "fill the list" quiz, without
+ *  shipping every entry to a page that only lists them. */
+interface FillSummary {
+  id: string;
+  title: string;
+  kind: "ruler" | "government";
+  count: number;
 }
 
-export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+interface ListData {
+  scopeCounts: ScopeCounts;
+  fill: FillSummary[];
+}
+
+/** Stable identity: an effect depends on the list, and a fresh [] each render would loop. */
+const NO_FILL: FillSummary[] = [];
+
+const summariseFill = (): FillSummary[] =>
+  fillQuizzes().map((q) => ({
+    id: q.id,
+    title: q.title,
+    kind: q.kind,
+    count: q.entries.length,
+  }));
+
+/** How many countries each scope holds, read from the shipped catalogue at build time —
+ *  the size ladder is derived from these — plus History's generated quiz list. Both are
+ *  static; a subject uses only the half that is its own. */
+export function loader(): ListData {
+  const countries = allCountries();
+  return {
+    scopeCounts: Object.fromEntries(
+      QUIZ_SCOPES.map((scope) => [scope, poolForScope(countries, scope).length]),
+    ) as ScopeCounts,
+    fill: summariseFill(),
+  };
+}
+
+export async function clientLoader({
+  serverLoader,
+}: Route.ClientLoaderArgs): Promise<ListData> {
   const world = peekWorld();
   if (!world) return serverLoader();
-  return Object.fromEntries(
-    QUIZ_SCOPES.map((scope) => [
-      scope,
-      poolForScope(world.data.countries, scope).length,
-    ]),
-  ) as Record<QuizScope, number>;
+  // the History list has no in-memory source: it is only ever fetched from the prerendered data
+  const { fill } = await serverLoader();
+  return {
+    scopeCounts: Object.fromEntries(
+      QUIZ_SCOPES.map((scope) => [
+        scope,
+        poolForScope(world.data.countries, scope).length,
+      ]),
+    ) as ScopeCounts,
+    fill,
+  };
 }
 
 export function meta({ params }: Route.MetaArgs) {
@@ -62,9 +101,11 @@ export function meta({ params }: Route.MetaArgs) {
   }
   return pageMeta({
     title: `${subject.name} Quizzes — Zemya`,
-    description: subject.quizzes.length
-      ? `Timed ${subject.name.toLowerCase()} quizzes: ${subject.quizzes.map((q) => q.title).join(", ")}.`
-      : `${subject.name} quizzes are coming to Zemya.`,
+    description: subject.fillQuizzes
+      ? `Timed ${subject.name.toLowerCase()} quizzes: name every ruler or government of a period from its dates.`
+      : subject.quizzes.length
+        ? `Timed ${subject.name.toLowerCase()} quizzes: ${subject.quizzes.map((q) => q.title).join(", ")}.`
+        : `${subject.name} quizzes are coming to Zemya.`,
     path: `/quizzes/${subject.id}`,
   });
 }
@@ -78,8 +119,9 @@ const SIZE_COLUMNS = 3;
 
 export default function QuizList({
   params,
-  loaderData: scopeCounts,
+  loaderData,
 }: Route.ComponentProps) {
+  const { scopeCounts, fill } = loaderData;
   const subject = params.subject ? subjectById(params.subject) : undefined;
 
   /** Rows in the tallest size grid any scope can produce — every quiz's grid reserves this
@@ -110,6 +152,22 @@ export default function QuizList({
     size: QuizSize;
   } | null>(null);
   const [runs, setRuns] = useState<QuizRunEntry[]>([]);
+  /** History's fill quizzes: quiz id -> fastest time. Same after-mount fill as bestTimes. */
+  const [fillBest, setFillBest] = useState<Record<string, number | null>>({});
+  const fillList = subject?.fillQuizzes ? fill : NO_FILL;
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      fillList.map(
+        async (q) => [q.id, await bestQuizTime(q.id, "all", "all")] as const,
+      ),
+    ).then((entries) => {
+      if (!cancelled) setFillBest(Object.fromEntries(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fillList]);
 
   const refreshBestTimes = useCallback(
     async (quizId: string, scope: QuizScope) => {
@@ -186,7 +244,7 @@ export default function QuizList({
           <div className="peek__text">
             <div className="peek__title">{subject.name}</div>
             <div className="peek__sub">
-              {subject.quizzes.length
+              {subject.quizzes.length || fillList.length
                 ? "Timed rounds, one tap to start"
                 : "Coming soon"}
             </div>
@@ -194,7 +252,49 @@ export default function QuizList({
         </div>
       </header>
       <div className="panel__body">
-        {subject.quizzes.length === 0 ? (
+        {fillList.length > 0 ? (
+          <>
+            {(["ruler", "government"] as const).map((kind) => {
+              const group = fillList.filter((q) => q.kind === kind);
+              if (group.length === 0) return null;
+              return (
+                <section key={kind}>
+                  <h3 className="subhead">
+                    {kind === "ruler" ? "Rulers" : "Governments"} — fill the
+                    list
+                  </h3>
+                  <div className="quiz-list">
+                    {group.map((q) => {
+                      const best = fillBest[q.id];
+                      return (
+                        <section key={q.id} className="quiz-list__item">
+                          <Link
+                            className="quiz-list__row"
+                            to={`/quizzes/${subject.id}/${q.id}`}
+                          >
+                            <span className="quiz-list__name">
+                              {q.title}
+                              <span className="quiz-list__meta">
+                                {q.count} {kind === "ruler" ? "rulers" : "governments"}
+                                {best != null && ` · best ${formatDuration(best)}`}
+                              </span>
+                            </span>
+                            <span
+                              className="quiz-list__chevron"
+                              aria-hidden="true"
+                            >
+                              ›
+                            </span>
+                          </Link>
+                        </section>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </>
+        ) : subject.quizzes.length === 0 ? (
           <div className="empty">
             <div className="empty__icon">🕓</div>
             <p>{subject.name} quizzes are coming soon.</p>

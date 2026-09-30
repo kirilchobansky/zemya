@@ -81,6 +81,17 @@ function translitPatternSource(query: string): string | null {
   return out;
 }
 
+/** A Latin query compiled into a regex over Cyrillic letters, for callers that need to test
+ *  it against a WHOLE name (the fill-the-list quiz, fill-quiz.ts) rather than a substring.
+ *  `whole: true` anchors both ends; `false` anchors only the start (a prefix test). Same
+ *  compilation as the search box — one Latin letter/digraph expands to every Cyrillic letter
+ *  it could stand for. Null for an empty query. Pass an already-lower-cased query. */
+export function latinToCyrillicRegExp(query: string, whole = true): RegExp | null {
+  const source = translitPatternSource(query);
+  if (!source) return null;
+  return new RegExp(whole ? `^(?:${source})$` : `^(?:${source})`);
+}
+
 function tierFor(entry: TimelineEntry, q: string, startsRe: RegExp | null, containsRe: RegExp | null): number | null {
   const name = entry.label.toLowerCase();
   if (name.startsWith(q) || (startsRe && startsRe.test(name))) return TIER_NAME_STARTS;
