@@ -829,7 +829,7 @@ Each country with **no land borders and under 25,000 km2** (derived in `scripts/
 `qualifiesForHalo`, 30 before the exclusions below) gets a `halo` ring instead.
 
 - **Exclusions** (`HALO_EXCLUDED`, owner request after seeing it): Bahamas, Jamaica, every Caribbean
-  island nation (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta and Cyprus keep pins — **18 halos remain**.
+  island nation (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta, Cyprus and Bahrain keep pins — **17 halos remain**.
 - **Build** (`build-content.mjs`, pure maths in `scripts/lib/halo.mjs`): every outer-ring vertex
   of the full geometry, unwrapped by the same rules as `topology.ts` (ring unwrap, then a rigid
   per-polygon shift to the branch nearest the country's own longitude — keep the two in sync), convex hull in a

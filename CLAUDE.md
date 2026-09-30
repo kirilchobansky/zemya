@@ -16,7 +16,7 @@ Four top-level sections — Map, Quizzes, Questions, History — share one shell
 one engine (Countries, Flags, Capitals), a Bulgaria history timeline (`/history/:slug`, only `bulgaria` today,
 canvas-only — see "Do not") plus one History quiz type, "fill the list" (Quizzes -> History: nine quizzes listed in an explicit table (`app/lib/history/fill-quiz-config.ts`, e.g. "Presidents",
 "Prime ministers, Republic"), each selected from the timeline by role and start date,
-`/quizzes/history` -> country -> `/quizzes/history/:slug/:quizId`; `docs/quizzes.md`). Island nations (no land border, under 25,000 km2, minus the Caribbean/Malta/Cyprus — 18, derived) draw a territory halo instead of a pin: `docs/decisions.md`. Deployed on Vercel at https://zemya.study, indexed, MIT code /
+`/quizzes/history` -> country -> `/quizzes/history/:slug/:quizId`; `docs/quizzes.md`). Island nations (no land border, under 25,000 km2, minus the Caribbean/Malta/Cyprus/Bahrain — 17, derived) draw a territory halo instead of a pin: `docs/decisions.md`. Deployed on Vercel at https://zemya.study, indexed, MIT code /
 ODbL data. Full current-state list: `docs/status.md`; narrative and "Next" items: `docs/decisions.md`.
 
 ## Locked decisions and editorial lines — do not reopen without asking

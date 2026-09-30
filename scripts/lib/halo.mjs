@@ -25,7 +25,7 @@ const CORNER_STEPS = 24;
 /** Owner's call: the Caribbean, Malta and Cyprus keep their dots (and their land shapes once
  *  zoomed in) — a halo there read as clutter over a crowded or already-legible region. */
 export const HALO_EXCLUDED = new Set([
-  'BHS', 'JAM', 'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'TTO', 'MLT', 'CYP'
+  'BHS', 'JAM', 'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'TTO', 'MLT', 'CYP', 'BHR'
 ]);
 
 export function qualifiesForHalo(country) {

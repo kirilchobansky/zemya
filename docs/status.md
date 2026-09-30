@@ -10,7 +10,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   Natural Earth at build time; antimeridian countries and absorbed territories render
   correctly. Vatican City stays a pin (degenerate source geometry). The Caspian is water;
   the Great Lakes, Victoria and Baikal are not.
-- Territory halos: the 18 island nations (no land border, under 25,000 km2 — derived — minus the Caribbean, Malta and Cyprus) get a rounded area round their islands, visible and clickable at world zoom, replacing their micro pin; land micro-states keep pins. `docs/decisions.md`.
+- Territory halos: the 17 island nations (no land border, under 25,000 km2 — derived — minus the Caribbean, Malta, Cyprus and Bahrain) get a rounded area round their islands, visible and clickable at world zoom, replacing their micro pin; land micro-states keep pins. `docs/decisions.md`.
 - Capitals as a map layer (ring + name together from 9x, later for small countries by area, off in quizzes) — `docs/architecture.md`.
 - FSRS card per (country, facet), mastery derived, Dexie/IndexedDB, export/import/reset;
   study mode with 9 question kinds and `disputed:` facets.
