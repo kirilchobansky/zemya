@@ -107,7 +107,7 @@ changes nothing — a human fixes each case. Mechanism, current list and example
 ## Do not
 
 - Do not add subjects beyond geography until geography ships and has users, beyond the
-  owner-requested History exceptions already built (History quizzes: "fill the list" only, listed in `fill-quiz-config.ts`, selected from the timeline — `app/lib/history/fill-quiz.ts`, `components/HistoryFillQuiz.tsx`, `/quizzes/history/:quizId`; `content/history/*.yaml` +
+  owner-requested History exceptions already built (History quizzes: "fill the list" only, listed in `fill-quiz-config.ts`, selected from the timeline — `app/lib/history/fill-quiz.ts`, `components/HistoryFillQuiz.tsx`, `/quizzes/history/:slug/:quizId`; `content/history/*.yaml` +
   its build, `app/lib/history/*`, `/history` + `/history/:slug` as a nav section, and a
   "History timeline" link in the country dossier for any `HISTORY_COUNTRIES` slug) — no
   other quiz type or further logic/UI there without asking again. Full narrative and exact file list:
