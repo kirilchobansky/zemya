@@ -17,7 +17,7 @@ export interface HistoryCountry {
   startYear: string;
   /** The timeline's covered span, as shown next to the name in the picker. */
   range: string;
-  /** Text for the fade zone before the earliest entry, after "Преди <year> — ". */
+  /** Text for the fade zone before the earliest entry, after "Before <year> — ". */
   pastLabel: string;
   /** Text for the fade zone after today. */
   futureLabel: string;
@@ -26,7 +26,7 @@ export interface HistoryCountry {
 export const HISTORY_COUNTRIES: HistoryCountry[] = [
   {
     slug: 'bulgaria', file: 'bg', name: 'България', nameEn: 'Bulgaria', adjectiveEn: 'Bulgarian',
-    startYear: '681', range: '681–днес', pastLabel: 'Стара Велика България', futureLabel: 'Бъдеще'
+    startYear: '681', range: '681–днес', pastLabel: 'Old Great Bulgaria', futureLabel: 'Future'
   }
 ];
 

@@ -282,9 +282,9 @@ zoom-out floor (content fills the cylinder's width edge to edge, no screen-space
 matching "the cylinder fills the screen" thematically. Beyond `contentRange` — reachable now
 that panning extends that far — the cylinder's brightness fades towards the outer regions
 (`drawOutOfRangeFade`, a dark gradient overlay) with a muted centred label once enough of
-that empty zone is on screen: "Преди `<earliest year>` — Стара Велика България" on the left
+that empty zone is on screen: "Before `<earliest year>` — Old Great Bulgaria" on the left
 (`earliest year` read off `contentRange.from`, not hand-typed, so it can't go stale if the
-dataset's own start ever moves) and "Бъдеще" on the right.
+dataset's own start ever moves) and "Future" on the right. English since the owner asked that Bulgaria-related UI outside the two country pickers (History, Quizzes -> History, which keep the Bulgarian name and "681–днес") read in English; the timeline's entries stay Bulgarian.
 
 The old floating context-stack text and the old full-height centre line are both gone —
 "nothing outside the cylinder except the centre date readout" is now literal: the only thing

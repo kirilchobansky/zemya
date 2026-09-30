@@ -27,7 +27,7 @@ export function loader({ params }: Route.LoaderArgs) {
 export function meta({ loaderData, location }: Route.MetaArgs) {
   const country = loaderData?.country;
   return pageMeta({
-    title: `${country?.nameEn ?? 'History'} — история — Zemya`,
+    title: `${country?.nameEn ?? 'History'} — history — Zemya`,
     description: country
       ? `An interactive timeline of ${country.adjectiveEn} history, ${country.startYear} to today.`
       : 'An interactive timeline of history.',
