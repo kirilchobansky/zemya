@@ -456,3 +456,13 @@ Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author 
 - `QuizStageProps` carries `skip / reveal / canSkip / canReveal` for the phone's Skip and Reveal
   buttons, and `onStart` is the route's `startRun` (focus, then start). Don't wrap it.
 - Nothing in a Stage may hard-code a key in copy without an `.only-fine` / `.only-coarse` split.
+
+### Fill quiz: titles, long names, collapsed sidebars
+- "президент" is never shown as a title in a rectangle (`isShownTitle`); the "more than one distinct
+  title" rule is counted without it. Other titles show on their own small line above the name.
+- A rectangle never truncates: `min-height`, the name wraps, a trailing "(…)" goes on its own smaller
+  line (`splitNote`), grid column minimum 210px, full text in `title`. No ellipsis.
+- Full-area screens in the stage (`.fill-quiz`, `.quiz-flag-stage`, z-index 6) used to cover the
+  collapsed sidebars' edge tabs (z-index 5, inside the 0-width rail/panel). Tabs are now z-index 7,
+  and the shell sets `--rail-gap` / `--panel-gap` (32px when that side is collapsed) which such
+  screens add to their inset. Ctrl+[ / Ctrl+] toggle the sidebars even from inside an input.

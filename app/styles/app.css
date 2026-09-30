@@ -169,7 +169,8 @@ a {
   border: 1px solid var(--rule-soft);
   color: var(--ink-2);
   font-size: 11px;
-  z-index: 5;
+  /* above every full-area screen in the stage (.fill-quiz, .quiz-flag-stage: z-index 6) */
+  z-index: 7;
 }
 .sidebar-edge-tab:hover {
   color: var(--ink);
@@ -1991,8 +1992,8 @@ kbd {
   z-index: 6;
   top: 0;
   bottom: 0;
-  left: var(--rail-width);
-  right: var(--panel-width);
+  left: calc(var(--rail-width) + var(--rail-gap, 0px));
+  right: calc(var(--panel-width) + var(--panel-gap, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2048,7 +2049,7 @@ a.quiz-list__row {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 24px;
+  padding: 24px max(24px, var(--panel-gap, 0px)) 24px max(24px, var(--rail-gap, 0px));
   /* a plain stage, exactly like .quiz-flag-stage: it covers the map/timeline canvas outright */
   background: var(--flag-stage-bg);
 }
@@ -2137,7 +2138,7 @@ a.quiz-list__row {
 }
 .fill-quiz__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -2148,8 +2149,8 @@ a.quiz-list__row {
   flex-direction: column;
   justify-content: space-between;
   gap: 4px;
-  /* fixed height: filling a cell never moves anything */
-  height: 62px;
+  /* grows with a long name (no ellipsis anywhere); an empty cell keeps the one-line height */
+  min-height: 62px;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
@@ -2170,9 +2171,21 @@ a.quiz-list__row {
   font-weight: 600;
   line-height: 1.3;
   color: var(--fill-hue);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+.fill-cell__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink-3);
+}
+.fill-cell__note {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink-2);
 }
 .fill-cell.is-filled {
   background: var(--chart);

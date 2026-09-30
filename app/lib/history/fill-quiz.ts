@@ -278,9 +278,19 @@ export function titleOf(role: string | null | undefined): string {
   return (role ?? '').replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/** True when the entries carry more than one distinct title — the only time titles are shown. */
+/** "президент" is never shown as a title in a filled rectangle. */
+export const isShownTitle = (title: string): boolean => title !== '' && title !== 'президент';
+
+/** True when the entries carry more than one distinct title (not counting "президент") — the
+ *  only time titles are shown. */
 export const hasMixedTitles = (entries: readonly Pick<FillEntry, 'title'>[]): boolean =>
-  new Set(entries.map(e => e.title)).size > 1;
+  new Set(entries.map(e => e.title).filter(t => t !== 'президент')).size > 1;
+
+/** A name split for display: the main text and a trailing parenthesis, if any. */
+export function splitNote(name: string): { main: string; note: string } {
+  const m = /^(.*?)\s*(\([^)]*\))\s*$/.exec(name);
+  return m && m[1] ? { main: m[1], note: m[2] } : { main: name, note: '' };
+}
 
 /** The entries a run plays: all of them, or with the toggle on only the elected ones. */
 export function entriesFor(quiz: Pick<FillQuiz, 'entries' | 'toggle'>, toggleOn: boolean): FillEntry[] {

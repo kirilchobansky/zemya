@@ -23,7 +23,7 @@ import { useAtlasContext } from '~/lib/atlas-context';
 import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
 import {
-  dateRangeLabel, entriesFor, hasMixedTitles, matchFill, needsNumber, prepareFill, yearLabel, type FillQuiz
+  dateRangeLabel, entriesFor, hasMixedTitles, isShownTitle, matchFill, needsNumber, prepareFill, splitNote, yearLabel, type FillQuiz
 } from '~/lib/history/fill-quiz';
 import { historyCountryFor } from '~/lib/history/countries';
 import { toggleSize } from '~/lib/history/fill-quiz-config';
@@ -238,7 +238,9 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             const isFilled = filled.has(entry.id);
             const isMissed = revealing && !isFilled;
             const shown = isFilled || isMissed;
-            const label = showTitles && entry.title ? `${entry.title} ${entry.nameBg}` : entry.nameBg;
+            const title = showTitles && isShownTitle(entry.title) ? entry.title : '';
+            const label = title ? `${title} ${entry.nameBg}` : entry.nameBg;
+            const { main, note } = splitNote(entry.nameBg);
             return (
               <li
                 key={entry.id}
@@ -250,7 +252,11 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
                 aria-label={shown ? label : `Empty, ${yearLabel(entry)}`}
               >
                 <span className="fill-cell__dates numeric">{yearLabel(entry)}</span>
-                <span className="fill-cell__name">{shown ? label : ''}</span>
+                <span className="fill-cell__name">
+                  {shown && title && <span className="fill-cell__title">{title}</span>}
+                  {shown ? main : ''}
+                  {shown && note && <span className="fill-cell__note">{note}</span>}
+                </span>
               </li>
             );
           })}

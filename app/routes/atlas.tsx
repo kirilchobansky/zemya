@@ -358,14 +358,14 @@ function AtlasShell() {
   const toggleRailCollapsed = useCallback(() => setRailCollapsed(v => !v), []);
   const togglePanelCollapsed = useCallback(() => setPanelCollapsed(v => !v), []);
 
-  // "[" toggles the rail, "]" toggles the panel — ignored while typing in an input, and
-  // desktop-only (phone has no rail and the panel is the bottom sheet, not this sidebar).
+  // "[" toggles the rail, "]" toggles the panel — ignored while typing in an input (Ctrl+[ and
+  // Ctrl+] still work there: they type nothing), and desktop-only (phone has no rail and the panel is the bottom sheet, not this sidebar).
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== '[' && e.key !== ']') return;
       if (isPhoneLayout()) return;
       const target = e.target;
-      if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+      if (!e.ctrlKey && target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
         return;
       }
       e.preventDefault();
@@ -690,7 +690,10 @@ function AtlasShell() {
       className={`shell${immersive ? ' is-immersive' : ''}${quiz ? ' is-quiz' : ''}${resizingSide ? ' is-resizing' : ''}`}
       style={{
         '--rail-width': `${railCollapsed ? 0 : railWidth}px`,
-        '--panel-width': `${panelCollapsed ? 0 : panelWidth}px`
+        '--panel-width': `${panelCollapsed ? 0 : panelWidth}px`,
+        // room for a collapsed side's edge tab, so full-area screens never sit under it
+        '--rail-gap': railCollapsed ? '32px' : '0px',
+        '--panel-gap': panelCollapsed ? '32px' : '0px'
       } as CSSProperties}
     >
       <Rail

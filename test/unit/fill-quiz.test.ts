@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
-  dateRangeLabel, entriesFor, fillQuizzesFromRaw, formatFillDate, hasMixedTitles, matchFill, needsNumber, normaliseFill, prepareFill, titleOf,
+  dateRangeLabel, entriesFor, fillQuizzesFromRaw, formatFillDate, hasMixedTitles, isShownTitle, matchFill, splitNote, needsNumber, normaliseFill, prepareFill, titleOf,
   yearLabel,
   type FillEntry, type FillQuiz, type FillRawEntry
 } from '~/lib/history/fill-quiz';
@@ -199,6 +199,16 @@ describe('titles', () => {
   it('shows titles only when the quiz has more than one', () => {
     expect(hasMixedTitles([{ title: 'хан' }, { title: 'цар' }])).toBe(true);
     expect(hasMixedTitles([{ title: 'министър-председател' }, { title: 'министър-председател' }])).toBe(false);
+  });
+  it('never counts or shows "президент"', () => {
+    expect(hasMixedTitles([{ title: 'президент' }, { title: 'и.д. президент' }])).toBe(false);
+    expect(hasMixedTitles([{ title: 'президент' }, { title: 'и.д. президент' }, { title: 'цар' }])).toBe(true);
+    expect(isShownTitle('президент')).toBe(false);
+    expect(isShownTitle('и.д. президент')).toBe(true);
+  });
+  it('splits a trailing parenthesis off a name', () => {
+    expect(splitNote('Петър IV (Теодор-Петър)')).toEqual({ main: 'Петър IV', note: '(Теодор-Петър)' });
+    expect(splitNote('Фердинанд I')).toEqual({ main: 'Фердинанд I', note: '' });
   });
 });
 
