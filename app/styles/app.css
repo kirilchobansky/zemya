@@ -2216,6 +2216,12 @@ a.quiz-list__row {
   flex-direction: column;
   gap: 12px;
 }
+.fill-quiz__result--phone {
+  display: none;
+}
+.fill-quiz__side-toggle {
+  margin: 12px 0;
+}
 @keyframes fill-pop {
   0% {
     background: color-mix(in srgb, var(--fill-hue) 35%, var(--chart));
@@ -2254,6 +2260,9 @@ a.quiz-list__row {
     border-radius: 0;
     border: 0;
     padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .fill-quiz__result--phone {
+    display: flex;
   }
   .fill-quiz__grid {
     grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));

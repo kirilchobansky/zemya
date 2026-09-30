@@ -183,6 +183,14 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const revealing = phase === 'gaveup';
   const missed = total - filled.size;
 
+  const finished = phase === 'done' || phase === 'gaveup';
+  const buttons = (
+    <div className="actions">
+      <button type="button" className="action action--primary" onClick={restart}>Try again</button>
+      <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
+    </div>
+  );
+
   const screen = (
     <div className="fill-quiz" role="dialog" aria-label={quiz.title}>
       <div className="fill-quiz__panel">
@@ -262,32 +270,12 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           })}
         </ol>
 
-        {(phase === 'done' || phase === 'gaveup') && (
-          <div className="fill-quiz__result">
-            <div className="hook">
-              <div className="hook__label">
-                {phase === 'done' ? 'Result' : 'Gave up'}
-                {quiz.toggle && runToggle && <> · {quiz.toggle.label.toLowerCase()}</>}
-              </div>
-              <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
-              <p style={{ marginBottom: 0 }}>
-                <b>{filled.size} / {total}</b> filled
-                {phase === 'gaveup' && <> — {missed} shown in red</>}.{' '}
-                {phase === 'done' && outcome && (
-                  outcome.beatBest
-                    ? outcome.previousBest !== null
-                      ? <>New personal best — beat <b>{formatDuration(outcome.previousBest)}</b>.</>
-                      : <>First run of this list — now your personal best.</>
-                    : <>Personal best stays <b>{formatDuration(outcome.previousBest ?? outcome.timeMs)}</b>.</>
-                )}
-                {phase === 'gaveup' && <>A given-up run is not saved.</>}
-              </p>
-            </div>
+        {/* desktop shows the result in the sidebar; a phone run covers the sidebar, so the
+            buttons stay here and CSS hides them above the phone breakpoint */}
+        {finished && (
+          <div className="fill-quiz__result fill-quiz__result--phone">
             {toggleBox(false)}
-            <div className="actions">
-              <button type="button" className="action action--primary" onClick={restart}>Try again</button>
-              <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
-            </div>
+            {buttons}
           </div>
         )}
       </div>
@@ -308,9 +296,35 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           {quiz.entries.length} {quiz.kind === 'ruler' ? 'rulers' : 'governments'}, in chronological order. Type a name to fill
           its rectangle — order doesn't matter, the title is optional, Latin letters work.
         </p>
-        <div className="actions">
-          <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
-        </div>
+        {finished ? (
+          <>
+            <div className="hook">
+              <div className="hook__label">
+                {phase === 'done' ? 'Result' : 'Gave up'}
+                {quiz.toggle && runToggle && <> · {quiz.toggle.label.toLowerCase()}</>}
+              </div>
+              <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
+              <p style={{ marginBottom: 0 }}>
+                <b>{filled.size} / {total}</b> filled
+                {phase === 'gaveup' && <> — {missed} shown in red</>}.{' '}
+                {phase === 'done' && outcome && (
+                  outcome.beatBest
+                    ? outcome.previousBest !== null
+                      ? <>New personal best — beat <b>{formatDuration(outcome.previousBest)}</b>.</>
+                      : <>First run of this list — now your personal best.</>
+                    : <>Personal best stays <b>{formatDuration(outcome.previousBest ?? outcome.timeMs)}</b>.</>
+                )}
+                {phase === 'gaveup' && <>A given-up run is not saved.</>}
+              </p>
+            </div>
+            <div className="fill-quiz__side-toggle">{toggleBox(false)}</div>
+            {buttons}
+          </>
+        ) : (
+          <div className="actions">
+            <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
+          </div>
+        )}
       </div>
       {mounted && host && createPortal(screen, host)}
     </>
