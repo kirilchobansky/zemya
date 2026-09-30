@@ -15,7 +15,7 @@ export interface HistoryCountry {
   adjectiveEn: string;
   /** The first year shown in the panel header's "<startYear> – today" line. */
   startYear: string;
-  /** The timeline's covered span, as shown next to the name in the picker. */
+  /** The timeline's covered span, as shown next to the name in the pickers (English). */
   range: string;
   /** Text for the fade zone before the earliest entry, after "Преди <year> — ". */
   pastLabel: string;
@@ -26,7 +26,7 @@ export interface HistoryCountry {
 export const HISTORY_COUNTRIES: HistoryCountry[] = [
   {
     slug: 'bulgaria', file: 'bg', name: 'България', nameEn: 'Bulgaria', adjectiveEn: 'Bulgarian',
-    startYear: '681', range: '681–днес', pastLabel: 'Стара Велика България', futureLabel: 'Бъдеще'
+    startYear: '681', range: '681–today', pastLabel: 'Стара Велика България', futureLabel: 'Бъдеще'
   }
 ];
 

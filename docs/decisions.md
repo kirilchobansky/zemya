@@ -1101,3 +1101,9 @@ window + optional toggle. Decisions the brief left open:
   third) ran to that day, so the three PM windows tile with no gap or overlap.
 - **Off the given file list, touched anyway:** `app/styles/app.css` (toggle style) and the
   meta description in `routes/quizzes.$subject.$quizId.tsx` (it split the old "Rulers: X" title).
+
+### History country pickers are English
+
+The History picker and Quizzes -> History show "Bulgaria" and "681–today" (owner request), not
+"България" / "681–днес". `HistoryCountry.name` (Bulgarian) is now unused by the UI; the timeline
+itself, its fade-zone labels and entries stay Bulgarian.

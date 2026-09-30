@@ -35,7 +35,7 @@ export default function HistoryPicker() {
         <div className="subject-list">
           {HISTORY_COUNTRIES.map(country => (
             <Link key={country.slug} to={`/history/${country.slug}`} className="subject-card">
-              <span className="subject-card__name">{country.name}</span>
+              <span className="subject-card__name">{country.nameEn}</span>
               <span className="subject-card__blurb">{country.range}</span>
             </Link>
           ))}

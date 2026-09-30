@@ -494,7 +494,7 @@ function HistoryCountries({ fill }: { fill: FillSummary[] }) {
               >
                 <span className="subject-card__name">{country.nameEn}</span>
                 <span className="subject-card__blurb">
-                  {country.name} · {country.range}
+                  {country.range}
                 </span>
                 <span className="subject-card__count">
                   {count} {count === 1 ? "quiz" : "quizzes"}
