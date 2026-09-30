@@ -1832,7 +1832,7 @@ entries:
     name: { bg: "Илияна Йотова", en: "Iliana Yotova" }
     aliases: []
     role: президент
-    elected: false
+    elected: true
     start: "2026-01-23"
     precision: exact
     style: new

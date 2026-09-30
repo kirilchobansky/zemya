@@ -7,9 +7,10 @@
  * run is "a set of names still to find" — but it saves the same run rows, so personal bests
  * work identically (`quizId` = the quiz's id, scope and size both "all").
  *
- * The timer starts at the first keystroke, so reading the grid is free. The overlay is
- * portalled to <body> (a `position: fixed` element inside the bottom sheet's transformed
- * ancestor would be trapped — CLAUDE.md, Mobile) and only after mount, since prerender has
+ * The timer starts at the first keystroke, so reading the grid is free. The screen is
+ * portalled into the atlas shell's <main class="stage"> — the area between the rail and the
+ * right panel, so it follows their widths and collapsed state with no offsets of its own
+ * (on a phone CSS makes it cover the viewport) — and only after mount, since prerender has
  * no `document`. The input is never `disabled`; when a run ends it is just moved out of
  * sight so "Try again" can focus it inside the tap.
  */
@@ -21,7 +22,9 @@ import { keepFocus } from '~/components/quiz/QuizControls';
 import { useAtlasContext } from '~/lib/atlas-context';
 import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
-import { dateRangeLabel, entriesFor, matchFill, prepareFill, yearLabel, type FillQuiz } from '~/lib/history/fill-quiz';
+import {
+  dateRangeLabel, entriesFor, hasMixedTitles, matchFill, needsNumber, prepareFill, yearLabel, type FillQuiz
+} from '~/lib/history/fill-quiz';
 import { historyCountryFor } from '~/lib/history/countries';
 import { toggleSize } from '~/lib/history/fill-quiz-config';
 
@@ -46,15 +49,18 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const entries = useMemo(() => entriesFor(quiz, shownToggle), [quiz, shownToggle]);
   const prepared = useMemo(() => prepareFill(entries), [entries]);
   const total = entries.length;
+  const showTitles = useMemo(() => hasMixedTitles(entries), [entries]);
   const size = toggleSize(quiz.toggle !== null && toggleOn);
 
   const [filled, setFilled] = useState<ReadonlySet<string>>(NO_FILLED);
   const [input, setInput] = useState('');
   const [elapsedMs, setElapsedMs] = useState(0);
   const [shaking, setShaking] = useState(false);
+  const [hint, setHint] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [priorBest, setPriorBest] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [host, setHost] = useState<Element | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   // refs so two events in one tick (a fast typist, an instant accept then Enter) never read stale state
@@ -63,7 +69,10 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const startedAtRef = useRef(0);
   phaseRef.current = phase;
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setHost(document.querySelector('main.stage'));
+    setMounted(true);
+  }, []);
 
   /* The map behind the panel goes into quiz mode (search box, toolbar and tooltips hidden,
      names off) exactly as for a geography run; a phone run owns the whole screen. */
@@ -113,12 +122,14 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     filledRef.current = next;
     setFilled(next);
     setInput('');
+    setHint(false);
     if (next.size === total) finish('done', Date.now() - startedAtRef.current);
   }, [prepared, total, finish]);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!active) return;
     const value = e.target.value;
+    setHint(false);
     if (phaseRef.current === 'idle' && value.trim()) {
       startedAtRef.current = Date.now();
       phaseRef.current = 'running';
@@ -134,7 +145,10 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     e.preventDefault();
     const match = matchFill(input, prepared, filledRef.current);
     if (match) accept(match.index);
-    else if (input.trim()) setShaking(true); // nothing is cleared and nothing is penalised
+    else if (input.trim()) { // nothing is cleared and nothing is penalised
+      setShaking(true);
+      setHint(needsNumber(input, prepared, filledRef.current));
+    }
   };
 
   const giveUp = () => {
@@ -149,6 +163,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     phaseRef.current = 'idle';
     setFilled(NO_FILLED);
     setInput('');
+    setHint(false);
     setElapsedMs(0);
     setOutcome(null);
     setPhase('idle');
@@ -168,7 +183,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const revealing = phase === 'gaveup';
   const missed = total - filled.size;
 
-  const overlay = (
+  const screen = (
     <div className="fill-quiz" role="dialog" aria-label={quiz.title}>
       <div className="fill-quiz__panel">
         <header className="fill-quiz__head">
@@ -213,6 +228,8 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           </button>
         </div>
 
+        <p className="fill-quiz__hint" role="status">{hint ? 'Add the number, for example II' : ''}</p>
+
         {/* hidden, not removed, once a run starts: the grid below never jumps */}
         {toggleBox(phase !== 'idle')}
 
@@ -221,6 +238,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             const isFilled = filled.has(entry.id);
             const isMissed = revealing && !isFilled;
             const shown = isFilled || isMissed;
+            const label = showTitles && entry.title ? `${entry.title} ${entry.nameBg}` : entry.nameBg;
             return (
               <li
                 key={entry.id}
@@ -228,11 +246,11 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
                   `fill-cell fill-cell--${entry.kind}` +
                   (isFilled ? ' is-filled' : '') + (isMissed ? ' is-missed' : '')
                 }
-                title={shown ? `${entry.nameBg} · ${dateRangeLabel(entry)}` : undefined}
-                aria-label={shown ? entry.nameBg : `Empty, ${yearLabel(entry)}`}
+                title={shown ? `${label} · ${dateRangeLabel(entry)}` : undefined}
+                aria-label={shown ? label : `Empty, ${yearLabel(entry)}`}
               >
                 <span className="fill-cell__dates numeric">{yearLabel(entry)}</span>
-                <span className="fill-cell__name">{shown ? entry.nameBg : ''}</span>
+                <span className="fill-cell__name">{shown ? label : ''}</span>
               </li>
             );
           })}
@@ -288,7 +306,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
         </div>
       </div>
-      {mounted && createPortal(overlay, document.body)}
+      {mounted && host && createPortal(screen, host)}
     </>
   );
 }

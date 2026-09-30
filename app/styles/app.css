@@ -2032,21 +2032,22 @@ a.quiz-list__row {
 }
 
 /* ---- History "fill the list" quiz (components/HistoryFillQuiz.tsx) ----------------------
-   A centred panel over the stage, portalled to <body>. Fixed like .quiz-flag-stage, between
-   the rail and the right panel; on a phone it owns the whole screen. Kind colours reuse the
+   A centred panel filling the stage (portalled into <main class="stage">, so exactly the area
+   between the rail and the right panel); on a phone it is fixed over the whole screen. Kind colours reuse the
    tokens (--sea for rulers, --categorical-violet for governments, --new for a missed name),
    each of which already has a light-theme value; filled cells sit on --chart so the coloured
    name keeps AA contrast in both themes. */
 .fill-quiz {
-  position: fixed;
+  /* Portalled into .stage (atlas.tsx's <main>), which is the grid cell between the rail and
+     the panel: filling it follows --rail-width / --panel-width and their collapsed state with
+     no offsets here. Scrolls inside the area when the panel doesn't fit. */
+  position: absolute;
+  inset: 0;
   z-index: 6;
-  top: 0;
-  bottom: 0;
-  left: var(--rail-width);
-  right: var(--panel-width);
+  overflow-y: auto;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start;
   padding: 24px;
   /* a plain stage, exactly like .quiz-flag-stage: it covers the map/timeline canvas outright */
   background: var(--flag-stage-bg);
@@ -2056,13 +2057,12 @@ a.quiz-list__row {
   flex-direction: column;
   gap: 14px;
   width: min(880px, 100%);
-  max-height: 100%;
+  margin: auto 0; /* centred vertically when short, top-aligned (and scrollable) when tall */
   padding: 20px 22px;
   border-radius: 14px;
   border: 1px solid var(--rule);
   background: var(--chart);
   box-shadow: var(--shadow);
-  overflow-y: auto;
 }
 .fill-quiz__head {
   display: flex;
@@ -2123,13 +2123,21 @@ a.quiz-list__row {
   opacity: 0;
   pointer-events: none;
 }
+.fill-quiz__hint {
+  /* fixed height: showing the hint never moves the grid */
+  min-height: 1.3em;
+  margin: -6px 0 0;
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--new);
+}
 .fill-quiz__giveup {
   flex: 0 0 auto;
   color: var(--new);
 }
 .fill-quiz__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -2221,15 +2229,15 @@ a.quiz-list__row {
 }
 @media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
   .fill-quiz {
-    left: 0;
-    right: 0;
+    /* a phone run owns the whole screen, over the bottom sheet */
+    position: fixed;
     height: 100dvh;
-    bottom: auto;
     padding: 0;
   }
   .fill-quiz__panel {
     width: 100%;
-    height: 100%;
+    min-height: 100%;
+    margin: 0;
     border-radius: 0;
     border: 0;
     padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));

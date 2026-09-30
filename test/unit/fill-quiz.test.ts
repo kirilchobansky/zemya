@@ -8,13 +8,14 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
-  dateRangeLabel, entriesFor, fillQuizzesFromRaw, formatFillDate, matchFill, normaliseFill, prepareFill, yearLabel,
+  dateRangeLabel, entriesFor, fillQuizzesFromRaw, formatFillDate, hasMixedTitles, matchFill, needsNumber, normaliseFill, prepareFill, titleOf,
+  yearLabel,
   type FillEntry, type FillQuiz, type FillRawEntry
 } from '~/lib/history/fill-quiz';
 import type { FillQuizConfig } from '~/lib/history/fill-quiz-config';
 
 function entry(id: string, nameBg: string, nameEn: string, start: number, aliases: string[] = []): FillEntry {
-  return { id, kind: 'ruler', nameBg, nameEn, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10), elected: true };
+  return { id, kind: 'ruler', nameBg, nameEn, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10), elected: true, title: '' };
 }
 
 const LIST = [
@@ -23,7 +24,15 @@ const LIST = [
   entry('boris1', 'Борис I', 'Boris I', 852),
   entry('simeon', 'Симеон I Велики', 'Simeon I the Great', 893),
   entry('boris2', 'Борис II', 'Boris II', 969),
-  entry('peter', 'Петър I', 'Peter I', 927)
+  entry('peter', 'Петър I', 'Peter I', 927),
+  entry('asen2', 'Иван Асен II', 'Ivan Asen II', 1218),
+  entry('asen3', 'Иван Асен III', 'Ivan Asen III', 1279),
+  entry('alex', 'Александър I Батенберг', 'Alexander I of Battenberg', 1879),
+  entry('malinov', 'Александър Малинов', '', 1908),
+  entry('georgi', 'Георги Димитров', '', 1946),
+  entry('boiko1', 'Бойко Борисов', '', 2009),
+  entry('boiko2', 'Бойко Борисов', '', 2014),
+  entry('boiko3', 'Бойко Борисов', '', 2017)
 ];
 const PREPARED = prepareFill(LIST);
 const NONE: ReadonlySet<string> = new Set();
@@ -49,55 +58,103 @@ describe('normaliseFill', () => {
 });
 
 describe('matchFill', () => {
-  it('accepts the last name alone, without the title', () => {
+  it('accepts a one-word name as it is, with or without a title', () => {
     expect(idOf('Аспарух')).toBe('asparuh');
     expect(idOf('хан Аспарух')).toBe('asparuh');
-  });
-  it('accepts the English name and aliases', () => {
     expect(idOf('tervel')).toBe('tervel');
-    expect(idOf('Isperih')).toBe('asparuh');
   });
-  it('accepts Latin letters typed for a Cyrillic name, against the whole name', () => {
+  it('accepts aliases and Latin letters typed for a Cyrillic name', () => {
+    expect(idOf('Isperih')).toBe('asparuh');
     expect(idOf('asparuh')).toBe('asparuh');
-    expect(idOf('Tervel')).toBe('tervel');
-    expect(idOf('simeon')).toBe('simeon');
-    expect(idOf('petar')).toBe('peter'); // Latin -> Петър via the transliteration, not the English name
+    expect(idOf('petar 1')).toBe('peter'); // Латин -> Петър via the transliteration
     expect(idOf('sparuh')).toBeNull(); // a substring is not a match
   });
-  it('treats Roman and Arabic numerals as the same', () => {
+
+  it('needs the number of a numbered name, Roman or Arabic', () => {
     expect(idOf('Борис 1')).toBe('boris1');
     expect(idOf('Борис I')).toBe('boris1');
     expect(idOf('борис2')).toBe('boris2');
     expect(idOf('Борис II')).toBe('boris2');
     expect(idOf('boris 2')).toBe('boris2');
-  });
-  it('accepts a name cut at its numeral', () => {
-    expect(idOf('Симеон')).toBe('simeon');
+    expect(idOf('Boris II')).toBe('boris2');
     expect(idOf('Симеон 1')).toBe('simeon');
     expect(idOf('Симеон I Велики')).toBe('simeon');
+    expect(idOf('Петър I')).toBe('peter');
+  });
+  it('never accepts a numbered name without its number', () => {
+    expect(idOf('Борис')).toBeNull();
+    expect(idOf('Boris')).toBeNull();
+    expect(idOf('Симеон')).toBeNull();
+    expect(idOf('Петър')).toBeNull();
+    expect(idOf('Борис', new Set(['boris1']))).toBeNull(); // not even when one is left
+  });
+  it('Иван Асен after Иван Асен II is still not enough; the number is', () => {
+    const done = new Set(['asen2']);
+    expect(idOf('Иван Асен', done)).toBeNull();
+    expect(idOf('Иван Асен 3', done)).toBe('asen3');
+    expect(idOf('Иван Асен III', done)).toBe('asen3');
+    expect(idOf('Ivan Asen III', done)).toBe('asen3');
+    expect(idOf('Иван Асен 2')).toBe('asen2');
+    expect(idOf('Иван Асен 2', done)).toBeNull();
+  });
+  it('accepts the surname of a multi-word name when no other person shares it', () => {
+    expect(idOf('Батенберг')).toBe('alex');
+    expect(idOf('Александър 1')).toBe('alex');
+    expect(idOf('Александър I Батенберг')).toBe('alex');
+    expect(idOf('Димитров')).toBe('georgi');
+    expect(idOf('Георги Димитров')).toBe('georgi');
+    expect(idOf('Малинов')).toBe('malinov');
+  });
+  it('never accepts a first name alone for a multi-word name', () => {
+    expect(idOf('Александър')).toBeNull();
+    expect(idOf('Георги')).toBeNull();
+    expect(idOf('Бойко')).toBeNull();
+  });
+  it('rejects a surname shared by different people', () => {
+    expect(idOf('Асен')).toBeNull(); // Иван Асен II and III
+    const two = prepareFill([entry('a', 'Георги Димитров', '', 1), entry('b', 'Димитър Димитров', '', 2)]);
+    expect(matchFill('Димитров', two, NONE)).toBeNull();
+    expect(matchFill('Георги Димитров', two, NONE)).toMatchObject({ index: 0 });
+  });
+  it('the same person several times: surname or full name fills the earliest unfilled', () => {
+    expect(idOf('Борисов')).toBe('boiko1');
+    expect(idOf('Бойко Борисов')).toBe('boiko1');
+    expect(idOf('Борисов', new Set(['boiko1']))).toBe('boiko2');
+    expect(idOf('Бойко Борисов', new Set(['boiko1', 'boiko2']))).toBe('boiko3');
+    expect(idOf('Борисов', new Set(['boiko1', 'boiko2', 'boiko3']))).toBeNull();
+  });
+  it('takes an alias as one exact spelling', () => {
+    const list = prepareFill([entry('ferdinand', 'Фердинанд I', 'Ferdinand I', 1887, ['Фердинанд', 'Ferdinand'])]);
+    expect(matchFill('Фердинанд', list, NONE)).toMatchObject({ index: 0 });
+    expect(matchFill('Ferdinand', list, NONE)).toMatchObject({ index: 0 });
+    expect(matchFill('Александър', list, NONE)).toBeNull();
+    const numbered = prepareFill([entry('x', 'Калоян', 'Kaloyan', 1, ['Борис II'])]);
+    expect(matchFill('Борис', numbered, NONE)).toBeNull(); // nothing derived from an alias
+    expect(matchFill('Борис 2', numbered, NONE)).toMatchObject({ index: 0 });
   });
 
-  it('fills the earliest entry when the name is ambiguous (Борис)', () => {
-    expect(idOf('Борис')).toBe('boris1');
-    expect(idOf('Boris')).toBe('boris1');
-  });
-  it('matches only the numbered entry when the numeral is typed', () => {
-    expect(idOf('Борис 2')).toBe('boris2');
-  });
-  it('ignores an already filled entry', () => {
-    expect(idOf('Борис', new Set(['boris1']))).toBe('boris2');
-    expect(idOf('Борис 1', new Set(['boris1']))).toBeNull();
+  it('flags a numbered name typed without its number, only when nothing else matches', () => {
+    expect(needsNumber('Иван Асен', PREPARED, NONE)).toBe(true);
+    expect(needsNumber('Борис', PREPARED, NONE)).toBe(true);
+    expect(needsNumber('boris', PREPARED, NONE)).toBe(true);
+    expect(needsNumber('Александър', PREPARED, NONE)).toBe(true);
+    expect(needsNumber('Борис 2', PREPARED, NONE)).toBe(false); // it matches
+    expect(needsNumber('Аспарух', PREPARED, NONE)).toBe(false);
+    expect(needsNumber('Георги', PREPARED, NONE)).toBe(false); // a first name, not a numbered one
+    expect(needsNumber('', PREPARED, NONE)).toBe(false);
   });
 
   it('accepts instantly only when no longer name starts with the typed text', () => {
     expect(matchFill('Аспарух', PREPARED, NONE)).toMatchObject({ instant: true });
-    expect(matchFill('Борис', PREPARED, NONE)).toMatchObject({ instant: false }); // Борис 2 exists
     expect(matchFill('Борис 1', PREPARED, NONE)).toMatchObject({ instant: true });
-    expect(matchFill('Борис', PREPARED, new Set(['boris1']))).toMatchObject({ instant: true });
-    expect(matchFill('Симеон', PREPARED, NONE)).toMatchObject({ instant: true }); // its own "Симеон 1" doesn't block
+    expect(matchFill('Иван Асен 2', PREPARED, NONE)).toMatchObject({ instant: true });
+    expect(matchFill('Симеон 1', PREPARED, NONE)).toMatchObject({ instant: true }); // its own longer form doesn't block
   });
   it('waits for Enter when the Latin text is still a prefix of another name', () => {
-    expect(matchFill('boris', PREPARED, NONE)).toMatchObject({ instant: false });
+    expect(matchFill('boris 1', PREPARED, NONE)).toMatchObject({ instant: true });
+    expect(matchFill('asparu', PREPARED, NONE)).toBeNull();
+    const pre = prepareFill([entry('a', 'Калоян', 'x', 1), entry('b', 'Калоянов', 'y', 2)]);
+    expect(matchFill('kaloyan', pre, NONE)).toMatchObject({ instant: false });
   });
 
   it('forgives one typo in a name of 6+ letters, on Enter only', () => {
@@ -112,12 +169,11 @@ describe('matchFill', () => {
   it('never lets a typo cross a numeral', () => {
     expect(idOf('Борис 3')).toBeNull();
     expect(idOf('Симеон 2')).toBeNull();
+    expect(idOf('Борис')).toBeNull(); // nor drop one
   });
   it('never applies a typo that would make two entries match', () => {
     const twins = prepareFill([entry('a', 'Калоян', 'x', 1), entry('b', 'Калаян', 'y', 2)]);
-    // one edit from both names -> ambiguous -> rejected
     expect(matchFill('Калиян', twins, NONE)).toBeNull();
-    // one edit from only "Калоян" -> accepted
     expect(matchFill('Калоян'.slice(0, -1) + 'нн', twins, NONE)).toMatchObject({ index: 0, typo: true });
   });
   it('does not typo-match text that is exactly a filled entry', () => {
@@ -126,21 +182,23 @@ describe('matchFill', () => {
     const near = prepareFill([entry('a', 'Симеон', 'x', 1), entry('b', 'Симеан', 'y', 2)]);
     expect(matchFill('Симеон', near, new Set(['a']))).toBeNull();
   });
-  it('takes an alias as one exact spelling, leaving other names alone', () => {
-    const list = prepareFill([entry('ferdinand', 'Фердинанд I', 'Ferdinand I', 1887, ['Фердинанд', 'Ferdinand'])]);
-    const id = (typed: string) => { const m = matchFill(typed, list, NONE); return m ? list[m.index].id : null; };
-    expect(id('Фердинанд')).toBe('ferdinand');
-    expect(id('Ferdinand')).toBe('ferdinand');
-    expect(id('Александър')).toBeNull();
-    expect(id('Иван Асен')).toBeNull();
-    const numbered = prepareFill([entry('x', 'Калоян', 'Kaloyan', 1, ['Борис II'])]);
-    expect(matchFill('Борис', numbered, NONE)).toBeNull(); // no numeral-less form derived from an alias
-    expect(matchFill('Борис 2', numbered, NONE)).toMatchObject({ index: 0 });
-  });
   it('returns null for empty and title-only input', () => {
     expect(idOf('')).toBeNull();
     expect(idOf('  ')).toBeNull();
     expect(idOf('хан')).toBeNull();
+  });
+});
+
+describe('titles', () => {
+  it('cleans a role into a title', () => {
+    expect(titleOf('хан')).toBe('хан');
+    expect(titleOf('цар (малолетен)')).toBe('цар');
+    expect(titleOf('княз, от 1908 цар')).toBe('княз, от 1908 цар');
+    expect(titleOf(null)).toBe('');
+  });
+  it('shows titles only when the quiz has more than one', () => {
+    expect(hasMixedTitles([{ title: 'хан' }, { title: 'цар' }])).toBe(true);
+    expect(hasMixedTitles([{ title: 'министър-председател' }, { title: 'министър-председател' }])).toBe(false);
   });
 });
 
@@ -246,16 +304,16 @@ describe('the Bulgarian quiz table on the shipped timeline', () => {
     expect(presidents.every(id => id.startsWith('pres-'))).toBe(true);
   });
 
-  it('the elected toggle removes Mladenov, Todorov (acting) and Yotova, and nobody else', () => {
+  it('the elected toggle removes Mladenov and Todorov (acting), and nobody else (Yotova counts as elected)', () => {
     const presidents = quiz('presidents');
     const all = ids(presidents, false);
     const elected = ids(presidents, true);
     expect(all).toEqual(expect.arrayContaining(['pres-mladenov', 'pres-todorov-acting', 'pres-yotova']));
     expect(elected).not.toContain('pres-mladenov');
     expect(elected).not.toContain('pres-todorov-acting');
-    expect(elected).not.toContain('pres-yotova');
+    expect(elected).toContain('pres-yotova');
     expect(elected).toEqual(expect.arrayContaining(['pres-zhelev', 'pres-stoyanov', 'pres-parvanov', 'pres-plevneliev', 'pres-radev']));
-    expect(all.length - elected.length).toBe(3);
+    expect(all.length - elected.length).toBe(2);
   });
 
   it('the three prime-minister quizzes cover every prime minister exactly once: no overlap, no gap', () => {

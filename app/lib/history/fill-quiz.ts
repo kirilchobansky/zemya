@@ -8,13 +8,18 @@
  * Matching (`matchFill`): a typed name is valid when, normalised, it equals one of an
  * entry's forms. Normalisation lower-cases, drops spaces/hyphens/dots and every non-letter,
  * strips the title words (хан, княз, цар, khan, prince, tsar) and turns Roman numerals into
- * Arabic ones — so "Борис 1" = "Борис I". An entry's forms are its Bulgarian name, English
- * name, each also without its numeral ("Борис") and cut at its numeral
- * ("Симеон I Велики" -> "Симеон 1", "Симеон"). An alias is one exact accepted spelling: no
- * numeral variants are derived from it. Latin letters typed for a Cyrillic name go
- * through search.ts's Latin-to-Cyrillic compilation, matched against the whole form.
- * A single typo (one edit) is forgiven for names of 6+ letters — see `matchFill` for the
- * two conditions under which it is not.
+ * Arabic ones — so "Борис 1" = "Борис I". Forms of name.bg / name.en:
+ *   - a name carrying a number is accepted only WITH it: the whole name, or cut at the
+ *     numeral ("Симеон I Велики" -> "Симеон 1"); the bare "Симеон" never is (`needsNumber`
+ *     detects it, for the hint);
+ *   - a name of two or more words also gives its surname (last word, numeral excluded) when no
+ *     DIFFERENT person in the quiz shares it — the same name twice is the same person, and the
+ *     earliest unfilled one fills. The first name alone is never a form;
+ *   - a one-word name is its own form.
+ * An alias is one exact accepted spelling, no derived forms. Latin letters typed for a
+ * Cyrillic name go through search.ts's Latin-to-Cyrillic compilation, matched against the
+ * whole form. A single typo (one edit) is forgiven for names of 6+ letters — see `matchFill`
+ * for the two conditions under which it is not.
  */
 import { latinToCyrillicRegExp } from './search';
 import { decimalYearOf } from './scale';
@@ -62,18 +67,16 @@ export function normaliseFill(text: string): string {
 
 const isNumeralToken = (t: string): boolean => /^\d+$/.test(t);
 
-/** Every form of one name that a player may type, normalised. */
-function formsOf(name: string): string[] {
+/** The Roman/Arabic-normalised words of one name, and where its numeral is (-1: none). */
+function parts(name: string): { toks: string[]; at: number } {
   const toks = tokens(name);
-  const forms = new Set<string>([toks.join('')]);
-  const at = toks.findIndex((t, i) => i > 0 && isNumeralToken(t));
-  if (at > 0) {
-    forms.add(toks.filter((_, i) => i !== at).join('')); // Борис
-    forms.add(toks.slice(0, at + 1).join('')); // Симеон 1 (of Симеон I Велики)
-    forms.add(toks.slice(0, at).join('')); // Симеон
-  }
-  forms.delete('');
-  return [...forms];
+  return { toks, at: toks.findIndex((t, i) => i > 0 && isNumeralToken(t)) };
+}
+
+/** The last non-numeral word of a name of two or more words — its surname — or null. */
+function surnameOf({ toks, at }: { toks: string[]; at: number }): string | null {
+  const words = toks.filter((_, i) => i !== at);
+  return words.length >= 2 ? words[words.length - 1] : null;
 }
 
 // ---------------------------------------------------------------------------- matching
@@ -92,23 +95,45 @@ export interface FillEntry {
   endRaw: string | null;
   /** False when the office was not filled by a public vote (bg.yaml `elected`). */
   elected: boolean;
+  /** The entry's role, parentheses removed ("хан", "княз, от 1908 цар"); "" when it has none. */
+  title: string;
 }
 
 export interface PreparedFillEntry {
   id: string;
   forms: readonly string[];
+  /** Numbered names without their number ("борис", "иванасен"): not accepted, but worth a hint. */
+  bare: readonly string[];
 }
 
 /** Compile each entry's typeable forms once, not per keystroke. Keep the entries in
  *  chronological order: "earliest unfilled" means lowest index. */
 export function prepareFill(entries: readonly FillEntry[]): PreparedFillEntry[] {
-  return entries.map(e => ({
-    id: e.id,
-    forms: [...new Set([
-      ...[e.nameBg, e.nameEn].filter(Boolean).flatMap(formsOf),
-      ...e.aliases.map(normaliseFill).filter(Boolean) // an alias is one exact spelling, no derived forms
-    ])]
-  }));
+  const named = entries.map(e => [e.nameBg, e.nameEn].filter(Boolean).map(parts));
+  // surname -> the distinct full names (people) that carry it
+  const people = new Map<string, Set<string>>();
+  for (const list of named) for (const p of list) {
+    const sn = surnameOf(p);
+    if (sn) (people.get(sn) ?? people.set(sn, new Set()).get(sn)!).add(p.toks.join(''));
+  }
+  return entries.map((e, i) => {
+    const forms = new Set<string>();
+    const bare = new Set<string>();
+    for (const p of named[i]) {
+      forms.add(p.toks.join(''));
+      if (p.at > 0) {
+        forms.add(p.toks.slice(0, p.at + 1).join('')); // Симеон 1 (of Симеон I Велики)
+        bare.add(p.toks.slice(0, p.at).join(''));
+      }
+      const sn = surnameOf(p);
+      if (sn && people.get(sn)!.size === 1) forms.add(sn);
+    }
+    for (const a of e.aliases) forms.add(normaliseFill(a)); // exact spelling, nothing derived
+    forms.delete('');
+    bare.delete('');
+    for (const f of forms) bare.delete(f);
+    return { id: e.id, forms: [...forms], bare: [...bare] };
+  });
 }
 
 export interface FillMatch {
@@ -186,6 +211,19 @@ export function matchFill(
   return near.length === 1 ? { index: near[0], instant: false, typo: true } : null;
 }
 
+/** True when `typed` is a numbered name without its number ("Иван Асен") and fills nothing —
+ *  the cue for the "Add the number" hint. */
+export function needsNumber(
+  typed: string,
+  entries: readonly PreparedFillEntry[],
+  filled: ReadonlySet<string>
+): boolean {
+  const t = normaliseFill(typed);
+  if (!t || matchFill(typed, entries, filled)) return false;
+  const whole = /[a-z]/.test(t) ? latinToCyrillicRegExp(t, true) : null;
+  return entries.some(e => e.bare.some(f => f === t || (whole !== null && whole.test(f))));
+}
+
 // ---------------------------------------------------------------------------- display
 
 /** "681–700", or just "681" when the span is within one year; an open end reads "1989–". */
@@ -235,6 +273,15 @@ export interface FillRawEntry {
   end: string | null;
 }
 
+/** A role as a title: parenthetical dropped ("цар (малолетен)" -> "цар"), spaces tidied. */
+export function titleOf(role: string | null | undefined): string {
+  return (role ?? '').replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/** True when the entries carry more than one distinct title — the only time titles are shown. */
+export const hasMixedTitles = (entries: readonly Pick<FillEntry, 'title'>[]): boolean =>
+  new Set(entries.map(e => e.title)).size > 1;
+
 /** The entries a run plays: all of them, or with the toggle on only the elected ones. */
 export function entriesFor(quiz: Pick<FillQuiz, 'entries' | 'toggle'>, toggleOn: boolean): FillEntry[] {
   return quiz.toggle && toggleOn ? quiz.entries.filter(e => e.elected) : quiz.entries;
@@ -275,7 +322,8 @@ export function fillQuizzesFromRaw(
           end: r.end == null ? null : decimalYearOf(r.end, `${r.id}.end`),
           startRaw: r.start,
           endRaw: r.end,
-          elected: r.elected !== false
+          elected: r.elected !== false,
+          title: titleOf(r.role)
         } satisfies FillEntry
       }))
       .filter(({ entry, role }) => selectedBy(row, entry, role))

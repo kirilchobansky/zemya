@@ -405,28 +405,41 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   the result label), hidden — not removed — while a run is going so the grid never jumps. The
   setting is the run's `size`: `"all"` off, `"elected"` on (`toggleSize`), so best times are kept
   separately per setting; the History list shows the toggle-off best. Only Presidents has one
-  ("Democratically elected only"; off by default): Mladenov, acting Todorov and Yotova are
+  ("Democratically elected only"; off by default): Mladenov and acting Todorov are
   `elected: false` (succession / not chosen by public vote).
 - **Screen.** A centred panel on a plain stage — `.fill-quiz` covers the map/timeline with
-  `--flag-stage-bg`, exactly like the Flags quiz's `.quiz-flag-stage` (portalled to `<body>`, full-screen on a phone) with one always-focused
+  `--flag-stage-bg` like the Flags quiz, but is **not** fixed: it is portalled into the shell's
+  `<main class="stage">` (`position: absolute; inset: 0`), i.e. exactly the grid cell between the
+  rail and the right panel, so it follows `--rail-width`/`--panel-width` and collapsed state with no
+  offsets of its own, and scrolls inside that area; only on a phone is it `fixed` over the whole
+  screen. The panel is max 880px, the grid `auto-fill`. One always-focused
   input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up" (reveals the
   missing names in red; the run is **not** saved), and a grid of fixed-height rectangles in
   chronological order — dates only until filled, then the Bulgarian name in the kind colour (`--sea`
-  ruler, `--categorical-violet` government) with a short fill animation. Hover/`title` on a filled
+  ruler, `--categorical-violet` government) with a short fill animation. The name is preceded by the
+  entry's title (its `role`, parenthetical removed: "цар (малолетен)" -> "цар"; "княз, от 1908 цар"
+  as is) only when the quiz's entries carry more than one distinct title (`hasMixedTitles`); typing a
+  title is tolerated either way but never needed. Hover/`title` on a filled
   cell shows the exact dates as dd.mm.yyyy. The timer starts at the first keystroke.
 - **Runs** are saved like geography's (`saveQuizRun`, `quizId` = the quiz id, scope `"all"`, size
   `"all"` or `"elected"` — see Toggle), so personal bests, export/import and reset already cover them; the History list shows
   each quiz's best time.
 - **Matching** (`normaliseFill` / `matchFill`): lower-case; spaces, hyphens, dots and other
   non-letters ignored; title words хан, княз, цар, khan, prince, tsar stripped; Roman = Arabic
-  numerals. An entry's typeable forms are name.bg and name.en, each also without its
-  numeral ("Борис") and cut at it ("Симеон I Велики" -> "Симеон 1", "Симеон"). Each alias is one exact
-  accepted spelling, exempt from that numeral rule. Latin typed for a
-  Cyrillic name goes through `search.ts`'s `latinToCyrillicRegExp`, matched against the whole
-  form. Filled entries are ignored; an ambiguous name ("Борис") fills the earliest unfilled entry, a
-  typed numeral pins one.
+  numerals. Typeable forms of name.bg / name.en: (a) a name carrying a number is accepted **only with
+  it** — whole, or cut at the numeral ("Симеон I Велики" -> "Симеон 1"); never the bare name, even
+  with one such entry left ("Иван Асен" never fills Иван Асен III, "Иван Асен 3" does); (b) a name
+  of 2+ words also gives its **surname** (last word, numeral excluded) unless a *different* person in
+  the quiz shares it — equal names are the same person (Бойко Борисов x3), and the surname or full
+  name fills the earliest unfilled one; ("Батенберг" fills Александър I Батенберг, "Александър"
+  doesn't); (c) a first name alone is never a form; a one-word name is its own form. Quirk: for
+  "Симеон I Велики" the surname rule makes "Велики" a form. Each alias is one exact accepted
+  spelling, exempt from the numeral rule. Latin typed for a Cyrillic name goes through `search.ts`'s
+  `latinToCyrillicRegExp`, matched against the whole form. Filled entries are ignored. A wrong
+  Enter on a numbered name without its number (`needsNumber`) also shows "Add the number, for
+  example II" under the input.
 - **Accept** instantly when the text is a valid match and no *other* unfilled entry has a longer form
-  starting with it (the target's own "Борис 2" doesn't block "Борис" once Борис I is filled);
+  starting with it (the target's own longer form doesn't block it);
   otherwise on Enter. A wrong Enter shakes the input and clears nothing — no penalty.
 - **One typo** (Levenshtein 1: insert, delete, substitute — a transposition is two) is forgiven for
   names of 6+ letters, **on Enter only** (instant would fire on "Симео"), never across a numeral
