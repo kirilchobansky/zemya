@@ -822,6 +822,33 @@ literally the same colour as its own hover background. Fixed by scoping the plai
 property; not a `--brass-2`/`--brass-fill-hover` token change, since that pairing not
 colliding was never guaranteed by the token system itself.
 
+## Territory halos — detail
+
+Island nations are specks at world zoom, so the quiz used to fly the camera to a 9 px dot.
+Each country with **no land borders and under 25,000 km2** (derived in `scripts/lib/halo.mjs`'s
+`qualifiesForHalo`, 30 today) gets a `halo` ring instead.
+
+- **Build** (`build-content.mjs`, pure maths in `scripts/lib/halo.mjs`): every outer-ring vertex
+  of the full geometry, unwrapped by the same rules as `topology.ts` (ring unwrap, then a rigid
+  per-polygon shift to the branch nearest the country's own longitude — keep the two in sync), convex hull in a
+  cos(latitude)-corrected km plane, buffered by max(120 km, 15% of the hull's longest span) with
+  24-step round corners, Visvalingam-simplified to <= 48 points, 2 decimals. Throws if a qualifying
+  country has no halo or one spans > 60 degrees of longitude. Emitted as `halos` in BOTH payloads.
+- **Draw** (`renderer.ts` `drawHalos`): beneath the land, inside each world copy, fill at 20% and
+  outline at 55% of the country's current colour (the pin's lighter `microPin` colour for the default
+  land colour). The land is drawn at every zoom on top of it. `drawsAsPin` is false for these.
+- **Fade**: strength 1 while the country's widest single piece (`Feature.pieceWidth`, not its bbox —
+  Kiribati's bbox is 37 degrees of specks) is <= 24 px, 0 at 60 px (`thresholds.ts`). The same number
+  gates hit-testing, so a halo you can't see can't be hit.
+- **Hit-testing** (`pick`): land first, then halos, smallest first, so Florida is still the USA and
+  the smaller country wins an overlap. Not gated on the "Micro-states" toggle (the halo is the country's
+  area, not a marker); the toggle still controls the land micro-states' pins.
+- **Quiz camera** (`Atlas#followTarget`): the target box is the halo's, so the 12 px minimum measures
+  the halo. The 120 km floor means the smallest halos are still under 12 px at world zoom (desktop
+  1440x900: 12 of 30, 8-11 px; 390 px phone: 27 of 30), so those still get a modest zoom — far less
+  than the old fly to a dot. Lowering the floor or the minimum is a one-constant decision, not made here.
+- **Not measured**: `npm run perf` could not launch a browser in the session that built this.
+
 ## What counts as a country — detail
 
 Moved from CLAUDE.md, which keeps the short rule and the count.

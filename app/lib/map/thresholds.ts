@@ -68,3 +68,23 @@ export function capitalRevealFactor(areaKm2: number, latDeg: number, homePx: num
   const pxWorld = (CAPITAL_REVEAL_SIDE_PX * EQUATOR_KM * cos) / side;
   return Math.max(CAPITAL_ZOOM_FACTOR, Math.min(CAPITAL_REVEAL_MAX_FACTOR, pxWorld / homePx));
 }
+
+/**
+ * Territory halos (renderer.ts drawHalos, follow.ts). A halo shows while the country's own
+ * land is too small to read and fades out as you zoom in, so Fiji up close is not a blob.
+ * "Land" here is the country's widest single piece (Feature.pieceWidth), not its bbox: Kiribati's
+ * bbox spans 37 degrees but every island in it is a speck. Full strength at or below
+ * HALO_FADE_START_PX, gone at HALO_FADE_END_PX. Tuned to be tuned by looking.
+ */
+export const HALO_FADE_START_PX = 24;
+export const HALO_FADE_END_PX = 60;
+/** The halo's fill and outline opacity at full strength: a wash, not a second country. */
+export const HALO_FILL_ALPHA = 0.2;
+export const HALO_EDGE_ALPHA = 0.55;
+
+/** 1 while the land is too small to read, 0 once it is readable, linear between. */
+export function haloStrength(pieceWidthPx: number): number {
+  if (pieceWidthPx <= HALO_FADE_START_PX) return 1;
+  if (pieceWidthPx >= HALO_FADE_END_PX) return 0;
+  return (HALO_FADE_END_PX - pieceWidthPx) / (HALO_FADE_END_PX - HALO_FADE_START_PX);
+}

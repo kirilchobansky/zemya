@@ -137,7 +137,9 @@ export function buildWorld(data: WorldData): World {
       tiny: true,
       path: null,
       fullPath: null,
-      neighbours: []
+      pieceWidth: 0,
+      neighbours: [],
+      halo: null
     };
     features.push(feature);
     byId.set(country.id, feature);
@@ -205,6 +207,27 @@ export function buildWorld(data: WorldData): World {
       .filter((f): f is Feature => Boolean(f));
   }
 
+  // Halos come from the payload already unwrapped into the land's own frame (build-content),
+  // so they are only traced here, never re-derived.
+  const haloFeatures: Feature[] = [];
+  for (const { id, ring } of data.halos) {
+    const feature = byId.get(id);
+    if (!feature || ring.length < 3) continue;
+    const path = new Path2D();
+    traceRing(path, ring);
+    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    for (const [lon, lat] of ring) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    const x0 = lonToX(minLon), x1 = lonToX(maxLon), y0 = latToY(maxLat), y1 = latToY(minLat);
+    feature.halo = { path, x0, x1, y0, y1, area: (x1 - x0) * (y1 - y0) };
+    haloFeatures.push(feature);
+  }
+  haloFeatures.sort((a, b) => a.halo!.area - b.halo!.area);
+
   const places: PlaceMark[] = [];
   for (const place of data.places) {
     const feature = byIso3.get(place.iso3);
@@ -213,7 +236,7 @@ export function buildWorld(data: WorldData): World {
   }
 
   return {
-    data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [], places,
+    data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [], places, haloFeatures,
     mergedPath: null, mergedFullPath: null
   };
 }
@@ -245,18 +268,24 @@ function finalizeFeature(feature: Feature, polygons: Ring[][], target: 'path' | 
   let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
   let largest: Ring | null = null;
   let largestArea = -1;
+  let pieceWidth = 0;
 
   for (const polygon of shifted) {
     const outer = polygon[0];
     const area = ringArea(outer);
     if (area > largestArea) { largestArea = area; largest = outer; }
+    let pieceMin = Infinity, pieceMax = -Infinity;
     for (const [lon, lat] of outer) {
       if (lon < minLon) minLon = lon;
       if (lon > maxLon) maxLon = lon;
+      if (lon < pieceMin) pieceMin = lon;
+      if (lon > pieceMax) pieceMax = lon;
       if (lat < minLat) minLat = lat;
       if (lat > maxLat) maxLat = lat;
     }
+    pieceWidth = Math.max(pieceWidth, lonToX(pieceMax) - lonToX(pieceMin));
   }
+  feature.pieceWidth = pieceWidth;
 
   feature.bbox = [minLon, minLat, maxLon, maxLat];
 

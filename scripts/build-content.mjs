@@ -28,6 +28,7 @@ import { parse } from 'yaml';
 import { mergeArcs } from 'topojson-client';
 import * as simplify from 'topojson-simplify';
 import { slugFor, slugify } from './lib/slug.mjs';
+import { buildHalo, haloLonSpan, HALO_MAX_LON_SPAN, qualifiesForHalo, unwrappedVertices } from './lib/halo.mjs';
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -778,6 +779,49 @@ const COARSE_DETAIL = 0.006;
 const full = buildGeometry(DETAIL);
 const coarse = buildGeometry(COARSE_DETAIL);
 
+/* ------------------------------------------------------------------------- halos */
+
+/**
+ * Territory halos (scripts/lib/halo.mjs): a rounded area round every island nation —
+ * no land borders AND under 25,000 km2, derived here, not listed. Built from the FULL
+ * geometry and emitted identically in both payloads (the coarse one paints first).
+ * Throws rather than skipping: a qualifying country with no halo, or one wider than 60
+ * degrees of longitude once unwrapped (the antimeridian handling failed), is a bug.
+ */
+const halos = [];
+{
+  const { x0, y0, xs, ys } = { x0: X0, y0: Y0, xs: XS, ys: YS };
+  const decoded = full.arcs.map(arc => {
+    let x = 0, y = 0;
+    return arc.map(([dx, dy]) => { x += dx; y += dy; return [x * xs + x0, y * ys + y0]; });
+  });
+  const stitch = indices => {
+    let points = [];
+    for (const index of indices) {
+      const reversed = index < 0;
+      const arc = decoded[reversed ? ~index : index];
+      const segment = reversed ? arc.slice().reverse() : arc;
+      points = points.length ? points.concat(segment.slice(1)) : segment.slice();
+    }
+    return points;
+  };
+  const geometryById = new Map(full.geometries.map(g => [g.id, g]));
+  for (const country of countries) {
+    if (!qualifiesForHalo(country)) continue;
+    const geometry = geometryById.get(country.id);
+    if (!geometry) throw new Error(`halo: ${country.iso3} qualifies but has no geometry`);
+    const polygonList = geometry.multi ? geometry.arcs : [geometry.arcs];
+    const polygons = polygonList.map(polygon => polygon.map(stitch));
+    const ring = buildHalo(unwrappedVertices(polygons, country.latlng[1]));
+    if (!ring || ring.length < 3) throw new Error(`halo: ${country.iso3} qualifies but produced no halo`);
+    const span = haloLonSpan(ring);
+    if (span > HALO_MAX_LON_SPAN) {
+      throw new Error(`halo: ${country.iso3} spans ${span.toFixed(1)} degrees of longitude — antimeridian unwrapping failed`);
+    }
+    halos.push({ id: country.id, ring });
+  }
+}
+
 /* ------------------------------------------------------------------------- flags */
 
 // Committed alongside public/data/, not fetched from svg-country-flags at runtime — the
@@ -905,6 +949,7 @@ const payload = {
   geometries: full.geometries,
   lakes: full.lakes,
   places,
+  halos,
   countries
 };
 const json = JSON.stringify(payload);
@@ -926,7 +971,8 @@ const coarsePayload = {
   arcs: coarse.arcs,
   geometries: coarse.geometries,
   lakes: coarse.lakes,
-  places
+  places,
+  halos
 };
 const coarseJson = JSON.stringify(coarsePayload);
 writeFileSync(join(outDir, 'world-coarse.json'), coarseJson, 'utf8');
@@ -972,6 +1018,7 @@ console.log(`detail (coarse) ${COARSE_DETAIL}`);
 console.log(`geometries     ${full.geometries.length}`);
 console.log(`lakes          ${full.lakes.length} (${full.lakes.map(l => l.id).join(', ')})`);
 console.log(`places         ${places.length} (capitals)`);
+console.log(`halos          ${halos.length} (${halos.map(h => countries.find(c => c.id === h.id).iso3).join(', ')})`);
 console.log(`capital aliases ${totalCapitalAliases} extra across ${capitalAliasEntries.size} countries`);
 console.log(
   `flag overrides ${flagOverrides.size}` +

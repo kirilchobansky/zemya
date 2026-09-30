@@ -14,7 +14,7 @@ import { kmPerPixel, wrapX, yToLat, lonToX, latToY } from './projection';
 import { mergedStrokePath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 import {
-  CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, PIN_MAX_WIDTH
+  CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, HALO_EDGE_ALPHA, HALO_FILL_ALPHA, haloStrength, PIN_MAX_WIDTH
 } from './thresholds';
 
 export interface Style {
@@ -235,13 +235,18 @@ function isCopyVisible(rc: RenderContext, copy: number): boolean {
 function isFeatureVisible(rc: RenderContext, feature: Feature, copy: number): boolean {
   const bbox = feature.bbox;
   if (!bbox) return true;
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+  return isBoxVisible(rc, lonToX(minLon), lonToX(maxLon), latToY(maxLat), latToY(minLat), copy);
+}
+
+/** The same test for a box already in unit-square map space (a halo's). */
+function isBoxVisible(rc: RenderContext, x0: number, x1: number, y0: number, y1: number, copy: number): boolean {
   const { camera, viewport } = rc;
   const x = wrapX(camera.x);
-  const [minLon, minLat, maxLon, maxLat] = bbox;
-  const left = viewport.width / 2 + camera.zoom * (lonToX(minLon) - x + copy);
-  const right = viewport.width / 2 + camera.zoom * (lonToX(maxLon) - x + copy);
-  const top = viewport.height / 2 + camera.zoom * (latToY(maxLat) - camera.y);
-  const bottom = viewport.height / 2 + camera.zoom * (latToY(minLat) - camera.y);
+  const left = viewport.width / 2 + camera.zoom * (x0 - x + copy);
+  const right = viewport.width / 2 + camera.zoom * (x1 - x + copy);
+  const top = viewport.height / 2 + camera.zoom * (y0 - camera.y);
+  const bottom = viewport.height / 2 + camera.zoom * (y1 - camera.y);
   return (
     right > -CULL_MARGIN_PX && left < viewport.width + CULL_MARGIN_PX &&
     bottom > -CULL_MARGIN_PX && top < viewport.height + CULL_MARGIN_PX
@@ -265,6 +270,8 @@ function onScreenWidth(feature: Feature, camera: CameraState): number {
  *  disagree with each other. */
 export function drawsAsPin(feature: Feature, camera: CameraState): boolean {
   if (!feature.path && !feature.fullPath) return true;
+  // an island nation's halo stands in for the pin; its land is drawn at every zoom, on top
+  if (feature.halo) return false;
   return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
 }
 
@@ -288,6 +295,36 @@ function useFullDetail(camera: CameraState, viewport: Viewport): boolean {
  *  a different shape than what's on screen. */
 function activePath(feature: Feature, full: boolean): Path2D | null {
   return full && feature.fullPath ? feature.fullPath : feature.path;
+}
+
+/** How strongly this feature's halo shows right now: 0 for no halo or readable land. One
+ *  number for drawing and hit-testing, so a halo you can't see can't be hit. */
+export function haloAlpha(feature: Feature, camera: CameraState): number {
+  return feature.halo ? haloStrength(feature.pieceWidth * camera.zoom) : 0;
+}
+
+/** Fill and soft outline for every visible halo, beneath the land (which draws on top).
+ *  The country's current colour, so brass / red / green carry through the quiz. Runs in
+ *  map space, inside one copy's transform. */
+function drawHalos(rc: RenderContext, world: World, style: Style, copy: number): void {
+  const { ctx, camera } = rc;
+  for (const feature of world.haloFeatures) {
+    const strength = haloAlpha(feature, camera);
+    if (strength <= 0) continue;
+    const halo = feature.halo!;
+    if (!isBoxVisible(rc, halo.x0, halo.x1, halo.y0, halo.y1, copy)) continue;
+    const colour = style.fill(feature);
+    if (!colour) continue;
+    const shade = colour === COLORS.land ? COLORS.microPin : colour;
+    ctx.fillStyle = shade;
+    ctx.strokeStyle = shade;
+    ctx.globalAlpha = strength * HALO_FILL_ALPHA;
+    ctx.fill(halo.path);
+    ctx.globalAlpha = strength * HALO_EDGE_ALPHA;
+    ctx.lineWidth = 1.4 / camera.zoom;
+    ctx.stroke(halo.path);
+  }
+  ctx.globalAlpha = 1;
 }
 
 /** How much bigger the quiz's current target draws as a pin, plus a halo ring outside
@@ -668,6 +705,8 @@ export function render(
     ctx.fillStyle = COLORS.context;
     for (const shape of contextShapes) ctx.fill(shape.path);
 
+    drawHalos(rc, world, style, copy);
+
     // Computed once per copy and reused for both passes below — same bbox test the pin
     // logic already needs (onScreenWidth), just against the viewport instead of a pixel
     // threshold. A frame is pixel-identical to drawing every feature unconditionally:
@@ -786,6 +825,18 @@ export function pick(
       const path = activePath(feature, full);
       if (!path || drawsAsPin(feature, camera)) continue;
       if (ctx.isPointInPath(path, px, py)) {
+        resetTransform(rc);
+        return feature;
+      }
+    }
+  }
+  // no land hit: an island nation's halo is part of the country — a finger-sized target
+  // where the land is a speck. Smallest halo first, so the smaller country wins an overlap.
+  for (const copy of [0, -1, 1]) {
+    applyTransform(rc, copy);
+    for (const feature of world.haloFeatures) {
+      if (haloAlpha(feature, camera) <= 0) continue;
+      if (ctx.isPointInPath(feature.halo!.path, px, py)) {
         resetTransform(rc);
         return feature;
       }

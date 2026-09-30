@@ -249,7 +249,12 @@ export class Atlas {
     // would only show a pin on empty ground. It gets neighbourhood zoom instead (cameraForTarget's
     // `box: null` path). Same idea as drawsAsPin, which is what keeps it a pin.
     const minWidthPx = quizMinTargetPx(Boolean(place));
-    const mainland = feature.bbox && (feature.path || feature.fullPath) ? mainlandBox(feature) : null;
+    // An island nation is measured by its HALO, not its land: the halo is what the player
+    // sees and taps at world zoom, so it is the thing that must be wide enough — and usually
+    // already is, which is what spares them the fly-in.
+    const mainland = feature.halo
+      ? { x0: feature.halo.x0, x1: feature.halo.x1, y0: feature.halo.y0, y1: feature.halo.y1 }
+      : feature.bbox && (feature.path || feature.fullPath) ? mainlandBox(feature) : null;
     const reachable =
       mainland && (mainland.x1 - mainland.x0) * clampZoom(minWidthPx / Math.max(mainland.x1 - mainland.x0, 1e-9), this.viewport) >= minWidthPx * 0.999;
     const box = reachable ? mainland : null;

@@ -99,6 +99,10 @@ export interface GeometryData {
    *  the capitals layer and the capital quiz's target dot exist from the very first paint
    *  rather than after the 3.4 MB download. */
   places: Place[];
+  /** Territory halos for island nations (scripts/lib/halo.mjs): one rounded ring per country
+   *  with no land borders and under 25,000 km2, lon/lat in the same unwrapped frame the
+   *  country's land is put in (may run past +-180). Carried by BOTH payloads. */
+  halos: { id: string; ring: Ring }[];
 }
 
 /** The full payload: geometry plus everything non-geometric. Only world.json carries
@@ -110,6 +114,15 @@ export interface WorldData extends GeometryData {
 
 export type LonLat = [number, number];
 export type Ring = LonLat[];
+
+/** A feature's territory halo, built once from GeometryData.halos (topology.ts). `x0..y1` is
+ *  its box in unit-square map space; `area` is that box's area, used only to order overlapping
+ *  halos for hit-testing (the smaller one is on top). */
+export interface Halo {
+  path: Path2D;
+  x0: number; x1: number; y0: number; y1: number;
+  area: number;
+}
 
 /** A country joined to its decoded geometry. */
 export interface Feature {
@@ -142,8 +155,15 @@ export interface Feature {
    *  geometry is genuinely degenerate (Vatican City). The renderer and pick() use this
    *  above the LOD zoom threshold when it exists, `path` otherwise. */
   fullPath: Path2D | null;
+  /** Width of the widest single polygon's box, in unit-square map space (x zoom = pixels).
+   *  Recomputed with bbox by topology.ts's finalizeFeature. What a halo fades on. */
+  pieceWidth: number;
   /** Resolved neighbours, populated after all features are built. */
   neighbours: Feature[];
+  /** Territory area for an island nation (no land borders, under 25,000 km2), drawn beneath
+   *  the land while the land is too small to read and hit-tested as part of the country.
+   *  Replaces the micro pin. Null for every other country. */
+  halo: Halo | null;
 }
 
 /** A Place joined to its country's Feature and projected into the unit square, ready for
@@ -176,6 +196,9 @@ export interface World {
   fullLakes: ContextShape[];
   /** Every place that joined to a country in this dataset. */
   places: PlaceMark[];
+  /** Features with a halo, smallest halo first — the order hit-testing walks them in, so
+   *  where two halos overlap the smaller country wins. */
+  haloFeatures: Feature[];
   /**
    * Every feature's outline, unioned into one Path2D per detail level — built lazily on
    * first need (topology.ts's mergedStrokePath) and cached here after: coarse `path` is
