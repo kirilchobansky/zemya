@@ -438,7 +438,7 @@ function drawBackground(ctx: CanvasRenderingContext2D, full: { x: number; y: num
 /**
  * Darkens the cylinder outside the dataset's own [contentRange.from, contentRange.to] —
  * "fade the cylinder's brightness towards both outer regions" — and, where enough of that
- * empty zone is on screen to read comfortably, a muted label: "Before <earliest year> —
+ * empty zone is on screen to read comfortably, a muted label: "Преди <earliest year> —
  * <pastLabel>" to the left, <futureLabel> to the right (both per country, countries.ts). Both zones are always
  * reachable (never fully off the pannable range) since HistoryTimeline's pan limit is
  * exactly half a viewport past each edge at maximum zoom-out.
@@ -471,7 +471,7 @@ function drawOutOfRangeFade(
       ctx.font = `600 ${RENDER_CONFIG.fadeZoneLabelFontPx}px ${monoFont}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      drawHaloText(ctx, axis, edge / 2, midCross, `Before ${earliestYear} — ${pastLabel}`, COLORS.ink3);
+      drawHaloText(ctx, axis, edge / 2, midCross, `Преди ${earliestYear} — ${pastLabel}`, COLORS.ink3);
     }
   }
   if (endPx < viewport.sizePx) {
