@@ -1181,7 +1181,7 @@ entries:
   - id: ruler-ferdinand-1
     kind: ruler
     name: { bg: "Фердинанд I", en: "Ferdinand I" }
-    aliases: []
+    aliases: ["Фердинанд", "Ferdinand"]
     role: княз, от 1908 цар
     start: "1887-07-07"
     end: "1918-10-03"

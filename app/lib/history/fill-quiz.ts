@@ -9,8 +9,9 @@
  * entry's forms. Normalisation lower-cases, drops spaces/hyphens/dots and every non-letter,
  * strips the title words (хан, княз, цар, khan, prince, tsar) and turns Roman numerals into
  * Arabic ones — so "Борис 1" = "Борис I". An entry's forms are its Bulgarian name, English
- * name and aliases, each also without its numeral ("Борис") and cut at its numeral
- * ("Симеон I Велики" -> "Симеон 1", "Симеон"). Latin letters typed for a Cyrillic name go
+ * name, each also without its numeral ("Борис") and cut at its numeral
+ * ("Симеон I Велики" -> "Симеон 1", "Симеон"). An alias is one exact accepted spelling: no
+ * numeral variants are derived from it. Latin letters typed for a Cyrillic name go
  * through search.ts's Latin-to-Cyrillic compilation, matched against the whole form.
  * A single typo (one edit) is forgiven for names of 6+ letters — see `matchFill` for the
  * two conditions under which it is not.
@@ -103,7 +104,10 @@ export interface PreparedFillEntry {
 export function prepareFill(entries: readonly FillEntry[]): PreparedFillEntry[] {
   return entries.map(e => ({
     id: e.id,
-    forms: [...new Set([e.nameBg, e.nameEn, ...e.aliases].filter(Boolean).flatMap(formsOf))]
+    forms: [...new Set([
+      ...[e.nameBg, e.nameEn].filter(Boolean).flatMap(formsOf),
+      ...e.aliases.map(normaliseFill).filter(Boolean) // an alias is one exact spelling, no derived forms
+    ])]
   }));
 }
 

@@ -419,8 +419,9 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   each quiz's best time.
 - **Matching** (`normaliseFill` / `matchFill`): lower-case; spaces, hyphens, dots and other
   non-letters ignored; title words хан, княз, цар, khan, prince, tsar stripped; Roman = Arabic
-  numerals. An entry's typeable forms are name.bg, name.en and each alias, each also without its
-  numeral ("Борис") and cut at it ("Симеон I Велики" -> "Симеон 1", "Симеон"). Latin typed for a
+  numerals. An entry's typeable forms are name.bg and name.en, each also without its
+  numeral ("Борис") and cut at it ("Симеон I Велики" -> "Симеон 1", "Симеон"). Each alias is one exact
+  accepted spelling, exempt from that numeral rule. Latin typed for a
   Cyrillic name goes through `search.ts`'s `latinToCyrillicRegExp`, matched against the whole
   form. Filled entries are ignored; an ambiguous name ("Борис") fills the earliest unfilled entry, a
   typed numeral pins one.

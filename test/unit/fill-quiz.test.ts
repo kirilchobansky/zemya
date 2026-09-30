@@ -126,6 +126,17 @@ describe('matchFill', () => {
     const near = prepareFill([entry('a', 'Симеон', 'x', 1), entry('b', 'Симеан', 'y', 2)]);
     expect(matchFill('Симеон', near, new Set(['a']))).toBeNull();
   });
+  it('takes an alias as one exact spelling, leaving other names alone', () => {
+    const list = prepareFill([entry('ferdinand', 'Фердинанд I', 'Ferdinand I', 1887, ['Фердинанд', 'Ferdinand'])]);
+    const id = (typed: string) => { const m = matchFill(typed, list, NONE); return m ? list[m.index].id : null; };
+    expect(id('Фердинанд')).toBe('ferdinand');
+    expect(id('Ferdinand')).toBe('ferdinand');
+    expect(id('Александър')).toBeNull();
+    expect(id('Иван Асен')).toBeNull();
+    const numbered = prepareFill([entry('x', 'Калоян', 'Kaloyan', 1, ['Борис II'])]);
+    expect(matchFill('Борис', numbered, NONE)).toBeNull(); // no numeral-less form derived from an alias
+    expect(matchFill('Борис 2', numbered, NONE)).toMatchObject({ index: 0 });
+  });
   it('returns null for empty and title-only input', () => {
     expect(idOf('')).toBeNull();
     expect(idOf('  ')).toBeNull();
