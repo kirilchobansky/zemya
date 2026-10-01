@@ -30,7 +30,7 @@ const SUBJECT_IDS = ['geography', 'history'];
  *  app's bundler. Scopes and the size ladder come from scopes.ts, which is dependency-free
  *  for exactly this reason, so the prerendered set is derived from the data. Geography is
  *  the only subject with quizzes today; history has none to prerender runs for. */
-const QUIZ_IDS = ['countries', 'flags', 'capitals'];
+const QUIZ_IDS = ['countries', 'flags', 'outlines', 'capitals'];
 
 /** History's "fill the list" quizzes — one page per quiz, derived from each country's built
  *  timeline by the same function the run route's loader uses (app/lib/history/fill-quiz.ts),

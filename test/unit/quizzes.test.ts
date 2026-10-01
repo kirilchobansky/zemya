@@ -367,3 +367,52 @@ describe("the capitals quiz", () => {
     ]);
   });
 });
+
+describe("the outlines quiz", () => {
+  it("is registered and grades the outline facet", () => {
+    const quiz = quizDefinition("outlines")!;
+    expect(quiz.facet).toBe("outline");
+    expect(quiz.hidesMap).toBe(true);
+  });
+
+  it("scales by area ^ 0.15 against the pool's largest, floored at 30%", async () => {
+    const { outlineShare, OUTLINE_MIN_SHARE } = await import(
+      "~/lib/geography/outline"
+    );
+    const world = allCountries();
+    const by = (iso3: string) => world.find((c) => c.iso3 === iso3)!;
+    expect(outlineShare(by("RUS"), world)).toBe(1);
+    expect(outlineShare(by("FRA"), world)).toBeGreaterThan(0.55);
+    expect(outlineShare(by("FRA"), world)).toBeLessThan(0.65);
+    expect(outlineShare(by("MLT"), world)).toBe(OUTLINE_MIN_SHARE);
+    // normalised to the pool: Australia is the largest of Oceania, so it fills the box
+    const oceania = poolForScope(world, "oceania");
+    expect(outlineShare(by("AUS"), oceania)).toBe(1);
+  });
+
+  it("no outline's bounding box spans more than 180 degrees of longitude (unwrapped frame)", async () => {
+    class StubPath2D {
+      moveTo() {}
+      lineTo() {}
+      closePath() {}
+    }
+    (globalThis as { Path2D?: unknown }).Path2D ??= StubPath2D;
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { buildWorld } = await import("~/lib/map/topology");
+    const data = JSON.parse(
+      readFileSync(
+        join(process.cwd(), "public", "data", "geography", "world.json"),
+        "utf8",
+      ),
+    );
+    const world = buildWorld(data);
+    for (const feature of world.features) {
+      if (!feature.bbox) continue;
+      expect(
+        feature.bbox[2] - feature.bbox[0],
+        `${feature.country.iso3} spans too much longitude`,
+      ).toBeLessThanOrEqual(180);
+    }
+  });
+});

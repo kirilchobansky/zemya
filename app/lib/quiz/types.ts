@@ -7,7 +7,7 @@
 import type { ChangeEvent, ComponentType, KeyboardEvent, RefObject } from 'react';
 
 import type { Facet } from '~/lib/geography/mastery';
-import type { CountryRecord } from '~/lib/map/types';
+import type { CountryRecord, World } from '~/lib/map/types';
 
 export type QuizPhase = 'idle' | 'running' | 'paused' | 'done';
 export type QuizOutcome = 'correct' | 'revealed';
@@ -41,6 +41,10 @@ export interface QuizStageProps {
    *  CLAUDE.md) — most Stages ignore this pair entirely. */
   showNeighbours: boolean;
   toggleShowNeighbours(): void;
+  /** The built world and the run's whole scope pool (before any Top-N cut) — the outlines quiz
+   *  draws a country's Path2D and sizes it against the pool's largest country. */
+  world: World | null;
+  pool: CountryRecord[];
 }
 
 /** What a definition's `match` returns for one keystroke — see engine.ts's resolveMatch. */

@@ -14,7 +14,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
 - Capitals as a map layer (ring + name together from 9x, later for small countries by area, off in quizzes) — `docs/architecture.md`.
 - FSRS card per (country, facet), mastery derived, Dexie/IndexedDB, export/import/reset;
   study mode with 9 question kinds and `disputed:` facets.
-- Three quizzes on one shared engine (Countries, Flags, Capitals): continent scopes, a
+- Four quizzes on one shared engine (Countries, Flags, Outlines, Capitals): continent scopes, a
   computed size ladder, personal bests and run history, still layouts (`docs/quizzes.md`).
   One camera path for every new question (skip = answer): centres a target that isn't
   comfortably inside, zooms in until it is legible (12 px wide; micro-states go far),

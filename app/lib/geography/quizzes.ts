@@ -6,6 +6,7 @@
 import { CapitalsStage } from "~/components/quiz/CapitalsStage";
 import { CountriesStage } from "~/components/quiz/CountriesStage";
 import { FlagsStage } from "~/components/quiz/FlagsStage";
+import { OutlinesStage } from "~/components/quiz/OutlinesStage";
 import { matchesCapital, normaliseName } from "~/lib/geography/names";
 import type { QuizSize } from "~/lib/geography/scopes";
 import type { MatchOutcome, QuizDefinition } from "~/lib/quiz/types";
@@ -67,6 +68,17 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     hidesMap: true,
     prepare: preloadFlags,
     match: matchFlag,
+  },
+  {
+    id: "outlines",
+    title: "Name the Country from its Outline",
+    description:
+      "A silhouette fills the screen. Type the country before the timer runs out of outlines to ask.",
+    seoName: "Outlines",
+    seoTask: "Type the country each outline belongs to.",
+    facet: "outline",
+    Stage: OutlinesStage,
+    hidesMap: true,
   },
   {
     id: "capitals",

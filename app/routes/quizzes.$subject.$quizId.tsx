@@ -615,6 +615,8 @@ function QuizRun() {
     canReveal: Boolean(engine.target) && !revealed,
     showNeighbours: engine.showNeighbours,
     toggleShowNeighbours: engine.toggleShowNeighbours,
+    world,
+    pool,
   } as const;
 
   return (

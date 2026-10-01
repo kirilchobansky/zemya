@@ -29,7 +29,7 @@ export const SUBJECTS: Subject[] = [
     id: 'geography',
     name: 'Geography',
     icon: '🌍',
-    blurb: 'Countries, flags and capitals — timed rounds built from the atlas catalogue.',
+    blurb: 'Countries, flags, outlines and capitals — timed rounds built from the atlas catalogue.',
     quizzes: QUIZ_DEFINITIONS
   },
   {

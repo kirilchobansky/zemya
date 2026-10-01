@@ -473,3 +473,16 @@ Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author 
   collapsed sidebars' edge tabs (z-index 5, inside the 0-width rail/panel). Tabs are now z-index 7,
   and the shell sets `--rail-gap` / `--panel-gap` (32px when that side is collapsed) which such
   screens add to their inset. Ctrl+[ / Ctrl+] toggle the sidebars even from inside an input.
+
+## Name the Country from its Outline (`outlines`)
+
+Fourth quiz, grades `geo:<ISO3>:outline`. `components/quiz/OutlinesStage.tsx` is the flags
+quiz's layout (same fixed 460x300 box, `hidesMap`) with a canvas inside, filling the target's
+existing `Path2D` (full detail once attached, coarse before; every polygon, islands included)
+in `--ink`; no labels, neighbours or sea. The Mercator unit-square path is drawn north-up in the
+unwrapped longitude frame (as `topology.ts`), so Russia/Fiji/Kiribati/USA are one shape; a unit
+test asserts no bbox spans over 180 degrees. Size: `app/lib/geography/outline.ts` —
+`box * (area / largestInPool) ^ 0.15`, clamped to 30..100% (`OUTLINE_SIZE_EXPONENT`,
+`OUTLINE_MIN_SHARE`); the pool is the run's whole scope pool (before Top-N), so Oceania is not
+all at the floor. To give the Stage the world and pool, `QuizStageProps` gained `world` and
+`pool` (other Stages ignore them). No `prepare`: nothing to load.

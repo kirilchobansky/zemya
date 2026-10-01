@@ -12,8 +12,8 @@ Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 ## Where this is
 
 Four top-level sections — Map, Quizzes, Questions, History — share one shell
-(`routes/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), three quizzes on
-one engine (Countries, Flags, Capitals), a Bulgaria history timeline (`/history/:slug`, only `bulgaria` today,
+(`routes/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), four quizzes on
+one engine (Countries, Flags, Outlines, Capitals), a Bulgaria history timeline (`/history/:slug`, only `bulgaria` today,
 canvas-only — see "Do not") plus one History quiz type, "fill the list" (Quizzes -> History: nine quizzes listed in an explicit table (`app/lib/history/fill-quiz-config.ts`, e.g. "Presidents",
 "Prime ministers, Republic"), each selected from the timeline by role and start date,
 `/quizzes/history` -> country -> `/quizzes/history/:slug/:quizId`; `docs/quizzes.md`). Island nations (no land border, under 25,000 km2, minus the Caribbean/Malta/Cyprus/Bahrain — 17, derived) draw a territory halo instead of a pin: `docs/decisions.md`. Deployed on Vercel at https://zemya.study, indexed, MIT code /

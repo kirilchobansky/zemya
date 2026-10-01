@@ -584,6 +584,29 @@ try {
     }
   }
 
+  /* --- 17b. outlines quiz: a silhouette canvas, answering advances, no country name on screen ---- */
+  await page.goto(`${devBase}quizzes/geography/outlines/world/20`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(400);
+  const firstOutlineState = await page.evaluate(() => window.__zemyaQuiz);
+  check(Boolean(firstOutlineState?.target), 'outlines quiz exposed no current target after START');
+  check(await page.isVisible('.quiz-flag-stage__outline canvas'), 'the outlines quiz drew no silhouette canvas');
+  if (firstOutlineState?.target) {
+    await page.fill('.quiz-dock__input', firstOutlineState.target);
+    await page.waitForTimeout(400);
+    const afterOutlineState = await page.evaluate(() => window.__zemyaQuiz);
+    check(afterOutlineState?.target !== firstOutlineState.target, 'typing the correct name did not advance the outlines quiz');
+    if (afterOutlineState?.target) {
+      const bodyText = await page.textContent('body');
+      check(
+        !bodyText.includes(afterOutlineState.target),
+        `the next outline's country name ("${afterOutlineState.target}") is visible somewhere on the page`
+      );
+    }
+  }
+
   /* --- 18. capitals quiz: answering advances, the country name is not an answer, and no
           text anywhere on the page contains a capital's name (the label-leak test) ---- */
   /** Every text node and human-facing attribute value on the page that contains `name` as
