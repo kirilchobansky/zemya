@@ -463,6 +463,12 @@ Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author 
   title" rule is counted without it. Other titles show on their own small line above the name.
 - A rectangle never truncates: `min-height`, the name wraps, a trailing "(…)" goes on its own smaller
   line (`splitNote`), grid column minimum 210px, full text in `title`. No ellipsis.
+- **Rule: a quiz screen that covers the background is portalled into `<main class="stage">`**
+  (`position: absolute; inset: 0`, padded by `--rail-gap`/`--panel-gap`), never to `<body>`: the
+  shell sets `--rail-width`/`--panel-width`/the gaps inline, which `<body>` does not inherit, so a
+  body-portalled screen ignores sidebar resizing and collapsing. `.fill-quiz` and
+  `.quiz-flag-stage` (Flags) both do this; only a phone makes them `fixed` over the whole screen.
+  (The Countries/Capitals dock is a small control over the live map, not a covering screen.)
 - Full-area screens in the stage (`.fill-quiz`, `.quiz-flag-stage`, z-index 6) used to cover the
   collapsed sidebars' edge tabs (z-index 5, inside the 0-width rail/panel). Tabs are now z-index 7,
   and the shell sets `--rail-gap` / `--panel-gap` (32px when that side is collapsed) which such

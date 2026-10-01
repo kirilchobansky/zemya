@@ -419,6 +419,20 @@ function AtlasShell() {
     if (atlasInstance) applyInsets(atlasInstance);
   }, [atlasInstance, applyInsets, snap, immersive, phone, landscape]);
 
+  // The timeline's cylinder sits in what the phone's sheet and tab bar leave visible, so the
+  // event names on its bottom lane are never behind them (portrait only: landscape's drawer is
+  // beside the canvas, not over its bottom).
+  useEffect(() => {
+    const timeline = historyTimelineInstance;
+    if (!timeline) return;
+    if (!isPhoneLayout() || isPhoneLandscape()) return timeline.setCrossInsets(0, 0);
+    const vh = window.innerHeight;
+    const tab = document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0;
+    const top = document.querySelector<HTMLElement>('.hud--top')?.getBoundingClientRect().bottom ?? 0;
+    // A full sheet leaves too thin a strip: frame as if at half, like the map
+    timeline.setCrossInsets(top ? top + 8 : 0, Math.min(sheetVisible(snap, vh, tab), vh * 0.5));
+  }, [historyTimelineInstance, snap, phone, landscape, showTimeline]);
+
   // The selection follows the navigation the moment it starts, not when its data has loaded: the
   // highlight must land on the tap itself. (The clientLoaders answer from memory, so pending is
   // brief; this covers the fallback to the network.)

@@ -6,6 +6,7 @@
  * generic engine/route scaffold — this Stage renders nothing into the panel slot. See
  * CLAUDE.md's Quizzes section.
  */
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Flag } from '~/components/Flag';
@@ -15,6 +16,10 @@ import { StartCaption } from './StartCaption';
 
 export function FlagsStage(props: QuizStageProps) {
   const { slot, phase, target, revealed, onStart } = props;
+
+  // Hooks first: the host is the shell's <main class="stage"> (see below), found after mount.
+  const [host, setHost] = useState<Element | null>(null);
+  useEffect(() => setHost(document.querySelector('main.stage')), []);
 
   if (slot === 'panel') return null;
 
@@ -33,8 +38,11 @@ export function FlagsStage(props: QuizStageProps) {
     return createPortal(<div className="quiz-dock" data-phase={phase}>{controls}</div>, document.body);
   }
 
-  // Portalled to <body> for the same reason as MapStage's dock: a transformed sheet ancestor
-  // would trap this `position: fixed` stage inside the panel on phones.
+  // Portalled into <main class="stage"> like the History fill quiz: it is then exactly the grid cell
+  // between the rail and the panel, so it follows sidebar resizing and collapsing (the shell's
+  // CSS variables are not inherited by <body>). A phone makes it `fixed` over the screen; the
+  // sheet is not an ancestor of <main>, so nothing traps it.
+  if (!host) return null;
   return createPortal(
     <div className="quiz-flag-stage" data-phase={phase}>
       {phase === 'idle' && (
@@ -52,6 +60,6 @@ export function FlagsStage(props: QuizStageProps) {
       )}
       {controls}
     </div>,
-    document.body
+    host
   );
 }

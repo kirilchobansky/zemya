@@ -158,3 +158,8 @@ Neighbour chips wrap. A mostly-sideways swipe is never the sheet's (it is the ch
 the flag fitting above it, the camera re-following, iOS opening the keyboard from START) needs a real
 phone; the smoke test covers everything that doesn't need one.
 
+
+- **History timeline on a phone (portrait):** the cylinder is centred in the strip the top HUD and
+  the bottom sheet + tab bar leave visible (`HistoryTimeline#setCrossInsets`, fed from atlas.tsx
+  from the snap; a full sheet counts as half, like the map's insets), so the event names on its
+  bottom lane are not behind the sheet. Desktop and landscape pass 0/0 and stay centred.

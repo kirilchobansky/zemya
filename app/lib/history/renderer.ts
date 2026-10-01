@@ -1068,6 +1068,9 @@ export interface RenderContext {
   /** The canvas's extent perpendicular to the timeline — height when horizontal, width
    *  when vertical. Not part of Viewport, which is deliberately just the time axis. */
   crossSizePx: number;
+  /** Strips of the cross axis that something else covers (a phone's top HUD, the bottom sheet
+   *  and tab bar). The cylinder is centred in what is left, never under them. 0 on desktop. */
+  crossInsets: { start: number; end: number };
   dpr: number;
   uiFont: string;
   monoFont: string;
@@ -1115,7 +1118,7 @@ export interface RenderContext {
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
-  const { ctx, viewport, axis, crossSizePx, dpr, uiFont, monoFont, contentRange, pastLabel, futureLabel, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
+  const { ctx, viewport, axis, crossSizePx, crossInsets, dpr, uiFont, monoFont, contentRange, pastLabel, futureLabel, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
@@ -1131,7 +1134,11 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
   // animation target.
   const thickness = RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop
     + RENDER_CONFIG.wirePaddingBottom + totalWiresHeightPx(subRowCounts);
-  const cylinderTop = crossSizePx / 2 - thickness / 2;
+  // Centred in the uncovered strip; below the top inset the centre-date readout still needs
+  // its own line above the cylinder. With no insets (desktop) this is the plain centre.
+  const visibleMid = crossInsets.start + (crossSizePx - crossInsets.start - crossInsets.end) / 2;
+  const minTop = crossInsets.start > 0 ? crossInsets.start + RENDER_CONFIG.centreDateGap + RENDER_CONFIG.centreDateFontPx + 6 : -Infinity;
+  const cylinderTop = Math.max(visibleMid - thickness / 2, minTop);
   const cylinderBottom = cylinderTop + thickness;
 
   drawOutOfRangeFade(ctx, axis, monoFont, viewport, cylinderTop, cylinderBottom, contentRange, pastLabel, futureLabel);

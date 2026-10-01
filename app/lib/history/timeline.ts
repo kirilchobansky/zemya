@@ -130,6 +130,7 @@ export class HistoryTimeline {
    *  zoom-out" — the hard bound pan clamps to. Center (not pxPerYear) clamps to this. */
   private pannableRange: TimeRange;
   private crossSizePx = 0;
+  private crossInsets = { start: 0, end: 0 };
   private dpr = 1;
   private uiFont = 'system-ui, sans-serif';
   private monoFont = 'ui-monospace, monospace';
@@ -297,7 +298,7 @@ export class HistoryTimeline {
   private get renderContext(): RenderContext {
     return {
       ctx: this.ctx, viewport: this.viewport, axis: this.axis,
-      crossSizePx: this.crossSizePx, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
+      crossSizePx: this.crossSizePx, crossInsets: this.crossInsets, dpr: this.dpr, uiFont: this.uiFont, monoFont: this.monoFont,
       contentRange: this.contentRange,
       pastLabel: this.pastLabel, futureLabel: this.futureLabel,
       hoveredId: this.hoveredId,
@@ -320,6 +321,14 @@ export class HistoryTimeline {
       if (entry) out.push({ id, kind: entry.kind, start: entry.start, end: entry.end, rect });
     }
     return out;
+  }
+
+  /** Phone only (atlas.tsx): the strips at the top (HUD) and bottom (sheet + tab bar) of the
+   *  canvas that other UI covers, so the cylinder is drawn in the part that stays visible. */
+  setCrossInsets(start: number, end: number): void {
+    if (start === this.crossInsets.start && end === this.crossInsets.end) return;
+    this.crossInsets = { start, end };
+    this.draw();
   }
 
   /** The viewport's own along-axis size in CSS px — what HistoryOutline.tsx's fly-to math
