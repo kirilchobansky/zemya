@@ -76,7 +76,7 @@ export function applicableFacets(country: CountryRecord): Facet[] {
     capital: Boolean(country.capital),
     flag: Boolean(country.emoji),
     currency: Boolean(country.currencyCode),
-    language: Boolean(country.language),
+    language: country.languages.length > 0,
     religion: Boolean(country.religion),
     borders: country.borders.length > 0,
     outline: Boolean(country.outlineDescription)

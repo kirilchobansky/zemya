@@ -119,7 +119,7 @@ function pickDistractors(
  * unusable as a distractor. Applied only to religion-of — nothing else here has a
  * hierarchy.
  */
-const BROADER: Record<string, string> = {
+export const BROADER: Record<string, string> = {
   'Roman Catholicism': 'Christianity',
   'Protestantism': 'Christianity',
   'Protestantism (Anglican)': 'Protestantism',
@@ -136,7 +136,7 @@ const BROADER: Record<string, string> = {
 
 /** A value's chain from itself up to its root, inclusive — e.g. "Roman Catholicism" ->
  *  ["Roman Catholicism", "Christianity"]. */
-function religionChain(value: string): string[] {
+export function religionChain(value: string): string[] {
   const chain = [value];
   let current = value;
   while (BROADER[current]) {
@@ -264,19 +264,31 @@ function currencyOf(country: CountryRecord, catalogue: Catalogue, rng: () => num
   };
 }
 
+/** A country can have several official languages and the data has no "primary" one (`language`
+ *  is just the alphabetically first), so the right answer is ANY of them, picked at random;
+ *  the distractors are languages none of which the country has, and the prompt says "an" when
+ *  there are several. The full list is shown after answering (`note`). */
 function languageOf(country: CountryRecord, catalogue: Catalogue, rng: () => number, id: string): Question | null {
-  if (!country.language) return null;
-  const distractors = pickDistractors(country, catalogue, c => c.language, country.language, rng);
+  if (!country.languages.length) return null;
+  const correct = country.languages[Math.floor(rng() * country.languages.length)];
+  const distractors = pickDistractors(
+    country, catalogue, c => c.language, correct, rng,
+    candidate => country.languages.includes(candidate)
+  );
   if (!distractors) return null;
-  const { options, answerIndex } = withOptions(country.language, distractors, rng);
+  const { options, answerIndex } = withOptions(correct, distractors, rng);
+  const several = country.languages.length > 1;
   return {
     id: `${id}:language-of`,
     cardId: id,
     kind: 'language-of',
-    prompt: `What is the official language of ${country.name}?`,
+    prompt: several
+      ? `Which of these is an official language of ${country.name}?`
+      : `What is the official language of ${country.name}?`,
     options,
     answerIndex,
-    hook: country.hook
+    hook: country.hook,
+    note: several ? `Official languages: ${country.languages.join(', ')}.` : undefined
   };
 }
 

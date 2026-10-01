@@ -22,14 +22,14 @@ export interface Subject {
   fillQuizzes?: boolean;
 }
 
-/** Geography ships three quizzes. History's are the "fill the list" quizzes — see
+/** Geography ships seven quizzes. History's are the "fill the list" quizzes — see
  *  `fillQuizzes` and docs/quizzes.md. */
 export const SUBJECTS: Subject[] = [
   {
     id: 'geography',
     name: 'Geography',
     icon: '🌍',
-    blurb: 'Countries, flags, outlines and capitals — timed rounds built from the atlas catalogue.',
+    blurb: 'Countries, flags, outlines, capitals, currencies, languages and religions — timed rounds built from the atlas catalogue.',
     quizzes: QUIZ_DEFINITIONS
   },
   {

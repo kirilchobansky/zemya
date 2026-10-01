@@ -275,6 +275,7 @@ export default function QuestionsPanel() {
 
         {answer && (
           <>
+            {question.note && <p className="quiz__note">{question.note}</p>}
             <div className="hook">
               <div className="hook__label">Memory hook</div>
               {/* Hooks are authored as fragments with an implied subject (see

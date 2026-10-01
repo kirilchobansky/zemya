@@ -356,6 +356,33 @@ names the country, and nothing names the city until a reveal.
   nothing. Typing the country's name must not advance the run (skipped for the handful of
   countries whose capital names include their own).
 
+**"Name the Currency / Language / Religion".** Three more `QuizDefinition`s (`quizzes.ts`) on the
+capitals quiz's screen (`components/quiz/FacetStages.tsx` -> `MapStage`): the target country is lit
+in brass, no marker, and the player types the value; grades `geo:<ISO3>:currency|language|religion`.
+Scopes, ladder, keys and colours are shared. THE ANSWER IS NOT UNIQUE (twenty countries are "Euro"),
+which is fine for country -> value; there is no value -> country quiz, and no cross-country alias
+collision check. Each `match` always returns an outcome, so typing the country never scores.
+- **Language** accepts ANY entry of `languages` (`language` is only the alphabetically first — Argentina
+  = Guaraní, Belgium = German); a reveal lists them all.
+- **Aliases** are one YAML per facet, `content/geography/{currency,language,religion}-aliases.yaml`,
+  keyed by VALUE (`- value: Spanish / add: [Castilian] / note`), not by country as capital-aliases are —
+  an alias like Castilian applies to every Spanish-speaking country. `build-content.mjs` throws on an
+  unknown value, a missing note, and an alias that is empty, repeated within the facet, or equal to
+  some value's own name (so diacritic-only variants and "Romanian"-for-Moldavian are refused). Result on
+  each record: `currencyAliases` (name + ISO code + aliases), `languageAliases` (all languages + aliases),
+  `religionAliases` (value + each " / " component + aliases). Currency: never a bare "dollar", "franc",
+  "peso", "pound", "krona" (~20 currencies share each). Religion: synonyms that keep the distinction
+  (Catholic, Orthodox, Sunni); a term broader than the country's value (Islam, Christianity) is rejected
+  at match time (`matchesReligion`, via `questions.ts`'s `BROADER`) and a unit test asserts it for all
+  countries.
+- **Pools**: `poolForQuiz` (`scopes.ts`, `QUIZ_POOL_FILTERS`) drops a country whose facet is missing or
+  `disputed:` (Nigeria's religion). Run route, list page (pool counts are per quiz id, then scope) and
+  prerender set all use it, so the size ladder adapts by itself.
+- Study mode's `language-of` question now picks one of the country's languages at random, uses
+  distractors that are none of them, says "an official language" when there are several and shows the
+  full list afterwards (`Question.note`); the dossier already listed all languages and the country page
+  description now does too. The data has no "primary language", so none is shown.
+
 **Personal best.** Every finished run is appended (never overwritten) to a `quizRuns`
 table in the same Dexie database as `cards`/`reviews` (`app/lib/core/progress.ts`) —
 `bestQuizTime()` reads the fastest for a given quiz+size, shown on the quiz list's size

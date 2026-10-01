@@ -6,8 +6,19 @@
 import { CapitalsStage } from "~/components/quiz/CapitalsStage";
 import { CountriesStage } from "~/components/quiz/CountriesStage";
 import { FlagsStage } from "~/components/quiz/FlagsStage";
+import {
+  CurrencyStage,
+  LanguageStage,
+  ReligionStage,
+} from "~/components/quiz/FacetStages";
 import { OutlinesStage } from "~/components/quiz/OutlinesStage";
-import { matchesCapital, normaliseName } from "~/lib/geography/names";
+import {
+  matchesCapital,
+  matchesCurrency,
+  matchesLanguage,
+  matchesReligion,
+  normaliseName,
+} from "~/lib/geography/names";
 import type { QuizSize } from "~/lib/geography/scopes";
 import type { MatchOutcome, QuizDefinition } from "~/lib/quiz/types";
 import type { CountryRecord } from "~/lib/map/types";
@@ -93,6 +104,44 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     // Always returns an outcome — never null — so the engine's fallback to the plain
     // COUNTRY-name match never runs: typing "France" must not answer "capital of France".
     match: (typed, target) => ({ accepted: matchesCapital(typed, target) }),
+  },
+  // The three facet quizzes below share the capitals quiz's screen and its "always return an
+  // outcome" rule (naming the country must not score). Their answers are NOT unique — many
+  // countries share "Euro" or "Spanish" — which is fine because the question is always
+  // country -> value; there is no value -> country. Pools exclude a missing or disputed
+  // facet: scopes.ts's QUIZ_POOL_FILTERS.
+  {
+    id: "currency",
+    title: "Name the Currency",
+    description:
+      "A country lights up. Type its currency — the full name or the ISO code — before the timer runs out of countries to ask.",
+    seoName: "Currencies",
+    seoTask: "Type the currency of each highlighted country.",
+    facet: "currency",
+    Stage: CurrencyStage,
+    match: (typed, target) => ({ accepted: matchesCurrency(typed, target) }),
+  },
+  {
+    id: "language",
+    title: "Name the Language",
+    description:
+      "A country lights up. Type any of its official languages before the timer runs out of countries to ask.",
+    seoName: "Languages",
+    seoTask: "Type an official language of each highlighted country.",
+    facet: "language",
+    Stage: LanguageStage,
+    match: (typed, target) => ({ accepted: matchesLanguage(typed, target) }),
+  },
+  {
+    id: "religion",
+    title: "Name the Religion",
+    description:
+      "A country lights up. Type its predominant religion — as specifically as the country's own — before the timer runs out of countries to ask.",
+    seoName: "Religions",
+    seoTask: "Type the predominant religion of each highlighted country.",
+    facet: "religion",
+    Stage: ReligionStage,
+    match: (typed, target) => ({ accepted: matchesReligion(typed, target) }),
   },
 ];
 

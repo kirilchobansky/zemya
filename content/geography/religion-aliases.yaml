@@ -1,0 +1,82 @@
+# Extra names the "Name the Religion" quiz accepts for a religion, beyond the authored value
+# itself (and, for a compound value such as "Christianity / Hinduism", each component of it).
+# Plain YAML, editable without touching code.
+#
+# Keyed by VALUE — the religion exactly as authored in content/geography/countries/*.yaml —
+# not by country: Roman Catholicism is the answer in sixty-odd countries.
+# build-content.mjs throws on a value that isn't in the data, an empty or repeated alias, or an
+# alias equal to some value's own name.
+#
+# ONLY synonyms that KEEP the distinction belong here: "Catholic" for Roman Catholicism,
+# "Orthodox" for Eastern Orthodoxy, "Sunni" for Sunni Islam. NEVER a broader term ("Islam",
+# "Christianity", "Buddhism") for a more specific value — the answer is the specific one. That is
+# also enforced at match time against the BROADER taxonomy in app/lib/geography/questions.ts
+# (names.ts's matchesReligion), and a unit test asserts it over this data.
+# Matching is exact after normalisation; there is NO fuzzy matching. An alias may belong to one
+# value only, so "Voodoo" is listed under Vodou (Haiti) and not Vodun (Benin).
+#
+# Every entry needs a `note` saying why the extra name is a real alternative, not a guess.
+aliases:
+  - value: Roman Catholicism
+    add: [Catholic, Catholicism, Roman Catholic, Roman Catholic Church]
+    note: Same religion, adjective and noun forms.
+  - value: Eastern Orthodoxy
+    add: [Orthodox, Eastern Orthodox, Orthodox Christianity, Eastern Orthodox Church]
+    note: 'Same religion; "Orthodox" alone is what people say.'
+  - value: Ethiopian Orthodoxy
+    add: [Ethiopian Orthodox, Ethiopian Orthodox Tewahedo Church, Tewahedo]
+    note: Same church under its own name.
+  - value: Christianity (Armenian Apostolic)
+    add: [Armenian Apostolic, Armenian Apostolic Church, Armenian Orthodox]
+    note: Same church under its own name.
+  - value: Christianity
+    add: [Christian]
+    note: Adjective form of the same answer.
+  - value: Protestantism
+    add: [Protestant]
+    note: Adjective form of the same answer.
+  - value: Sunni Islam
+    add: [Sunni, Sunnism, Sunni Muslim]
+    note: Same branch, adjective and noun forms.
+  - value: Shia Islam
+    add: [Shia, Shiite, Shia Muslim, Shiism]
+    note: Same branch; Shia and Shiite are both current.
+  - value: Ibadi Islam
+    add: [Ibadi, Ibadism]
+    note: Same branch, adjective and noun forms.
+  - value: Sunni & Shia Islam
+    add: [Sunni and Shia Islam, Sunni and Shia, Sunni & Shia]
+    note: 'The authored value joins two branches; the player must name both, not the broader "Islam".'
+  - value: Buddhism
+    add: [Buddhist]
+    note: Adjective form of the same answer.
+  - value: Buddhism (Theravada)
+    add: [Theravada, Theravada Buddhism, Theravadin Buddhism]
+    note: Same school.
+  - value: Buddhism (Vajrayana)
+    add: [Vajrayana, Vajrayana Buddhism, Tibetan Buddhism]
+    note: Tibetan Buddhism is the usual name for the Vajrayana practised in Bhutan.
+  - value: Protestantism (Lutheran)
+    add: [Lutheran, Lutheranism, Lutheran Protestantism]
+    note: Same denomination.
+  - value: Protestantism (Anglican)
+    add: [Anglican, Anglicanism, Anglican Protestantism, Church of England]
+    note: Same denomination.
+  - value: Hinduism
+    add: [Hindu]
+    note: Adjective form.
+  - value: Judaism
+    add: [Jewish]
+    note: Adjective form.
+  - value: Atheism
+    add: [Atheist]
+    note: Adjective form.
+  - value: no religion
+    add: [Irreligion, Nonreligious, Non-religious, Secular]
+    note: Same answer in other words.
+  - value: Shinto
+    add: [Shintoism]
+    note: Both forms are current.
+  - value: Vodou
+    add: [Voodoo]
+    note: The English spelling of the same religion.

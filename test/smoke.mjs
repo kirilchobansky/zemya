@@ -704,6 +704,36 @@ try {
     }
   }
 
+  /* --- 18b. currency quiz (the language and religion quizzes are the same Stage): answering
+          advances, and neither the currency's name nor its code is on screen beforehand ----- */
+  await page.goto(`${devBase}quizzes/geography/currency/world/20`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+  check(await page.isVisible('.quiz-dock__start'), 'the currency quiz has no START control');
+  await page.click('.quiz-dock__start');
+  await page.waitForFunction(() => Boolean(window.__zemyaQuiz && window.__zemyaQuiz.target), { timeout: 5000 });
+  await page.waitForTimeout(600);
+
+  const firstCurrencyState = await page.evaluate(() => window.__zemyaQuiz);
+  const currencyOfTarget = await page.evaluate(async target => {
+    const all = await (await fetch('/data/geography/countries.json')).json();
+    const c = all.find(x => x.name === target);
+    return c ? { name: c.currencyName, code: c.currencyCode } : null;
+  }, firstCurrencyState?.target);
+  check(Boolean(currencyOfTarget?.name), 'currency quiz: could not find the current target\'s currency');
+  if (currencyOfTarget?.name) {
+    for (const text of [currencyOfTarget.name, currencyOfTarget.code]) {
+      const leaks = await findNameOnPage(text);
+      check(leaks.length === 0, `"${text}" is visible on the currency quiz before it was answered — ${leaks.join(' | ')}`);
+    }
+    await page.fill('.quiz-dock__input', currencyOfTarget.name);
+    await page.waitForTimeout(400);
+    const afterCurrencyState = await page.evaluate(() => window.__zemyaQuiz);
+    check(
+      afterCurrencyState?.answeredCount === firstCurrencyState.answeredCount + 1,
+      `currency quiz answered count did not increase — ${firstCurrencyState.answeredCount} -> ${afterCurrencyState?.answeredCount}`
+    );
+  }
+
   /* --- 19. typing survives touching the canvas: the focus regression test -------------- */
   await page.goto(`${devBase}quizzes/geography/countries/world/30`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);

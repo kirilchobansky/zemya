@@ -8,6 +8,8 @@
 import { describe, expect, it } from "vitest";
 
 import { allCountries, countryBySlug } from "~/lib/geography/catalog.server";
+import { matchesReligion, normaliseName } from "~/lib/geography/names";
+import { BROADER } from "~/lib/geography/questions";
 import {
   populationSubset,
   quizDefinition,
@@ -18,6 +20,7 @@ import {
   isQuizScope,
   isQuizSize,
   LEGACY_SCOPES,
+  poolForQuiz,
   poolForScope,
   QUIZ_SCOPES,
   QUIZ_SIZES,
@@ -414,5 +417,84 @@ describe("the outlines quiz", () => {
         `${feature.country.iso3} spans too much longitude`,
       ).toBeLessThanOrEqual(180);
     }
+  });
+});
+
+describe("the currency, language and religion quizzes", () => {
+  const typeOf = (id: string, typed: string, slug: string) =>
+    quizDefinition(id)!.match!(typed, countryBySlug(slug)!)!.accepted;
+
+  it("are registered on their own facets", () => {
+    for (const id of ["currency", "language", "religion"]) {
+      expect(quizDefinition(id)!.facet).toBe(id);
+    }
+  });
+
+  it("currency accepts the full name or the ISO code, never a bare shared word", () => {
+    expect(typeOf("currency", "Euro", "spain")).toBe(true);
+    expect(typeOf("currency", "eur", "france")).toBe(true);
+    expect(typeOf("currency", "JPY", "japan")).toBe(true);
+    expect(typeOf("currency", "Renminbi", "china")).toBe(true);
+    expect(typeOf("currency", "Vietnamese dong", "vietnam")).toBe(true);
+    for (const word of ["dollar", "franc", "peso", "pound", "krona", "krone", "dinar", "rupee"]) {
+      for (const country of allCountries()) {
+        expect(country.currencyAliases.some((a) => a.toLowerCase() === word), `${country.iso3} ${word}`).toBe(false);
+      }
+    }
+    expect(typeOf("currency", "Spain", "spain")).toBe(false);
+  });
+
+  it("language accepts ANY official language, not just the alphabetical first", () => {
+    for (const language of ["Spanish", "Guaraní", "guarani"]) expect(typeOf("language", language, language === "Spanish" ? "argentina" : "paraguay")).toBe(true);
+    expect(typeOf("language", "Dutch", "belgium")).toBe(true);
+    expect(typeOf("language", "German", "belgium")).toBe(true);
+    expect(typeOf("language", "French", "belgium")).toBe(true);
+    expect(typeOf("language", "Flemish", "belgium")).toBe(true);
+    expect(typeOf("language", "Dari", "afghanistan")).toBe(true);
+    expect(typeOf("language", "Pashto", "afghanistan")).toBe(true);
+    expect(typeOf("language", "Castilian", "spain")).toBe(true);
+    expect(typeOf("language", "Mandarin", "china")).toBe(true);
+    expect(typeOf("language", "Farsi", "iran")).toBe(true);
+    expect(typeOf("language", "Persian", "iran")).toBe(true);
+    expect(typeOf("language", "French", "germany")).toBe(false);
+    expect(typeOf("language", "Germany", "germany")).toBe(false);
+  });
+
+  it("religion accepts synonyms that keep the distinction and rejects broader terms", () => {
+    expect(typeOf("religion", "Roman Catholicism", "italy")).toBe(true);
+    expect(typeOf("religion", "Catholic", "italy")).toBe(true);
+    expect(typeOf("religion", "Orthodox", "bulgaria")).toBe(true);
+    expect(typeOf("religion", "Sunni", "egypt")).toBe(true);
+    expect(typeOf("religion", "Christianity", "italy")).toBe(false);
+    expect(typeOf("religion", "Christianity", "bulgaria")).toBe(false);
+    expect(typeOf("religion", "Islam", "egypt")).toBe(false);
+    expect(typeOf("religion", "Islam", "iran")).toBe(false);
+    expect(typeOf("religion", "Buddhism", "thailand")).toBe(false);
+    expect(typeOf("religion", "Protestantism", "sweden")).toBe(false);
+  });
+
+  it("religion: no country accepts a term broader than its own value (whole catalogue)", () => {
+    const broader = new Set(Object.values(BROADER).map(normaliseName));
+    for (const country of allCountries()) {
+      if (country.disputed.religion) continue;
+      const parts = country.religion.split(" / ").map(normaliseName);
+      for (const term of broader) {
+        if (parts.includes(term)) continue; // the country's own (broad) value
+        expect(matchesReligion(term, country), `${country.iso3} accepts "${term}"`).toBe(false);
+      }
+    }
+  });
+
+  it("pools exclude a disputed or missing facet; the ladder follows the pool", () => {
+    const countries = allCountries();
+    const world = poolForQuiz(countries, "religion", "world");
+    expect(world.length).toBe(countries.length - countries.filter((c) => c.disputed.religion || !c.religion).length);
+    expect(world.some((c) => c.slug === "nigeria")).toBe(false);
+    expect(poolForQuiz(countries, "religion", "africa").length).toBe(poolForScope(countries, "africa").length - 1);
+    expect(poolForQuiz(countries, "capitals", "world").length).toBe(countries.length);
+    for (const id of ["currency", "language"]) {
+      expect(poolForQuiz(countries, id, "world").every((c) => (id === "currency" ? c.currencyCode : c.languages.length))).toBe(true);
+    }
+    expect(sizesForPool(world.length).at(-1)).toBe("all");
   });
 });

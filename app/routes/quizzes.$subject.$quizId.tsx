@@ -41,7 +41,7 @@ import {
   isQuizScope,
   isQuizSize,
   LEGACY_SCOPES,
-  poolForScope,
+  poolForQuiz,
   SCOPE_LABELS,
   SCOPE_VIEWS,
   sizesForPool,
@@ -113,7 +113,7 @@ export function loader({ params }: Route.LoaderArgs): RunData {
   const scope = params.scope;
   return {
     poolSize: isQuizScope(scope)
-      ? poolForScope(allCountries(), scope).length
+      ? poolForQuiz(allCountries(), params.quizId ?? "", scope).length
       : 0,
     fill: null,
   };
@@ -129,7 +129,7 @@ export async function clientLoader({
   const scope = params.scope;
   return {
     poolSize: isQuizScope(scope)
-      ? poolForScope(world.data.countries, scope).length
+      ? poolForQuiz(world.data.countries, params.quizId ?? "", scope).length
       : 0,
     fill: null,
   };
@@ -243,8 +243,11 @@ function QuizRun() {
 
   /** The whole scope's pool, before any Top-N cut — its length decides which sizes exist. */
   const pool = useMemo(
-    () => (world && scope ? poolForScope(world.data.countries, scope) : []),
-    [world, scope],
+    () =>
+      world && scope && definition
+        ? poolForQuiz(world.data.countries, definition.id, scope)
+        : [],
+    [world, scope, definition],
   );
   /** A size the pool can't offer (e.g. 50 of Oceania's 14, or a hand-typed URL) is not a
    *  run — the catalogue is the only thing that should be linking here. */

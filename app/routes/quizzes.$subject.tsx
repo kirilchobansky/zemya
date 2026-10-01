@@ -21,7 +21,7 @@ import { pageMeta } from "~/lib/seo";
 import { subjectById } from "~/lib/quiz/subjects";
 import type { QuizSelectionMode } from "~/lib/geography/quizzes";
 import {
-  poolForScope,
+  poolForQuiz,
   QUIZ_SCOPES,
   SCOPE_LABELS,
   sizesForPool,
@@ -35,6 +35,9 @@ import { peekWorld } from "~/lib/geography/world";
 import type { Route } from "./+types/quizzes.$subject";
 
 type ScopeCounts = Record<QuizScope, number>;
+/** Pool sizes per quiz id, then scope — a facet quiz's pool is narrower than the continent's
+ *  (a missing or disputed value is out), so the size ladder is per quiz, not per scope. */
+type PoolCounts = Record<string, ScopeCounts>;
 
 /** One row of History's list: enough to draw and link a "fill the list" quiz, without
  *  shipping every entry to a page that only lists them. */
@@ -47,7 +50,7 @@ interface FillSummary {
 }
 
 interface ListData {
-  scopeCounts: ScopeCounts;
+  scopeCounts: PoolCounts;
   fill: FillSummary[];
 }
 
@@ -60,17 +63,24 @@ const summariseFill = (): FillSummary[] =>
     count: q.entries.length,
   }));
 
-/** How many countries each scope holds, read from the shipped catalogue at build time —
- *  the size ladder is derived from these — plus History's generated quiz list. Both are
- *  static; a subject uses only the half that is its own. */
+/** Every quiz's pool size per scope, from a country list — the size ladders are derived
+ *  from these. */
+function poolCounts(countries: Parameters<typeof poolForQuiz>[0]): PoolCounts {
+  const ids = (subjectById("geography")?.quizzes ?? []).map((q) => q.id);
+  return Object.fromEntries(
+    ids.map((id) => [
+      id,
+      Object.fromEntries(
+        QUIZ_SCOPES.map((scope) => [scope, poolForQuiz(countries, id, scope).length]),
+      ) as ScopeCounts,
+    ]),
+  );
+}
+
+/** The pool sizes, read from the shipped catalogue at build time, plus History's generated
+ *  quiz list. Both are static; a subject uses only the half that is its own. */
 export function loader(): ListData {
-  const countries = allCountries();
-  return {
-    scopeCounts: Object.fromEntries(
-      QUIZ_SCOPES.map((scope) => [scope, poolForScope(countries, scope).length]),
-    ) as ScopeCounts,
-    fill: summariseFill(),
-  };
+  return { scopeCounts: poolCounts(allCountries()), fill: summariseFill() };
 }
 
 export async function clientLoader({
@@ -80,15 +90,7 @@ export async function clientLoader({
   if (!world) return serverLoader();
   // the History list has no in-memory source: it is only ever fetched from the prerendered data
   const { fill } = await serverLoader();
-  return {
-    scopeCounts: Object.fromEntries(
-      QUIZ_SCOPES.map((scope) => [
-        scope,
-        poolForScope(world.data.countries, scope).length,
-      ]),
-    ) as ScopeCounts,
-    fill,
-  };
+  return { scopeCounts: poolCounts(world.data.countries), fill };
 }
 
 export function meta({ params }: Route.MetaArgs) {
@@ -142,8 +144,11 @@ function QuizList({
   /** Rows in the tallest size grid any scope can produce — every quiz's grid reserves this
    *  much height, so choosing a smaller scope never moves the quiz below it. */
   const maxRows = Math.max(
-    ...QUIZ_SCOPES.map((scope) =>
-      Math.ceil(sizesForPool(scopeCounts[scope]).length / SIZE_COLUMNS),
+    1,
+    ...Object.values(scopeCounts).flatMap((counts) =>
+      QUIZ_SCOPES.map((scope) =>
+        Math.ceil(sizesForPool(counts[scope]).length / SIZE_COLUMNS),
+      ),
     ),
   );
   /** Which quiz's options are expanded — one at a time, collapsed by default. */
@@ -170,7 +175,7 @@ function QuizList({
   const refreshBestTimes = useCallback(
     async (quizId: string, scope: QuizScope) => {
       const entries = await Promise.all(
-        sizesForPool(scopeCounts[scope]).map(
+        sizesForPool(scopeCounts[quizId][scope]).map(
           async (size) =>
             [
               bestKey(quizId, scope, size),
@@ -262,7 +267,7 @@ function QuizList({
               const open = openId === quiz.id;
               const scope = scopeOf(quiz.id);
               const selectionMode = selectionModeOf(quiz.id);
-              const poolSize = scopeCounts[scope];
+              const poolSize = scopeCounts[quiz.id][scope];
               return (
                 <section key={quiz.id} className="quiz-list__item">
                   <button

@@ -14,6 +14,8 @@ export interface Question {
   options: string[];
   answerIndex: number;
   hook: string;
+  /** Shown after answering, above the hook — e.g. every official language when the answer was one of several. */
+  note?: string;
 }
 
 /**

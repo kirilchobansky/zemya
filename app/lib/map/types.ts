@@ -53,6 +53,15 @@ export interface CountryRecord {
    *  capitals, ...). Matched with the same normaliseName as `aliases`. A normalised name
    *  belongs to one country only — the build throws otherwise. */
   capitalAliases: string[];
+  /** Every string accepted for this country's currency / language / religion in the
+   *  "Name the Currency / Language / Religion" quizzes — the authored value(s) first, then
+   *  the curated alternates in content/geography/{currency,language,religion}-aliases.yaml
+   *  (and, for currency, the ISO code). Unlike capitalAliases these answers are NOT unique:
+   *  a normalised name may belong to many countries. A language country accepts ANY of its
+   *  `languages`; religion's broader-term rejection happens at match time (names.ts). */
+  currencyAliases: string[];
+  languageAliases: string[];
+  religionAliases: string[];
   /** Facet name -> reason, for a fact the content marks genuinely disputed (see
    *  content/geography/countries/*.yaml's `disputed:` block). Keyed as a plain string
    *  here rather than typed against Facet — that type lives in the geography layer, and

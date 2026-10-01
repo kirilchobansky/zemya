@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { siteUrl } from './scripts/lib/site.mjs';
-import { LEGACY_SCOPES, poolForScope, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
+import { LEGACY_SCOPES, poolForQuiz, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
 import { HISTORY_COUNTRIES } from './app/lib/history/countries';
 import { fillQuizzesFromRaw } from './app/lib/history/fill-quiz';
 
@@ -17,7 +17,7 @@ const slugs: string[] = JSON.parse(
   readFileSync('public/data/geography/slugs.json', 'utf8')
 );
 
-const countries: { region: string; subregion: string }[] = JSON.parse(
+const countries: Parameters<typeof poolForQuiz>[0] = JSON.parse(
   readFileSync('public/data/geography/countries.json', 'utf8')
 );
 
@@ -30,7 +30,7 @@ const SUBJECT_IDS = ['geography', 'history'];
  *  app's bundler. Scopes and the size ladder come from scopes.ts, which is dependency-free
  *  for exactly this reason, so the prerendered set is derived from the data. Geography is
  *  the only subject with quizzes today; history has none to prerender runs for. */
-const QUIZ_IDS = ['countries', 'flags', 'outlines', 'capitals'];
+const QUIZ_IDS = ['countries', 'flags', 'outlines', 'capitals', 'currency', 'language', 'religion'];
 
 /** History's "fill the list" quizzes — one page per quiz, derived from each country's built
  *  timeline by the same function the run route's loader uses (app/lib/history/fill-quiz.ts),
@@ -51,7 +51,7 @@ const LEGACY_SIZES = ['20', '30', '50', '90', '120', 'all'];
 
 const quizRuns = QUIZ_IDS.flatMap(id =>
   QUIZ_SCOPES.flatMap(scope =>
-    sizesForPool(poolForScope(countries, scope).length).map(size => `/quizzes/geography/${id}/${scope}/${size}`)
+    sizesForPool(poolForQuiz(countries, id, scope).length).map(size => `/quizzes/geography/${id}/${scope}/${size}`)
   )
 );
 
@@ -60,7 +60,7 @@ const quizRuns = QUIZ_IDS.flatMap(id =>
  *  quiz.$quizId.tsx, quiz.legacy.tsx). A static host needs a real file for each one. */
 const oldCatalogueRuns = QUIZ_IDS.flatMap(id =>
   QUIZ_SCOPES.flatMap(scope =>
-    sizesForPool(poolForScope(countries, scope).length).map(size => `/quiz/${id}/${scope}/${size}`)
+    sizesForPool(poolForQuiz(countries, id, scope).length).map(size => `/quiz/${id}/${scope}/${size}`)
   )
 );
 const legacyQuizRuns = LEGACY_QUIZ_IDS.flatMap(id => LEGACY_SIZES.map(size => `/quiz/${id}/${size}`));

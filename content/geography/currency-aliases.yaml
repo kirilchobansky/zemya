@@ -1,0 +1,82 @@
+# Extra names the "Name the Currency" quiz accepts for a currency, beyond its authored name
+# (world-countries' `currencies` name, e.g. "Chinese yuan") and its ISO 4217 code ("CNY"),
+# both of which are accepted without being listed. Plain YAML, editable without touching code.
+#
+# Keyed by VALUE — the currency's name exactly as it appears in countries.json — not by
+# country: the answer is not unique (twenty countries use the Euro), so an alias applies to
+# every country that has that currency. build-content.mjs throws on a value that isn't in
+# the data, an empty or repeated alias, or an alias equal to some currency's own name.
+#
+# Matching is exact after normalisation (lowercase, no diacritics, no apostrophes, other
+# punctuation collapsed — names.ts's normaliseName), so don't list a spelling that only differs
+# by case or accents ("Polish zloty" already matches "Polish złoty"). Letters that don't
+# decompose (đ) and modifier letters (ʻ) do matter, hence the Vietnamese, Tongan and Uzbek
+# entries. There is NO fuzzy matching.
+#
+# NEVER add a bare "dollar", "franc", "peso", "pound", "krona", "dinar", "rupee", "riyal",
+# "shilling" or similar: about twenty currencies share each of those words and accepting them
+# teaches nothing. The full name is required. A bare word is listed only when it names one
+# currency in the world (Renminbi, Sterling, Shekel).
+#
+# Every entry needs a `note` saying why the extra name is a real alternative, not a guess.
+aliases:
+  - value: Chinese yuan
+    add: [Renminbi, Chinese renminbi, RMB]
+    note: The yuan is the unit; the renminbi ("people's currency") is the currency's official name.
+  - value: British pound
+    add: [Pound sterling, British pound sterling, Sterling]
+    note: Its formal name is the pound sterling.
+  - value: United States dollar
+    add: [US dollar, U.S. dollar, American dollar]
+    note: Everyday shortenings of the formal name.
+  - value: Israeli new shekel
+    add: [Israeli shekel, New shekel, Shekel]
+    note: Usually just called the shekel.
+  - value: Zimbabwe Gold
+    add: [ZiG, Zimbabwean gold]
+    note: The currency's own abbreviation and the demonym form.
+  - value: Burmese kyat
+    add: [Myanmar kyat]
+    note: Myanmar is the country's official name, Burma the older English one.
+  - value: Czech koruna
+    add: [Czech crown]
+    note: Koruna is literally "crown", and English sources use both.
+  - value: Danish krone
+    add: [Danish crown]
+    note: Krone is literally "crown", and English sources use both.
+  - value: Norwegian krone
+    add: [Norwegian crown]
+    note: Krone is literally "crown", and English sources use both.
+  - value: Swedish krona
+    add: [Swedish crown]
+    note: Krona is literally "crown", and English sources use both.
+  - value: Icelandic króna
+    add: [Icelandic crown]
+    note: Krona is literally "crown", and English sources use both.
+  - value: Russian ruble
+    add: [Russian rouble]
+    note: British spelling.
+  - value: Belarusian ruble
+    add: [Belarusian rouble]
+    note: British spelling.
+  - value: Turkmenistan manat
+    add: [Turkmen manat]
+    note: The demonym form of the country name.
+  - value: Lao kip
+    add: [Laotian kip]
+    note: Laotian is the common English demonym.
+  - value: Vietnamese đồng
+    add: [Vietnamese dong]
+    note: đ does not decompose to d, so the ASCII spelling needs its own entry.
+  - value: Tongan paʻanga
+    add: [Tongan paanga]
+    note: The ʻ (okina) is not an apostrophe to the normaliser; this is the form players type.
+  - value: Uzbekistani soʻm
+    add: [Uzbekistani som, Uzbek som]
+    note: The ʻ (okina) is not an apostrophe to the normaliser; this is the form players type.
+  - value: Mongolian tögrög
+    add: [Mongolian tugrik]
+    note: Tugrik is the older transliteration still common in English.
+  - value: Papua New Guinean kina
+    add: [Kina]
+    note: Kina is the only currency of that name.

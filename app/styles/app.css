@@ -1528,6 +1528,11 @@ a {
   line-height: 1.4;
   color: var(--ink);
 }
+.quiz__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
 .quiz__prompt-flag {
   display: flex;
   justify-content: center;

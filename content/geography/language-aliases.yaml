@@ -1,0 +1,147 @@
+# Extra names the "Name the Language" quiz accepts for a language, beyond the authored
+# `languages` entries themselves (a country with several official languages accepts any of
+# them). Plain YAML, editable without touching code.
+#
+# Keyed by VALUE — the language's name exactly as it appears in a country's `languages` —
+# not by country: Spanish is official in twenty-one countries and "Castilian" must work in
+# all of them. build-content.mjs throws on a value that isn't in the data, an empty or
+# repeated alias, or an alias equal to some language's own name.
+#
+# Matching is exact after normalisation (names.ts's normaliseName); there is NO fuzzy matching.
+# Add a name only when it is a real alternative for the SAME language: a bare family or macro
+# name that spans several languages ("Ndebele", "Creole") is not.
+#
+# Every entry needs a `note` saying why the extra name is a real alternative, not a guess.
+aliases:
+  - value: Chinese
+    add: [Mandarin, Mandarin Chinese, Standard Chinese]
+    note: The official spoken standard of China, Taiwan and Singapore is Mandarin.
+  - value: Persian (Farsi)
+    add: [Persian, Farsi]
+    note: Persian is the English name, Farsi the endonym; the authored value carries both.
+  - value: Spanish
+    add: [Castilian]
+    note: Castilian is the traditional name, and what the Spanish constitution calls it.
+  - value: Dutch
+    add: [Flemish]
+    note: Belgian Dutch is called Flemish; same standard language.
+  - value: Moldavian
+    add: [Moldovan]
+    note: Moldovan is the same name in its other form. ("Romanian" is not accepted - it is Romania's own value, and an alias may not equal one.)
+  - value: Norwegian Bokmål
+    add: [Norwegian]
+    note: Bokmål is the written standard most Norwegians mean by "Norwegian".
+  - value: Norwegian Nynorsk
+    add: [Nynorsk]
+    note: Its short name.
+  - value: Sorani
+    add: [Central Kurdish, Kurdish]
+    note: Iraq's constitution names Kurdish; Sorani is the dialect written there.
+  - value: Azerbaijani
+    add: [Azeri]
+    note: Both are common English names.
+  - value: Burmese
+    add: [Myanmar]
+    note: Myanmar is the language's name in the country's official English.
+  - value: Bengali
+    add: [Bangla]
+    note: Bangla is the endonym.
+  - value: Sinhala
+    add: [Sinhalese]
+    note: Both are common English names.
+  - value: Maldivian
+    add: [Dhivehi]
+    note: Dhivehi is the endonym.
+  - value: Khmer
+    add: [Cambodian]
+    note: The country-name form.
+  - value: Lao
+    add: [Laotian]
+    note: The country-name form.
+  - value: Tajik
+    add: [Tajiki]
+    note: Both are common English names.
+  - value: Kyrgyz
+    add: [Kirghiz]
+    note: An older transliteration.
+  - value: Pashto
+    add: [Pushto, Pakhto]
+    note: Variant transliterations.
+  - value: Filipino
+    add: [Tagalog]
+    note: Filipino is the standardised form of Tagalog.
+  - value: Malay
+    add: [Bahasa Melayu]
+    note: The endonym.
+  - value: Indonesian
+    add: [Bahasa Indonesia]
+    note: The endonym.
+  - value: Haitian Creole
+    add: [Kreyol, Kreyòl Ayisyen]
+    note: The endonym.
+  - value: Luxembourgish
+    add: [Letzeburgesch, Lëtzebuergesch]
+    note: The endonym and its older spelling.
+  - value: Tetum
+    add: [Tetun]
+    note: The Tetum-language spelling.
+  - value: Gilbertese
+    add: [Kiribati, I-Kiribati]
+    note: The language is called Gilbertese in English, Kiribati by its speakers.
+  - value: Nauru
+    add: [Nauruan]
+    note: The demonym form.
+  - value: Sami
+    add: [Saami, Northern Sami]
+    note: Variant spellings; Northern Sami is the largest Sami language.
+  - value: Belizean Creole
+    add: [Kriol]
+    note: The endonym.
+  - value: Jamaican Patois
+    add: [Patois, Jamaican Creole, Patwa]
+    note: Variant names for the same language.
+  - value: Hiri Motu
+    add: [Police Motu]
+    note: Its older name.
+  - value: Chewa
+    add: [Chichewa, Nyanja]
+    note: Chichewa is the Malawian name; Nyanja is the same language in Zambia.
+  - value: Tswana
+    add: [Setswana]
+    note: The endonym.
+  - value: Southern Sotho
+    add: [Sesotho]
+    note: The endonym. Lesotho's own "Sotho" is the same language but a distinct value, and an alias may belong to one value only, so it takes none.
+  - value: Northern Sotho
+    add: [Sepedi, Pedi]
+    note: Sepedi is the endonym.
+  - value: Swazi
+    add: [Swati, siSwati]
+    note: Swati is the preferred name, siSwati the endonym.
+  - value: Xhosa
+    add: [isiXhosa]
+    note: The endonym.
+  - value: Zulu
+    add: [isiZulu]
+    note: The endonym.
+  - value: Tsonga
+    add: [Xitsonga]
+    note: The endonym.
+  - value: Venda
+    add: [Tshivenda]
+    note: The endonym.
+  - value: Southern Ndebele
+    add: [isiNdebele]
+    note: The endonym.
+  - value: Kikongo
+    add: [Kongo]
+    note: Kikongo is the Bantu-prefixed form of Kongo.
+  - value: Kirundi
+    add: [Rundi]
+    note: Kirundi is the Bantu-prefixed form of Rundi.
+  - value: Tshiluba
+    add: [Luba-Kasai, Luba]
+    note: Tshiluba is the Bantu-prefixed form of Luba-Kasai.
+  - value: Khoekhoe
+    add: [Khoekhoegowab, Nama]
+    note: Nama is the main dialect and the name often used for the language.

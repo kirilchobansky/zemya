@@ -92,9 +92,42 @@ export function sizesForPool(poolSize: number): QuizSize[] {
   return [...kept.map(n => String(n) as QuizSize), 'all'];
 }
 
+/** The fields the facet quizzes' pools read, all optional so a plain `{region, subregion}`
+ *  still satisfies it (the continent filter needs nothing else). */
+interface CountryFacets {
+  currencyCode?: string | null;
+  currencyName?: string | null;
+  languages?: string[];
+  religion?: string | null;
+  disputed?: Record<string, string>;
+}
+
+/** Which countries a quiz can ask about at all. Only the facet quizzes narrow the pool —
+ *  every other quiz is "every country in the scope". A country is out when that facet is
+ *  missing or `disputed:` (Nigeria's religion), the same rule as mastery.ts's
+ *  applicableFacets, repeated here because this file must stay dependency-free. The size
+ *  ladder is computed from the narrowed pool, so it adapts by itself. */
+const QUIZ_POOL_FILTERS: Record<string, (c: CountryFacets) => boolean> = {
+  currency: c => Boolean(c.currencyCode && c.currencyName) && !c.disputed?.currency,
+  language: c => Boolean(c.languages?.length) && !c.disputed?.language,
+  religion: c => Boolean(c.religion) && !c.disputed?.religion
+};
+
 /** The countries a scope draws from — every country for "world", else those the scope's
  *  membership test accepts. */
 export function poolForScope<T extends CountryGeo>(countries: T[], scope: QuizScope): T[] {
   if (scope === 'world') return countries;
   return countries.filter(SCOPE_MEMBERS[scope]);
+}
+
+/** `poolForScope`, then the quiz's own eligibility cut (see QUIZ_POOL_FILTERS). This — not
+ *  poolForScope — is what a run, the list's size ladder and the prerender set must use. */
+export function poolForQuiz<T extends CountryGeo & CountryFacets>(
+  countries: T[],
+  quizId: string,
+  scope: QuizScope
+): T[] {
+  const eligible = QUIZ_POOL_FILTERS[quizId];
+  const pool = poolForScope(countries, scope);
+  return eligible ? pool.filter(eligible) : pool;
 }

@@ -38,7 +38,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
       title: `${country.name} — Zemya`,
       description:
         `${country.name}: capital ${country.capital ?? '—'}, ` +
-        `${formatNumber(country.population)} people, ${country.language ?? '—'}. ${country.hook}`,
+        `${formatNumber(country.population)} people, ${country.languages.join(', ') || '—'}. ${country.hook}`,
       path: location.pathname,
       type: 'article'
     }),
