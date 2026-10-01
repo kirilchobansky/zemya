@@ -1118,8 +1118,35 @@ export interface RenderContext {
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {
+  const s = phoneScale(rc, entries);
+  if (s === 1) return renderAt(rc, entries);
+  // Everything is laid out in logical px (screen px / s) and drawn through a uniform scale, so
+  // text, lanes and capsules shrink together; the time mapping lands on the same screen
+  // positions. Hit regions and pinned-card rects cross the boundary, so they are converted.
+  const { ctx, viewport, crossInsets } = rc;
+  const sized = { ...viewport, sizePx: viewport.sizePx / s, pxPerYear: viewport.pxPerYear / s };
+  const hits = renderAt({
+    ...rc, viewport: sized, crossSizePx: rc.crossSizePx / s,
+    crossInsets: { start: crossInsets.start / s, end: crossInsets.end / s },
+    pinnedCards: rc.pinnedCards.map(c => ({ ...c, rect: { x: c.rect.x / s, y: c.rect.y / s, w: c.rect.w / s, h: c.rect.h / s } }))
+  }, entries, viewport.pxPerYear, s);
+  return hits.map(h => ({ ...h, x: h.x * s, y: h.y * s, w: h.w * s, h: h.h * s }));
+}
+
+/** Phone portrait (insets set): shrink the whole cylinder to fit the strip the HUD and sheet
+ *  leave, with room for the centre-date line and a little air. 1 elsewhere. Never below 0.6. */
+function phoneScale(rc: RenderContext, entries: readonly TimelineEntry[]): number {
+  const { crossInsets, crossSizePx } = rc;
+  if (crossInsets.start <= 0 && crossInsets.end <= 0) return 1;
+  const thickness = RENDER_CONFIG.tickStripHeight + RENDER_CONFIG.wirePaddingTop
+    + RENDER_CONFIG.wirePaddingBottom + totalWiresHeightPx(laneSubRowCounts(entries));
+  const need = thickness + RENDER_CONFIG.centreDateGap + RENDER_CONFIG.centreDateFontPx + 6 + 16;
+  return clamp((crossSizePx - crossInsets.start - crossInsets.end) / need, 0.6, 1);
+}
+
+function renderAt(rc: RenderContext, entries: readonly TimelineEntry[], levelPxPerYear?: number, scale = 1): HitRegion[] {
   const { ctx, viewport, axis, crossSizePx, crossInsets, dpr, uiFont, monoFont, contentRange, pastLabel, futureLabel, hoveredId, pinnedIds, pulseId, pulseElapsedMs, pinnedCards } = rc;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
 
   const full = rectFor(axis, 0, viewport.sizePx, 0, crossSizePx);
   ctx.clearRect(full.x, full.y, full.w, full.h);
@@ -1172,7 +1199,7 @@ export function render(rc: RenderContext, entries: readonly TimelineEntry[]): Hi
   const activeAmounts = updateActiveAmounts(activeIds);
 
   const hits: HitRegion[] = [];
-  const level = levelFor(viewport.pxPerYear);
+  const level = levelFor(levelPxPerYear ?? viewport.pxPerYear);
   for (const kind of WIRE_ORDER) {
     const wire = wires[kind];
     drawLaneTrack(ctx, axis, viewport.sizePx, wire);

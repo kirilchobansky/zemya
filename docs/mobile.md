@@ -163,3 +163,6 @@ phone; the smoke test covers everything that doesn't need one.
   the bottom sheet + tab bar leave visible (`HistoryTimeline#setCrossInsets`, fed from atlas.tsx
   from the snap; a full sheet counts as half, like the map's insets), so the event names on its
   bottom lane are not behind the sheet. Desktop and landscape pass 0/0 and stay centred.
+  If the cylinder (plus the centre-date line) is still taller than that strip, `render` shrinks the
+  whole thing uniformly (`phoneScale` in renderer.ts, 0.6-1): laid out in logical px and drawn
+  through a canvas scale, hit regions and pinned-card rects converted at the boundary.
