@@ -2302,7 +2302,10 @@ a.quiz-list__row {
   .fill-quiz {
     /* a phone run owns the whole screen, over the bottom sheet */
     position: fixed;
-    height: 100dvh;
+    /* exactly the part of the screen the keyboard leaves (--vv-top / --kb: app/lib/keyboard.ts),
+       so the sticky input stays in view and the last entry scrolls clear of the keyboard */
+    inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
+    height: auto;
     padding: 0;
   }
   .fill-quiz__panel {

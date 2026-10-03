@@ -456,6 +456,9 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   entries cells go compact (`fill-quiz__grid--compact`). Phone: 1 column up to 8 entries, else 2,
   and the input bar is `position: sticky` at the top. Years sit in a tinted strip on the cell's
   left. Thresholds depend on entry count only, so another country's quizzes reuse them.
+  On a phone the screen is sized to what the keyboard leaves (`inset: var(--vv-top) 0 var(--kb) 0`
+  via `useKeyboard()`), not `100dvh`, so the sticky input stays visible and the last entry scrolls
+  clear of the keyboard.
 - **Runs** are saved like geography's (`saveQuizRun`, `quizId` = the quiz id, scope `"all"`, size
   `"all"` or `"elected"` — see Toggle), so personal bests, export/import and reset already cover them; the History list shows
   each quiz's best time.
