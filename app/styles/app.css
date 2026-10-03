@@ -3045,7 +3045,9 @@ a.quiz-list__row {
     align-items: center;
     justify-content: center;
     position: fixed;
-    inset: 0;
+    /* above the keyboard when it is up, so Resume / Abandon are visible at once; the full
+       screen again when it closes (--vv-top / --kb: app/lib/keyboard.ts) */
+    inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
     z-index: 10;
     gap: 12px;
     padding: 24px;

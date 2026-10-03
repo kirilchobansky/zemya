@@ -188,6 +188,13 @@ function QuizList({
     [scopeCounts],
   );
 
+  // An opened quiz brings its options into view (on a phone the list is longer than the sheet).
+  useEffect(() => {
+    if (!openId) return;
+    const el = document.querySelector<HTMLElement>(`[data-quiz-id="${openId}"]`);
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [openId]);
+
   useEffect(() => {
     if (!openId || !subject) return;
     refreshBestTimes(openId, scopes[openId] ?? "world");
@@ -269,7 +276,7 @@ function QuizList({
               const selectionMode = selectionModeOf(quiz.id);
               const poolSize = scopeCounts[quiz.id][scope];
               return (
-                <section key={quiz.id} className="quiz-list__item">
+                <section key={quiz.id} data-quiz-id={quiz.id} className="quiz-list__item">
                   <button
                     type="button"
                     className="quiz-list__row"

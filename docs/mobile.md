@@ -143,7 +143,7 @@ borders and the flag/outline notes (CSS `order` on `.dossier`; the `<h1>` stays,
 Neighbour chips wrap. A mostly-sideways swipe is never the sheet's (it is the chip row's).
 
 **Decisions the brief left open** (change them by asking, not by drift):
-- Cold load of any page but `/` opens the sheet at half; tabs open Quizzes/Study at half, Map at peek;
+- Cold load of any page but `/` opens the sheet at half; the Quizzes, Questions and History tabs open the sheet at full (their content is a list or a question, not a view of the map), Map at peek; an opened quiz in the list scrolls its options into view; the pause screen is sized to what the keyboard leaves (`--vv-top` / `--kb`);
   a map tap or a search pick opens at peek. From `full`, the handle steps down to half.
 - Progress is an overlay sheet, not a route (no new URL, nothing new in the sitemap).
 - The scale bar is hidden on phones; ⌂ sits under the Layers button (and under the HUD in a run).
