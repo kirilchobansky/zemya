@@ -449,6 +449,13 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   as is) only when the quiz's entries carry more than one distinct title (`hasMixedTitles`); typing a
   title is tolerated either way but never needed. Hover/`title` on a filled
   cell shows the exact dates as dd.mm.yyyy. The timer starts at the first keystroke.
+- **Read-down layout** (default; a checkbox switches back to row order, not persisted). Tall
+  columns first, so the whole list is visible without scrolling: `columnLayout()` in
+  `HistoryFillQuiz.tsx` picks 1 column up to 6 entries, 2 up to 12, 3 up to 30, 4 beyond; items run
+  top to bottom, then the next column; columns are capped at 340px and left-aligned. Above 30
+  entries cells go compact (`fill-quiz__grid--compact`). Phone: 1 column up to 8 entries, else 2,
+  and the input bar is `position: sticky` at the top. Years sit in a tinted strip on the cell's
+  left. Thresholds depend on entry count only, so another country's quizzes reuse them.
 - **Runs** are saved like geography's (`saveQuizRun`, `quizId` = the quiz id, scope `"all"`, size
   `"all"` or `"elected"` — see Toggle), so personal bests, export/import and reset already cover them; the History list shows
   each quiz's best time.

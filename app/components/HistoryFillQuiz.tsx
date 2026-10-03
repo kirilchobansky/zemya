@@ -14,7 +14,7 @@
  * no `document`. The input is never `disabled`; when a run ends it is just moved out of
  * sight so "Try again" can focus it inside the tap.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 
@@ -38,12 +38,27 @@ interface Outcome {
 
 const NO_FILLED: ReadonlySet<string> = new Set();
 
+/** Read-down layout: tall columns first. Up to 6 entries make one column, up to 12 two, and
+ *  up to 30 three, and longer four (desktop); a phone takes one column up to 8 entries, else two. Items
+ *  run top to bottom, then on to the next column. */
+function columnLayout(n: number): CSSProperties {
+  const cols = n <= 6 ? 1 : n <= 12 ? 2 : n <= 30 ? 3 : 4;
+  const phoneCols = n <= 8 ? 1 : 2;
+  return {
+    '--cols': cols,
+    '--rows': Math.ceil(n / cols),
+    '--cols-phone': phoneCols,
+    '--rows-phone': Math.ceil(n / phoneCols),
+  } as CSSProperties;
+}
+
 export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: string }) {
   const { setQuiz, setImmersive } = useAtlasContext();
   const [phase, setPhase] = useState<Phase>('idle');
   /* The quiz's toggle, as currently chosen. The finished run keeps the setting it was played
      with (`runToggle`) while the result screen lets the player pick the next one. */
   const [toggleOn, setToggleOn] = useState(false);
+  const [byColumns, setByColumns] = useState(true);
   const [runToggle, setRunToggle] = useState(false);
   const shownToggle = phase === 'idle' || phase === 'running' ? toggleOn : runToggle;
   const entries = useMemo(() => entriesFor(quiz, shownToggle), [quiz, shownToggle]);
@@ -241,7 +256,18 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
         {/* hidden, not removed, once a run starts: the grid below never jumps */}
         {toggleBox(phase !== 'idle')}
 
-        <ol className="fill-quiz__grid">
+        <label className="fill-quiz__toggle" onMouseDown={keepFocus} onPointerDown={keepFocus}>
+          <input type="checkbox" checked={byColumns} onChange={e => setByColumns(e.target.checked)} />
+          Read down the columns
+        </label>
+
+        <ol
+          className={
+            `fill-quiz__grid${byColumns ? ' fill-quiz__grid--columns' : ''}` +
+            (entries.length > 30 ? ' fill-quiz__grid--compact' : '')
+          }
+          style={byColumns ? columnLayout(entries.length) : undefined}
+        >
           {entries.map(entry => {
             const isFilled = filled.has(entry.id);
             const isMissed = revealing && !isFilled;
