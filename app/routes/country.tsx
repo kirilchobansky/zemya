@@ -134,7 +134,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
         </dl>
 
         {hasHistory && (
-          <Link to={`/history/${country.slug}`} className="action action--primary dossier__history">
+          <Link to={`/history/${country.slug}`} state={{ sheet: 'half' }} className="action action--primary dossier__history">
             History timeline
           </Link>
         )}
