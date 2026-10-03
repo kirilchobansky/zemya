@@ -356,6 +356,14 @@ function AtlasShell() {
   }, []);
 
   const toggleRailCollapsed = useCallback(() => setRailCollapsed(v => !v), []);
+  // Navigating (a section tab, a country) reopens a collapsed panel — otherwise the click
+  // appears to do nothing. Skips the first run so a stored collapsed choice survives a load.
+  const lastPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (lastPathRef.current === location.pathname) return;
+    lastPathRef.current = location.pathname;
+    setPanelCollapsed(false);
+  }, [location.pathname]);
   const togglePanelCollapsed = useCallback(() => setPanelCollapsed(v => !v), []);
 
   // "[" toggles the rail, "]" toggles the panel — ignored while typing in an input (Ctrl+[ and
