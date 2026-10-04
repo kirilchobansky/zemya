@@ -4,8 +4,12 @@
 # Display language: English (countries.ts `lang: 'en'`). name.bg / blurb.bg are empty; the Cyrillic
 # spelling of each president is an alias, used only for typing in the quiz.
 # Same schema as bg.yaml — see the schema comment at the top of that file. Lanes in use:
-# periods and presidents (kind ruler, role "president"). The government and event lanes are
-# empty for now: no vice presidents or events yet.
+# periods, presidents (kind ruler, role "president"), vice presidents (kind government, role
+# "Vice President", tier 2, ids vp-<surname>, -richard/-andrew/-lyndon for the three Johnsons;
+# elected: false for Ford and Rockefeller, appointed under the 25th Amendment) and events
+# (source-us-2.txt: tier = the source importance, colour = bg.yaml's category colour, parent =
+# the period containing the date; a bare year or mm.yyyy date is the 1st of the period with
+# precision year).
 #
 # Presidents with two lines are one person (Cleveland: 22nd and 24th, Trump: 45th and 47th);
 # the ids carry -1 / -2. Bare surnames shared by two different people (Adams, Harrison,
@@ -836,3 +840,5176 @@ entries:
     blurb:
       bg: ""
       en: "Second non-consecutive presidency after Grover Cleveland; won the 2024 election and was inaugurated on 20.01.2025."
+
+  # ---------------------------------------------------------------- vice presidents
+  - id: vp-adams
+    kind: government
+    name: { bg: "", en: "John Adams" }
+    aliases: ["Adams", "John Adams Sr", "Адамс"]
+    role: "Vice President"
+    start: "1789-04-21"
+    end: "1797-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "First vice president; presided over the Senate and cast many tie-breaking votes, then won the presidency."
+
+  - id: vp-jefferson
+    kind: government
+    name: { bg: "", en: "Thomas Jefferson" }
+    aliases: ["Jefferson", "T. Jefferson", "Джеферсън"]
+    role: "Vice President"
+    start: "1797-03-04"
+    end: "1801-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Finished second in the 1796 election, so he served under his rival Adams, and became president in 1801."
+
+  - id: vp-burr
+    kind: government
+    name: { bg: "", en: "Aaron Burr" }
+    aliases: ["Burr", "A. Burr", "Бър"]
+    role: "Vice President"
+    start: "1801-03-04"
+    end: "1805-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Killed Alexander Hamilton in a duel in 1804 while in office."
+
+  - id: vp-clinton
+    kind: government
+    name: { bg: "", en: "George Clinton" }
+    aliases: ["G. Clinton", "Clinton", "Клинтън"]
+    role: "Vice President"
+    start: "1805-03-04"
+    end: "1812-04-20"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under both Jefferson and Madison and was the first vice president to die in office."
+
+  - id: vp-gerry
+    kind: government
+    name: { bg: "", en: "Elbridge Gerry" }
+    aliases: ["Gerry", "E. Gerry", "Гери"]
+    role: "Vice President"
+    start: "1813-03-04"
+    end: "1814-11-23"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Died in office; his name gave us the word \"gerrymandering\"."
+
+  - id: vp-tompkins
+    kind: government
+    name: { bg: "", en: "Daniel D. Tompkins" }
+    aliases: ["Tompkins", "D. Tompkins", "Томпкинс"]
+    role: "Vice President"
+    start: "1817-03-04"
+    end: "1825-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two full terms under Monroe."
+
+  - id: vp-calhoun
+    kind: government
+    name: { bg: "", en: "John C. Calhoun" }
+    aliases: ["Calhoun", "J. C. Calhoun", "Калхун"]
+    role: "Vice President"
+    start: "1825-03-04"
+    end: "1832-12-28"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under John Quincy Adams and Jackson, then resigned to take a Senate seat as a leading defender of states' rights and nullification."
+
+  - id: vp-buren
+    kind: government
+    name: { bg: "", en: "Martin Van Buren" }
+    aliases: ["Van Buren", "M. Van Buren", "Ван Бюрен"]
+    role: "Vice President"
+    start: "1833-03-04"
+    end: "1837-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Jackson's chosen successor, who won the presidency in 1836."
+
+  - id: vp-johnson-richard
+    kind: government
+    name: { bg: "", en: "Richard Mentor Johnson" }
+    aliases: ["Richard M. Johnson", "R. M. Johnson"]
+    role: "Vice President"
+    start: "1837-03-04"
+    end: "1841-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "The only vice president elected by the Senate, after no candidate won an electoral majority in 1836."
+
+  - id: vp-tyler
+    kind: government
+    name: { bg: "", en: "John Tyler" }
+    aliases: ["Tyler", "J. Tyler", "Тайлър"]
+    role: "Vice President"
+    start: "1841-03-04"
+    end: "1841-04-04"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served 31 days before Harrison's death made him the first vice president to become president."
+
+  - id: vp-dallas
+    kind: government
+    name: { bg: "", en: "George M. Dallas" }
+    aliases: ["Dallas", "G. M. Dallas", "Далас"]
+    role: "Vice President"
+    start: "1845-03-04"
+    end: "1849-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Polk during the Mexican-American War; the city of Dallas, Texas, is probably named after him."
+
+  - id: vp-fillmore
+    kind: government
+    name: { bg: "", en: "Millard Fillmore" }
+    aliases: ["Fillmore", "M. Fillmore", "Филмор"]
+    role: "Vice President"
+    start: "1849-03-04"
+    end: "1850-07-09"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Taylor and became president when Taylor died."
+
+  - id: vp-king
+    kind: government
+    name: { bg: "", en: "William R. King" }
+    aliases: ["King", "W. R. King", "Кинг"]
+    role: "Vice President"
+    start: "1853-03-04"
+    end: "1853-04-18"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Took the oath in Cuba because he was ill with tuberculosis and died after 45 days, the shortest vice presidency."
+
+  - id: vp-breckinridge
+    kind: government
+    name: { bg: "", en: "John C. Breckinridge" }
+    aliases: ["Breckinridge", "J. C. Breckinridge", "Брекинридж"]
+    role: "Vice President"
+    start: "1857-03-04"
+    end: "1861-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "The youngest vice president (age 36); later a Confederate general."
+
+  - id: vp-hamlin
+    kind: government
+    name: { bg: "", en: "Hannibal Hamlin" }
+    aliases: ["Hamlin", "H. Hamlin", "Хамлин"]
+    role: "Vice President"
+    start: "1861-03-04"
+    end: "1865-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Lincoln's first vice president, who was dropped from the ticket for 1864."
+
+  - id: vp-johnson-andrew
+    kind: government
+    name: { bg: "", en: "Andrew Johnson" }
+    aliases: ["A. Johnson", "Andy Johnson"]
+    role: "Vice President"
+    start: "1865-03-04"
+    end: "1865-04-15"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Vice president for six weeks before Lincoln's assassination made him president."
+
+  - id: vp-colfax
+    kind: government
+    name: { bg: "", en: "Schuyler Colfax" }
+    aliases: ["Colfax", "S. Colfax", "Колфакс"]
+    role: "Vice President"
+    start: "1869-03-04"
+    end: "1873-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Grant; his name was later linked to the Crédit Mobilier scandal."
+
+  - id: vp-wilson
+    kind: government
+    name: { bg: "", en: "Henry Wilson" }
+    aliases: ["H. Wilson", "Wilson", "Уилсън"]
+    role: "Vice President"
+    start: "1873-03-04"
+    end: "1875-11-22"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Anti-slavery senator who died in office during Grant's second term."
+
+  - id: vp-wheeler
+    kind: government
+    name: { bg: "", en: "William A. Wheeler" }
+    aliases: ["Wheeler", "W. A. Wheeler", "Уилър"]
+    role: "Vice President"
+    start: "1877-03-04"
+    end: "1881-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Hayes after the disputed 1876 election."
+
+  - id: vp-arthur
+    kind: government
+    name: { bg: "", en: "Chester A. Arthur" }
+    aliases: ["Arthur", "C. A. Arthur", "Артър"]
+    role: "Vice President"
+    start: "1881-03-04"
+    end: "1881-09-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Became president when Garfield died of his wounds."
+
+  - id: vp-hendricks
+    kind: government
+    name: { bg: "", en: "Thomas A. Hendricks" }
+    aliases: ["Hendricks", "T. A. Hendricks", "Хендрикс"]
+    role: "Vice President"
+    start: "1885-03-04"
+    end: "1885-11-25"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Died after only eight months in office, under Cleveland."
+
+  - id: vp-morton
+    kind: government
+    name: { bg: "", en: "Levi P. Morton" }
+    aliases: ["Morton", "L. P. Morton", "Мортън"]
+    role: "Vice President"
+    start: "1889-03-04"
+    end: "1893-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Benjamin Harrison and later became governor of New York."
+
+  - id: vp-stevenson
+    kind: government
+    name: { bg: "", en: "Adlai E. Stevenson I" }
+    aliases: ["Adlai Stevenson", "A. E. Stevenson", "Stevenson", "Adlai Stevenson I", "Стивънсън"]
+    role: "Vice President"
+    start: "1893-03-04"
+    end: "1897-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Cleveland's second term; grandfather of the 1950s presidential candidate Adlai Stevenson II."
+
+  - id: vp-hobart
+    kind: government
+    name: { bg: "", en: "Garret Hobart" }
+    aliases: ["Hobart", "G. Hobart", "Хобарт"]
+    role: "Vice President"
+    start: "1897-03-04"
+    end: "1899-11-21"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "McKinley's first vice president, who died in office."
+
+  - id: vp-roosevelt
+    kind: government
+    name: { bg: "", en: "Theodore Roosevelt" }
+    aliases: ["T. Roosevelt", "Teddy Roosevelt", "TR", "Roosevelt", "Рузвелт"]
+    role: "Vice President"
+    start: "1901-03-04"
+    end: "1901-09-14"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served six months before McKinley's assassination made him president."
+
+  - id: vp-fairbanks
+    kind: government
+    name: { bg: "", en: "Charles W. Fairbanks" }
+    aliases: ["Fairbanks", "C. W. Fairbanks", "Феърбанкс"]
+    role: "Vice President"
+    start: "1905-03-04"
+    end: "1909-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Theodore Roosevelt; the city of Fairbanks, Alaska, is named after him."
+
+  - id: vp-sherman
+    kind: government
+    name: { bg: "", en: "James S. Sherman" }
+    aliases: ["Sherman", "J. S. Sherman", "Шърман"]
+    role: "Vice President"
+    start: "1909-03-04"
+    end: "1912-10-30"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Died in office shortly before the 1912 election, under Taft."
+
+  - id: vp-marshall
+    kind: government
+    name: { bg: "", en: "Thomas R. Marshall" }
+    aliases: ["Marshall", "T. R. Marshall", "Маршал"]
+    role: "Vice President"
+    start: "1913-03-04"
+    end: "1921-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two full terms under Wilson and is remembered for the line \"what this country needs is a really good five-cent cigar\"."
+
+  - id: vp-coolidge
+    kind: government
+    name: { bg: "", en: "Calvin Coolidge" }
+    aliases: ["Coolidge", "C. Coolidge", "Кулидж"]
+    role: "Vice President"
+    start: "1921-03-04"
+    end: "1923-08-02"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Became president when Harding died."
+
+  - id: vp-dawes
+    kind: government
+    name: { bg: "", en: "Charles G. Dawes" }
+    aliases: ["Dawes", "C. G. Dawes", "Доус"]
+    role: "Vice President"
+    start: "1925-03-04"
+    end: "1929-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Won the 1925 Nobel Peace Prize for the Dawes Plan on German war reparations."
+
+  - id: vp-curtis
+    kind: government
+    name: { bg: "", en: "Charles Curtis" }
+    aliases: ["Curtis", "C. Curtis", "Къртис"]
+    role: "Vice President"
+    start: "1929-03-04"
+    end: "1933-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "The first vice president with Native American ancestry (Kaw Nation), under Hoover."
+
+  - id: vp-garner
+    kind: government
+    name: { bg: "", en: "John Nance Garner" }
+    aliases: ["Garner", "J. N. Garner", "Cactus Jack", "Гарнър"]
+    role: "Vice President"
+    start: "1933-03-04"
+    end: "1941-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Roosevelt's first vice president; broke with him over a third term."
+
+  - id: vp-wallace
+    kind: government
+    name: { bg: "", en: "Henry A. Wallace" }
+    aliases: ["Wallace", "H. A. Wallace", "Уолъс"]
+    role: "Vice President"
+    start: "1941-01-20"
+    end: "1945-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Roosevelt's third-term vice president, replaced on the 1944 ticket by Truman."
+
+  - id: vp-truman
+    kind: government
+    name: { bg: "", en: "Harry S. Truman" }
+    aliases: ["Truman", "H. S. Truman", "Труман"]
+    role: "Vice President"
+    start: "1945-01-20"
+    end: "1945-04-12"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served 82 days before Roosevelt's death made him president."
+
+  - id: vp-barkley
+    kind: government
+    name: { bg: "", en: "Alben W. Barkley" }
+    aliases: ["Barkley", "A. W. Barkley", "Veep", "Баркли"]
+    role: "Vice President"
+    start: "1949-01-20"
+    end: "1953-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Truman; the nickname \"Veep\" is attached to him."
+
+  - id: vp-nixon
+    kind: government
+    name: { bg: "", en: "Richard Nixon" }
+    aliases: ["Nixon", "R. Nixon", "Никсън"]
+    role: "Vice President"
+    start: "1953-01-20"
+    end: "1961-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two terms under Eisenhower and lost the 1960 election to Kennedy."
+
+  - id: vp-johnson-lyndon
+    kind: government
+    name: { bg: "", en: "Lyndon B. Johnson" }
+    aliases: ["L. B. Johnson", "LBJ", "Lyndon Johnson"]
+    role: "Vice President"
+    start: "1961-01-20"
+    end: "1963-11-22"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Became president when Kennedy was assassinated."
+
+  - id: vp-humphrey
+    kind: government
+    name: { bg: "", en: "Hubert Humphrey" }
+    aliases: ["Humphrey", "H. Humphrey", "Hubert H. Humphrey", "Хъмфри"]
+    role: "Vice President"
+    start: "1965-01-20"
+    end: "1969-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Lyndon Johnson and lost the 1968 election to Nixon."
+
+  - id: vp-agnew
+    kind: government
+    name: { bg: "", en: "Spiro Agnew" }
+    aliases: ["Agnew", "S. Agnew", "Агню"]
+    role: "Vice President"
+    start: "1969-01-20"
+    end: "1973-10-10"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Resigned after pleading no contest to tax evasion."
+
+  - id: vp-ford
+    kind: government
+    name: { bg: "", en: "Gerald Ford" }
+    aliases: ["Ford", "G. Ford", "Форд"]
+    role: "Vice President"
+    elected: false
+    start: "1973-12-06"
+    end: "1974-08-09"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "The first vice president chosen under the 25th Amendment; became president when Nixon resigned."
+
+  - id: vp-rockefeller
+    kind: government
+    name: { bg: "", en: "Nelson Rockefeller" }
+    aliases: ["Rockefeller", "N. Rockefeller", "Рокфелер"]
+    role: "Vice President"
+    elected: false
+    start: "1974-12-19"
+    end: "1977-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Chosen by Ford under the 25th Amendment, so both men in the top two offices were unelected."
+
+  - id: vp-mondale
+    kind: government
+    name: { bg: "", en: "Walter Mondale" }
+    aliases: ["Mondale", "W. Mondale", "Fritz Mondale", "Мондейл"]
+    role: "Vice President"
+    start: "1977-01-20"
+    end: "1981-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Carter and lost the 1984 election to Reagan."
+
+  - id: vp-bush
+    kind: government
+    name: { bg: "", en: "George H. W. Bush" }
+    aliases: ["G. H. W. Bush", "Bush Sr", "George Bush Sr", "Bush senior", "Bush 41", "Буш"]
+    role: "Vice President"
+    start: "1981-01-20"
+    end: "1989-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two terms under Reagan and then won the presidency in 1988."
+
+  - id: vp-quayle
+    kind: government
+    name: { bg: "", en: "Dan Quayle" }
+    aliases: ["Quayle", "D. Quayle", "Danforth Quayle", "Куейл"]
+    role: "Vice President"
+    start: "1989-01-20"
+    end: "1993-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under George H. W. Bush."
+
+  - id: vp-gore
+    kind: government
+    name: { bg: "", en: "Al Gore" }
+    aliases: ["Gore", "A. Gore", "Albert Gore Jr", "Гор"]
+    role: "Vice President"
+    start: "1993-01-20"
+    end: "2001-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two terms under Clinton and lost the disputed 2000 election."
+
+  - id: vp-cheney
+    kind: government
+    name: { bg: "", en: "Dick Cheney" }
+    aliases: ["Cheney", "D. Cheney", "Richard Cheney", "Чейни"]
+    role: "Vice President"
+    start: "2001-01-20"
+    end: "2009-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two terms under George W. Bush and was unusually influential in foreign and security policy."
+
+  - id: vp-biden
+    kind: government
+    name: { bg: "", en: "Joe Biden" }
+    aliases: ["Biden", "J. Biden", "Joseph R. Biden", "Байдън"]
+    role: "Vice President"
+    start: "2009-01-20"
+    end: "2017-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served two terms under Obama and was elected president in 2020."
+
+  - id: vp-pence
+    kind: government
+    name: { bg: "", en: "Mike Pence" }
+    aliases: ["Pence", "M. Pence", "Пенс"]
+    role: "Vice President"
+    start: "2017-01-20"
+    end: "2021-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Served under Donald Trump."
+
+  - id: vp-harris
+    kind: government
+    name: { bg: "", en: "Kamala Harris" }
+    aliases: ["Harris", "K. Harris", "Харис"]
+    role: "Vice President"
+    start: "2021-01-20"
+    end: "2025-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "The first woman, and the first Black and South Asian American, to be vice president, under Joe Biden."
+
+  - id: vp-vance
+    kind: government
+    name: { bg: "", en: "JD Vance" }
+    aliases: ["J. D. Vance", "Vance", "James David Vance", "Ванс"]
+    role: "Vice President"
+    start: "2025-01-20"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: ""
+      en: "Serves under Donald Trump's second term."
+
+  # ---------------------------------------------------------------- events
+  - id: event-columbus-reaches-the-americas
+    kind: event
+    name: { bg: "", en: "Columbus reaches the Americas" }
+    aliases: []
+    start: "1492-10-12"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-early-exploration
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Christopher Columbus lands in the Bahamas on his first voyage for Spain, beginning lasting contact between Europe and the Americas (Julian date)."
+
+  - id: event-treaty-of-tordesillas
+    kind: event
+    name: { bg: "", en: "Treaty of Tordesillas" }
+    aliases: []
+    start: "1494-06-07"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-exploration
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Spain and Portugal divide newly found lands outside Europe between themselves."
+
+  - id: event-st-augustine-founded-in-florida
+    kind: event
+    name: { bg: "", en: "St. Augustine founded in Florida" }
+    aliases: []
+    start: "1565-09-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-exploration
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Spain founds what is now the oldest continuously inhabited European-founded settlement in the United States."
+
+  - id: event-roanoke-colony-found-deserted
+    kind: event
+    name: { bg: "", en: "Roanoke colony found deserted" }
+    aliases: []
+    start: "1590-08-18"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-exploration
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "John White returns to the English settlement on Roanoke Island and finds it abandoned, the \"Lost Colony\" (old style)."
+
+  - id: event-onate-claims-new-mexico-for-spain
+    kind: event
+    name: { bg: "", en: "Oñate claims New Mexico for Spain" }
+    aliases: []
+    start: "1598-04-30"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-exploration
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Juan de Oñate claims the upper Rio Grande region, starting Spanish settlement in the Southwest."
+
+  - id: event-jamestown-founded
+    kind: event
+    name: { bg: "", en: "Jamestown founded" }
+    aliases: []
+    start: "1607-05-14"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first permanent English settlement in North America is founded in Virginia (old style)."
+
+  - id: event-virginia-house-of-burgesses-first-meets
+    kind: event
+    name: { bg: "", en: "Virginia House of Burgesses first meets" }
+    aliases: []
+    start: "1619-07-30"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first elected legislative assembly in the English colonies meets at Jamestown (old style)."
+
+  - id: event-first-enslaved-africans-arrive-in-virginia
+    kind: event
+    name: { bg: "", en: "First enslaved Africans arrive in Virginia" }
+    aliases: []
+    start: "1619-08-01"
+    precision: year
+    style: new
+    tier: 1
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "About twenty enslaved Africans are brought to Point Comfort, the start of slavery in English North America."
+
+  - id: event-mayflower-compact-signed
+    kind: event
+    name: { bg: "", en: "Mayflower Compact signed" }
+    aliases: []
+    start: "1620-11-11"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Pilgrims agree to govern themselves by majority rule before landing in New England (old style)."
+
+  - id: event-pilgrims-land-at-plymouth
+    kind: event
+    name: { bg: "", en: "Pilgrims land at Plymouth" }
+    aliases: []
+    start: "1620-12-21"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: church
+    color: "#6a4a8a"
+    blurb:
+      bg: ""
+      en: "Pilgrims seeking religious freedom settle Plymouth Colony in Massachusetts (old style)."
+
+  - id: event-first-thanksgiving
+    kind: event
+    name: { bg: "", en: "First Thanksgiving" }
+    aliases: []
+    start: "1621-01-01"
+    precision: year
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Plymouth colonists and Wampanoag people share an autumn harvest feast later remembered as the first Thanksgiving."
+
+  - id: event-great-migration-to-massachusetts-bay-begins
+    kind: event
+    name: { bg: "", en: "Great Migration to Massachusetts Bay begins" }
+    aliases: []
+    start: "1630-01-01"
+    precision: year
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Thousands of Puritans, led by John Winthrop, settle New England over the following decade."
+
+  - id: event-roger-williams-founds-providence
+    kind: event
+    name: { bg: "", en: "Roger Williams founds Providence" }
+    aliases: []
+    start: "1636-01-01"
+    precision: year
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: church
+    color: "#6a4a8a"
+    blurb:
+      bg: ""
+      en: "After being banished from Massachusetts, he founds a settlement in Rhode Island based on religious freedom."
+
+  - id: event-harvard-college-founded
+    kind: event
+    name: { bg: "", en: "Harvard College founded" }
+    aliases: []
+    start: "1636-10-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "The Massachusetts General Court votes funds for the first college in the colonies (old style)."
+
+  - id: event-mystic-massacre-in-the-pequot-war
+    kind: event
+    name: { bg: "", en: "Mystic massacre in the Pequot War" }
+    aliases: []
+    start: "1637-05-26"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "English colonists and their allies burn a Pequot village, opening the way to colonial control of southern New England."
+
+  - id: event-english-take-new-amsterdam
+    kind: event
+    name: { bg: "", en: "English take New Amsterdam" }
+    aliases: []
+    start: "1664-09-01"
+    precision: year
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Dutch surrender their colony, which becomes New York."
+
+  - id: event-king-philip-s-war-begins
+    kind: event
+    name: { bg: "", en: "King Philip's War begins" }
+    aliases: []
+    start: "1675-06-20"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Wampanoag leader Metacom and allies fight New England colonists in one of the deadliest wars in colonial history, relative to population (old style)."
+
+  - id: event-bacon-s-rebellion-burns-jamestown
+    kind: event
+    name: { bg: "", en: "Bacon's Rebellion burns Jamestown" }
+    aliases: []
+    start: "1676-09-19"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Nathaniel Bacon leads armed settlers against the Virginia governor, partly over frontier policy toward Native Americans (old style)."
+
+  - id: event-philadelphia-and-pennsylvania-founded
+    kind: event
+    name: { bg: "", en: "Philadelphia and Pennsylvania founded" }
+    aliases: []
+    start: "1682-01-01"
+    precision: year
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "William Penn founds a colony built on religious tolerance, with Philadelphia as its capital."
+
+  - id: event-salem-witch-trials-begin
+    kind: event
+    name: { bg: "", en: "Salem witch trials begin" }
+    aliases: []
+    start: "1692-02-01"
+    precision: year
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: church
+    color: "#6a4a8a"
+    blurb:
+      bg: ""
+      en: "A panic in Massachusetts leads to about 200 accusations and 20 executions before it ends in 1693."
+
+  - id: event-georgia-founded
+    kind: event
+    name: { bg: "", en: "Georgia founded" }
+    aliases: []
+    start: "1733-02-12"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "James Oglethorpe founds Savannah, the last of the Thirteen Colonies."
+
+  - id: event-stono-rebellion
+    kind: event
+    name: { bg: "", en: "Stono Rebellion" }
+    aliases: []
+    start: "1739-09-09"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "The largest slave uprising in the mainland British colonies, in South Carolina, leads to harsher slave codes."
+
+  - id: event-sinners-in-the-hands-of-an-angry-god
+    kind: event
+    name: { bg: "", en: "\"Sinners in the Hands of an Angry God\"" }
+    aliases: []
+    start: "1741-07-08"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: church
+    color: "#6a4a8a"
+    blurb:
+      bg: ""
+      en: "Jonathan Edwards's sermon becomes a landmark of the First Great Awakening."
+
+  - id: event-jumonville-glen
+    kind: event
+    name: { bg: "", en: "Jumonville Glen" }
+    aliases: []
+    start: "1754-05-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "George Washington's clash with a French party opens the French and Indian War, the North American part of the Seven Years' War."
+
+  - id: event-albany-congress
+    kind: event
+    name: { bg: "", en: "Albany Congress" }
+    aliases: []
+    start: "1754-06-19"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-colonies
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Colonial delegates meet and consider Benjamin Franklin's Albany Plan of Union, an early idea of colonial unity."
+
+  - id: event-battle-of-the-plains-of-abraham
+    kind: event
+    name: { bg: "", en: "Battle of the Plains of Abraham" }
+    aliases: []
+    start: "1759-09-13"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-colonies
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "British forces take Quebec, deciding the war in North America."
+
+  - id: event-treaty-of-paris-1763
+    kind: event
+    name: { bg: "", en: "Treaty of Paris (1763)" }
+    aliases: []
+    start: "1763-02-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Ends the Seven Years' War; France gives up Canada and the land east of the Mississippi to Britain."
+
+  - id: event-royal-proclamation-of-1763
+    kind: event
+    name: { bg: "", en: "Royal Proclamation of 1763" }
+    aliases: []
+    start: "1763-10-07"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Britain forbids colonial settlement west of the Appalachians, angering many colonists."
+
+  - id: event-stamp-act-passed
+    kind: event
+    name: { bg: "", en: "Stamp Act passed" }
+    aliases: []
+    start: "1765-03-22"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Parliament's first direct tax on the colonies sparks the protest \"no taxation without representation\"."
+
+  - id: event-townshend-acts
+    kind: event
+    name: { bg: "", en: "Townshend Acts" }
+    aliases: []
+    start: "1767-06-29"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "New duties on imported goods like glass, paper and tea renew colonial protest."
+
+  - id: event-boston-massacre
+    kind: event
+    name: { bg: "", en: "Boston Massacre" }
+    aliases: []
+    start: "1770-03-05"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "British soldiers kill five colonists in Boston, which patriots use to stir opposition."
+
+  - id: event-gaspee-affair
+    kind: event
+    name: { bg: "", en: "Gaspee affair" }
+    aliases: []
+    start: "1772-06-09"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Rhode Islanders burn a British customs ship."
+
+  - id: event-boston-tea-party
+    kind: event
+    name: { bg: "", en: "Boston Tea Party" }
+    aliases: []
+    start: "1773-12-16"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Colonists dump a shipment of East India Company tea into Boston Harbor to protest the Tea Act."
+
+  - id: event-intolerable-acts-begin
+    kind: event
+    name: { bg: "", en: "Intolerable Acts begin" }
+    aliases: []
+    start: "1774-03-31"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Britain closes Boston Harbor and limits Massachusetts self-government, uniting the colonies in protest."
+
+  - id: event-first-continental-congress-meets
+    kind: event
+    name: { bg: "", en: "First Continental Congress meets" }
+    aliases: []
+    start: "1774-09-05"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Delegates from twelve colonies meet in Philadelphia to coordinate a response to British policy."
+
+  - id: event-battles-of-lexington-and-concord
+    kind: event
+    name: { bg: "", en: "Battles of Lexington and Concord" }
+    aliases: []
+    start: "1775-04-19"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The first fighting of the Revolutionary War."
+
+  - id: event-second-continental-congress-convenes
+    kind: event
+    name: { bg: "", en: "Second Continental Congress convenes" }
+    aliases: []
+    start: "1775-05-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Congress that will direct the war and declare independence takes over as a de facto government."
+
+  - id: event-washington-named-commander-in-chief
+    kind: event
+    name: { bg: "", en: "Washington named commander in chief" }
+    aliases: []
+    start: "1775-06-15"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Congress appoints George Washington to lead the Continental Army."
+
+  - id: event-battle-of-bunker-hill
+    kind: event
+    name: { bg: "", en: "Battle of Bunker Hill" }
+    aliases: []
+    start: "1775-06-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A costly British victory near Boston shows that the colonists can stand and fight."
+
+  - id: event-dunmore-s-proclamation
+    kind: event
+    name: { bg: "", en: "Dunmore's Proclamation" }
+    aliases: []
+    start: "1775-11-07"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Virginia's royal governor offers freedom to enslaved people who join the British."
+
+  - id: event-common-sense-published
+    kind: event
+    name: { bg: "", en: "Common Sense published" }
+    aliases: []
+    start: "1776-01-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Thomas Paine's pamphlet argues for independence and sells in huge numbers."
+
+  - id: event-british-evacuate-boston
+    kind: event
+    name: { bg: "", en: "British evacuate Boston" }
+    aliases: []
+    start: "1776-03-17"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Washington's artillery on Dorchester Heights forces the British to leave."
+
+  - id: event-virginia-declaration-of-rights
+    kind: event
+    name: { bg: "", en: "Virginia Declaration of Rights" }
+    aliases: []
+    start: "1776-06-12"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "George Mason's declaration influences the Bill of Rights."
+
+  - id: event-congress-votes-for-independence
+    kind: event
+    name: { bg: "", en: "Congress votes for independence" }
+    aliases: []
+    start: "1776-07-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Congress approves the Lee Resolution declaring the colonies free of Britain."
+
+  - id: event-declaration-of-independence-adopted
+    kind: event
+    name: { bg: "", en: "Declaration of Independence adopted" }
+    aliases: []
+    start: "1776-07-04"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Congress adopts Thomas Jefferson's text announcing the United States."
+
+  - id: event-battle-of-long-island
+    kind: event
+    name: { bg: "", en: "Battle of Long Island" }
+    aliases: []
+    start: "1776-08-27"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The largest battle of the war; Washington's army escapes defeat."
+
+  - id: event-washington-crosses-the-delaware-and-wins-at-trenton
+    kind: event
+    name: { bg: "", en: "Washington crosses the Delaware and wins at Trenton" }
+    aliases: []
+    start: "1776-12-26"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A surprise victory lifts patriot morale after a string of defeats."
+
+  - id: event-flag-resolution
+    kind: event
+    name: { bg: "", en: "Flag Resolution" }
+    aliases: []
+    start: "1777-06-14"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Congress adopts the Stars and Stripes as the national flag."
+
+  - id: event-british-surrender-at-saratoga
+    kind: event
+    name: { bg: "", en: "British surrender at Saratoga" }
+    aliases: []
+    start: "1777-10-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The victory persuades France to ally with the United States."
+
+  - id: event-valley-forge-winter-begins
+    kind: event
+    name: { bg: "", en: "Valley Forge winter begins" }
+    aliases: []
+    start: "1777-12-19"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Washington's army camps through a hard winter and emerges better trained."
+
+  - id: event-treaty-of-alliance-with-france
+    kind: event
+    name: { bg: "", en: "Treaty of Alliance with France" }
+    aliases: []
+    start: "1778-02-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "France recognizes the United States and joins the war against Britain."
+
+  - id: event-benedict-arnold-s-treason
+    kind: event
+    name: { bg: "", en: "Benedict Arnold's treason" }
+    aliases: []
+    start: "1780-09-25"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The American general's plot to surrender West Point is exposed and he flees to the British."
+
+  - id: event-articles-of-confederation-ratified
+    kind: event
+    name: { bg: "", en: "Articles of Confederation ratified" }
+    aliases: []
+    start: "1781-03-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first constitution of the United States takes effect."
+
+  - id: event-british-surrender-at-yorktown
+    kind: event
+    name: { bg: "", en: "British surrender at Yorktown" }
+    aliases: []
+    start: "1781-10-19"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-revolutionary-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Cornwallis surrenders to Washington and French forces, effectively ending major fighting."
+
+  - id: event-preliminary-peace-treaty-signed
+    kind: event
+    name: { bg: "", en: "Preliminary peace treaty signed" }
+    aliases: []
+    start: "1782-11-30"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Preliminary articles are signed in Paris, recognizing American independence."
+
+  - id: event-newburgh-address
+    kind: event
+    name: { bg: "", en: "Newburgh Address" }
+    aliases: []
+    start: "1783-03-15"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-revolutionary-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Washington calms officers who were threatening to defy Congress over pay."
+
+  - id: event-treaty-of-paris-1783
+    kind: event
+    name: { bg: "", en: "Treaty of Paris (1783)" }
+    aliases: []
+    start: "1783-09-03"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-confederation-and-constitution
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Britain formally recognizes American independence and the new borders."
+
+  - id: event-evacuation-day
+    kind: event
+    name: { bg: "", en: "Evacuation Day" }
+    aliases: []
+    start: "1783-11-25"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-confederation-and-constitution
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The last British troops leave New York City."
+
+  - id: event-washington-resigns-his-commission
+    kind: event
+    name: { bg: "", en: "Washington resigns his commission" }
+    aliases: []
+    start: "1783-12-23"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "He returns power to Congress, setting an example of civilian control of the military."
+
+  - id: event-virginia-statute-for-religious-freedom
+    kind: event
+    name: { bg: "", en: "Virginia Statute for Religious Freedom" }
+    aliases: []
+    start: "1786-01-16"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: church
+    color: "#6a4a8a"
+    blurb:
+      bg: ""
+      en: "Jefferson's law separates church and state in Virginia and later influences the First Amendment."
+
+  - id: event-shays-rebellion-begins
+    kind: event
+    name: { bg: "", en: "Shays' Rebellion begins" }
+    aliases: []
+    start: "1786-08-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Indebted farmers in Massachusetts close courts, showing the weakness of the Articles and pushing reformers toward a new constitution."
+
+  - id: event-constitutional-convention-opens
+    kind: event
+    name: { bg: "", en: "Constitutional Convention opens" }
+    aliases: []
+    start: "1787-05-25"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Delegates meet in Philadelphia and decide to write a new constitution instead of revising the Articles."
+
+  - id: event-northwest-ordinance
+    kind: event
+    name: { bg: "", en: "Northwest Ordinance" }
+    aliases: []
+    start: "1787-07-13"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Creates a process for new states in the Northwest Territory and bans slavery there."
+
+  - id: event-constitution-signed
+    kind: event
+    name: { bg: "", en: "Constitution signed" }
+    aliases: []
+    start: "1787-09-17"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-confederation-and-constitution
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The convention approves the Constitution and sends it to the states."
+
+  - id: event-federalist-papers-begin
+    kind: event
+    name: { bg: "", en: "Federalist Papers begin" }
+    aliases: []
+    start: "1787-10-27"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Hamilton, Madison and Jay start publishing essays arguing for ratification."
+
+  - id: event-constitution-ratified
+    kind: event
+    name: { bg: "", en: "Constitution ratified" }
+    aliases: []
+    start: "1788-06-21"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-confederation-and-constitution
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "New Hampshire becomes the ninth state to ratify, putting the Constitution into effect."
+
+  - id: event-washington-elected-president
+    kind: event
+    name: { bg: "", en: "Washington elected president" }
+    aliases: []
+    start: "1789-02-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-confederation-and-constitution
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The electors choose Washington unanimously."
+
+  - id: event-washington-inaugurated
+    kind: event
+    name: { bg: "", en: "Washington inaugurated" }
+    aliases: []
+    start: "1789-04-30"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-early-republic
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "The first president takes the oath in New York City."
+
+  - id: event-first-bank-of-the-united-states-chartered
+    kind: event
+    name: { bg: "", en: "First Bank of the United States chartered" }
+    aliases: []
+    start: "1791-02-25"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Hamilton's national bank is created, a major dispute between Hamilton and Jefferson."
+
+  - id: event-bill-of-rights-ratified
+    kind: event
+    name: { bg: "", en: "Bill of Rights ratified" }
+    aliases: []
+    start: "1791-12-15"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first ten amendments take effect."
+
+  - id: event-cotton-gin-patented
+    kind: event
+    name: { bg: "", en: "Cotton gin patented" }
+    aliases: []
+    start: "1794-03-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Eli Whitney's invention makes cotton far more profitable and strengthens slavery in the South."
+
+  - id: event-whiskey-rebellion
+    kind: event
+    name: { bg: "", en: "Whiskey Rebellion" }
+    aliases: []
+    start: "1794-07-01"
+    precision: year
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Farmers in western Pennsylvania resist a federal tax on whiskey and Washington sends an army to end it."
+
+  - id: event-jay-treaty
+    kind: event
+    name: { bg: "", en: "Jay Treaty" }
+    aliases: []
+    start: "1794-11-19"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Settles disputes with Britain and keeps the United States out of war, but divides Americans."
+
+  - id: event-washington-s-farewell-address
+    kind: event
+    name: { bg: "", en: "Washington's Farewell Address" }
+    aliases: []
+    start: "1796-09-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "He warns against political parties and permanent foreign alliances."
+
+  - id: event-sedition-act
+    kind: event
+    name: { bg: "", en: "Sedition Act" }
+    aliases: []
+    start: "1798-07-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Makes criticism of the government a crime and becomes a major controversy."
+
+  - id: event-house-elects-jefferson
+    kind: event
+    name: { bg: "", en: "House elects Jefferson" }
+    aliases: []
+    start: "1801-02-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "After a tie in the electoral vote, the House breaks it on the 36th ballot."
+
+  - id: event-marbury-v-madison
+    kind: event
+    name: { bg: "", en: "Marbury v. Madison" }
+    aliases: []
+    start: "1803-02-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court establishes the power of judicial review."
+
+  - id: event-louisiana-purchase
+    kind: event
+    name: { bg: "", en: "Louisiana Purchase" }
+    aliases: []
+    start: "1803-04-30"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-early-republic
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "The United States buys Louisiana from France, doubling its size."
+
+  - id: event-lewis-and-clark-expedition-departs
+    kind: event
+    name: { bg: "", en: "Lewis and Clark expedition departs" }
+    aliases: []
+    start: "1804-05-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "The expedition sets out to explore and map the new western territory."
+
+  - id: event-hamilton-burr-duel
+    kind: event
+    name: { bg: "", en: "Hamilton-Burr duel" }
+    aliases: []
+    start: "1804-07-11"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Vice President Aaron Burr mortally wounds Alexander Hamilton."
+
+  - id: event-act-banning-the-slave-trade
+    kind: event
+    name: { bg: "", en: "Act banning the slave trade" }
+    aliases: []
+    start: "1807-03-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Congress bans the importation of enslaved people from 01.01.1808."
+
+  - id: event-embargo-act
+    kind: event
+    name: { bg: "", en: "Embargo Act" }
+    aliases: []
+    start: "1807-12-22"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-republic
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Jefferson halts foreign trade to pressure Britain and France, hurting American merchants."
+
+  - id: event-war-of-1812-declared
+    kind: event
+    name: { bg: "", en: "War of 1812 declared" }
+    aliases: []
+    start: "1812-06-18"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Madison signs the declaration of war on Britain."
+
+  - id: event-british-burn-washington
+    kind: event
+    name: { bg: "", en: "British burn Washington" }
+    aliases: []
+    start: "1814-08-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "British troops burn the Capitol and the White House."
+
+  - id: event-fort-mchenry-bombardment
+    kind: event
+    name: { bg: "", en: "Fort McHenry bombardment" }
+    aliases: []
+    start: "1814-09-13"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-republic
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "The defense of Baltimore inspires Francis Scott Key to write \"The Star-Spangled Banner\"."
+
+  - id: event-treaty-of-ghent
+    kind: event
+    name: { bg: "", en: "Treaty of Ghent" }
+    aliases: []
+    start: "1814-12-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Ends the War of 1812 with no change in borders."
+
+  - id: event-battle-of-new-orleans
+    kind: event
+    name: { bg: "", en: "Battle of New Orleans" }
+    aliases: []
+    start: "1815-01-08"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-republic
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Andrew Jackson's victory comes after the treaty was signed but before news arrived."
+
+  - id: event-adams-onis-treaty
+    kind: event
+    name: { bg: "", en: "Adams-Onis Treaty" }
+    aliases: []
+    start: "1819-02-22"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Spain gives Florida to the United States and defines the western border."
+
+  - id: event-missouri-compromise
+    kind: event
+    name: { bg: "", en: "Missouri Compromise" }
+    aliases: []
+    start: "1820-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Admits Missouri as a slave state and Maine as a free state, limiting slavery north of 36°30'."
+
+  - id: event-monroe-doctrine
+    kind: event
+    name: { bg: "", en: "Monroe Doctrine" }
+    aliases: []
+    start: "1823-12-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Monroe warns European powers against new colonization in the Americas."
+
+  - id: event-erie-canal-opens
+    kind: event
+    name: { bg: "", en: "Erie Canal opens" }
+    aliases: []
+    start: "1825-10-26"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-early-republic
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Connects the Great Lakes to the Atlantic and boosts New York's growth."
+
+  - id: event-jefferson-and-john-adams-die
+    kind: event
+    name: { bg: "", en: "Jefferson and John Adams die" }
+    aliases: []
+    start: "1826-07-04"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-early-republic
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Both die on the 50th anniversary of the Declaration of Independence."
+
+  - id: event-indian-removal-act
+    kind: event
+    name: { bg: "", en: "Indian Removal Act" }
+    aliases: []
+    start: "1830-05-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Authorizes the removal of Native nations from the Southeast to land west of the Mississippi."
+
+  - id: event-the-liberator-first-published
+    kind: event
+    name: { bg: "", en: "The Liberator first published" }
+    aliases: []
+    start: "1831-01-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "William Lloyd Garrison launches his anti-slavery newspaper."
+
+  - id: event-nat-turner-s-rebellion
+    kind: event
+    name: { bg: "", en: "Nat Turner's Rebellion" }
+    aliases: []
+    start: "1831-08-21"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "A slave uprising in Virginia leads to harsher laws across the South."
+
+  - id: event-jackson-vetoes-the-bank
+    kind: event
+    name: { bg: "", en: "Jackson vetoes the Bank" }
+    aliases: []
+    start: "1832-07-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Jackson rejects the recharter of the Second Bank of the United States."
+
+  - id: event-nullification-ordinance
+    kind: event
+    name: { bg: "", en: "Nullification Ordinance" }
+    aliases: []
+    start: "1832-11-24"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "South Carolina declares a federal tariff null within the state, starting a crisis."
+
+  - id: event-texas-declares-independence
+    kind: event
+    name: { bg: "", en: "Texas declares independence" }
+    aliases: []
+    start: "1836-03-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Texans break away from Mexico."
+
+  - id: event-fall-of-the-alamo
+    kind: event
+    name: { bg: "", en: "Fall of the Alamo" }
+    aliases: []
+    start: "1836-03-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Mexican forces take the Alamo mission after a 13-day siege."
+
+  - id: event-panic-of-1837
+    kind: event
+    name: { bg: "", en: "Panic of 1837" }
+    aliases: []
+    start: "1837-05-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Banks suspend payments, starting a long depression."
+
+  - id: event-trail-of-tears-begins
+    kind: event
+    name: { bg: "", en: "Trail of Tears begins" }
+    aliases: []
+    start: "1838-05-26"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The forced removal of the Cherokee Nation starts; thousands die on the way west."
+
+  - id: event-first-telegraph-message
+    kind: event
+    name: { bg: "", en: "First telegraph message" }
+    aliases: []
+    start: "1844-05-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Samuel Morse sends \"What hath God wrought\" from Washington to Baltimore."
+
+  - id: event-texas-becomes-a-state
+    kind: event
+    name: { bg: "", en: "Texas becomes a state" }
+    aliases: []
+    start: "1845-12-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Texas is admitted as the 28th state, leading to war with Mexico."
+
+  - id: event-war-with-mexico-declared
+    kind: event
+    name: { bg: "", en: "War with Mexico declared" }
+    aliases: []
+    start: "1846-05-13"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Congress declares war after a border clash."
+
+  - id: event-oregon-treaty
+    kind: event
+    name: { bg: "", en: "Oregon Treaty" }
+    aliases: []
+    start: "1846-06-15"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-jacksonian-era-and-expansion
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Britain and the United States divide the Oregon Country at the 49th parallel."
+
+  - id: event-mormon-pioneers-reach-salt-lake-valley
+    kind: event
+    name: { bg: "", en: "Mormon pioneers reach Salt Lake Valley" }
+    aliases: []
+    start: "1847-07-24"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-jacksonian-era-and-expansion
+    category: church
+    color: "#6a4a8a"
+    blurb:
+      bg: ""
+      en: "Brigham Young leads the group that founds Salt Lake City."
+
+  - id: event-gold-discovered-in-california
+    kind: event
+    name: { bg: "", en: "Gold discovered in California" }
+    aliases: []
+    start: "1848-01-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "James Marshall finds gold at Sutter's Mill, starting the Gold Rush."
+
+  - id: event-treaty-of-guadalupe-hidalgo
+    kind: event
+    name: { bg: "", en: "Treaty of Guadalupe Hidalgo" }
+    aliases: []
+    start: "1848-02-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Mexico gives up California and most of the Southwest."
+
+  - id: event-seneca-falls-convention
+    kind: event
+    name: { bg: "", en: "Seneca Falls Convention" }
+    aliases: []
+    start: "1848-07-19"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first women's rights convention in the United States begins."
+
+  - id: event-compromise-of-1850
+    kind: event
+    name: { bg: "", en: "Compromise of 1850" }
+    aliases: []
+    start: "1850-09-09"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "California joins as a free state while a tougher Fugitive Slave Act is passed."
+
+  - id: event-uncle-tom-s-cabin-published
+    kind: event
+    name: { bg: "", en: "Uncle Tom's Cabin published" }
+    aliases: []
+    start: "1852-03-20"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Harriet Beecher Stowe's novel turns many Northerners against slavery."
+
+  - id: event-gadsden-purchase
+    kind: event
+    name: { bg: "", en: "Gadsden Purchase" }
+    aliases: []
+    start: "1853-12-30"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-jacksonian-era-and-expansion
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "The United States buys land from Mexico, completing the southern border of the lower 48 states."
+
+  - id: event-kansas-nebraska-act
+    kind: event
+    name: { bg: "", en: "Kansas-Nebraska Act" }
+    aliases: []
+    start: "1854-05-30"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Lets settlers decide on slavery in the new territories, causing \"Bleeding Kansas\" and a new Republican Party."
+
+  - id: event-dred-scott-decision
+    kind: event
+    name: { bg: "", en: "Dred Scott decision" }
+    aliases: []
+    start: "1857-03-06"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court rules that Black Americans cannot be citizens and that Congress cannot ban slavery in territories."
+
+  - id: event-john-brown-s-raid-on-harpers-ferry
+    kind: event
+    name: { bg: "", en: "John Brown's raid on Harpers Ferry" }
+    aliases: []
+    start: "1859-10-16"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "The abolitionist's attempt to start a slave revolt deepens the North-South divide."
+
+  - id: event-lincoln-elected-president
+    kind: event
+    name: { bg: "", en: "Lincoln elected president" }
+    aliases: []
+    start: "1860-11-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Abraham Lincoln wins without carrying a single Southern state."
+
+  - id: event-south-carolina-secedes
+    kind: event
+    name: { bg: "", en: "South Carolina secedes" }
+    aliases: []
+    start: "1860-12-20"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first state leaves the Union, followed by six others within weeks."
+
+  - id: event-confederate-states-formed
+    kind: event
+    name: { bg: "", en: "Confederate States formed" }
+    aliases: []
+    start: "1861-02-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-jacksonian-era-and-expansion
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Delegates meet in Montgomery, Alabama, to create a new government."
+
+  - id: event-attack-on-fort-sumter
+    kind: event
+    name: { bg: "", en: "Attack on Fort Sumter" }
+    aliases: []
+    start: "1861-04-12"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Confederate guns open fire in Charleston harbor, starting the Civil War."
+
+  - id: event-virginia-secedes
+    kind: event
+    name: { bg: "", en: "Virginia secedes" }
+    aliases: []
+    start: "1861-04-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The state with the most resources in the Upper South joins the Confederacy."
+
+  - id: event-first-battle-of-bull-run
+    kind: event
+    name: { bg: "", en: "First Battle of Bull Run" }
+    aliases: []
+    start: "1861-07-21"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A Confederate victory shows that the war will not be short."
+
+  - id: event-fort-donelson-captured
+    kind: event
+    name: { bg: "", en: "Fort Donelson captured" }
+    aliases: []
+    start: "1862-02-16"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Ulysses S. Grant's \"unconditional surrender\" victory opens Tennessee to the Union."
+
+  - id: event-legal-tender-act
+    kind: event
+    name: { bg: "", en: "Legal Tender Act" }
+    aliases: []
+    start: "1862-02-25"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Congress authorizes paper \"greenback\" money to finance the war."
+
+  - id: event-battle-of-shiloh
+    kind: event
+    name: { bg: "", en: "Battle of Shiloh" }
+    aliases: []
+    start: "1862-04-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A bloody two-day battle in Tennessee ends hopes for a quick Union victory."
+
+  - id: event-homestead-act
+    kind: event
+    name: { bg: "", en: "Homestead Act" }
+    aliases: []
+    start: "1862-05-20"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Offers 160 acres of public land to settlers who farm it for five years."
+
+  - id: event-pacific-railway-act
+    kind: event
+    name: { bg: "", en: "Pacific Railway Act" }
+    aliases: []
+    start: "1862-07-01"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Authorizes the first transcontinental railroad."
+
+  - id: event-battle-of-antietam
+    kind: event
+    name: { bg: "", en: "Battle of Antietam" }
+    aliases: []
+    start: "1862-09-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The bloodiest single day in American history halts Lee's invasion of the North."
+
+  - id: event-emancipation-proclamation
+    kind: event
+    name: { bg: "", en: "Emancipation Proclamation" }
+    aliases: []
+    start: "1863-01-01"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-civil-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Lincoln declares enslaved people in Confederate-held areas free."
+
+  - id: event-battle-of-gettysburg
+    kind: event
+    name: { bg: "", en: "Battle of Gettysburg" }
+    aliases: []
+    start: "1863-07-01"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A three-day Union victory in Pennsylvania ends Lee's last invasion of the North."
+
+  - id: event-vicksburg-surrenders
+    kind: event
+    name: { bg: "", en: "Vicksburg surrenders" }
+    aliases: []
+    start: "1863-07-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Grant's capture of Vicksburg gives the Union control of the Mississippi."
+
+  - id: event-new-york-city-draft-riots
+    kind: event
+    name: { bg: "", en: "New York City draft riots" }
+    aliases: []
+    start: "1863-07-13"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Rioters protest the draft and attack Black residents."
+
+  - id: event-54th-massachusetts-attacks-fort-wagner
+    kind: event
+    name: { bg: "", en: "54th Massachusetts attacks Fort Wagner" }
+    aliases: []
+    start: "1863-07-18"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The famous Black regiment's assault becomes a symbol of Black soldiers' courage."
+
+  - id: event-gettysburg-address
+    kind: event
+    name: { bg: "", en: "Gettysburg Address" }
+    aliases: []
+    start: "1863-11-19"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Lincoln redefines the war as a struggle for equality and self-government."
+
+  - id: event-grant-made-general-in-chief
+    kind: event
+    name: { bg: "", en: "Grant made general in chief" }
+    aliases: []
+    start: "1864-03-09"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Lincoln places Grant in command of all Union armies."
+
+  - id: event-battle-of-the-wilderness
+    kind: event
+    name: { bg: "", en: "Battle of the Wilderness" }
+    aliases: []
+    start: "1864-05-05"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Starts Grant's costly Overland Campaign against Lee."
+
+  - id: event-atlanta-falls
+    kind: event
+    name: { bg: "", en: "Atlanta falls" }
+    aliases: []
+    start: "1864-09-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Sherman's capture of the city boosts Lincoln's reelection chances."
+
+  - id: event-lincoln-reelected
+    kind: event
+    name: { bg: "", en: "Lincoln reelected" }
+    aliases: []
+    start: "1864-11-08"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-civil-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "He wins a second term during the war."
+
+  - id: event-sherman-s-march-to-the-sea
+    kind: event
+    name: { bg: "", en: "Sherman's March to the Sea" }
+    aliases: []
+    start: "1864-11-15"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Union troops march from Atlanta to Savannah, destroying Confederate resources."
+
+  - id: event-congress-passes-the-13th-amendment
+    kind: event
+    name: { bg: "", en: "Congress passes the 13th Amendment" }
+    aliases: []
+    start: "1865-01-31"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The House approves the amendment abolishing slavery."
+
+  - id: event-richmond-falls
+    kind: event
+    name: { bg: "", en: "Richmond falls" }
+    aliases: []
+    start: "1865-04-03"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Union troops take the Confederate capital."
+
+  - id: event-lee-surrenders-at-appomattox
+    kind: event
+    name: { bg: "", en: "Lee surrenders at Appomattox" }
+    aliases: []
+    start: "1865-04-09"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-civil-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Lee surrenders the Army of Northern Virginia to Grant, effectively ending the war."
+
+  - id: event-lincoln-shot
+    kind: event
+    name: { bg: "", en: "Lincoln shot" }
+    aliases: []
+    start: "1865-04-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "John Wilkes Booth shoots Lincoln at Ford's Theatre; he dies the next morning."
+
+  - id: event-13th-amendment-ratified
+    kind: event
+    name: { bg: "", en: "13th Amendment ratified" }
+    aliases: []
+    start: "1865-12-06"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Slavery is abolished throughout the United States."
+
+  - id: event-ku-klux-klan-founded
+    kind: event
+    name: { bg: "", en: "Ku Klux Klan founded" }
+    aliases: []
+    start: "1865-12-24"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-reconstruction
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Former Confederate soldiers in Tennessee found a terror group that attacks Black people and Republicans."
+
+  - id: event-civil-rights-act-of-1866
+    kind: event
+    name: { bg: "", en: "Civil Rights Act of 1866" }
+    aliases: []
+    start: "1866-04-09"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Congress overrides Andrew Johnson's veto to grant citizenship to Black Americans."
+
+  - id: event-reconstruction-acts
+    kind: event
+    name: { bg: "", en: "Reconstruction Acts" }
+    aliases: []
+    start: "1867-03-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Congress puts the Southern states under military districts and requires them to guarantee Black men's voting rights."
+
+  - id: event-alaska-purchase
+    kind: event
+    name: { bg: "", en: "Alaska Purchase" }
+    aliases: []
+    start: "1867-03-30"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "The United States buys Alaska from Russia."
+
+  - id: event-andrew-johnson-impeached
+    kind: event
+    name: { bg: "", en: "Andrew Johnson impeached" }
+    aliases: []
+    start: "1868-02-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The House impeaches him; the Senate acquits him by one vote on 16.05.1868."
+
+  - id: event-14th-amendment-ratified
+    kind: event
+    name: { bg: "", en: "14th Amendment ratified" }
+    aliases: []
+    start: "1868-07-09"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Guarantees citizenship and equal protection of the laws."
+
+  - id: event-transcontinental-railroad-completed
+    kind: event
+    name: { bg: "", en: "Transcontinental railroad completed" }
+    aliases: []
+    start: "1869-05-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The Union Pacific and Central Pacific lines meet at Promontory Summit, Utah."
+
+  - id: event-standard-oil-founded
+    kind: event
+    name: { bg: "", en: "Standard Oil founded" }
+    aliases: []
+    start: "1870-01-10"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-reconstruction
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "John D. Rockefeller incorporates the company that will dominate the oil industry."
+
+  - id: event-15th-amendment-ratified
+    kind: event
+    name: { bg: "", en: "15th Amendment ratified" }
+    aliases: []
+    start: "1870-02-03"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Bars denying the vote on the basis of race."
+
+  - id: event-great-chicago-fire
+    kind: event
+    name: { bg: "", en: "Great Chicago Fire" }
+    aliases: []
+    start: "1871-10-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The fire destroys much of the city and leaves 100,000 homeless."
+
+  - id: event-yellowstone-national-park-created
+    kind: event
+    name: { bg: "", en: "Yellowstone National Park created" }
+    aliases: []
+    start: "1872-03-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "The first national park in the United States."
+
+  - id: event-panic-of-1873
+    kind: event
+    name: { bg: "", en: "Panic of 1873" }
+    aliases: []
+    start: "1873-09-18"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The bank failure of Jay Cooke & Company starts a long depression."
+
+  - id: event-bell-s-first-telephone-call
+    kind: event
+    name: { bg: "", en: "Bell's first telephone call" }
+    aliases: []
+    start: "1876-03-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Alexander Graham Bell speaks to his assistant over the new device."
+
+  - id: event-battle-of-little-bighorn
+    kind: event
+    name: { bg: "", en: "Battle of Little Bighorn" }
+    aliases: []
+    start: "1876-06-25"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-reconstruction
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Lakota and Cheyenne warriors destroy Custer's command."
+
+  - id: event-disputed-election-of-1876
+    kind: event
+    name: { bg: "", en: "Disputed election of 1876" }
+    aliases: []
+    start: "1876-11-07"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Samuel Tilden wins the popular vote, but the electoral count of several states is disputed."
+
+  - id: event-compromise-of-1877
+    kind: event
+    name: { bg: "", en: "Compromise of 1877" }
+    aliases: []
+    start: "1877-03-02"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-reconstruction
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "An electoral commission awards the presidency to Hayes, and federal troops leave the South, ending Reconstruction."
+
+  - id: event-great-railroad-strike
+    kind: event
+    name: { bg: "", en: "Great Railroad Strike" }
+    aliases: []
+    start: "1877-07-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "A nationwide strike by railroad workers is put down with federal troops."
+
+  - id: event-edison-s-practical-light-bulb
+    kind: event
+    name: { bg: "", en: "Edison's practical light bulb" }
+    aliases: []
+    start: "1879-10-21"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Thomas Edison tests a long-lasting incandescent lamp."
+
+  - id: event-chinese-exclusion-act
+    kind: event
+    name: { bg: "", en: "Chinese Exclusion Act" }
+    aliases: []
+    start: "1882-05-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The first major federal law restricting immigration by nationality."
+
+  - id: event-haymarket-affair
+    kind: event
+    name: { bg: "", en: "Haymarket affair" }
+    aliases: []
+    start: "1886-05-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "A bomb at a labor rally in Chicago kills police officers and sets back the labor movement."
+
+  - id: event-statue-of-liberty-dedicated
+    kind: event
+    name: { bg: "", en: "Statue of Liberty dedicated" }
+    aliases: []
+    start: "1886-10-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "A gift from France, it becomes a symbol of welcome to immigrants."
+
+  - id: event-interstate-commerce-act
+    kind: event
+    name: { bg: "", en: "Interstate Commerce Act" }
+    aliases: []
+    start: "1887-02-04"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Creates the first federal agency to regulate business, covering the railroads."
+
+  - id: event-dawes-act
+    kind: event
+    name: { bg: "", en: "Dawes Act" }
+    aliases: []
+    start: "1887-02-08"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Breaks up tribal land into individual plots."
+
+  - id: event-sherman-antitrust-act
+    kind: event
+    name: { bg: "", en: "Sherman Antitrust Act" }
+    aliases: []
+    start: "1890-07-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The first federal law against monopolies."
+
+  - id: event-wounded-knee-massacre
+    kind: event
+    name: { bg: "", en: "Wounded Knee Massacre" }
+    aliases: []
+    start: "1890-12-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The US Army kills about 250 Lakota people in South Dakota, effectively ending the Indian Wars."
+
+  - id: event-ellis-island-opens
+    kind: event
+    name: { bg: "", en: "Ellis Island opens" }
+    aliases: []
+    start: "1892-01-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The main immigration station in New York processes millions of arrivals."
+
+  - id: event-panic-of-1893
+    kind: event
+    name: { bg: "", en: "Panic of 1893" }
+    aliases: []
+    start: "1893-05-05"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "A stock market collapse begins a severe depression."
+
+  - id: event-pullman-strike
+    kind: event
+    name: { bg: "", en: "Pullman Strike" }
+    aliases: []
+    start: "1894-05-11"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "A railway strike is broken up with federal troops."
+
+  - id: event-plessy-v-ferguson
+    kind: event
+    name: { bg: "", en: "Plessy v. Ferguson" }
+    aliases: []
+    start: "1896-05-18"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court upholds \"separate but equal\" segregation."
+
+  - id: event-uss-maine-explodes
+    kind: event
+    name: { bg: "", en: "USS Maine explodes" }
+    aliases: []
+    start: "1898-02-15"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The explosion in Havana harbor increases pressure for war with Spain."
+
+  - id: event-spanish-american-war-declared
+    kind: event
+    name: { bg: "", en: "Spanish-American War declared" }
+    aliases: []
+    start: "1898-04-25"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Congress declares war on Spain, gaining Puerto Rico, Guam and the Philippines."
+
+  - id: event-hawaii-annexed
+    kind: event
+    name: { bg: "", en: "Hawaii annexed" }
+    aliases: []
+    start: "1898-07-07"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Congress votes to annex the Hawaiian Islands."
+
+  - id: event-treaty-of-paris-1898
+    kind: event
+    name: { bg: "", en: "Treaty of Paris (1898)" }
+    aliases: []
+    start: "1898-12-10"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Spain gives up Cuba and cedes Puerto Rico, Guam and the Philippines."
+
+  - id: event-philippine-american-war-begins
+    kind: event
+    name: { bg: "", en: "Philippine-American War begins" }
+    aliases: []
+    start: "1899-02-04"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Filipino forces resist American rule."
+
+  - id: event-galveston-hurricane
+    kind: event
+    name: { bg: "", en: "Galveston hurricane" }
+    aliases: []
+    start: "1900-09-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The deadliest natural disaster in US history kills an estimated 6,000 to 12,000 people."
+
+  - id: event-theodore-roosevelt-becomes-president
+    kind: event
+    name: { bg: "", en: "Theodore Roosevelt becomes president" }
+    aliases: []
+    start: "1901-09-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "He takes the oath after McKinley dies of an assassin's bullet."
+
+  - id: event-wright-brothers-first-flight
+    kind: event
+    name: { bg: "", en: "Wright brothers' first flight" }
+    aliases: []
+    start: "1903-12-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Orville and Wilbur Wright fly the first powered airplane at Kitty Hawk."
+
+  - id: event-san-francisco-earthquake
+    kind: event
+    name: { bg: "", en: "San Francisco earthquake" }
+    aliases: []
+    start: "1906-04-18"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The earthquake and fires destroy much of the city."
+
+  - id: event-model-t-introduced
+    kind: event
+    name: { bg: "", en: "Model T introduced" }
+    aliases: []
+    start: "1908-09-27"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Henry Ford's affordable car begins to change American life."
+
+  - id: event-naacp-founded
+    kind: event
+    name: { bg: "", en: "NAACP founded" }
+    aliases: []
+    start: "1909-02-12"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Civil rights activists found the National Association for the Advancement of Colored People."
+
+  - id: event-triangle-shirtwaist-fire
+    kind: event
+    name: { bg: "", en: "Triangle Shirtwaist fire" }
+    aliases: []
+    start: "1911-03-25"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "A New York factory fire kills 146 workers and leads to new safety laws."
+
+  - id: event-16th-amendment-ratified
+    kind: event
+    name: { bg: "", en: "16th Amendment ratified" }
+    aliases: []
+    start: "1913-02-03"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-gilded-age-and-progressive-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Allows a federal income tax."
+
+  - id: event-federal-reserve-act
+    kind: event
+    name: { bg: "", en: "Federal Reserve Act" }
+    aliases: []
+    start: "1913-12-23"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Creates the Federal Reserve System, the central bank."
+
+  - id: event-panama-canal-opens
+    kind: event
+    name: { bg: "", en: "Panama Canal opens" }
+    aliases: []
+    start: "1914-08-15"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The canal links the Atlantic and Pacific oceans."
+
+  - id: event-sinking-of-the-lusitania
+    kind: event
+    name: { bg: "", en: "Sinking of the Lusitania" }
+    aliases: []
+    start: "1915-05-07"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A German U-boat sinks the British liner, killing 128 Americans."
+
+  - id: event-zimmermann-telegram-published
+    kind: event
+    name: { bg: "", en: "Zimmermann Telegram published" }
+    aliases: []
+    start: "1917-03-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-gilded-age-and-progressive-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A German offer of an alliance to Mexico becomes public, turning opinion toward war."
+
+  - id: event-united-states-enters-world-war-i
+    kind: event
+    name: { bg: "", en: "United States enters World War I" }
+    aliases: []
+    start: "1917-04-06"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Congress declares war on Germany."
+
+  - id: event-wilson-s-fourteen-points
+    kind: event
+    name: { bg: "", en: "Wilson's Fourteen Points" }
+    aliases: []
+    start: "1918-01-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Wilson outlines his plan for a peaceful postwar world."
+
+  - id: event-influenza-pandemic-peaks
+    kind: event
+    name: { bg: "", en: "Influenza pandemic peaks" }
+    aliases: []
+    start: "1918-09-01"
+    precision: year
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The flu kills about 675,000 Americans."
+
+  - id: event-meuse-argonne-offensive-begins
+    kind: event
+    name: { bg: "", en: "Meuse-Argonne offensive begins" }
+    aliases: []
+    start: "1918-09-26"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The largest American operation of the war."
+
+  - id: event-armistice
+    kind: event
+    name: { bg: "", en: "Armistice" }
+    aliases: []
+    start: "1918-11-11"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Fighting on the Western Front ends."
+
+  - id: event-18th-amendment-ratified
+    kind: event
+    name: { bg: "", en: "18th Amendment ratified" }
+    aliases: []
+    start: "1919-01-16"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Prohibition of alcohol is added to the Constitution."
+
+  - id: event-treaty-of-versailles-signed
+    kind: event
+    name: { bg: "", en: "Treaty of Versailles signed" }
+    aliases: []
+    start: "1919-06-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "The peace treaty with Germany includes the League of Nations."
+
+  - id: event-chicago-race-riot
+    kind: event
+    name: { bg: "", en: "Chicago race riot" }
+    aliases: []
+    start: "1919-07-27"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "One of the worst outbreaks of the \"Red Summer\" of racial violence."
+
+  - id: event-senate-rejects-the-treaty-of-versailles
+    kind: event
+    name: { bg: "", en: "Senate rejects the Treaty of Versailles" }
+    aliases: []
+    start: "1920-03-19"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The United States does not join the League of Nations."
+
+  - id: event-19th-amendment-ratified
+    kind: event
+    name: { bg: "", en: "19th Amendment ratified" }
+    aliases: []
+    start: "1920-08-18"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Women win the constitutional right to vote."
+
+  - id: event-tulsa-race-massacre
+    kind: event
+    name: { bg: "", en: "Tulsa Race Massacre" }
+    aliases: []
+    start: "1921-05-31"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "A white mob destroys the Black Greenwood district of Tulsa."
+
+  - id: event-immigration-act-of-1924
+    kind: event
+    name: { bg: "", en: "Immigration Act of 1924" }
+    aliases: []
+    start: "1924-05-26"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Sets strict national-origin quotas on immigration."
+
+  - id: event-lindbergh-s-transatlantic-flight
+    kind: event
+    name: { bg: "", en: "Lindbergh's transatlantic flight" }
+    aliases: []
+    start: "1927-05-21"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Charles Lindbergh lands in Paris after the first solo nonstop flight across the Atlantic."
+
+  - id: event-stock-market-crash
+    kind: event
+    name: { bg: "", en: "Stock market crash" }
+    aliases: []
+    start: "1929-10-29"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-world-wars-and-interwar-years
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "\"Black Tuesday\" marks the start of the Great Depression."
+
+  - id: event-first-hundred-days-begin
+    kind: event
+    name: { bg: "", en: "First Hundred Days begin" }
+    aliases: []
+    start: "1933-03-09"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Roosevelt and Congress begin passing the first New Deal laws."
+
+  - id: event-prohibition-repealed
+    kind: event
+    name: { bg: "", en: "Prohibition repealed" }
+    aliases: []
+    start: "1933-12-05"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The 21st Amendment ends Prohibition."
+
+  - id: event-black-sunday-dust-storm
+    kind: event
+    name: { bg: "", en: "Black Sunday dust storm" }
+    aliases: []
+    start: "1935-04-14"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "A huge storm marks the worst days of the Dust Bowl."
+
+  - id: event-social-security-act
+    kind: event
+    name: { bg: "", en: "Social Security Act" }
+    aliases: []
+    start: "1935-08-14"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Creates retirement and unemployment insurance."
+
+  - id: event-world-war-ii-begins-in-europe
+    kind: event
+    name: { bg: "", en: "World War II begins in Europe" }
+    aliases: []
+    start: "1939-09-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Germany invades Poland; the United States stays neutral at first."
+
+  - id: event-lend-lease-act
+    kind: event
+    name: { bg: "", en: "Lend-Lease Act" }
+    aliases: []
+    start: "1941-03-11"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The United States begins supplying weapons to Britain and its allies."
+
+  - id: event-attack-on-pearl-harbor
+    kind: event
+    name: { bg: "", en: "Attack on Pearl Harbor" }
+    aliases: []
+    start: "1941-12-07"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Japan attacks the US Pacific Fleet in Hawaii."
+
+  - id: event-united-states-declares-war-on-japan
+    kind: event
+    name: { bg: "", en: "United States declares war on Japan" }
+    aliases: []
+    start: "1941-12-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Congress declares war the day after Pearl Harbor; Germany and Italy declare war on the United States on 11.12.1941."
+
+  - id: event-executive-order-9066
+    kind: event
+    name: { bg: "", en: "Executive Order 9066" }
+    aliases: []
+    start: "1942-02-19"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Roosevelt authorizes the internment of about 120,000 Japanese Americans."
+
+  - id: event-battle-of-midway
+    kind: event
+    name: { bg: "", en: "Battle of Midway" }
+    aliases: []
+    start: "1942-06-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The US Navy sinks four Japanese carriers, a turning point in the Pacific."
+
+  - id: event-first-nuclear-chain-reaction
+    kind: event
+    name: { bg: "", en: "First nuclear chain reaction" }
+    aliases: []
+    start: "1942-12-02"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Scientists in Chicago achieve a self-sustaining chain reaction."
+
+  - id: event-d-day
+    kind: event
+    name: { bg: "", en: "D-Day" }
+    aliases: []
+    start: "1944-06-06"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Allied forces land in Normandy."
+
+  - id: event-gi-bill
+    kind: event
+    name: { bg: "", en: "GI Bill" }
+    aliases: []
+    start: "1944-06-22"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Gives veterans benefits for education and housing."
+
+  - id: event-bretton-woods-conference
+    kind: event
+    name: { bg: "", en: "Bretton Woods Conference" }
+    aliases: []
+    start: "1944-07-01"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Allies set up the IMF, the World Bank and a dollar-based monetary system."
+
+  - id: event-yalta-conference
+    kind: event
+    name: { bg: "", en: "Yalta Conference" }
+    aliases: []
+    start: "1945-02-04"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-world-wars-and-interwar-years
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Roosevelt, Churchill and Stalin plan the postwar order."
+
+  - id: event-roosevelt-dies
+    kind: event
+    name: { bg: "", en: "Roosevelt dies" }
+    aliases: []
+    start: "1945-04-12"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "Harry Truman becomes president."
+
+  - id: event-v-e-day
+    kind: event
+    name: { bg: "", en: "V-E Day" }
+    aliases: []
+    start: "1945-05-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Germany surrenders."
+
+  - id: event-united-nations-charter-signed
+    kind: event
+    name: { bg: "", en: "United Nations Charter signed" }
+    aliases: []
+    start: "1945-06-26"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Delegates sign the UN Charter in San Francisco."
+
+  - id: event-trinity-nuclear-test
+    kind: event
+    name: { bg: "", en: "Trinity nuclear test" }
+    aliases: []
+    start: "1945-07-16"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The first atomic bomb is tested in New Mexico."
+
+  - id: event-hiroshima-atomic-bombing
+    kind: event
+    name: { bg: "", en: "Hiroshima atomic bombing" }
+    aliases: []
+    start: "1945-08-06"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The US drops the first atomic bomb used in war."
+
+  - id: event-nagasaki-atomic-bombing
+    kind: event
+    name: { bg: "", en: "Nagasaki atomic bombing" }
+    aliases: []
+    start: "1945-08-09"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A second atomic bomb is dropped on Japan."
+
+  - id: event-japan-surrenders
+    kind: event
+    name: { bg: "", en: "Japan surrenders" }
+    aliases: []
+    start: "1945-09-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-world-wars-and-interwar-years
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The formal surrender ends World War II."
+
+  - id: event-churchill-s-iron-curtain-speech
+    kind: event
+    name: { bg: "", en: "Churchill's Iron Curtain speech" }
+    aliases: []
+    start: "1946-03-05"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Winston Churchill warns of a Soviet-dominated Eastern Europe in a speech in Fulton, Missouri."
+
+  - id: event-truman-doctrine
+    kind: event
+    name: { bg: "", en: "Truman Doctrine" }
+    aliases: []
+    start: "1947-03-12"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The United States pledges to support countries resisting communism."
+
+  - id: event-marshall-plan-announced
+    kind: event
+    name: { bg: "", en: "Marshall Plan announced" }
+    aliases: []
+    start: "1947-06-05"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "A massive aid program helps rebuild Western Europe."
+
+  - id: event-berlin-blockade-begins
+    kind: event
+    name: { bg: "", en: "Berlin Blockade begins" }
+    aliases: []
+    start: "1948-06-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Soviet Union cuts off land access to West Berlin; the Western Allies respond with an airlift."
+
+  - id: event-nato-founded
+    kind: event
+    name: { bg: "", en: "NATO founded" }
+    aliases: []
+    start: "1949-04-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "The United States and eleven other countries sign the North Atlantic Treaty."
+
+  - id: event-soviet-union-tests-an-atomic-bomb
+    kind: event
+    name: { bg: "", en: "Soviet Union tests an atomic bomb" }
+    aliases: []
+    start: "1949-08-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The US nuclear monopoly ends."
+
+  - id: event-mccarthy-s-wheeling-speech
+    kind: event
+    name: { bg: "", en: "McCarthy's Wheeling speech" }
+    aliases: []
+    start: "1950-02-09"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Senator Joseph McCarthy claims communists have infiltrated the government, starting McCarthyism."
+
+  - id: event-korean-war-begins
+    kind: event
+    name: { bg: "", en: "Korean War begins" }
+    aliases: []
+    start: "1950-06-25"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "North Korea invades South Korea; the United States leads a UN force."
+
+  - id: event-korean-war-armistice
+    kind: event
+    name: { bg: "", en: "Korean War armistice" }
+    aliases: []
+    start: "1953-07-27"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A ceasefire halts the fighting without a peace treaty."
+
+  - id: event-brown-v-board-of-education
+    kind: event
+    name: { bg: "", en: "Brown v. Board of Education" }
+    aliases: []
+    start: "1954-05-17"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court rules that segregated public schools are unconstitutional."
+
+  - id: event-rosa-parks-arrested
+    kind: event
+    name: { bg: "", en: "Rosa Parks arrested" }
+    aliases: []
+    start: "1955-12-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Her arrest in Montgomery, Alabama, sparks the bus boycott."
+
+  - id: event-federal-aid-highway-act
+    kind: event
+    name: { bg: "", en: "Federal-Aid Highway Act" }
+    aliases: []
+    start: "1956-06-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Creates the Interstate Highway System."
+
+  - id: event-little-rock-nine
+    kind: event
+    name: { bg: "", en: "Little Rock Nine" }
+    aliases: []
+    start: "1957-09-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Eisenhower sends troops to enforce school integration in Arkansas."
+
+  - id: event-sputnik-launched
+    kind: event
+    name: { bg: "", en: "Sputnik launched" }
+    aliases: []
+    start: "1957-10-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "The Soviet satellite starts the Space Race."
+
+  - id: event-nasa-created
+    kind: event
+    name: { bg: "", en: "NASA created" }
+    aliases: []
+    start: "1958-07-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Congress establishes the National Aeronautics and Space Administration."
+
+  - id: event-cuban-revolution
+    kind: event
+    name: { bg: "", en: "Cuban Revolution" }
+    aliases: []
+    start: "1959-01-01"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Fidel Castro takes power in Cuba, 90 miles from Florida."
+
+  - id: event-alaska-becomes-a-state
+    kind: event
+    name: { bg: "", en: "Alaska becomes a state" }
+    aliases: []
+    start: "1959-01-03"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Alaska is admitted as the 49th state."
+
+  - id: event-hawaii-becomes-a-state
+    kind: event
+    name: { bg: "", en: "Hawaii becomes a state" }
+    aliases: []
+    start: "1959-08-21"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Hawaii is admitted as the 50th state."
+
+  - id: event-greensboro-sit-ins
+    kind: event
+    name: { bg: "", en: "Greensboro sit-ins" }
+    aliases: []
+    start: "1960-02-01"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Four Black students begin a lunch-counter sit-in that spreads across the South."
+
+  - id: event-bay-of-pigs-invasion
+    kind: event
+    name: { bg: "", en: "Bay of Pigs invasion" }
+    aliases: []
+    start: "1961-04-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A failed US-backed invasion of Cuba embarrasses the new Kennedy administration."
+
+  - id: event-cuban-missile-crisis-begins
+    kind: event
+    name: { bg: "", en: "Cuban Missile Crisis begins" }
+    aliases: []
+    start: "1962-10-16"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A 13-day standoff over Soviet missiles in Cuba brings the world close to nuclear war."
+
+  - id: event-march-on-washington
+    kind: event
+    name: { bg: "", en: "March on Washington" }
+    aliases: []
+    start: "1963-08-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Martin Luther King Jr. gives his \"I Have a Dream\" speech."
+
+  - id: event-kennedy-assassinated
+    kind: event
+    name: { bg: "", en: "Kennedy assassinated" }
+    aliases: []
+    start: "1963-11-22"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "Kennedy is shot in Dallas; Lyndon Johnson becomes president."
+
+  - id: event-civil-rights-act-of-1964
+    kind: event
+    name: { bg: "", en: "Civil Rights Act of 1964" }
+    aliases: []
+    start: "1964-07-02"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Bans discrimination in public places and employment."
+
+  - id: event-gulf-of-tonkin-resolution
+    kind: event
+    name: { bg: "", en: "Gulf of Tonkin Resolution" }
+    aliases: []
+    start: "1964-08-07"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Congress authorizes broad military action in Vietnam."
+
+  - id: event-bloody-sunday-in-selma
+    kind: event
+    name: { bg: "", en: "Bloody Sunday in Selma" }
+    aliases: []
+    start: "1965-03-07"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "State troopers attack voting rights marchers, helping to pass the Voting Rights Act."
+
+  - id: event-medicare-signed
+    kind: event
+    name: { bg: "", en: "Medicare signed" }
+    aliases: []
+    start: "1965-07-30"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Lyndon Johnson signs the health insurance program for the elderly."
+
+  - id: event-voting-rights-act
+    kind: event
+    name: { bg: "", en: "Voting Rights Act" }
+    aliases: []
+    start: "1965-08-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Bans racial discrimination in voting."
+
+  - id: event-detroit-riot
+    kind: event
+    name: { bg: "", en: "Detroit riot" }
+    aliases: []
+    start: "1967-07-23"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-cold-war
+    category: uprising
+    color: "#c1272d"
+    blurb:
+      bg: ""
+      en: "Five days of unrest in Detroit are among the deadliest of the era."
+
+  - id: event-tet-offensive
+    kind: event
+    name: { bg: "", en: "Tet Offensive" }
+    aliases: []
+    start: "1968-01-30"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A surprise attack in Vietnam turns US opinion against the war."
+
+  - id: event-martin-luther-king-jr-assassinated
+    kind: event
+    name: { bg: "", en: "Martin Luther King Jr. assassinated" }
+    aliases: []
+    start: "1968-04-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "King is killed in Memphis, Tennessee, setting off unrest in many cities."
+
+  - id: event-apollo-11-moon-landing
+    kind: event
+    name: { bg: "", en: "Apollo 11 Moon landing" }
+    aliases: []
+    start: "1969-07-20"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Neil Armstrong and Buzz Aldrin become the first people on the Moon."
+
+  - id: event-nixon-ends-gold-convertibility
+    kind: event
+    name: { bg: "", en: "Nixon ends gold convertibility" }
+    aliases: []
+    start: "1971-08-15"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The \"Nixon shock\" ends the Bretton Woods system of fixed exchange rates."
+
+  - id: event-nixon-visits-china
+    kind: event
+    name: { bg: "", en: "Nixon visits China" }
+    aliases: []
+    start: "1972-02-21"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The visit opens relations after more than two decades of hostility."
+
+  - id: event-watergate-break-in
+    kind: event
+    name: { bg: "", en: "Watergate break-in" }
+    aliases: []
+    start: "1972-06-17"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Burglars linked to Nixon's reelection campaign are arrested at the Democratic headquarters."
+
+  - id: event-roe-v-wade
+    kind: event
+    name: { bg: "", en: "Roe v. Wade" }
+    aliases: []
+    start: "1973-01-22"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court recognizes a constitutional right to abortion."
+
+  - id: event-paris-peace-accords
+    kind: event
+    name: { bg: "", en: "Paris Peace Accords" }
+    aliases: []
+    start: "1973-01-27"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "The agreement lets US forces leave Vietnam."
+
+  - id: event-opec-oil-embargo
+    kind: event
+    name: { bg: "", en: "OPEC oil embargo" }
+    aliases: []
+    start: "1973-10-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Arab oil producers cut supplies to the United States, causing an energy crisis."
+
+  - id: event-nixon-resigns
+    kind: event
+    name: { bg: "", en: "Nixon resigns" }
+    aliases: []
+    start: "1974-08-09"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "Nixon leaves office because of the Watergate scandal and Gerald Ford takes over."
+
+  - id: event-fall-of-saigon
+    kind: event
+    name: { bg: "", en: "Fall of Saigon" }
+    aliases: []
+    start: "1975-04-30"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "North Vietnamese forces take the South Vietnamese capital, ending the Vietnam War."
+
+  - id: event-camp-david-accords
+    kind: event
+    name: { bg: "", en: "Camp David Accords" }
+    aliases: []
+    start: "1978-09-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Egypt and Israel agree on a framework for peace, brokered by Carter."
+
+  - id: event-iran-hostage-crisis-begins
+    kind: event
+    name: { bg: "", en: "Iran hostage crisis begins" }
+    aliases: []
+    start: "1979-11-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Iranian students seize the US embassy and hold 52 Americans for 444 days."
+
+  - id: event-first-aids-cases-reported
+    kind: event
+    name: { bg: "", en: "First AIDS cases reported" }
+    aliases: []
+    start: "1981-06-05"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The CDC reports the first cases of what will become the AIDS epidemic."
+
+  - id: event-challenger-disaster
+    kind: event
+    name: { bg: "", en: "Challenger disaster" }
+    aliases: []
+    start: "1986-01-28"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The space shuttle breaks apart 73 seconds after launch, killing all seven crew members."
+
+  - id: event-black-monday
+    kind: event
+    name: { bg: "", en: "Black Monday" }
+    aliases: []
+    start: "1987-10-19"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The Dow drops 22.6 percent in one day."
+
+  - id: event-inf-treaty-signed
+    kind: event
+    name: { bg: "", en: "INF Treaty signed" }
+    aliases: []
+    start: "1987-12-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: treaty
+    color: "#1f5fa8"
+    blurb:
+      bg: ""
+      en: "Reagan and Gorbachev agree to eliminate intermediate-range nuclear missiles."
+
+  - id: event-berlin-wall-falls
+    kind: event
+    name: { bg: "", en: "Berlin Wall falls" }
+    aliases: []
+    start: "1989-11-09"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "East Germany opens its borders, a symbol of the end of the Cold War."
+
+  - id: event-gulf-war-air-campaign-begins
+    kind: event
+    name: { bg: "", en: "Gulf War air campaign begins" }
+    aliases: []
+    start: "1991-01-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-cold-war
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A US-led coalition begins operations to drive Iraq out of Kuwait."
+
+  - id: event-soviet-union-dissolved
+    kind: event
+    name: { bg: "", en: "Soviet Union dissolved" }
+    aliases: []
+    start: "1991-12-26"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-cold-war
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Cold War ends as the USSR formally ceases to exist."
+
+  - id: event-nafta-signed
+    kind: event
+    name: { bg: "", en: "NAFTA signed" }
+    aliases: []
+    start: "1992-12-17"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The United States, Canada and Mexico sign a free trade agreement that takes effect in 1994."
+
+  - id: event-oklahoma-city-bombing
+    kind: event
+    name: { bg: "", en: "Oklahoma City bombing" }
+    aliases: []
+    start: "1995-04-19"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-post-cold-war-era
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "A domestic terrorist attack kills 168 people."
+
+  - id: event-clinton-impeached
+    kind: event
+    name: { bg: "", en: "Clinton impeached" }
+    aliases: []
+    start: "1998-12-19"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The House impeaches Bill Clinton; the Senate acquits him in 1999."
+
+  - id: event-bush-v-gore
+    kind: event
+    name: { bg: "", en: "Bush v. Gore" }
+    aliases: []
+    start: "2000-12-12"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court ends the Florida recount, giving George W. Bush the presidency."
+
+  - id: event-september-11-attacks
+    kind: event
+    name: { bg: "", en: "September 11 attacks" }
+    aliases: []
+    start: "2001-09-11"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-post-cold-war-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "Terrorists hijack four planes and kill nearly 3,000 people."
+
+  - id: event-war-in-afghanistan-begins
+    kind: event
+    name: { bg: "", en: "War in Afghanistan begins" }
+    aliases: []
+    start: "2001-10-07"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "The United States and allies invade Afghanistan after the attacks."
+
+  - id: event-usa-patriot-act
+    kind: event
+    name: { bg: "", en: "USA PATRIOT Act" }
+    aliases: []
+    start: "2001-10-26"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Expands surveillance and law enforcement powers after 9/11."
+
+  - id: event-iraq-war-begins
+    kind: event
+    name: { bg: "", en: "Iraq War begins" }
+    aliases: []
+    start: "2003-03-20"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "A US-led coalition invades Iraq."
+
+  - id: event-hurricane-katrina
+    kind: event
+    name: { bg: "", en: "Hurricane Katrina" }
+    aliases: []
+    start: "2005-08-29"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The hurricane floods New Orleans and kills about 1,800 people."
+
+  - id: event-iphone-released
+    kind: event
+    name: { bg: "", en: "iPhone released" }
+    aliases: []
+    start: "2007-06-29"
+    precision: exact
+    style: new
+    tier: 3
+    parent: period-post-cold-war-era
+    category: culture
+    color: "#2e7d4f"
+    blurb:
+      bg: ""
+      en: "Apple's smartphone changes how people use technology."
+
+  - id: event-lehman-brothers-collapses
+    kind: event
+    name: { bg: "", en: "Lehman Brothers collapses" }
+    aliases: []
+    start: "2008-09-15"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "The bankruptcy marks the peak of the 2008 financial crisis."
+
+  - id: event-barack-obama-elected
+    kind: event
+    name: { bg: "", en: "Barack Obama elected" }
+    aliases: []
+    start: "2008-11-04"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "He wins the presidency and becomes the first Black president."
+
+  - id: event-affordable-care-act-signed
+    kind: event
+    name: { bg: "", en: "Affordable Care Act signed" }
+    aliases: []
+    start: "2010-03-23"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "A major health care law that expands insurance coverage."
+
+  - id: event-osama-bin-laden-killed
+    kind: event
+    name: { bg: "", en: "Osama bin Laden killed" }
+    aliases: []
+    start: "2011-05-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: war
+    color: "#b3261e"
+    blurb:
+      bg: ""
+      en: "US forces kill the al-Qaeda leader in Pakistan."
+
+  - id: event-obergefell-v-hodges
+    kind: event
+    name: { bg: "", en: "Obergefell v. Hodges" }
+    aliases: []
+    start: "2015-06-26"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court rules that same-sex couples have a constitutional right to marry."
+
+  - id: event-donald-trump-elected
+    kind: event
+    name: { bg: "", en: "Donald Trump elected" }
+    aliases: []
+    start: "2016-11-08"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Trump wins the Electoral College while losing the national popular vote to Hillary Clinton."
+
+  - id: event-covid-19-national-emergency
+    kind: event
+    name: { bg: "", en: "COVID-19 national emergency" }
+    aliases: []
+    start: "2020-03-13"
+    precision: exact
+    style: new
+    tier: 1
+    parent: period-post-cold-war-era
+    category: disaster
+    color: "#8a4a1a"
+    blurb:
+      bg: ""
+      en: "The United States declares a national emergency as the pandemic spreads."
+
+  - id: event-killing-of-george-floyd
+    kind: event
+    name: { bg: "", en: "Killing of George Floyd" }
+    aliases: []
+    start: "2020-05-25"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The killing of George Floyd by a Minneapolis police officer sets off nationwide protests."
+
+  - id: event-joe-biden-elected
+    kind: event
+    name: { bg: "", en: "Joe Biden elected" }
+    aliases: []
+    start: "2020-11-03"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Biden defeats Donald Trump."
+
+  - id: event-attack-on-the-capitol
+    kind: event
+    name: { bg: "", en: "Attack on the Capitol" }
+    aliases: []
+    start: "2021-01-06"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Supporters of Donald Trump storm the Capitol as Congress certifies the 2020 election."
+
+  - id: event-dobbs-v-jackson
+    kind: event
+    name: { bg: "", en: "Dobbs v. Jackson" }
+    aliases: []
+    start: "2022-06-24"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "The Supreme Court overturns Roe v. Wade."
+
+  - id: event-donald-trump-elected-again
+    kind: event
+    name: { bg: "", en: "Donald Trump elected again" }
+    aliases: []
+    start: "2024-11-05"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: politics
+    color: "#5a6b7a"
+    blurb:
+      bg: ""
+      en: "Trump wins the presidency after losing in 2020."
+
+  - id: event-trump-s-second-inauguration
+    kind: event
+    name: { bg: "", en: "Trump's second inauguration" }
+    aliases: []
+    start: "2025-01-20"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: ruler
+    color: "#7a5c3e"
+    blurb:
+      bg: ""
+      en: "Trump begins his second, non-consecutive term."
+
+  - id: event-broad-new-tariffs-announced
+    kind: event
+    name: { bg: "", en: "Broad new tariffs announced" }
+    aliases: []
+    start: "2025-04-02"
+    precision: exact
+    style: new
+    tier: 2
+    parent: period-post-cold-war-era
+    category: economy
+    color: "#b8860b"
+    blurb:
+      bg: ""
+      en: "Trump announces sweeping tariffs on imports from most countries."

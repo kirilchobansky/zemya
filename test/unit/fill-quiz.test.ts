@@ -351,12 +351,15 @@ describe('the United States quiz table on the shipped timeline', () => {
     return m ? prepared[m.index].id : null;
   };
 
-  it('has four quizzes; only the full list has the elected toggle', () => {
+  it('has eight quizzes; only the two full lists have the elected toggle', () => {
     expect(quizzes.map(q => q.title)).toEqual([
-      'Presidents of the United States', 'Presidents, 1789-1869', 'Presidents, 1869-1945', 'Presidents, 1945-today'
+      'Presidents of the United States', 'Presidents, 1789-1869', 'Presidents, 1869-1945', 'Presidents, 1945-today',
+      'Vice Presidents of the United States', 'Vice Presidents, 1789-1869', 'Vice Presidents, 1869-1949',
+      'Vice Presidents, 1949-today'
     ]);
     expect(quizzes.filter(q => q.toggle).map(q => [q.id, q.toggle!.label])).toEqual([
-      ['united-states-presidents', 'Elected to the office only']
+      ['united-states-presidents', 'Elected to the office only'],
+      ['united-states-vice-presidents', 'Elected to the office only']
     ]);
   });
 
@@ -400,6 +403,42 @@ describe('the United States quiz table on the shipped timeline', () => {
     expect(idOf('Cleveland', new Set(['pres-cleveland-1', 'pres-cleveland-2']))).toBeNull();
     expect(idOf('Trump')).toBe('pres-trump-1');
     expect(idOf('Trump', new Set(['pres-trump-1']))).toBe('pres-trump-2');
+  });
+});
+
+describe('the United States vice-president quizzes on the shipped timeline', () => {
+  const doc = JSON.parse(readFileSync('public/data/history/us.json', 'utf8')) as { entries: FillRawEntry[] };
+  const quizzes = fillQuizzesFromRaw(doc.entries, 'united-states');
+  const quiz = (id: string) => quizzes.find(q => q.id === `united-states-${id}`)!;
+  const all = quiz('vice-presidents');
+  const prepared = prepareFill(all.entries);
+  const idOf = (typed: string) => {
+    const m = matchFill(typed, prepared, new Set());
+    return m ? prepared[m.index].id : null;
+  };
+
+  it('the three windows hold 16, 18 and 16 vice presidents, together all 50 exactly once', () => {
+    const windows = ['vice-presidents-1789-1869', 'vice-presidents-1869-1949', 'vice-presidents-1949-today'].map(quiz);
+    expect(all.entries.length).toBe(50);
+    expect(windows.map(q => q.entries.length)).toEqual([16, 18, 16]);
+    const ids = windows.flatMap(q => q.entries.map(e => e.id));
+    expect(new Set(ids).size).toBe(50);
+    expect(ids.sort()).toEqual(all.entries.map(e => e.id).sort());
+  });
+
+  it('rejects Johnson, shared by three vice presidents', () => {
+    expect(idOf('Johnson')).toBeNull();
+    expect(idOf('Lyndon Johnson')).toBe('vp-johnson-lyndon');
+  });
+
+  it('the toggle removes Ford and Rockefeller, and nobody else', () => {
+    const on = entriesFor(all, true).map(e => e.id);
+    expect(on.length).toBe(48);
+    expect(all.entries.map(e => e.id).filter(i => !on.includes(i)).sort()).toEqual(['vp-ford', 'vp-rockefeller']);
+  });
+
+  it('Stevenson fills Adlai E. Stevenson I', () => {
+    expect(idOf('Stevenson')).toBe('vp-stevenson');
   });
 });
 

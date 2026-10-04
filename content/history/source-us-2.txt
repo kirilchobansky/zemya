@@ -1,0 +1,392 @@
+# USA data, part 2: SECOND LIST (vice presidents) and EVENTS
+# Lines starting with # are comments. All text is in English; the Bulgarian name columns are left empty for you to fill.
+# Date format dd.mm.yyyy. A date may also be mm.yyyy or yyyy when the exact day is not known or not fixed. An empty end date means ongoing.
+# Dates before 14.09.1752 are as commonly cited (many are old style); the note says "old style" where it matters.
+# Importance: 1 = very major, 2 = major, 3 = detail. Categories: war, politics, treaty, economy, culture, uprising, disaster, church, ruler.
+
+SECOND LIST
+# name (bg) | name (en) | other spellings | role | start | end | note
+# Convention: one line per continuous stretch in office. Gaps between lines are real vacancies, when the office was empty after a death, resignation or succession.
+ | John Adams | Adams, John Adams Sr | Vice President | 21.04.1789 | 03.03.1797 | First vice president; presided over the Senate and cast many tie-breaking votes, then won the presidency.
+ | Thomas Jefferson | Jefferson, T. Jefferson | Vice President | 04.03.1797 | 03.03.1801 | Finished second in the 1796 election, so he served under his rival Adams, and became president in 1801.
+ | Aaron Burr | Burr, A. Burr | Vice President | 04.03.1801 | 03.03.1805 | Killed Alexander Hamilton in a duel in 1804 while in office.
+ | George Clinton | G. Clinton, Clinton | Vice President | 04.03.1805 | 20.04.1812 | Served under both Jefferson and Madison and was the first vice president to die in office.
+ | Elbridge Gerry | Gerry, E. Gerry | Vice President | 04.03.1813 | 23.11.1814 | Died in office; his name gave us the word "gerrymandering".
+ | Daniel D. Tompkins | Tompkins, D. Tompkins | Vice President | 04.03.1817 | 03.03.1825 | Served two full terms under Monroe.
+ | John C. Calhoun | Calhoun, J. C. Calhoun | Vice President | 04.03.1825 | 28.12.1832 | Served under John Quincy Adams and Jackson, then resigned to take a Senate seat as a leading defender of states' rights and nullification.
+ | Martin Van Buren | Van Buren, M. Van Buren | Vice President | 04.03.1833 | 03.03.1837 | Jackson's chosen successor, who won the presidency in 1836.
+ | Richard Mentor Johnson | Richard M. Johnson, R. M. Johnson, Johnson | Vice President | 04.03.1837 | 03.03.1841 | The only vice president elected by the Senate, after no candidate won an electoral majority in 1836.
+ | John Tyler | Tyler, J. Tyler | Vice President | 04.03.1841 | 04.04.1841 | Served 31 days before Harrison's death made him the first vice president to become president.
+ | George M. Dallas | Dallas, G. M. Dallas | Vice President | 04.03.1845 | 03.03.1849 | Served under Polk during the Mexican-American War; the city of Dallas, Texas, is probably named after him.
+ | Millard Fillmore | Fillmore, M. Fillmore | Vice President | 04.03.1849 | 09.07.1850 | Served under Taylor and became president when Taylor died.
+ | William R. King | King, W. R. King | Vice President | 04.03.1853 | 18.04.1853 | Took the oath in Cuba because he was ill with tuberculosis and died after 45 days, the shortest vice presidency.
+ | John C. Breckinridge | Breckinridge, J. C. Breckinridge | Vice President | 04.03.1857 | 03.03.1861 | The youngest vice president (age 36); later a Confederate general.
+ | Hannibal Hamlin | Hamlin, H. Hamlin | Vice President | 04.03.1861 | 03.03.1865 | Lincoln's first vice president, who was dropped from the ticket for 1864.
+ | Andrew Johnson | A. Johnson, Johnson, Andy Johnson | Vice President | 04.03.1865 | 15.04.1865 | Vice president for six weeks before Lincoln's assassination made him president.
+ | Schuyler Colfax | Colfax, S. Colfax | Vice President | 04.03.1869 | 03.03.1873 | Served under Grant; his name was later linked to the Crédit Mobilier scandal.
+ | Henry Wilson | H. Wilson, Wilson | Vice President | 04.03.1873 | 22.11.1875 | Anti-slavery senator who died in office during Grant's second term.
+ | William A. Wheeler | Wheeler, W. A. Wheeler | Vice President | 04.03.1877 | 03.03.1881 | Served under Hayes after the disputed 1876 election.
+ | Chester A. Arthur | Arthur, C. A. Arthur | Vice President | 04.03.1881 | 19.09.1881 | Became president when Garfield died of his wounds.
+ | Thomas A. Hendricks | Hendricks, T. A. Hendricks | Vice President | 04.03.1885 | 25.11.1885 | Died after only eight months in office, under Cleveland.
+ | Levi P. Morton | Morton, L. P. Morton | Vice President | 04.03.1889 | 03.03.1893 | Served under Benjamin Harrison and later became governor of New York.
+ | Adlai E. Stevenson I | Adlai Stevenson, A. E. Stevenson, Stevenson, Adlai Stevenson I | Vice President | 04.03.1893 | 03.03.1897 | Served under Cleveland's second term; grandfather of the 1950s presidential candidate Adlai Stevenson II.
+ | Garret Hobart | Hobart, G. Hobart | Vice President | 04.03.1897 | 21.11.1899 | McKinley's first vice president, who died in office.
+ | Theodore Roosevelt | T. Roosevelt, Teddy Roosevelt, TR, Roosevelt | Vice President | 04.03.1901 | 14.09.1901 | Served six months before McKinley's assassination made him president.
+ | Charles W. Fairbanks | Fairbanks, C. W. Fairbanks | Vice President | 04.03.1905 | 03.03.1909 | Served under Theodore Roosevelt; the city of Fairbanks, Alaska, is named after him.
+ | James S. Sherman | Sherman, J. S. Sherman | Vice President | 04.03.1909 | 30.10.1912 | Died in office shortly before the 1912 election, under Taft.
+ | Thomas R. Marshall | Marshall, T. R. Marshall | Vice President | 04.03.1913 | 03.03.1921 | Served two full terms under Wilson and is remembered for the line "what this country needs is a really good five-cent cigar".
+ | Calvin Coolidge | Coolidge, C. Coolidge | Vice President | 04.03.1921 | 02.08.1923 | Became president when Harding died.
+ | Charles G. Dawes | Dawes, C. G. Dawes | Vice President | 04.03.1925 | 03.03.1929 | Won the 1925 Nobel Peace Prize for the Dawes Plan on German war reparations.
+ | Charles Curtis | Curtis, C. Curtis | Vice President | 04.03.1929 | 03.03.1933 | The first vice president with Native American ancestry (Kaw Nation), under Hoover.
+ | John Nance Garner | Garner, J. N. Garner, Cactus Jack | Vice President | 04.03.1933 | 19.01.1941 | Roosevelt's first vice president; broke with him over a third term.
+ | Henry A. Wallace | Wallace, H. A. Wallace | Vice President | 20.01.1941 | 19.01.1945 | Roosevelt's third-term vice president, replaced on the 1944 ticket by Truman.
+ | Harry S. Truman | Truman, H. S. Truman | Vice President | 20.01.1945 | 12.04.1945 | Served 82 days before Roosevelt's death made him president.
+ | Alben W. Barkley | Barkley, A. W. Barkley, Veep | Vice President | 20.01.1949 | 19.01.1953 | Served under Truman; the nickname "Veep" is attached to him.
+ | Richard Nixon | Nixon, R. Nixon | Vice President | 20.01.1953 | 19.01.1961 | Served two terms under Eisenhower and lost the 1960 election to Kennedy.
+ | Lyndon B. Johnson | L. B. Johnson, LBJ, Lyndon Johnson, Johnson | Vice President | 20.01.1961 | 22.11.1963 | Became president when Kennedy was assassinated.
+ | Hubert Humphrey | Humphrey, H. Humphrey, Hubert H. Humphrey | Vice President | 20.01.1965 | 19.01.1969 | Served under Lyndon Johnson and lost the 1968 election to Nixon.
+ | Spiro Agnew | Agnew, S. Agnew | Vice President | 20.01.1969 | 10.10.1973 | Resigned after pleading no contest to tax evasion.
+ | Gerald Ford | Ford, G. Ford | Vice President | 06.12.1973 | 09.08.1974 | The first vice president chosen under the 25th Amendment; became president when Nixon resigned.
+ | Nelson Rockefeller | Rockefeller, N. Rockefeller | Vice President | 19.12.1974 | 19.01.1977 | Chosen by Ford under the 25th Amendment, so both men in the top two offices were unelected.
+ | Walter Mondale | Mondale, W. Mondale, Fritz Mondale | Vice President | 20.01.1977 | 19.01.1981 | Served under Carter and lost the 1984 election to Reagan.
+ | George H. W. Bush | G. H. W. Bush, Bush Sr, George Bush Sr, Bush senior, Bush 41 | Vice President | 20.01.1981 | 19.01.1989 | Served two terms under Reagan and then won the presidency in 1988.
+ | Dan Quayle | Quayle, D. Quayle, Danforth Quayle | Vice President | 20.01.1989 | 19.01.1993 | Served under George H. W. Bush.
+ | Al Gore | Gore, A. Gore, Albert Gore Jr | Vice President | 20.01.1993 | 19.01.2001 | Served two terms under Clinton and lost the disputed 2000 election.
+ | Dick Cheney | Cheney, D. Cheney, Richard Cheney | Vice President | 20.01.2001 | 19.01.2009 | Served two terms under George W. Bush and was unusually influential in foreign and security policy.
+ | Joe Biden | Biden, J. Biden, Joseph R. Biden | Vice President | 20.01.2009 | 19.01.2017 | Served two terms under Obama and was elected president in 2020.
+ | Mike Pence | Pence, M. Pence | Vice President | 20.01.2017 | 19.01.2021 | Served under Donald Trump.
+ | Kamala Harris | Harris, K. Harris | Vice President | 20.01.2021 | 19.01.2025 | The first woman, and the first Black and South Asian American, to be vice president, under Joe Biden.
+ | JD Vance | J. D. Vance, Vance, James David Vance | Vice President | 20.01.2025 | | Serves under Donald Trump's second term.
+
+EVENTS
+# date | name (bg) | name (en) | category | importance | note
+
+# --- Early Exploration (1492-1607) ---
+12.10.1492 | | Columbus reaches the Americas | politics | 1 | Christopher Columbus lands in the Bahamas on his first voyage for Spain, beginning lasting contact between Europe and the Americas (Julian date).
+07.06.1494 | | Treaty of Tordesillas | treaty | 3 | Spain and Portugal divide newly found lands outside Europe between themselves.
+08.09.1565 | | St. Augustine founded in Florida | politics | 2 | Spain founds what is now the oldest continuously inhabited European-founded settlement in the United States.
+18.08.1590 | | Roanoke colony found deserted | disaster | 3 | John White returns to the English settlement on Roanoke Island and finds it abandoned, the "Lost Colony" (old style).
+30.04.1598 | | Oñate claims New Mexico for Spain | politics | 3 | Juan de Oñate claims the upper Rio Grande region, starting Spanish settlement in the Southwest.
+
+# --- Early Colonies (1607-1763) ---
+14.05.1607 | | Jamestown founded | politics | 1 | The first permanent English settlement in North America is founded in Virginia (old style).
+30.07.1619 | | Virginia House of Burgesses first meets | politics | 2 | The first elected legislative assembly in the English colonies meets at Jamestown (old style).
+08.1619 | | First enslaved Africans arrive in Virginia | politics | 1 | About twenty enslaved Africans are brought to Point Comfort, the start of slavery in English North America.
+11.11.1620 | | Mayflower Compact signed | politics | 2 | The Pilgrims agree to govern themselves by majority rule before landing in New England (old style).
+21.12.1620 | | Pilgrims land at Plymouth | church | 2 | Pilgrims seeking religious freedom settle Plymouth Colony in Massachusetts (old style).
+1621 | | First Thanksgiving | culture | 3 | Plymouth colonists and Wampanoag people share an autumn harvest feast later remembered as the first Thanksgiving.
+1630 | | Great Migration to Massachusetts Bay begins | politics | 2 | Thousands of Puritans, led by John Winthrop, settle New England over the following decade.
+1636 | | Roger Williams founds Providence | church | 3 | After being banished from Massachusetts, he founds a settlement in Rhode Island based on religious freedom.
+28.10.1636 | | Harvard College founded | culture | 2 | The Massachusetts General Court votes funds for the first college in the colonies (old style).
+26.05.1637 | | Mystic massacre in the Pequot War | war | 3 | English colonists and their allies burn a Pequot village, opening the way to colonial control of southern New England.
+09.1664 | | English take New Amsterdam | politics | 2 | The Dutch surrender their colony, which becomes New York.
+20.06.1675 | | King Philip's War begins | war | 2 | Wampanoag leader Metacom and allies fight New England colonists in one of the deadliest wars in colonial history, relative to population (old style).
+19.09.1676 | | Bacon's Rebellion burns Jamestown | uprising | 3 | Nathaniel Bacon leads armed settlers against the Virginia governor, partly over frontier policy toward Native Americans (old style).
+1682 | | Philadelphia and Pennsylvania founded | politics | 3 | William Penn founds a colony built on religious tolerance, with Philadelphia as its capital.
+02.1692 | | Salem witch trials begin | church | 2 | A panic in Massachusetts leads to about 200 accusations and 20 executions before it ends in 1693.
+12.02.1733 | | Georgia founded | politics | 3 | James Oglethorpe founds Savannah, the last of the Thirteen Colonies.
+09.09.1739 | | Stono Rebellion | uprising | 3 | The largest slave uprising in the mainland British colonies, in South Carolina, leads to harsher slave codes.
+08.07.1741 | | "Sinners in the Hands of an Angry God" | church | 3 | Jonathan Edwards's sermon becomes a landmark of the First Great Awakening.
+28.05.1754 | | Jumonville Glen | war | 2 | George Washington's clash with a French party opens the French and Indian War, the North American part of the Seven Years' War.
+19.06.1754 | | Albany Congress | politics | 3 | Colonial delegates meet and consider Benjamin Franklin's Albany Plan of Union, an early idea of colonial unity.
+13.09.1759 | | Battle of the Plains of Abraham | war | 2 | British forces take Quebec, deciding the war in North America.
+
+# --- Revolutionary Era (1763-1783) ---
+10.02.1763 | | Treaty of Paris (1763) | treaty | 2 | Ends the Seven Years' War; France gives up Canada and the land east of the Mississippi to Britain.
+07.10.1763 | | Royal Proclamation of 1763 | politics | 2 | Britain forbids colonial settlement west of the Appalachians, angering many colonists.
+22.03.1765 | | Stamp Act passed | economy | 2 | Parliament's first direct tax on the colonies sparks the protest "no taxation without representation".
+29.06.1767 | | Townshend Acts | economy | 3 | New duties on imported goods like glass, paper and tea renew colonial protest.
+05.03.1770 | | Boston Massacre | politics | 2 | British soldiers kill five colonists in Boston, which patriots use to stir opposition.
+09.06.1772 | | Gaspee affair | uprising | 3 | Rhode Islanders burn a British customs ship.
+16.12.1773 | | Boston Tea Party | uprising | 2 | Colonists dump a shipment of East India Company tea into Boston Harbor to protest the Tea Act.
+31.03.1774 | | Intolerable Acts begin | politics | 2 | Britain closes Boston Harbor and limits Massachusetts self-government, uniting the colonies in protest.
+05.09.1774 | | First Continental Congress meets | politics | 2 | Delegates from twelve colonies meet in Philadelphia to coordinate a response to British policy.
+19.04.1775 | | Battles of Lexington and Concord | war | 1 | The first fighting of the Revolutionary War.
+10.05.1775 | | Second Continental Congress convenes | politics | 2 | The Congress that will direct the war and declare independence takes over as a de facto government.
+15.06.1775 | | Washington named commander in chief | war | 2 | Congress appoints George Washington to lead the Continental Army.
+17.06.1775 | | Battle of Bunker Hill | war | 2 | A costly British victory near Boston shows that the colonists can stand and fight.
+07.11.1775 | | Dunmore's Proclamation | politics | 3 | Virginia's royal governor offers freedom to enslaved people who join the British.
+10.01.1776 | | Common Sense published | culture | 2 | Thomas Paine's pamphlet argues for independence and sells in huge numbers.
+17.03.1776 | | British evacuate Boston | war | 3 | Washington's artillery on Dorchester Heights forces the British to leave.
+12.06.1776 | | Virginia Declaration of Rights | politics | 3 | George Mason's declaration influences the Bill of Rights.
+02.07.1776 | | Congress votes for independence | politics | 2 | Congress approves the Lee Resolution declaring the colonies free of Britain.
+04.07.1776 | | Declaration of Independence adopted | politics | 1 | Congress adopts Thomas Jefferson's text announcing the United States.
+27.08.1776 | | Battle of Long Island | war | 3 | The largest battle of the war; Washington's army escapes defeat.
+26.12.1776 | | Washington crosses the Delaware and wins at Trenton | war | 2 | A surprise victory lifts patriot morale after a string of defeats.
+14.06.1777 | | Flag Resolution | culture | 3 | Congress adopts the Stars and Stripes as the national flag.
+17.10.1777 | | British surrender at Saratoga | war | 2 | The victory persuades France to ally with the United States.
+19.12.1777 | | Valley Forge winter begins | war | 3 | Washington's army camps through a hard winter and emerges better trained.
+06.02.1778 | | Treaty of Alliance with France | treaty | 2 | France recognizes the United States and joins the war against Britain.
+25.09.1780 | | Benedict Arnold's treason | war | 3 | The American general's plot to surrender West Point is exposed and he flees to the British.
+01.03.1781 | | Articles of Confederation ratified | politics | 2 | The first constitution of the United States takes effect.
+19.10.1781 | | British surrender at Yorktown | war | 1 | Cornwallis surrenders to Washington and French forces, effectively ending major fighting.
+30.11.1782 | | Preliminary peace treaty signed | treaty | 3 | Preliminary articles are signed in Paris, recognizing American independence.
+15.03.1783 | | Newburgh Address | politics | 3 | Washington calms officers who were threatening to defy Congress over pay.
+
+# --- Confederation and Constitution (1783-1789) ---
+03.09.1783 | | Treaty of Paris (1783) | treaty | 1 | Britain formally recognizes American independence and the new borders.
+25.11.1783 | | Evacuation Day | war | 3 | The last British troops leave New York City.
+23.12.1783 | | Washington resigns his commission | politics | 2 | He returns power to Congress, setting an example of civilian control of the military.
+16.01.1786 | | Virginia Statute for Religious Freedom | church | 2 | Jefferson's law separates church and state in Virginia and later influences the First Amendment.
+29.08.1786 | | Shays' Rebellion begins | uprising | 2 | Indebted farmers in Massachusetts close courts, showing the weakness of the Articles and pushing reformers toward a new constitution.
+25.05.1787 | | Constitutional Convention opens | politics | 2 | Delegates meet in Philadelphia and decide to write a new constitution instead of revising the Articles.
+13.07.1787 | | Northwest Ordinance | politics | 2 | Creates a process for new states in the Northwest Territory and bans slavery there.
+17.09.1787 | | Constitution signed | politics | 1 | The convention approves the Constitution and sends it to the states.
+27.10.1787 | | Federalist Papers begin | culture | 2 | Hamilton, Madison and Jay start publishing essays arguing for ratification.
+21.06.1788 | | Constitution ratified | politics | 1 | New Hampshire becomes the ninth state to ratify, putting the Constitution into effect.
+04.02.1789 | | Washington elected president | politics | 2 | The electors choose Washington unanimously.
+
+# --- Early Republic (1789-1829) ---
+30.04.1789 | | Washington inaugurated | ruler | 1 | The first president takes the oath in New York City.
+25.02.1791 | | First Bank of the United States chartered | economy | 2 | Hamilton's national bank is created, a major dispute between Hamilton and Jefferson.
+15.12.1791 | | Bill of Rights ratified | politics | 1 | The first ten amendments take effect.
+14.03.1794 | | Cotton gin patented | economy | 2 | Eli Whitney's invention makes cotton far more profitable and strengthens slavery in the South.
+07.1794 | | Whiskey Rebellion | uprising | 2 | Farmers in western Pennsylvania resist a federal tax on whiskey and Washington sends an army to end it.
+19.11.1794 | | Jay Treaty | treaty | 2 | Settles disputes with Britain and keeps the United States out of war, but divides Americans.
+17.09.1796 | | Washington's Farewell Address | politics | 2 | He warns against political parties and permanent foreign alliances.
+14.07.1798 | | Sedition Act | politics | 2 | Makes criticism of the government a crime and becomes a major controversy.
+17.02.1801 | | House elects Jefferson | politics | 2 | After a tie in the electoral vote, the House breaks it on the 36th ballot.
+24.02.1803 | | Marbury v. Madison | politics | 2 | The Supreme Court establishes the power of judicial review.
+30.04.1803 | | Louisiana Purchase | treaty | 1 | The United States buys Louisiana from France, doubling its size.
+14.05.1804 | | Lewis and Clark expedition departs | culture | 2 | The expedition sets out to explore and map the new western territory.
+11.07.1804 | | Hamilton-Burr duel | politics | 3 | Vice President Aaron Burr mortally wounds Alexander Hamilton.
+02.03.1807 | | Act banning the slave trade | politics | 2 | Congress bans the importation of enslaved people from 01.01.1808.
+22.12.1807 | | Embargo Act | economy | 3 | Jefferson halts foreign trade to pressure Britain and France, hurting American merchants.
+18.06.1812 | | War of 1812 declared | war | 2 | Madison signs the declaration of war on Britain.
+24.08.1814 | | British burn Washington | war | 2 | British troops burn the Capitol and the White House.
+13.09.1814 | | Fort McHenry bombardment | culture | 3 | The defense of Baltimore inspires Francis Scott Key to write "The Star-Spangled Banner".
+24.12.1814 | | Treaty of Ghent | treaty | 2 | Ends the War of 1812 with no change in borders.
+08.01.1815 | | Battle of New Orleans | war | 3 | Andrew Jackson's victory comes after the treaty was signed but before news arrived.
+22.02.1819 | | Adams-Onis Treaty | treaty | 2 | Spain gives Florida to the United States and defines the western border.
+03.03.1820 | | Missouri Compromise | politics | 2 | Admits Missouri as a slave state and Maine as a free state, limiting slavery north of 36°30'.
+02.12.1823 | | Monroe Doctrine | politics | 2 | Monroe warns European powers against new colonization in the Americas.
+26.10.1825 | | Erie Canal opens | economy | 2 | Connects the Great Lakes to the Atlantic and boosts New York's growth.
+04.07.1826 | | Jefferson and John Adams die | politics | 3 | Both die on the 50th anniversary of the Declaration of Independence.
+
+# --- Jacksonian Era and Expansion (1829-1861) ---
+28.05.1830 | | Indian Removal Act | politics | 2 | Authorizes the removal of Native nations from the Southeast to land west of the Mississippi.
+01.01.1831 | | The Liberator first published | culture | 2 | William Lloyd Garrison launches his anti-slavery newspaper.
+21.08.1831 | | Nat Turner's Rebellion | uprising | 2 | A slave uprising in Virginia leads to harsher laws across the South.
+10.07.1832 | | Jackson vetoes the Bank | economy | 2 | Jackson rejects the recharter of the Second Bank of the United States.
+24.11.1832 | | Nullification Ordinance | politics | 3 | South Carolina declares a federal tariff null within the state, starting a crisis.
+02.03.1836 | | Texas declares independence | politics | 2 | Texans break away from Mexico.
+06.03.1836 | | Fall of the Alamo | war | 2 | Mexican forces take the Alamo mission after a 13-day siege.
+10.05.1837 | | Panic of 1837 | economy | 2 | Banks suspend payments, starting a long depression.
+26.05.1838 | | Trail of Tears begins | politics | 1 | The forced removal of the Cherokee Nation starts; thousands die on the way west.
+24.05.1844 | | First telegraph message | economy | 2 | Samuel Morse sends "What hath God wrought" from Washington to Baltimore.
+29.12.1845 | | Texas becomes a state | politics | 2 | Texas is admitted as the 28th state, leading to war with Mexico.
+13.05.1846 | | War with Mexico declared | war | 2 | Congress declares war after a border clash.
+15.06.1846 | | Oregon Treaty | treaty | 3 | Britain and the United States divide the Oregon Country at the 49th parallel.
+24.07.1847 | | Mormon pioneers reach Salt Lake Valley | church | 3 | Brigham Young leads the group that founds Salt Lake City.
+24.01.1848 | | Gold discovered in California | economy | 2 | James Marshall finds gold at Sutter's Mill, starting the Gold Rush.
+02.02.1848 | | Treaty of Guadalupe Hidalgo | treaty | 2 | Mexico gives up California and most of the Southwest.
+19.07.1848 | | Seneca Falls Convention | politics | 2 | The first women's rights convention in the United States begins.
+09.09.1850 | | Compromise of 1850 | politics | 2 | California joins as a free state while a tougher Fugitive Slave Act is passed.
+20.03.1852 | | Uncle Tom's Cabin published | culture | 2 | Harriet Beecher Stowe's novel turns many Northerners against slavery.
+30.12.1853 | | Gadsden Purchase | treaty | 3 | The United States buys land from Mexico, completing the southern border of the lower 48 states.
+30.05.1854 | | Kansas-Nebraska Act | politics | 2 | Lets settlers decide on slavery in the new territories, causing "Bleeding Kansas" and a new Republican Party.
+06.03.1857 | | Dred Scott decision | politics | 1 | The Supreme Court rules that Black Americans cannot be citizens and that Congress cannot ban slavery in territories.
+16.10.1859 | | John Brown's raid on Harpers Ferry | uprising | 2 | The abolitionist's attempt to start a slave revolt deepens the North-South divide.
+06.11.1860 | | Lincoln elected president | politics | 2 | Abraham Lincoln wins without carrying a single Southern state.
+20.12.1860 | | South Carolina secedes | politics | 2 | The first state leaves the Union, followed by six others within weeks.
+04.02.1861 | | Confederate States formed | politics | 2 | Delegates meet in Montgomery, Alabama, to create a new government.
+
+# --- Civil War (1861-1865) ---
+12.04.1861 | | Attack on Fort Sumter | war | 1 | Confederate guns open fire in Charleston harbor, starting the Civil War.
+17.04.1861 | | Virginia secedes | politics | 2 | The state with the most resources in the Upper South joins the Confederacy.
+21.07.1861 | | First Battle of Bull Run | war | 2 | A Confederate victory shows that the war will not be short.
+16.02.1862 | | Fort Donelson captured | war | 3 | Ulysses S. Grant's "unconditional surrender" victory opens Tennessee to the Union.
+25.02.1862 | | Legal Tender Act | economy | 3 | Congress authorizes paper "greenback" money to finance the war.
+06.04.1862 | | Battle of Shiloh | war | 2 | A bloody two-day battle in Tennessee ends hopes for a quick Union victory.
+20.05.1862 | | Homestead Act | economy | 2 | Offers 160 acres of public land to settlers who farm it for five years.
+01.07.1862 | | Pacific Railway Act | economy | 3 | Authorizes the first transcontinental railroad.
+17.09.1862 | | Battle of Antietam | war | 2 | The bloodiest single day in American history halts Lee's invasion of the North.
+01.01.1863 | | Emancipation Proclamation | politics | 1 | Lincoln declares enslaved people in Confederate-held areas free.
+01.07.1863 | | Battle of Gettysburg | war | 1 | A three-day Union victory in Pennsylvania ends Lee's last invasion of the North.
+04.07.1863 | | Vicksburg surrenders | war | 2 | Grant's capture of Vicksburg gives the Union control of the Mississippi.
+13.07.1863 | | New York City draft riots | uprising | 3 | Rioters protest the draft and attack Black residents.
+18.07.1863 | | 54th Massachusetts attacks Fort Wagner | war | 3 | The famous Black regiment's assault becomes a symbol of Black soldiers' courage.
+19.11.1863 | | Gettysburg Address | politics | 2 | Lincoln redefines the war as a struggle for equality and self-government.
+09.03.1864 | | Grant made general in chief | war | 3 | Lincoln places Grant in command of all Union armies.
+05.05.1864 | | Battle of the Wilderness | war | 3 | Starts Grant's costly Overland Campaign against Lee.
+02.09.1864 | | Atlanta falls | war | 2 | Sherman's capture of the city boosts Lincoln's reelection chances.
+08.11.1864 | | Lincoln reelected | politics | 3 | He wins a second term during the war.
+15.11.1864 | | Sherman's March to the Sea | war | 2 | Union troops march from Atlanta to Savannah, destroying Confederate resources.
+31.01.1865 | | Congress passes the 13th Amendment | politics | 2 | The House approves the amendment abolishing slavery.
+03.04.1865 | | Richmond falls | war | 2 | Union troops take the Confederate capital.
+09.04.1865 | | Lee surrenders at Appomattox | war | 1 | Lee surrenders the Army of Northern Virginia to Grant, effectively ending the war.
+
+# --- Reconstruction (1865-1877) ---
+14.04.1865 | | Lincoln shot | ruler | 2 | John Wilkes Booth shoots Lincoln at Ford's Theatre; he dies the next morning.
+06.12.1865 | | 13th Amendment ratified | politics | 1 | Slavery is abolished throughout the United States.
+24.12.1865 | | Ku Klux Klan founded | uprising | 3 | Former Confederate soldiers in Tennessee found a terror group that attacks Black people and Republicans.
+09.04.1866 | | Civil Rights Act of 1866 | politics | 3 | Congress overrides Andrew Johnson's veto to grant citizenship to Black Americans.
+02.03.1867 | | Reconstruction Acts | politics | 2 | Congress puts the Southern states under military districts and requires them to guarantee Black men's voting rights.
+30.03.1867 | | Alaska Purchase | treaty | 2 | The United States buys Alaska from Russia.
+24.02.1868 | | Andrew Johnson impeached | politics | 2 | The House impeaches him; the Senate acquits him by one vote on 16.05.1868.
+09.07.1868 | | 14th Amendment ratified | politics | 1 | Guarantees citizenship and equal protection of the laws.
+10.05.1869 | | Transcontinental railroad completed | economy | 2 | The Union Pacific and Central Pacific lines meet at Promontory Summit, Utah.
+10.01.1870 | | Standard Oil founded | economy | 3 | John D. Rockefeller incorporates the company that will dominate the oil industry.
+03.02.1870 | | 15th Amendment ratified | politics | 2 | Bars denying the vote on the basis of race.
+08.10.1871 | | Great Chicago Fire | disaster | 2 | The fire destroys much of the city and leaves 100,000 homeless.
+01.03.1872 | | Yellowstone National Park created | culture | 2 | The first national park in the United States.
+18.09.1873 | | Panic of 1873 | economy | 2 | The bank failure of Jay Cooke & Company starts a long depression.
+10.03.1876 | | Bell's first telephone call | culture | 2 | Alexander Graham Bell speaks to his assistant over the new device.
+25.06.1876 | | Battle of Little Bighorn | war | 2 | Lakota and Cheyenne warriors destroy Custer's command.
+07.11.1876 | | Disputed election of 1876 | politics | 3 | Samuel Tilden wins the popular vote, but the electoral count of several states is disputed.
+02.03.1877 | | Compromise of 1877 | politics | 1 | An electoral commission awards the presidency to Hayes, and federal troops leave the South, ending Reconstruction.
+
+# --- Gilded Age and Progressive Era (1877-1917) ---
+14.07.1877 | | Great Railroad Strike | uprising | 2 | A nationwide strike by railroad workers is put down with federal troops.
+21.10.1879 | | Edison's practical light bulb | economy | 2 | Thomas Edison tests a long-lasting incandescent lamp.
+06.05.1882 | | Chinese Exclusion Act | politics | 2 | The first major federal law restricting immigration by nationality.
+04.05.1886 | | Haymarket affair | uprising | 2 | A bomb at a labor rally in Chicago kills police officers and sets back the labor movement.
+28.10.1886 | | Statue of Liberty dedicated | culture | 2 | A gift from France, it becomes a symbol of welcome to immigrants.
+04.02.1887 | | Interstate Commerce Act | economy | 3 | Creates the first federal agency to regulate business, covering the railroads.
+08.02.1887 | | Dawes Act | politics | 3 | Breaks up tribal land into individual plots.
+02.07.1890 | | Sherman Antitrust Act | economy | 2 | The first federal law against monopolies.
+29.12.1890 | | Wounded Knee Massacre | war | 2 | The US Army kills about 250 Lakota people in South Dakota, effectively ending the Indian Wars.
+01.01.1892 | | Ellis Island opens | politics | 2 | The main immigration station in New York processes millions of arrivals.
+05.05.1893 | | Panic of 1893 | economy | 3 | A stock market collapse begins a severe depression.
+11.05.1894 | | Pullman Strike | uprising | 2 | A railway strike is broken up with federal troops.
+18.05.1896 | | Plessy v. Ferguson | politics | 1 | The Supreme Court upholds "separate but equal" segregation.
+15.02.1898 | | USS Maine explodes | war | 3 | The explosion in Havana harbor increases pressure for war with Spain.
+25.04.1898 | | Spanish-American War declared | war | 2 | Congress declares war on Spain, gaining Puerto Rico, Guam and the Philippines.
+07.07.1898 | | Hawaii annexed | politics | 3 | Congress votes to annex the Hawaiian Islands.
+10.12.1898 | | Treaty of Paris (1898) | treaty | 2 | Spain gives up Cuba and cedes Puerto Rico, Guam and the Philippines.
+04.02.1899 | | Philippine-American War begins | war | 3 | Filipino forces resist American rule.
+08.09.1900 | | Galveston hurricane | disaster | 2 | The deadliest natural disaster in US history kills an estimated 6,000 to 12,000 people.
+14.09.1901 | | Theodore Roosevelt becomes president | ruler | 2 | He takes the oath after McKinley dies of an assassin's bullet.
+17.12.1903 | | Wright brothers' first flight | culture | 2 | Orville and Wilbur Wright fly the first powered airplane at Kitty Hawk.
+18.04.1906 | | San Francisco earthquake | disaster | 2 | The earthquake and fires destroy much of the city.
+27.09.1908 | | Model T introduced | economy | 2 | Henry Ford's affordable car begins to change American life.
+12.02.1909 | | NAACP founded | politics | 2 | Civil rights activists found the National Association for the Advancement of Colored People.
+25.03.1911 | | Triangle Shirtwaist fire | disaster | 2 | A New York factory fire kills 146 workers and leads to new safety laws.
+03.02.1913 | | 16th Amendment ratified | politics | 3 | Allows a federal income tax.
+23.12.1913 | | Federal Reserve Act | economy | 2 | Creates the Federal Reserve System, the central bank.
+15.08.1914 | | Panama Canal opens | economy | 2 | The canal links the Atlantic and Pacific oceans.
+07.05.1915 | | Sinking of the Lusitania | war | 2 | A German U-boat sinks the British liner, killing 128 Americans.
+01.03.1917 | | Zimmermann Telegram published | war | 2 | A German offer of an alliance to Mexico becomes public, turning opinion toward war.
+
+# --- World Wars and Interwar Years (1917-1945) ---
+06.04.1917 | | United States enters World War I | war | 1 | Congress declares war on Germany.
+08.01.1918 | | Wilson's Fourteen Points | politics | 2 | Wilson outlines his plan for a peaceful postwar world.
+09.1918 | | Influenza pandemic peaks | disaster | 2 | The flu kills about 675,000 Americans.
+26.09.1918 | | Meuse-Argonne offensive begins | war | 3 | The largest American operation of the war.
+11.11.1918 | | Armistice | war | 2 | Fighting on the Western Front ends.
+16.01.1919 | | 18th Amendment ratified | politics | 2 | Prohibition of alcohol is added to the Constitution.
+28.06.1919 | | Treaty of Versailles signed | treaty | 2 | The peace treaty with Germany includes the League of Nations.
+27.07.1919 | | Chicago race riot | uprising | 3 | One of the worst outbreaks of the "Red Summer" of racial violence.
+19.03.1920 | | Senate rejects the Treaty of Versailles | politics | 3 | The United States does not join the League of Nations.
+18.08.1920 | | 19th Amendment ratified | politics | 1 | Women win the constitutional right to vote.
+31.05.1921 | | Tulsa Race Massacre | uprising | 2 | A white mob destroys the Black Greenwood district of Tulsa.
+26.05.1924 | | Immigration Act of 1924 | politics | 3 | Sets strict national-origin quotas on immigration.
+21.05.1927 | | Lindbergh's transatlantic flight | culture | 3 | Charles Lindbergh lands in Paris after the first solo nonstop flight across the Atlantic.
+29.10.1929 | | Stock market crash | economy | 1 | "Black Tuesday" marks the start of the Great Depression.
+09.03.1933 | | First Hundred Days begin | politics | 2 | Roosevelt and Congress begin passing the first New Deal laws.
+05.12.1933 | | Prohibition repealed | politics | 3 | The 21st Amendment ends Prohibition.
+14.04.1935 | | Black Sunday dust storm | disaster | 3 | A huge storm marks the worst days of the Dust Bowl.
+14.08.1935 | | Social Security Act | politics | 2 | Creates retirement and unemployment insurance.
+01.09.1939 | | World War II begins in Europe | war | 2 | Germany invades Poland; the United States stays neutral at first.
+11.03.1941 | | Lend-Lease Act | politics | 2 | The United States begins supplying weapons to Britain and its allies.
+07.12.1941 | | Attack on Pearl Harbor | war | 1 | Japan attacks the US Pacific Fleet in Hawaii.
+08.12.1941 | | United States declares war on Japan | war | 2 | Congress declares war the day after Pearl Harbor; Germany and Italy declare war on the United States on 11.12.1941.
+19.02.1942 | | Executive Order 9066 | politics | 2 | Roosevelt authorizes the internment of about 120,000 Japanese Americans.
+04.06.1942 | | Battle of Midway | war | 2 | The US Navy sinks four Japanese carriers, a turning point in the Pacific.
+02.12.1942 | | First nuclear chain reaction | culture | 3 | Scientists in Chicago achieve a self-sustaining chain reaction.
+06.06.1944 | | D-Day | war | 1 | Allied forces land in Normandy.
+22.06.1944 | | GI Bill | politics | 2 | Gives veterans benefits for education and housing.
+01.07.1944 | | Bretton Woods Conference | economy | 3 | Allies set up the IMF, the World Bank and a dollar-based monetary system.
+04.02.1945 | | Yalta Conference | treaty | 3 | Roosevelt, Churchill and Stalin plan the postwar order.
+12.04.1945 | | Roosevelt dies | ruler | 2 | Harry Truman becomes president.
+08.05.1945 | | V-E Day | war | 2 | Germany surrenders.
+26.06.1945 | | United Nations Charter signed | treaty | 2 | Delegates sign the UN Charter in San Francisco.
+16.07.1945 | | Trinity nuclear test | war | 2 | The first atomic bomb is tested in New Mexico.
+06.08.1945 | | Hiroshima atomic bombing | war | 1 | The US drops the first atomic bomb used in war.
+09.08.1945 | | Nagasaki atomic bombing | war | 2 | A second atomic bomb is dropped on Japan.
+02.09.1945 | | Japan surrenders | war | 2 | The formal surrender ends World War II.
+
+# --- Cold War (1945-1991) ---
+05.03.1946 | | Churchill's Iron Curtain speech | politics | 3 | Winston Churchill warns of a Soviet-dominated Eastern Europe in a speech in Fulton, Missouri.
+12.03.1947 | | Truman Doctrine | politics | 2 | The United States pledges to support countries resisting communism.
+05.06.1947 | | Marshall Plan announced | economy | 2 | A massive aid program helps rebuild Western Europe.
+24.06.1948 | | Berlin Blockade begins | politics | 2 | The Soviet Union cuts off land access to West Berlin; the Western Allies respond with an airlift.
+04.04.1949 | | NATO founded | treaty | 2 | The United States and eleven other countries sign the North Atlantic Treaty.
+29.08.1949 | | Soviet Union tests an atomic bomb | war | 2 | The US nuclear monopoly ends.
+09.02.1950 | | McCarthy's Wheeling speech | politics | 3 | Senator Joseph McCarthy claims communists have infiltrated the government, starting McCarthyism.
+25.06.1950 | | Korean War begins | war | 1 | North Korea invades South Korea; the United States leads a UN force.
+27.07.1953 | | Korean War armistice | war | 2 | A ceasefire halts the fighting without a peace treaty.
+17.05.1954 | | Brown v. Board of Education | politics | 1 | The Supreme Court rules that segregated public schools are unconstitutional.
+01.12.1955 | | Rosa Parks arrested | politics | 2 | Her arrest in Montgomery, Alabama, sparks the bus boycott.
+29.06.1956 | | Federal-Aid Highway Act | economy | 2 | Creates the Interstate Highway System.
+24.09.1957 | | Little Rock Nine | politics | 2 | Eisenhower sends troops to enforce school integration in Arkansas.
+04.10.1957 | | Sputnik launched | culture | 2 | The Soviet satellite starts the Space Race.
+29.07.1958 | | NASA created | culture | 2 | Congress establishes the National Aeronautics and Space Administration.
+01.01.1959 | | Cuban Revolution | politics | 2 | Fidel Castro takes power in Cuba, 90 miles from Florida.
+03.01.1959 | | Alaska becomes a state | politics | 3 | Alaska is admitted as the 49th state.
+21.08.1959 | | Hawaii becomes a state | politics | 3 | Hawaii is admitted as the 50th state.
+01.02.1960 | | Greensboro sit-ins | politics | 3 | Four Black students begin a lunch-counter sit-in that spreads across the South.
+17.04.1961 | | Bay of Pigs invasion | war | 2 | A failed US-backed invasion of Cuba embarrasses the new Kennedy administration.
+16.10.1962 | | Cuban Missile Crisis begins | war | 1 | A 13-day standoff over Soviet missiles in Cuba brings the world close to nuclear war.
+28.08.1963 | | March on Washington | politics | 2 | Martin Luther King Jr. gives his "I Have a Dream" speech.
+22.11.1963 | | Kennedy assassinated | ruler | 1 | Kennedy is shot in Dallas; Lyndon Johnson becomes president.
+02.07.1964 | | Civil Rights Act of 1964 | politics | 1 | Bans discrimination in public places and employment.
+07.08.1964 | | Gulf of Tonkin Resolution | war | 2 | Congress authorizes broad military action in Vietnam.
+07.03.1965 | | Bloody Sunday in Selma | politics | 3 | State troopers attack voting rights marchers, helping to pass the Voting Rights Act.
+30.07.1965 | | Medicare signed | politics | 3 | Lyndon Johnson signs the health insurance program for the elderly.
+06.08.1965 | | Voting Rights Act | politics | 2 | Bans racial discrimination in voting.
+23.07.1967 | | Detroit riot | uprising | 3 | Five days of unrest in Detroit are among the deadliest of the era.
+30.01.1968 | | Tet Offensive | war | 2 | A surprise attack in Vietnam turns US opinion against the war.
+04.04.1968 | | Martin Luther King Jr. assassinated | politics | 2 | King is killed in Memphis, Tennessee, setting off unrest in many cities.
+20.07.1969 | | Apollo 11 Moon landing | culture | 1 | Neil Armstrong and Buzz Aldrin become the first people on the Moon.
+15.08.1971 | | Nixon ends gold convertibility | economy | 2 | The "Nixon shock" ends the Bretton Woods system of fixed exchange rates.
+21.02.1972 | | Nixon visits China | politics | 2 | The visit opens relations after more than two decades of hostility.
+17.06.1972 | | Watergate break-in | politics | 1 | Burglars linked to Nixon's reelection campaign are arrested at the Democratic headquarters.
+22.01.1973 | | Roe v. Wade | politics | 2 | The Supreme Court recognizes a constitutional right to abortion.
+27.01.1973 | | Paris Peace Accords | treaty | 2 | The agreement lets US forces leave Vietnam.
+17.10.1973 | | OPEC oil embargo | economy | 2 | Arab oil producers cut supplies to the United States, causing an energy crisis.
+09.08.1974 | | Nixon resigns | ruler | 2 | Nixon leaves office because of the Watergate scandal and Gerald Ford takes over.
+30.04.1975 | | Fall of Saigon | war | 1 | North Vietnamese forces take the South Vietnamese capital, ending the Vietnam War.
+17.09.1978 | | Camp David Accords | treaty | 2 | Egypt and Israel agree on a framework for peace, brokered by Carter.
+04.11.1979 | | Iran hostage crisis begins | politics | 2 | Iranian students seize the US embassy and hold 52 Americans for 444 days.
+05.06.1981 | | First AIDS cases reported | disaster | 2 | The CDC reports the first cases of what will become the AIDS epidemic.
+28.01.1986 | | Challenger disaster | disaster | 2 | The space shuttle breaks apart 73 seconds after launch, killing all seven crew members.
+19.10.1987 | | Black Monday | economy | 2 | The Dow drops 22.6 percent in one day.
+08.12.1987 | | INF Treaty signed | treaty | 2 | Reagan and Gorbachev agree to eliminate intermediate-range nuclear missiles.
+09.11.1989 | | Berlin Wall falls | politics | 1 | East Germany opens its borders, a symbol of the end of the Cold War.
+17.01.1991 | | Gulf War air campaign begins | war | 2 | A US-led coalition begins operations to drive Iraq out of Kuwait.
+26.12.1991 | | Soviet Union dissolved | politics | 1 | The Cold War ends as the USSR formally ceases to exist.
+
+# --- Post-Cold War Era (1991-present) ---
+17.12.1992 | | NAFTA signed | economy | 2 | The United States, Canada and Mexico sign a free trade agreement that takes effect in 1994.
+19.04.1995 | | Oklahoma City bombing | disaster | 3 | A domestic terrorist attack kills 168 people.
+19.12.1998 | | Clinton impeached | politics | 2 | The House impeaches Bill Clinton; the Senate acquits him in 1999.
+12.12.2000 | | Bush v. Gore | politics | 2 | The Supreme Court ends the Florida recount, giving George W. Bush the presidency.
+11.09.2001 | | September 11 attacks | war | 1 | Terrorists hijack four planes and kill nearly 3,000 people.
+07.10.2001 | | War in Afghanistan begins | war | 2 | The United States and allies invade Afghanistan after the attacks.
+26.10.2001 | | USA PATRIOT Act | politics | 2 | Expands surveillance and law enforcement powers after 9/11.
+20.03.2003 | | Iraq War begins | war | 2 | A US-led coalition invades Iraq.
+29.08.2005 | | Hurricane Katrina | disaster | 2 | The hurricane floods New Orleans and kills about 1,800 people.
+29.06.2007 | | iPhone released | culture | 3 | Apple's smartphone changes how people use technology.
+15.09.2008 | | Lehman Brothers collapses | economy | 2 | The bankruptcy marks the peak of the 2008 financial crisis.
+04.11.2008 | | Barack Obama elected | politics | 2 | He wins the presidency and becomes the first Black president.
+23.03.2010 | | Affordable Care Act signed | politics | 2 | A major health care law that expands insurance coverage.
+02.05.2011 | | Osama bin Laden killed | war | 2 | US forces kill the al-Qaeda leader in Pakistan.
+26.06.2015 | | Obergefell v. Hodges | politics | 2 | The Supreme Court rules that same-sex couples have a constitutional right to marry.
+08.11.2016 | | Donald Trump elected | politics | 2 | Trump wins the Electoral College while losing the national popular vote to Hillary Clinton.
+13.03.2020 | | COVID-19 national emergency | disaster | 1 | The United States declares a national emergency as the pandemic spreads.
+25.05.2020 | | Killing of George Floyd | politics | 2 | The killing of George Floyd by a Minneapolis police officer sets off nationwide protests.
+03.11.2020 | | Joe Biden elected | politics | 2 | Biden defeats Donald Trump.
+06.01.2021 | | Attack on the Capitol | politics | 2 | Supporters of Donald Trump storm the Capitol as Congress certifies the 2020 election.
+24.06.2022 | | Dobbs v. Jackson | politics | 2 | The Supreme Court overturns Roe v. Wade.
+05.11.2024 | | Donald Trump elected again | politics | 2 | Trump wins the presidency after losing in 2020.
+20.01.2025 | | Trump's second inauguration | ruler | 2 | Trump begins his second, non-consecutive term.
+02.04.2025 | | Broad new tariffs announced | economy | 2 | Trump announces sweeping tariffs on imports from most countries.
+
+# NOTES TO CHECK
+# 1. Dates before 14.09.1752 are as commonly cited and many are old style, which I mark in the note. 09.1664 and 08.1619 are month-only because the day is uncertain or conventional.
+# 2. Vice presidents: 50 people and 50 lines (Calhoun and George Clinton served under two presidents but are one line each). The gaps between lines are real vacancies, for example 04.04.1841 to 03.03.1845 after Tyler became president.
+# 3. Importance 1 is used sparingly so that the zoomed-out view stays readable. Change any of them freely.
+# 4. Categories are approximate: "uprising" covers riots and massacres too, "disaster" covers epidemics, and "culture" covers science and technology.
+# 5. Events after early 2025 are not included. The 02.04.2025 tariff announcement and the current office holders are the entries most likely to need checking against current news before you publish.
+# 6. The Heading comments "# --- period ---" are only for readability; the converter should ignore any line starting with #.
