@@ -2080,7 +2080,7 @@ a.quiz-list__row {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: min(880px, 100%);
+  width: min(1100px, 100%);
   margin: auto 0; /* centred vertically when short, top-aligned (and scrollable) when tall */
   padding: 20px 22px;
   border-radius: 14px;
@@ -2164,8 +2164,8 @@ a.quiz-list__row {
 }
 .fill-quiz__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2173,7 +2173,7 @@ a.quiz-list__row {
 .fill-quiz__grid--columns {
   /* --cols / --rows come from the inline style; items fill top to bottom, then next column */
   grid-auto-flow: column;
-  grid-template-columns: repeat(var(--cols, 3), minmax(0, 340px));
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 380px));
   grid-template-rows: repeat(var(--rows, 1), auto);
   justify-content: start;
 }
@@ -2208,7 +2208,7 @@ a.quiz-list__row {
   display: flex;
   align-items: stretch;
   /* grows with a long name (no ellipsis anywhere); an empty cell keeps the one-line height */
-  min-height: 62px;
+  min-height: 68px;
   overflow: hidden;
   border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
@@ -2220,7 +2220,7 @@ a.quiz-list__row {
 }
 .fill-cell__dates {
   /* a tinted strip down the left edge, so the years read first */
-  flex: 0 0 5.6rem;
+  flex: 0 0 6rem;
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -2228,7 +2228,7 @@ a.quiz-list__row {
   padding: 6px 4px;
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink-2);
   background: color-mix(in srgb, var(--fill-hue) 16%, var(--chart-2));
@@ -2238,9 +2238,9 @@ a.quiz-list__row {
   flex: 1;
   align-self: center;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 8px 12px;
   min-height: 1.3em;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
   color: var(--fill-hue);
@@ -2265,7 +2265,7 @@ a.quiz-list__row {
   gap: 5px;
 }
 .fill-quiz__grid--compact .fill-cell {
-  min-height: 38px;
+  min-height: 42px;
 }
 .fill-quiz__grid--compact .fill-cell__dates {
   flex-basis: 5.1rem;
@@ -2274,7 +2274,7 @@ a.quiz-list__row {
 }
 .fill-quiz__grid--compact .fill-cell__name {
   padding: 4px 8px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.2;
 }
 .fill-quiz__grid--compact .fill-cell__title {
