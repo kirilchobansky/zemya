@@ -230,6 +230,8 @@ function QuizRun() {
   const { atlas, setQuiz, setImmersive, setSheetSnap } = useAtlasContext();
   const keyboard = useKeyboard();
 
+  const [stageHost, setStageHost] = useState<Element | null>(null);
+  useEffect(() => setStageHost(document.querySelector("main.stage")), []);
   const [world, setWorld] = useState<World | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -779,6 +781,20 @@ function QuizRun() {
       </div>
 
       <Stage {...stageProps} slot="stage" />
+
+      {/* Desktop pause: covers the stage (map / flag / outline), so a pause can't be used to
+          study the target; the panel stays clickable for Resume. Phone has .quiz-pause below. */}
+      {engine.phase === "paused" && stageHost &&
+        createPortal(
+          <div className="quiz-pause-desk" role="dialog" aria-label="Paused">
+            <p className="quiz-pause__title">Paused</p>
+            <p className="quiz-pause__sub">The timer is stopped.</p>
+            <button type="button" className="action action--primary" onClick={engine.togglePause}>
+              Resume <kbd>Esc</kbd>
+            </button>
+          </div>,
+          stageHost,
+        )}
 
       {/* Phone layout only (`display: none` above the breakpoint): the run's own chrome, since the
           panel is hidden. Portalled to <body> — the panel is a transformed sheet, which would trap
