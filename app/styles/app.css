@@ -2174,6 +2174,33 @@ a.quiz-list__row {
   grid-template-rows: repeat(var(--rows, 1), auto);
   justify-content: start;
 }
+.fill-quiz__panel {
+  position: relative;
+}
+.fill-quiz__pause {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgb(var(--abyss-rgb) / 88%);
+  backdrop-filter: blur(6px);
+}
+.fill-quiz__pause-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+}
+.fill-quiz__pause-sub {
+  margin: -6px 0 12px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
 .fill-cell {
   display: flex;
   align-items: stretch;
@@ -2190,7 +2217,8 @@ a.quiz-list__row {
 }
 .fill-cell__dates {
   /* a tinted strip down the left edge, so the years read first */
-  flex: 0 0 4.6rem;
+  flex: 0 0 5.6rem;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2237,7 +2265,7 @@ a.quiz-list__row {
   min-height: 38px;
 }
 .fill-quiz__grid--compact .fill-cell__dates {
-  flex-basis: 4.2rem;
+  flex-basis: 5.1rem;
   padding: 3px 4px;
   font-size: 11px;
 }

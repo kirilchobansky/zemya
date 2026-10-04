@@ -441,7 +441,7 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   rail and the right panel, so it follows `--rail-width`/`--panel-width` and collapsed state with no
   offsets of its own, and scrolls inside that area; only on a phone is it `fixed` over the whole
   screen. The panel is max 880px, the grid `auto-fill`. One always-focused
-  input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up" (reveals the
+  input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up", Esc pauses (blurred overlay + Resume, timer frozen) (reveals the
   missing names in red; the run is **not** saved), and a grid of fixed-height rectangles in
   chronological order — dates only until filled, then the Bulgarian name in the kind colour (`--sea`
   ruler, `--categorical-violet` government) with a short fill animation. The name is preceded by the

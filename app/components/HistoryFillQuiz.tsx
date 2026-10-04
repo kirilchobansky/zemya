@@ -82,8 +82,11 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const inputRef = useRef<HTMLInputElement | null>(null);
   // refs so two events in one tick (a fast typist, an instant accept then Enter) never read stale state
   const filledRef = useRef<ReadonlySet<string>>(NO_FILLED);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
   const phaseRef = useRef<Phase>('idle');
   const startedAtRef = useRef(0);
+  const elapsedRef = useRef(0);
   phaseRef.current = phase;
 
   useEffect(() => {
@@ -109,10 +112,31 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   }, [quiz.id, size]);
 
   useEffect(() => {
-    if (phase !== 'running') return;
+    if (phase !== 'running' || paused) return;
     const tick = setInterval(() => setElapsedMs(Date.now() - startedAtRef.current), 100);
     return () => clearInterval(tick);
-  }, [phase]);
+  }, [phase, paused]);
+
+  /* Esc pauses and resumes a started run. Window-level and the input is never disabled, so
+     the key always has somewhere to land (same reasoning as the geography engine). */
+  const togglePause = useCallback(() => {
+    if (phaseRef.current !== 'running') return;
+    if (pausedRef.current) startedAtRef.current = Date.now() - elapsedRef.current;
+    else elapsedRef.current = Date.now() - startedAtRef.current;
+    pausedRef.current = !pausedRef.current;
+    setPaused(pausedRef.current);
+    if (pausedRef.current) setElapsedMs(elapsedRef.current);
+  }, []);
+  useEffect(() => {
+    if (phase !== 'running') return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      togglePause();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase, togglePause]);
 
   const active = phase === 'idle' || phase === 'running';
   useEffect(() => {
@@ -121,6 +145,8 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   }, [active, mounted]);
 
   const finish = useCallback((next: Phase, timeMs: number) => {
+    pausedRef.current = false;
+    setPaused(false);
     setElapsedMs(timeMs);
     setRunToggle(toggleOn);
     setPhase(next);
@@ -144,7 +170,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   }, [prepared, total, finish]);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!active) return;
+    if (!active || pausedRef.current) return;
     const value = e.target.value;
     setHint(false);
     if (phaseRef.current === 'idle' && value.trim()) {
@@ -158,7 +184,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || !active) return;
+    if (e.key !== 'Enter' || !active || pausedRef.current) return;
     e.preventDefault();
     const match = matchFill(input, prepared, filledRef.current);
     if (match) accept(match.index);
@@ -170,12 +196,14 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
 
   const giveUp = () => {
     if (!active) return;
-    finish('gaveup', phase === 'running' ? Date.now() - startedAtRef.current : 0);
+    finish('gaveup', phase === 'running' ? (pausedRef.current ? elapsedRef.current : Date.now() - startedAtRef.current) : 0);
   };
 
   /* Synchronous focus inside the tap — iOS opens the keyboard only for a focus() made inside
      the gesture itself. */
   const restart = () => {
+    pausedRef.current = false;
+    setPaused(false);
     filledRef.current = NO_FILLED;
     phaseRef.current = 'idle';
     setFilled(NO_FILLED);
@@ -300,6 +328,16 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
 
         {/* desktop shows the result in the sidebar; a phone run covers the sidebar, so the
             buttons stay here and CSS hides them above the phone breakpoint */}
+        {paused && (
+          <div className="fill-quiz__pause" role="dialog" aria-label="Paused">
+            <p className="fill-quiz__pause-title">Paused</p>
+            <p className="fill-quiz__pause-sub">The timer is stopped.</p>
+            <button type="button" className="action action--primary" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={togglePause}>
+              Resume <kbd>Esc</kbd>
+            </button>
+          </div>
+        )}
+
         {finished && (
           <div className="fill-quiz__result fill-quiz__result--phone">
             {toggleBox(false)}
