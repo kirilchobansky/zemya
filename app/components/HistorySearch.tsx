@@ -25,6 +25,8 @@ const KIND_DOT_COLOR: Readonly<Record<TimelineEntry['kind'], string>> = {
 };
 
 export interface HistorySearchProps {
+  /** The country's display language (countries.ts): the Cyrillic hint is only for Bulgarian. */
+  lang: 'bg' | 'en';
   entries: readonly TimelineEntry[];
   /** Null only for the brief window before the canvas controller mounts (same convention
    *  as HistoryOutline/HistoryDetail) — a result click still opens the detail view, it just
@@ -36,7 +38,7 @@ export interface HistorySearchProps {
   onOpen: (id: string) => void;
 }
 
-export default function HistorySearch({ entries, timeline, onOpen }: HistorySearchProps) {
+export default function HistorySearch({ lang, entries, timeline, onOpen }: HistorySearchProps) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +81,7 @@ export default function HistorySearch({ entries, timeline, onOpen }: HistorySear
         ref={inputRef}
         type="search"
         value={query}
-        placeholder="Search people, events, periods (Latin or Cyrillic)"
+        placeholder={lang === 'bg' ? 'Search people, events, periods (Latin or Cyrillic)' : 'Search people, events, periods'}
         autoComplete="off"
         spellCheck={false}
         aria-label="Search the timeline"

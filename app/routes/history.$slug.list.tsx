@@ -37,7 +37,7 @@ export default function HistoryList({ loaderData }: Route.ComponentProps) {
           <th>year</th>
           <th>kind</th>
           <th>role</th>
-          <th>name.bg</th>
+          <th>name</th>
           <th>tier</th>
           <th>precision</th>
           <th>category</th>
@@ -50,7 +50,7 @@ export default function HistoryList({ loaderData }: Route.ComponentProps) {
             <td>{range(row.start, row.end)}</td>
             <td>{row.kind}</td>
             <td>{row.role ?? ''}</td>
-            <td>{row.nameBg}</td>
+            <td>{row.name}</td>
             <td>{row.tier}</td>
             <td>{row.precision}</td>
             <td>{row.category ?? ''}</td>

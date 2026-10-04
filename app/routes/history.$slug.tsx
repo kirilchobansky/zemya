@@ -27,7 +27,7 @@ export function loader({ params }: Route.LoaderArgs) {
 export function meta({ loaderData, location }: Route.MetaArgs) {
   const country = loaderData?.country;
   return pageMeta({
-    title: `${country?.nameEn ?? 'History'} — история — Zemya`,
+    title: `${country?.nameEn ?? 'History'} — ${country?.lang === 'en' ? 'history' : 'история'} — Zemya`,
     description: country
       ? `An interactive timeline of ${country.adjectiveEn} history, ${country.startYear} to today.`
       : 'An interactive timeline of history.',
@@ -64,7 +64,7 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
         </div>
       </header>
       <div className="panel__body">
-        <HistorySearch entries={entries} timeline={historyTimeline} onOpen={setSelectedHistoryEntryId} />
+        <HistorySearch lang={country.lang} entries={entries} timeline={historyTimeline} onOpen={setSelectedHistoryEntryId} />
         <HistoryFilters
           hiddenKinds={historyHiddenKinds}
           onToggleKind={toggleHistoryKind}

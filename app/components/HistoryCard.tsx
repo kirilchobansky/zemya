@@ -277,7 +277,7 @@ function EventBody({ entry, entries }: { entry: TimelineEntry; entries: readonly
           {label}
         </div>
       )}
-      {entry.blurbBg && <p className="history-card__summary">{entry.blurbBg}</p>}
+      {entry.blurb && <p className="history-card__summary">{entry.blurb}</p>}
       {under && <div className="history-card__under">Under: {under}</div>}
     </>
   );
@@ -289,7 +289,7 @@ function RulerBody({ entry }: { entry: TimelineEntry }) {
       <div className="history-card__name">{entry.label}</div>
       {entry.role && <div className="history-card__role">{entry.role}</div>}
       <div className="history-card__date">{formatRangeLine(entry.start, entry.end ?? entry.start)}</div>
-      {entry.blurbBg && <p className="history-card__summary">{entry.blurbBg}</p>}
+      {entry.blurb && <p className="history-card__summary">{entry.blurb}</p>}
     </>
   );
 }
@@ -299,7 +299,7 @@ function PeriodBody({ entry }: { entry: TimelineEntry }) {
     <>
       <div className="history-card__name">{entry.label}</div>
       <div className="history-card__date">{formatRangeLine(entry.start, entry.end ?? entry.start)}</div>
-      {entry.blurbBg && <p className="history-card__summary">{entry.blurbBg}</p>}
+      {entry.blurb && <p className="history-card__summary">{entry.blurb}</p>}
     </>
   );
 }

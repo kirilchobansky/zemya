@@ -230,7 +230,7 @@ export class HistoryTimeline {
       this.uiFont = getComputedStyle(document.body).getPropertyValue('--font-ui') || this.uiFont;
       this.monoFont = getComputedStyle(document.body).getPropertyValue('--font-mono') || this.monoFont;
     }
-    // Bulgarian text (entry.label is name.bg) must not stay stuck on a Latin-only
+    // Cyrillic text (entry.label of a Bulgarian country) must not stay stuck on a Latin-only
     // fallback: the values just read above may be whatever --font-ui/--font-mono resolve
     // to BEFORE the webfont (Archivo / IBM Plex Mono, both Cyrillic) has finished
     // loading. document.fonts.ready resolves once loading settles either way — with the

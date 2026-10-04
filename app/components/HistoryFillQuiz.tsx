@@ -313,8 +313,8 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             const isMissed = revealing && !isFilled;
             const shown = isFilled || isMissed;
             const title = showTitles && isShownTitle(entry.title) ? entry.title : '';
-            const label = title ? `${title} ${entry.nameBg}` : entry.nameBg;
-            const { main, note } = splitNote(entry.nameBg);
+            const label = title ? `${title} ${entry.name}` : entry.name;
+            const { main, note } = splitNote(entry.name);
             return (
               <li
                 key={entry.id}

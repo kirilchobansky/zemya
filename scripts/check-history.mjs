@@ -116,5 +116,11 @@ for (const file of files) {
   console.log(`\n5. Bad "elected" field: ${badElected.length}`);
   badElected.forEach(e => console.log(`   ${e.id} (${e.kind}) elected=${JSON.stringify(e.elected)}`));
 
+  /* ------------------------------------------- 6. name / blurb empty in both languages */
+  const has = t => ['bg', 'en'].some(l => t?.[l] && String(t[l]).trim());
+  const noText = entries.filter(e => !has(e.name) || !has(e.blurb));
+  console.log(`\n6. Missing name or blurb (needs bg or en, not both): ${noText.length}`);
+  noText.forEach(e => console.log(`   ${e.id}: name ${has(e.name) ? 'ok' : 'EMPTY'}, blurb ${has(e.blurb) ? 'ok' : 'EMPTY'}`));
+
   console.log(`\n${line}\nnothing was changed — this is a report only\n${line}\n`);
 }

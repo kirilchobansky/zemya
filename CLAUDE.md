@@ -116,7 +116,10 @@ changes nothing — a human fixes each case. Mechanism, current list and example
   one so far): add `content/history/<file>.yaml`, run `npm run build:content` (writes
   `public/data/history/<file>.json`, commit it), add one entry to `HISTORY_COUNTRIES` in
   `app/lib/history/countries.ts` (slug, file, names, startYear, range, pastLabel,
-  futureLabel). Routes, prerender, sitemap, dossier link, `build-history` and `check-history`
+  futureLabel). Each country has a display language (`lang: 'bg' | 'en'` in `countries.ts`):
+  data in that language is required (name and blurb non-empty), the other is optional;
+  `pastLabel` is a full string with a `{year}` placeholder. Bulgaria is `bg`, every other
+  country `en` (English role, e.g. `president`; Cyrillic spellings go in `aliases`, typing only). Routes, prerender, sitemap, dossier link, `build-history` and `check-history`
   pick it up with no code change.
 - Do not add accounts, a database, or any server call in the first release; a map tile
   provider or API key; or secrets in the repo (`.env` is gitignored, `.env.example`

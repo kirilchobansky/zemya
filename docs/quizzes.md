@@ -421,7 +421,7 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   Heads of state (People's Republic), BKP leaders, Presidents, and Prime ministers for the
   Principality and Kingdom / People's Republic (15.09.1946 to before 10.11.1989) / Republic (from
   10.11.1989) — the three PM windows tile the timeline, a unit test checks no overlap and no gap.
-  Entry names stay Bulgarian; titles are English. Ids are hand-written in the table
+  Entry names are shown in the country's own language (`lang` in `countries.ts`: Bulgarian for Bulgaria, English for the United States; name[lang], the other language if empty); titles are English. Ids are hand-written in the table
   (`bulgaria-rulers-first-empire`, ... — bests are keyed by them, so never rename one). The list
   route's loader and `react-router.config.ts` (prerendered URLs, sitemap) call the same function.
   `Subject.fillQuizzes` marks the subject whose list comes from that loader data rather than
@@ -454,7 +454,7 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   screen. The panel is max 880px, the grid `auto-fill`. One always-focused
   input, the timer/counter in the existing `.quiz-run__timer/__count` look, "Give up", Esc pauses (blurred overlay + Resume, timer frozen) (reveals the
   missing names in red; the run is **not** saved), and a grid of fixed-height rectangles in
-  chronological order — dates only until filled, then the Bulgarian name in the kind colour (`--sea`
+  chronological order — dates only until filled, then the name (country's language) in the kind colour (`--sea`
   ruler, `--categorical-violet` government) with a short fill animation. The name is preceded by the
   entry's title (its `role`, parenthetical removed: "цар (малолетен)" -> "цар"; "княз, от 1908 цар"
   as is) only when the quiz's entries carry more than one distinct title (`hasMixedTitles`); typing a
@@ -475,7 +475,7 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   each quiz's best time.
 - **Matching** (`normaliseFill` / `matchFill`): lower-case; spaces, hyphens, dots and other
   non-letters ignored; title words хан, княз, цар, khan, prince, tsar stripped; Roman = Arabic
-  numerals. Typeable forms of name.bg / name.en: (a) a name carrying a number is accepted **only with
+  numerals. Typeable forms of the display name, its other-language twin (name.bg / name.en) and the aliases: (a) a name carrying a number is accepted **only with
   it** — whole, or cut at the numeral ("Симеон I Велики" -> "Симеон 1"); never the bare name, even
   with one such entry left ("Иван Асен" never fills Иван Асен III, "Иван Асен 3" does); (b) a name
   of 2+ words also gives its **surname** (last word, numeral excluded) unless a *different* person in

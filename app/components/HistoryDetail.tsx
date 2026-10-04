@@ -112,7 +112,7 @@ export default function HistoryDetail({ entry, entries, timeline, onOpen, onBack
       <div className="history-detail__dates">{formatDetailDates(entry)}</div>
       {entry.style === 'old' && <div className="history-detail__style-note">Old style (Julian calendar)</div>}
 
-      {entry.blurbBg && <p className="history-detail__summary">{entry.blurbBg}</p>}
+      {entry.blurb && <p className="history-detail__summary">{entry.blurb}</p>}
       {entry.tags.length > 0 && (
         <div className="chips">
           {entry.tags.map(tag => (

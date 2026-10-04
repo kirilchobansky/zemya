@@ -8,7 +8,7 @@
  * Matching (`matchFill`): a typed name is valid when, normalised, it equals one of an
  * entry's forms. Normalisation lower-cases, drops spaces/hyphens/dots and every non-letter,
  * strips the title words (хан, княз, цар, khan, prince, tsar) and turns Roman numerals into
- * Arabic ones — so "Борис 1" = "Борис I". Forms of name.bg / name.en:
+ * Arabic ones — so "Борис 1" = "Борис I". Forms of name (the country's display language) and its other-language twin:
  *   - a name carrying a number is accepted only WITH it: the whole name, or cut at the
  *     numeral ("Симеон I Велики" -> "Симеон 1"); the bare "Симеон" never is (`needsNumber`
  *     detects it, for the hint);
@@ -25,6 +25,7 @@
  */
 import { latinToCyrillicRegExp } from './search';
 import { decimalYearOf } from './scale';
+import { historyCountryFor } from './countries';
 import { FILL_QUIZ_CONFIG, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
 
 export type FillKind = 'ruler' | 'government';
@@ -86,8 +87,10 @@ function surnameOf({ toks, at }: { toks: string[]; at: number }): string | null 
 export interface FillEntry {
   id: string;
   kind: FillKind;
-  nameBg: string;
-  nameEn: string;
+  /** Display name: name[lang] of the country, the other language if empty. */
+  name: string;
+  /** The name in the other language, accepted when typing ("" when none). */
+  nameAlt: string;
   aliases: readonly string[];
   /** Decimal years (scale.ts). `end` is null for an entry that is still ongoing. */
   start: number;
@@ -111,7 +114,7 @@ export interface PreparedFillEntry {
 /** Compile each entry's typeable forms once, not per keystroke. Keep the entries in
  *  chronological order: "earliest unfilled" means lowest index. */
 export function prepareFill(entries: readonly FillEntry[]): PreparedFillEntry[] {
-  const named = entries.map(e => [e.nameBg, e.nameEn].filter(Boolean).map(parts));
+  const named = entries.map(e => [e.name, e.nameAlt].filter(Boolean).map(parts));
   // Each entry's candidate forms, and who it is: the same full name is the same person.
   const candidates = entries.map((e, i) => {
     const forms = new Set<string>();
@@ -284,13 +287,14 @@ export function titleOf(role: string | null | undefined): string {
   return (role ?? '').replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/** "президент" is never shown as a title in a filled rectangle. */
-export const isShownTitle = (title: string): boolean => title !== '' && title !== 'президент';
+/** Titles that are never shown in a filled rectangle: the plain head-of-state office. */
+const HIDDEN_TITLES: ReadonlySet<string> = new Set(['президент', 'president']);
+export const isShownTitle = (title: string): boolean => title !== '' && !HIDDEN_TITLES.has(title);
 
-/** True when the entries carry more than one distinct title (not counting "президент") — the
+/** True when the entries carry more than one distinct title (not counting "президент" / "president") — the
  *  only time titles are shown. */
 export const hasMixedTitles = (entries: readonly Pick<FillEntry, 'title'>[]): boolean =>
-  new Set(entries.map(e => e.title).filter(t => t !== 'президент')).size > 1;
+  new Set(entries.map(e => e.title).filter(t => !HIDDEN_TITLES.has(t))).size > 1;
 
 /** A name split for display: the main text and a trailing parenthesis, if any. */
 export function splitNote(name: string): { main: string; note: string } {
@@ -323,6 +327,8 @@ export function fillQuizzesFromRaw(
   config: readonly FillQuizConfig[] = FILL_QUIZ_CONFIG[slug] ?? []
 ): FillQuiz[] {
   const quizzes: FillQuiz[] = [];
+  const lang = historyCountryFor(slug)?.lang ?? 'bg';
+  const other = lang === 'bg' ? 'en' : 'bg';
   for (const row of config) {
     const entries = raw
       .filter(r => r.kind === row.kind)
@@ -331,8 +337,8 @@ export function fillQuizzesFromRaw(
         entry: {
           id: r.id,
           kind: row.kind,
-          nameBg: r.name.bg,
-          nameEn: r.name.en,
+          name: r.name[lang] || r.name[other],
+          nameAlt: r.name[lang] ? r.name[other] : '',
           aliases: r.aliases,
           start: decimalYearOf(r.start, `${r.id}.start`),
           end: r.end == null ? null : decimalYearOf(r.end, `${r.id}.end`),

@@ -48,7 +48,7 @@ export interface HistoryListRow {
   id: string;
   kind: RawHistoryEntry['kind'];
   role: string | null;
-  nameBg: string;
+  name: string;
   start: string;
   end: string | null;
   tier: number;
@@ -76,7 +76,11 @@ function rawEntries(slug: string): RawHistoryEntry[] {
   return entries;
 }
 
-function toTimelineEntry(raw: RawHistoryEntry, file: string): TimelineEntry {
+/** The text in the country's display language, the other language when that one is empty. */
+const inLang = (t: { bg: string; en: string }, lang: 'bg' | 'en'): string =>
+  t[lang] || t[lang === 'bg' ? 'en' : 'bg'];
+
+function toTimelineEntry(raw: RawHistoryEntry, file: string, lang: 'bg' | 'en'): TimelineEntry {
   const where = `public/data/history/${file}.json: "${raw.id}"`;
   const start = decimalYearOf(raw.start, `${where}.start`);
   return {
@@ -97,10 +101,10 @@ function toTimelineEntry(raw: RawHistoryEntry, file: string): TimelineEntry {
     // obviously correct than teaching the generic, kind-agnostic scale.ts/layout.ts
     // pipeline a kind-specific exception.
     end: raw.end == null ? (raw.kind === 'event' ? start : null) : decimalYearOf(raw.end, `${where}.end`),
-    // Bulgarian, not English: this is a Bulgarian history timeline, and the canvas font
-    // stack (app/lib/history/timeline.ts) is chosen to cover Cyrillic specifically for it.
-    label: raw.name.bg,
-    blurbBg: raw.blurb.bg,
+    // The country's own language (countries.ts `lang`); the canvas font stack
+    // (app/lib/history/timeline.ts) covers Cyrillic and Latin.
+    label: inLang(raw.name, lang),
+    blurb: inLang(raw.blurb, lang),
     category: raw.category,
     color: raw.color,
     precision: raw.precision,
@@ -114,7 +118,8 @@ export function timelineFor(slug: string): TimelineEntry[] {
   let entries = cache.get(slug);
   if (!entries) {
     const file = fileFor(slug);
-    entries = rawEntries(slug).map(raw => toTimelineEntry(raw, file));
+    const lang = historyCountryFor(slug)!.lang;
+    entries = rawEntries(slug).map(raw => toTimelineEntry(raw, file, lang));
     cache.set(slug, entries);
   }
   return entries;
@@ -124,12 +129,13 @@ export function timelineFor(slug: string): TimelineEntry[] {
  *  sorts before "632"), then kind, in the fixed period/ruler/government/event order
  *  scale.ts's KIND_RANK already defines for the canvas, so the two views agree. */
 export function historyListFor(slug: string): HistoryListRow[] {
+  const lang = historyCountryFor(slug)!.lang;
   return rawEntries(slug)
     .map(raw => ({
       id: raw.id,
       kind: raw.kind,
       role: raw.role,
-      nameBg: raw.name.bg,
+      name: inLang(raw.name, lang),
       start: raw.start,
       end: raw.end,
       tier: raw.tier,

@@ -31,7 +31,7 @@
  * Every label on this page — ticks, capsules, the two out-of-range zone labels — goes
  * through placeLabels() (layout.ts) or is truncated to its own capsule's width
  * (truncateToFit), so a crowded zoom drops or shortens text instead of overlapping it.
- * Text is Bulgarian (entry.label is name.bg — see catalog.server.ts): both canvas fonts
+ * Text is in the country's own language (entry.label — see catalog.server.ts; Bulgarian is Cyrillic): both canvas fonts
  * are read from CSS custom properties that resolve to Archivo/IBM Plex Mono, which carry
  * Cyrillic; app/lib/history/timeline.ts additionally waits on `document.fonts.ready`
  * before trusting the font read at mount, so a frame drawn before the webfont finishes
@@ -47,15 +47,15 @@ export type Axis = 'horizontal' | 'vertical';
 
 /** A layout entry plus the one extra thing rendering needs that pure logic doesn't
  *  carry: display text. Kept separate from LayoutEntry on purpose — scale.ts/layout.ts
- *  stay ignorant of names, same as they're ignorant of YAML or JSON. Bulgarian (name.bg),
+ *  stay ignorant of names, same as they're ignorant of YAML or JSON. The country's language (name[lang]),
  *  not English — see catalog.server.ts. */
 export interface TimelineEntry extends LayoutEntry {
   label: string;
   /** Rulers and governments only (null for period/event) — drawn as a second, smaller
    *  line beneath the name in the capsule (see drawWireCapsules). */
   role: string | null;
-  /** Bulgarian summary (blurb.bg), one or two sentences — the hover card's body text. */
-  blurbBg: string;
+  /** Summary in the country's language (blurb[lang]), one or two sentences — the hover card's body text. */
+  blurb: string;
   /** Events only (null otherwise) — a key from content/history/events-bg.json's
    *  categories[], e.g. "war", "treaty" — the hover card's coloured dot + English label. */
   category: string | null;
@@ -438,8 +438,8 @@ function drawBackground(ctx: CanvasRenderingContext2D, full: { x: number; y: num
 /**
  * Darkens the cylinder outside the dataset's own [contentRange.from, contentRange.to] —
  * "fade the cylinder's brightness towards both outer regions" — and, where enough of that
- * empty zone is on screen to read comfortably, a muted label: "Преди <earliest year> —
- * <pastLabel>" to the left, <futureLabel> to the right (both per country, countries.ts). Both zones are always
+ * empty zone is on screen to read comfortably, a muted label: <pastLabel> ("{year}" = the earliest
+ * year) to the left, <futureLabel> to the right (both per country, countries.ts). Both zones are always
  * reachable (never fully off the pannable range) since HistoryTimeline's pan limit is
  * exactly half a viewport past each edge at maximum zoom-out.
  */
@@ -471,7 +471,7 @@ function drawOutOfRangeFade(
       ctx.font = `600 ${RENDER_CONFIG.fadeZoneLabelFontPx}px ${monoFont}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      drawHaloText(ctx, axis, edge / 2, midCross, `Преди ${earliestYear} — ${pastLabel}`, COLORS.ink3);
+      drawHaloText(ctx, axis, edge / 2, midCross, pastLabel.replace('{year}', String(earliestYear)), COLORS.ink3);
     }
   }
   if (endPx < viewport.sizePx) {
@@ -641,7 +641,7 @@ function activeCapsuleStyle(amt: number): { fillAlpha: number; whiteMix: number;
 /**
  * `kind`'s visible period/ruler/government entries as rounded capsules (radius 10) on
  * `wire`: a flat fill in the kind's own colour at low alpha, a 1px border at higher alpha,
- * the Bulgarian name centred inside the capsule's own VISIBLE portion (classifySpan already
+ * the name centred inside the capsule's own VISIBLE portion (classifySpan already
  * clips fromPx/toPx to the viewport, so the midpoint used for centring is always the
  * midpoint of what's actually on screen), clipped and truncated to the capsule's own width.
  * A capsule wider than the viewport (classifySpan's "pinned" mode) still draws spanning the

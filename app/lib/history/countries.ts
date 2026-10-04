@@ -8,6 +8,9 @@ export interface HistoryCountry {
   slug: string;
   /** Base name of the country's data: content/history/<file>.yaml -> public/data/history/<file>.json. */
   file: string;
+  /** Language the timeline is displayed in: names, blurbs and roles in the data are read in it
+   *  (name[lang], falling back to the other language when empty). */
+  lang: 'bg' | 'en';
   /** Bulgarian, not English — see catalog.server.ts's own note on why. */
   name: string;
   /** English name and adjective, for the panel header, page title and description. */
@@ -17,7 +20,7 @@ export interface HistoryCountry {
   startYear: string;
   /** The timeline's covered span, as shown next to the name in the pickers (English). */
   range: string;
-  /** Text for the fade zone before the earliest entry, after "Преди <year> — ". */
+  /** Complete text for the fade zone before the earliest entry; "{year}" is the earliest year. */
   pastLabel: string;
   /** Text for the fade zone after today. */
   futureLabel: string;
@@ -25,12 +28,12 @@ export interface HistoryCountry {
 
 export const HISTORY_COUNTRIES: HistoryCountry[] = [
   {
-    slug: 'bulgaria', file: 'bg', name: 'България', nameEn: 'Bulgaria', adjectiveEn: 'Bulgarian',
-    startYear: '681', range: '681–today', pastLabel: 'Стара Велика България', futureLabel: 'Бъдеще'
+    slug: 'bulgaria', file: 'bg', lang: 'bg', name: 'България', nameEn: 'Bulgaria', adjectiveEn: 'Bulgarian',
+    startYear: '681', range: '681–today', pastLabel: 'Преди {year} — Стара Велика България', futureLabel: 'Бъдеще'
   },
   {
-    slug: 'united-states', file: 'us', name: 'САЩ', nameEn: 'United States', adjectiveEn: 'American',
-    startYear: '1492', range: '1492–днес', pastLabel: 'Коренни американски народи', futureLabel: 'Бъдеще'
+    slug: 'united-states', file: 'us', lang: 'en', name: 'САЩ', nameEn: 'United States', adjectiveEn: 'American',
+    startYear: '1492', range: '1492–today', pastLabel: 'Before {year} — Indigenous American nations', futureLabel: 'Future'
   }
 ];
 

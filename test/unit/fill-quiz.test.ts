@@ -14,8 +14,8 @@ import {
 } from '~/lib/history/fill-quiz';
 import type { FillQuizConfig } from '~/lib/history/fill-quiz-config';
 
-function entry(id: string, nameBg: string, nameEn: string, start: number, aliases: string[] = []): FillEntry {
-  return { id, kind: 'ruler', nameBg, nameEn, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10), elected: true, title: '' };
+function entry(id: string, name: string, nameAlt: string, start: number, aliases: string[] = []): FillEntry {
+  return { id, kind: 'ruler', name, nameAlt, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10), elected: true, title: '' };
 }
 
 const LIST = [
@@ -285,8 +285,8 @@ describe('the Bulgarian quiz table on the shipped timeline', () => {
   it('First Bulgarian Empire: every ruler from 681 to 1018, in order', () => {
     const first = quiz('rulers-first-empire');
     expect(first.entries.length).toBe(26);
-    expect(first.entries[0].nameBg).toBe('Аспарух');
-    expect(first.entries.at(-1)!.nameBg).toBe('Иван Владислав');
+    expect(first.entries[0].name).toBe('Аспарух');
+    expect(first.entries.at(-1)!.name).toBe('Иван Владислав');
     for (let i = 1; i < first.entries.length; i++) expect(first.entries[i].start).toBeGreaterThanOrEqual(first.entries[i - 1].start);
   });
 

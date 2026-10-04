@@ -46,7 +46,8 @@ export function dateKey({ year, month, day }) {
  *   - an end date before its start date
  *   - a parent id that isn't itself an id in the same file
  *   - a missing tier (or one outside 1..5)
- *   - a missing name.bg
+ *   - an entry with no name, or no blurb, in either language (one of bg / en is enough: each
+ *     country is displayed in one language, countries.ts `lang`, the other is optional)
  * plus the other required-field and enum checks a hand-edited YAML file can get wrong.
  */
 export function validateHistory(doc, where) {
@@ -65,7 +66,9 @@ export function validateHistory(doc, where) {
     seenIds.add(raw.id);
 
     if (!KINDS.has(raw.kind)) throw new Error(`${at}: "kind" must be one of ${[...KINDS].join(', ')}, got ${JSON.stringify(raw.kind)}`);
-    if (!raw.name?.bg || !String(raw.name.bg).trim()) throw new Error(`${at}: missing "name.bg"`);
+    const filled = t => ['bg', 'en'].some(l => t?.[l] != null && String(t[l]).trim() !== '');
+    if (!filled(raw.name)) throw new Error(`${at}: needs a non-empty "name" in bg or en`);
+    if (!filled(raw.blurb)) throw new Error(`${at}: needs a non-empty "blurb" in bg or en`);
 
     if (!Number.isInteger(raw.tier)) throw new Error(`${at}: missing or non-integer "tier"`);
     if (raw.tier < 1 || raw.tier > 5) throw new Error(`${at}: "tier" must be 1..5, got ${raw.tier}`);
@@ -88,7 +91,7 @@ export function validateHistory(doc, where) {
     built.push({
       id: String(raw.id),
       kind: raw.kind,
-      name: { bg: String(raw.name.bg), en: String(raw.name.en ?? '') },
+      name: { bg: String(raw.name.bg ?? ''), en: String(raw.name.en ?? '') },
       aliases: (raw.aliases ?? []).map(String),
       role: raw.role != null ? String(raw.role) : null,
       // Absent means elected; written only when false so the JSON stays as it was for everyone else.
@@ -104,7 +107,7 @@ export function validateHistory(doc, where) {
       category: raw.category != null ? String(raw.category) : null,
       tags: (raw.tags ?? []).map(String),
       color: raw.color != null ? String(raw.color) : null,
-      blurb: { bg: String(raw.blurb?.bg ?? ''), en: String(raw.blurb?.en ?? '') }
+      blurb: { bg: String(raw.blurb.bg ?? ''), en: String(raw.blurb.en ?? '') }
     });
   }
 

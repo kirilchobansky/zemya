@@ -15,6 +15,7 @@ import { dateKey, parseHistoryDate, validateHistory } from '../../scripts/lib/hi
 const base = {
   kind: 'event',
   name: { bg: 'Тест', en: 'Test' },
+  blurb: { bg: 'Описание', en: '' },
   precision: 'year',
   style: 'new',
   tier: 1,
@@ -80,7 +81,7 @@ describe('validateHistory', () => {
   it('fills in defaults for aliases, role, parent and en text', () => {
     const built = validateHistory({ entries: [{ ...base, id: 'a' }] }, 'x');
     expect(built[0]).toMatchObject({
-      aliases: [], role: null, parent: null, blurb: { bg: '', en: '' }
+      aliases: [], role: null, parent: null, blurb: { bg: 'Описание', en: '' }
     });
   });
 
@@ -124,9 +125,13 @@ describe('validateHistory', () => {
     expect(() => validateHistory({ entries }, 'x')).toThrow(/"tier" must be 1\.\.5/);
   });
 
-  it('throws on a missing name.bg', () => {
-    const entries = [{ ...base, id: 'a', name: { bg: '', en: 'Test' } }];
-    expect(() => validateHistory({ entries }, 'x')).toThrow(/missing "name.bg"/);
+  it('needs a name and a blurb in at least one language, not both', () => {
+    const entries = [{ ...base, id: 'a', name: { bg: '', en: '' } }];
+    expect(() => validateHistory({ entries }, 'x')).toThrow(/non-empty "name"/);
+    const noBlurb = [{ ...base, id: 'a', blurb: { bg: '', en: '  ' } }];
+    expect(() => validateHistory({ entries: noBlurb }, 'x')).toThrow(/non-empty "blurb"/);
+    const enOnly = [{ ...base, id: 'a', name: { bg: '', en: 'Test' }, blurb: { en: 'Text' } }];
+    expect(() => validateHistory({ entries: enOnly }, 'x')).not.toThrow();
   });
 
   it('throws on an unrecognised kind', () => {

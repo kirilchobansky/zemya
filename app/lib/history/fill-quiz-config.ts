@@ -88,23 +88,23 @@ export const UNITED_STATES_FILL_QUIZZES: readonly FillQuizConfig[] = [
   {
     id: 'united-states-presidents',
     title: 'Presidents of the United States',
-    kind: 'ruler', role: /президент/,
+    kind: 'ruler', role: /president/,
     toggle: { label: 'Elected to the office only' }
   },
   {
     id: 'united-states-presidents-1789-1869',
     title: 'Presidents, 1789-1869',
-    kind: 'ruler', role: /президент/, from: '1789-04-30', before: '1869-03-04'
+    kind: 'ruler', role: /president/, from: '1789-04-30', before: '1869-03-04'
   },
   {
     id: 'united-states-presidents-1869-1945',
     title: 'Presidents, 1869-1945',
-    kind: 'ruler', role: /президент/, from: '1869-03-04', before: '1945-04-12'
+    kind: 'ruler', role: /president/, from: '1869-03-04', before: '1945-04-12'
   },
   {
     id: 'united-states-presidents-1945-today',
     title: 'Presidents, 1945-today',
-    kind: 'ruler', role: /президент/, from: '1945-04-12'
+    kind: 'ruler', role: /president/, from: '1945-04-12'
   }
 ];
 
