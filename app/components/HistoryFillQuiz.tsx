@@ -272,6 +272,16 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           />
           <button
             type="button"
+            className="action fill-quiz__pausebtn"
+            disabled={phase !== 'running'}
+            onPointerDown={keepFocus}
+            onMouseDown={keepFocus}
+            onClick={togglePause}
+          >
+            {paused ? 'Resume' : 'Pause'} <kbd className="only-fine">Esc</kbd>
+          </button>
+          <button
+            type="button"
             className="action fill-quiz__giveup"
             onPointerDown={keepFocus}
             onMouseDown={keepFocus}
@@ -360,8 +370,16 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
       <div className="panel__body">
         <p className="quiz-desc">
           {quiz.entries.length} {quiz.kind === 'ruler' ? 'rulers' : 'governments'}, in chronological order. Type a name to fill
-          its rectangle — order doesn't matter, the title is optional, Latin letters work.
+          its rectangle — order doesn't matter, the title is optional, Latin letters work.{' '}
+          <span className="only-fine">Press Esc to pause once you start.</span>
         </p>
+        {paused && (
+          <div className="note">
+            Paused — the timer is stopped.{' '}
+            <span className="only-fine">Press Esc or Resume to continue.</span>
+            <span className="only-coarse">Tap Resume to continue.</span>
+          </div>
+        )}
         {finished ? (
           <>
             <div className="hook">
@@ -388,6 +406,9 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           </>
         ) : (
           <div className="actions">
+            <button type="button" className="action" disabled={phase !== 'running'} onClick={togglePause}>
+              {paused ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
+            </button>
             <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
           </div>
         )}

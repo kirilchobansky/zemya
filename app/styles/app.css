@@ -2155,6 +2155,9 @@ a.quiz-list__row {
   font-size: 13px;
   color: var(--new);
 }
+.fill-quiz__pausebtn {
+  flex: 0 0 auto;
+}
 .fill-quiz__giveup {
   flex: 0 0 auto;
   color: var(--new);
