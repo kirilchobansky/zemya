@@ -384,6 +384,14 @@ describe('the United States quiz table on the shipped timeline', () => {
     expect(idOf('Буш старши')).toBe('pres-bush-sr');
     expect(idOf('Bush Sr')).toBe('pres-bush-sr');
     expect(idOf('Bush Jr')).toBe('pres-bush-jr');
+    expect(idOf('Monroe')).toBe('pres-monroe');
+    expect(idOf('Monro')).toBeNull();
+    expect(idOf('H Bush')).toBe('pres-bush-sr');
+    expect(idOf('H W Bush')).toBe('pres-bush-sr');
+    expect(idOf('W Bush')).toBe('pres-bush-jr');
+    expect(idOf('B Johnson')).toBe('pres-l-johnson');
+    expect(idOf('Henry Harrison')).toBe('pres-wh-harrison');
+    expect(idOf('John Q Adams')).toBe('pres-jq-adams');
   });
 
   it('the same person twice fills the earliest unfilled rectangle', () => {

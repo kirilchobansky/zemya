@@ -234,7 +234,7 @@ entries:
   - id: pres-monroe
     kind: ruler
     name: { bg: "", en: "James Monroe" }
-    aliases: ["Monroe", "J. Monroe", "Монро", "Джеймс Монро"]
+    aliases: ["Monroe", "J. Monroe", "Джеймс Монро"]
     role: president
     start: "1817-03-04"
     end: "1825-03-03"
@@ -248,7 +248,7 @@ entries:
   - id: pres-jq-adams
     kind: ruler
     name: { bg: "", en: "John Quincy Adams" }
-    aliases: ["J. Q. Adams", "JQA", "Adams Jr", "Джон Куинси Адамс"]
+    aliases: ["J. Q. Adams", "JQA", "Adams Jr", "Джон Куинси Адамс", "John Q. Adams"]
     role: president
     start: "1825-03-04"
     end: "1829-03-03"
@@ -290,7 +290,7 @@ entries:
   - id: pres-wh-harrison
     kind: ruler
     name: { bg: "", en: "William Henry Harrison" }
-    aliases: ["W. H. Harrison", "Old Tippecanoe", "Староселски Типекану", "Уилям Хенри Харисън"]
+    aliases: ["W. H. Harrison", "Old Tippecanoe", "Староселски Типекану", "Уилям Хенри Харисън", "Henry Harrison"]
     role: president
     start: "1841-03-04"
     end: "1841-04-04"
@@ -672,7 +672,7 @@ entries:
   - id: pres-l-johnson
     kind: ruler
     name: { bg: "", en: "Lyndon B. Johnson" }
-    aliases: ["L. B. Johnson", "LBJ", "Lyndon Johnson", "Линдън Джонсън", "Ел Би Джей"]
+    aliases: ["L. B. Johnson", "LBJ", "Lyndon Johnson", "Линдън Джонсън", "Ел Би Джей", "B. Johnson"]
     role: president
     start: "1963-11-22"
     end: "1969-01-19"
@@ -743,7 +743,7 @@ entries:
   - id: pres-bush-sr
     kind: ruler
     name: { bg: "", en: "George H. W. Bush" }
-    aliases: ["G. H. W. Bush", "Bush Sr", "George Bush Sr", "Bush senior", "Bush 41", "Буш старши", "Буш 41", "Джордж Х. У. Буш"]
+    aliases: ["G. H. W. Bush", "Bush Sr", "George Bush Sr", "Bush senior", "Bush 41", "Буш старши", "Буш 41", "Джордж Х. У. Буш", "H. Bush", "H. W. Bush"]
     role: president
     start: "1989-01-20"
     end: "1993-01-19"
@@ -771,7 +771,7 @@ entries:
   - id: pres-bush-jr
     kind: ruler
     name: { bg: "", en: "George W. Bush" }
-    aliases: ["G. W. Bush", "Bush Jr", "George Bush Jr", "Bush junior", "Bush 43", "Dubya", "Буш младши", "Буш 43", "Джордж У. Буш"]
+    aliases: ["G. W. Bush", "Bush Jr", "George Bush Jr", "Bush junior", "Bush 43", "Dubya", "Буш младши", "Буш 43", "Джордж У. Буш", "W. Bush"]
     role: president
     start: "2001-01-20"
     end: "2009-01-19"
