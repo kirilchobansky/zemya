@@ -432,9 +432,20 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   screen (it applies to the next run; a finished run keeps the setting it was played with, named in
   the result label), hidden — not removed — while a run is going so the grid never jumps. The
   setting is the run's `size`: `"all"` off, `"elected"` on (`toggleSize`), so best times are kept
-  separately per setting; the History list shows the toggle-off best. Only Presidents has one
+  separately per setting; the History list shows the toggle-off best. Bulgaria's Presidents has one
   ("Democratically elected only"; off by default): Mladenov and acting Todorov are
-  `elected: false` (succession / not chosen by public vote).
+  `elected: false` (succession / not chosen by public vote). The label is a field of the config row.
+- **United States** (`united-states`, `us.yaml`, added by owner request; periods and presidents
+  only, no vice presidents or events yet): "Presidents of the United States" (all 47 rectangles,
+  toggle "Elected to the office only" drops Tyler, Fillmore, A. Johnson, Arthur, Ford) and three
+  windows, 1789-1869 (17), 1869-1945 (15), 1945-today (15), which together hold each presidency
+  once. Cleveland and Trump are two rectangles each (`pres-cleveland-1/2`, `pres-trump-1/2`):
+  the same person, so a typed name fills the earliest unfilled one. Ids of presidents sharing a
+  surname carry an initial (`pres-j-adams`, `pres-wh-harrison`, `pres-t-roosevelt`, `pres-bush-sr`)
+  and `pres-van-buren` uses the full surname. **Matcher rule:** any form (surname, alias, typed
+  spelling) that belongs to entries of two different people is never accepted — "Roosevelt",
+  "Bush", "Adams", "Harrison", "Johnson" are rejected, "Teddy Roosevelt" and "Bush Sr" accepted.
+  The shared bare surnames are also left out of `us.yaml`'s aliases.
 - **Screen.** A centred panel on a plain stage — `.fill-quiz` covers the map/timeline with
   `--flag-stage-bg` like the Flags quiz, but is **not** fixed: it is portalled into the shell's
   `<main class="stage">` (`position: absolute; inset: 0`), i.e. exactly the grid cell between the

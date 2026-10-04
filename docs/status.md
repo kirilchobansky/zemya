@@ -39,7 +39,8 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   History picks a country (`/history`, one entry — Bulgaria) and swaps the shell's canvas
   to the timeline at `/history/bulgaria`, now indexed and in the sitemap. `CLAUDE.md`'s
   history exception.
-- History quizzes: Quizzes -> History lists nine "fill the list" quizzes from an explicit table
+- History: the United States is the second country (`us.yaml`, presidents + periods; four fill quizzes, see `docs/quizzes.md`).
+- History quizzes: Quizzes -> History lists nine (Bulgaria) "fill the list" quizzes from an explicit table
   (`fill-quiz-config.ts`: rulers of the two Empires, Princes and Tsars, heads of state, BKP
   leaders, Presidents with a "Democratically elected only" toggle, three PM eras), selected from
   the timeline by role regex and start window (Quizzes -> History -> country, `/quizzes/history/:slug/:quizId`, prerendered). Type names in any order into empty date-labelled

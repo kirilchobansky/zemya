@@ -1,0 +1,836 @@
+# United States (us) — history timeline, first pass
+#
+# Source: content/history/source-us.txt (hand-authored reference chronology, English).
+# Same schema as bg.yaml — see the schema comment at the top of that file. Lanes in use:
+# periods and presidents (kind ruler, role президент). The government and event lanes are
+# empty for now: no vice presidents or events yet.
+#
+# Presidents with two lines are one person (Cleveland: 22nd and 24th, Trump: 45th and 47th);
+# the ids carry -1 / -2. Bare surnames shared by two different people (Adams, Harrison,
+# Johnson, Roosevelt) are deliberately not aliases: fill-quiz.ts never accepts a spelling
+# that belongs to two different people.
+# elected: false marks the five presidents who never won the office in their own right
+# (Tyler, Fillmore, A. Johnson, Arthur, Ford). Tier 1: Washington, Jefferson, Lincoln,
+# T. Roosevelt, F. D. Roosevelt; the other presidents are tier 2.
+
+entries:
+  # ---------------------------------------------------------------- periods
+  # Dates before 1752 are as commonly cited, not converted: 12.10.1492 (Columbus) is the Julian date and
+  # 14.05.1607 (Jamestown) is old style. Every date is written style: new (the old-style flag is Bulgarian only).
+  - id: period-early-exploration
+    kind: period
+    name: { bg: "Ранни изследвания", en: "Early Exploration" }
+    aliases: []
+    start: "1492-10-12"
+    end: "1607-05-13"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Европейски мореплаватели достигат Америка, а коренните народи вече живеят на континента."
+      en: "European navigators reach the Americas, where Indigenous peoples already live."
+
+  - id: period-early-colonies
+    kind: period
+    name: { bg: "Ранни колонии", en: "Early Colonies" }
+    aliases: []
+    start: "1607-05-14"
+    end: "1763-02-09"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Европейски селища възникват по източното крайбрежие на Северна Америка."
+      en: "European settlements are founded along the eastern coast of North America."
+
+  - id: period-revolutionary-era
+    kind: period
+    name: { bg: "Революционна епоха", en: "Revolutionary Era" }
+    aliases: []
+    start: "1763-02-10"
+    end: "1783-09-02"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Тринадесетте колонии се противопоставят на британската власт и водят война за независимост."
+      en: "The Thirteen Colonies resist British rule and fight a war of independence."
+
+  - id: period-confederation-and-constitution
+    kind: period
+    name: { bg: "Конфедерация и Конституция", en: "Confederation and Constitution" }
+    aliases: []
+    start: "1783-09-03"
+    end: "1789-04-29"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Новата държава се управлява по Устава на Конфедерацията, а после приема Конституцията."
+      en: "The new country is governed under the Articles of Confederation and then adopts the Constitution."
+
+  - id: period-early-republic
+    kind: period
+    name: { bg: "Ранна република", en: "Early Republic" }
+    aliases: []
+    start: "1789-04-30"
+    end: "1829-03-03"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Първите президенти изграждат институциите на федералната власт."
+      en: "The first presidents build the institutions of the federal government."
+
+  - id: period-jacksonian-era-and-expansion
+    kind: period
+    name: { bg: "Джаксъновата епоха и експанзия", en: "Jacksonian Era and Expansion" }
+    aliases: []
+    start: "1829-03-04"
+    end: "1861-04-11"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Правото на глас се разширява сред белите мъже, а страната се разраства на запад."
+      en: "Voting rights widen among white men and the country expands westward."
+
+  - id: period-civil-war
+    kind: period
+    name: { bg: "Гражданска война", en: "Civil War" }
+    aliases: []
+    start: "1861-04-12"
+    end: "1865-04-09"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Северните и южните щати воюват помежду си заради сецесията и робството."
+      en: "The Northern and Southern states fight each other over secession and slavery."
+
+  - id: period-reconstruction
+    kind: period
+    name: { bg: "Реконструкция", en: "Reconstruction" }
+    aliases: []
+    start: "1865-04-10"
+    end: "1877-03-04"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Южните щати се връщат в Съюза, а робството е формално отменено."
+      en: "The Southern states are readmitted to the Union and slavery is formally abolished."
+
+  - id: period-gilded-age-and-progressive-era
+    kind: period
+    name: { bg: "Позлатена епоха и прогресивна ера", en: "Gilded Age and Progressive Era" }
+    aliases: []
+    start: "1877-03-05"
+    end: "1917-04-05"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Бърза индустриализация и имиграция, последвани от реформи."
+      en: "Rapid industrialisation and immigration, followed by reform movements."
+
+  - id: period-world-wars-and-interwar-years
+    kind: period
+    name: { bg: "Световни войни и междувоенни години", en: "World Wars and Interwar Years" }
+    aliases: []
+    start: "1917-04-06"
+    end: "1945-09-02"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Страната участва в две световни войни и преживява Голямата депресия."
+      en: "The country takes part in two world wars and lives through the Great Depression."
+
+  - id: period-cold-war
+    kind: period
+    name: { bg: "Студена война", en: "Cold War" }
+    aliases: []
+    start: "1945-09-03"
+    end: "1991-12-26"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Съединените щати се съревновават със Съветския съюз в политиката, армията и науката."
+      en: "The United States competes with the Soviet Union in politics, arms and science."
+
+  - id: period-post-cold-war-era
+    kind: period
+    name: { bg: "Следстудениковоенна епоха", en: "Post-Cold War Era" }
+    aliases: []
+    start: "1991-12-27"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Съединените щати остават водеща военна и икономическа сила след разпадането на СССР."
+      en: "The United States remains a leading military and economic power after the Soviet collapse."
+
+  # ---------------------------------------------------------------- presidents
+  - id: pres-washington
+    kind: ruler
+    name: { bg: "Джордж Вашингтон", en: "George Washington" }
+    aliases: ["Washington", "G. Washington", "Вашингтон"]
+    role: президент
+    start: "1789-04-30"
+    end: "1797-03-03"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Командвал Континенталната армия и въвел много прецеденти, сред които оттеглянето след два мандата."
+      en: "Commanded the Continental Army and set many precedents, including stepping down after two terms."
+
+  - id: pres-j-adams
+    kind: ruler
+    name: { bg: "Джон Адамс", en: "John Adams" }
+    aliases: ["John Adams Sr"]
+    role: президент
+    start: "1797-03-04"
+    end: "1801-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Първият президент, живял в Белия дом; мандатът му е белязан от Квазивойната с Франция и законите за чужденците и размирниците."
+      en: "First president to live in the White House; his term was shaped by the Quasi-War with France and the Alien and Sedition Acts."
+
+  - id: pres-jefferson
+    kind: ruler
+    name: { bg: "Томас Джеферсън", en: "Thomas Jefferson" }
+    aliases: ["Jefferson", "T. Jefferson", "Джеферсън"]
+    role: президент
+    start: "1801-03-04"
+    end: "1809-03-03"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Автор на Декларацията за независимост, удвоил територията на страната с покупката на Луизиана (1803)."
+      en: "Author of the Declaration of Independence who doubled the country's size with the Louisiana Purchase (1803)."
+
+  - id: pres-madison
+    kind: ruler
+    name: { bg: "Джеймс Мадисън", en: "James Madison" }
+    aliases: ["Madison", "J. Madison", "Мадисън"]
+    role: президент
+    start: "1809-03-04"
+    end: "1817-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Главен архитект на Конституцията и автор на Закона за правата; води страната във Войната от 1812 г."
+      en: "Main architect of the Constitution and author of the Bill of Rights; led the country in the War of 1812."
+
+  - id: pres-monroe
+    kind: ruler
+    name: { bg: "Джеймс Монро", en: "James Monroe" }
+    aliases: ["Monroe", "J. Monroe", "Монро"]
+    role: президент
+    start: "1817-03-04"
+    end: "1825-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Начело в „Ерата на добрите чувства“; обявява доктрината Монро (1823) срещу нови европейски колонии в Америка."
+      en: "Presided over the \"Era of Good Feelings\" and announced the Monroe Doctrine (1823) against new European colonies in the Americas."
+
+  - id: pres-jq-adams
+    kind: ruler
+    name: { bg: "Джон Куинси Адамс", en: "John Quincy Adams" }
+    aliases: ["J. Q. Adams", "JQA", "Adams Jr"]
+    role: президент
+    start: "1825-03-04"
+    end: "1829-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Избран от Камарата на представителите, след като изборите през 1824 г. нямат победител с мнозинство; син на Джон Адамс."
+      en: "Chosen by the House of Representatives after the 1824 election had no majority winner; son of John Adams."
+
+  - id: pres-jackson
+    kind: ruler
+    name: { bg: "Андрю Джаксън", en: "Andrew Jackson" }
+    aliases: ["Jackson", "A. Jackson", "Джаксън"]
+    role: президент
+    start: "1829-03-04"
+    end: "1837-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Разширява президентската власт, воюва срещу Втората банка на САЩ и подписва Закона за преселването на индианците (1830)."
+      en: "Expanded presidential power, fought the Second Bank of the United States and signed the Indian Removal Act (1830)."
+
+  - id: pres-van-buren
+    kind: ruler
+    name: { bg: "Мартин Ван Бюрен", en: "Martin Van Buren" }
+    aliases: ["Van Buren", "M. Van Buren", "Ван Бюрен"]
+    role: президент
+    start: "1837-03-04"
+    end: "1841-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Начело по време на паниката от 1837 г. и дългата депресия след нея; първият президент, роден като гражданин на САЩ."
+      en: "Presided over the Panic of 1837 and the long depression that followed; first president born a US citizen."
+
+  - id: pres-wh-harrison
+    kind: ruler
+    name: { bg: "Уилям Хенри Харисън", en: "William Henry Harrison" }
+    aliases: ["W. H. Harrison", "Old Tippecanoe", "Староселски Типекану"]
+    role: президент
+    start: "1841-03-04"
+    end: "1841-04-04"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Умира 31 дни след встъпването в длъжност – най-краткото президентство в историята на САЩ."
+      en: "Died 31 days after taking office, the shortest presidency in US history."
+
+  - id: pres-tyler
+    kind: ruler
+    name: { bg: "Джон Тайлър", en: "John Tyler" }
+    aliases: ["Tyler", "J. Tyler", "Тайлър"]
+    role: президент
+    elected: false
+    start: "1841-04-04"
+    end: "1845-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Първият вицепрезидент, поел поста след смъртта на президент, с което създава прецедента да става пълноправен президент; присъединяването на Тексас е одобрено в края на мандата му."
+      en: "First vice president to take over after a president's death, setting the precedent that he becomes full president; Texas annexation was approved at the end of his term."
+
+  - id: pres-polk
+    kind: ruler
+    name: { bg: "Джеймс К. Полк", en: "James K. Polk" }
+    aliases: ["Polk", "J. K. Polk", "James Polk", "Полк"]
+    role: президент
+    start: "1845-03-04"
+    end: "1849-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Печели Мексиканско-американската война (1846–48) и придобива Калифорния и Югозапада; урежда границата в Орегон с Великобритания."
+      en: "Won the Mexican-American War (1846-48), gaining California and the Southwest, and settled the Oregon border with Britain."
+
+  - id: pres-taylor
+    kind: ruler
+    name: { bg: "Закъри Тейлър", en: "Zachary Taylor" }
+    aliases: ["Taylor", "Z. Taylor", "Old Rough and Ready", "Тейлър"]
+    role: президент
+    start: "1849-03-04"
+    end: "1850-07-09"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Генерал и герой от Мексиканско-американската война, починал на поста по време на кризата за робството в новите територии. Положил клетва на 05.03.1849 г., защото 04.03 е бил неделя."
+      en: "General and hero of the Mexican-American War who died in office during the crisis over slavery in the new territories. His oath was taken on 05.03.1849 because 04.03 was a Sunday."
+
+  - id: pres-fillmore
+    kind: ruler
+    name: { bg: "Милард Филмор", en: "Millard Fillmore" }
+    aliases: ["Fillmore", "M. Fillmore", "Филмор"]
+    role: президент
+    elected: false
+    start: "1850-07-09"
+    end: "1853-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Подписва Компромиса от 1850 г., включително Закона за беглите роби."
+      en: "Signed the Compromise of 1850, including the Fugitive Slave Act."
+
+  - id: pres-pierce
+    kind: ruler
+    name: { bg: "Франклин Пиърс", en: "Franklin Pierce" }
+    aliases: ["Pierce", "F. Pierce", "Пиърс"]
+    role: президент
+    start: "1853-03-04"
+    end: "1857-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Подписва Закона Канзас–Небраска (1854), който подновява спора за робството в териториите."
+      en: "Signed the Kansas-Nebraska Act (1854), which reopened the fight over slavery in the territories."
+
+  - id: pres-buchanan
+    kind: ruler
+    name: { bg: "Джеймс Бюканън", en: "James Buchanan" }
+    aliases: ["Buchanan", "J. Buchanan", "Бюканън"]
+    role: президент
+    start: "1857-03-04"
+    end: "1861-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Не успява да спре отцепването на южните щати в месеците след избора на Линкълн."
+      en: "Failed to stop the secession of Southern states in the months after Lincoln's election."
+
+  - id: pres-lincoln
+    kind: ruler
+    name: { bg: "Ейбрахам Линкълн", en: "Abraham Lincoln" }
+    aliases: ["Lincoln", "A. Lincoln", "Abe Lincoln", "Линкълн"]
+    role: президент
+    start: "1861-03-04"
+    end: "1865-04-15"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Води Съюза през Гражданската война, издава Прокламацията за еманципацията и е застрелян от Джон Уилкс Бут на 14.04.1865 г."
+      en: "Led the Union through the Civil War, issued the Emancipation Proclamation, and was shot by John Wilkes Booth on 14.04.1865."
+
+  - id: pres-a-johnson
+    kind: ruler
+    name: { bg: "Андрю Джонсън", en: "Andrew Johnson" }
+    aliases: ["A. Johnson", "Andy Johnson"]
+    role: президент
+    elected: false
+    start: "1865-04-15"
+    end: "1869-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Влиза в спор с Конгреса за Реконструкцията и е първият импийчнат президент (1868), но е оправдан с един глас."
+      en: "Clashed with Congress over Reconstruction and became the first president impeached (1868), but was acquitted by one vote."
+
+  - id: pres-grant
+    kind: ruler
+    name: { bg: "Юлисис С. Грант", en: "Ulysses S. Grant" }
+    aliases: ["Grant", "U. S. Grant", "Грант"]
+    role: президент
+    start: "1869-03-04"
+    end: "1877-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Генерал на Съюза, спечелил Гражданската война; като президент защитава Реконструкцията срещу Ку-клукс-клан, но управлението му е засегнато от корупционни скандали."
+      en: "Union general who won the Civil War; as president he enforced Reconstruction against the Ku Klux Klan, but his administration was hit by corruption scandals."
+
+  - id: pres-hayes
+    kind: ruler
+    name: { bg: "Ръдърфорд Б. Хейс", en: "Rutherford B. Hayes" }
+    aliases: ["Hayes", "R. B. Hayes", "Хейс"]
+    role: президент
+    start: "1877-03-04"
+    end: "1881-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Печели спорните избори от 1876 г. с един електорален глас; Компромисът от 1877 г. слага край на Реконструкцията. Публичната му клетва е на 05.03.1877 г., защото 04.03 е бил неделя."
+      en: "Won the disputed 1876 election by one electoral vote; the Compromise of 1877 ended Reconstruction. His public oath was on 05.03.1877 because 04.03 was a Sunday."
+
+  - id: pres-garfield
+    kind: ruler
+    name: { bg: "Джеймс А. Гарфийлд", en: "James A. Garfield" }
+    aliases: ["Garfield", "J. A. Garfield", "Гарфийлд"]
+    role: президент
+    start: "1881-03-04"
+    end: "1881-09-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Прострелян от Чарлс Гито на 02.07.1881 г. и починал 11 седмици по-късно."
+      en: "Shot by Charles Guiteau on 02.07.1881 and died 11 weeks later."
+
+  - id: pres-arthur
+    kind: ruler
+    name: { bg: "Честър А. Артър", en: "Chester A. Arthur" }
+    aliases: ["Arthur", "C. A. Arthur", "Артър"]
+    role: президент
+    elected: false
+    start: "1881-09-19"
+    end: "1885-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Подписва Закона Пендълтън за реформа на държавната служба (1883), с който започва краят на системата на партийните облаги."
+      en: "Signed the Pendleton Civil Service Reform Act (1883), which began to end the spoils system."
+
+  - id: pres-cleveland-1
+    kind: ruler
+    name: { bg: "Гроувър Кливланд", en: "Grover Cleveland" }
+    aliases: ["Cleveland", "G. Cleveland", "Кливланд"]
+    role: президент
+    start: "1885-03-04"
+    end: "1889-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Първият демократ, избран след Гражданската война; известен с честността си и множеството си вета. Управлява два непоследователни мандата (22-ри и 24-ти президент)."
+      en: "First Democrat elected after the Civil War; known for honesty in office and many vetoes. Served two non-consecutive terms (22nd and 24th president)."
+
+  - id: pres-b-harrison
+    kind: ruler
+    name: { bg: "Бенджамин Харисън", en: "Benjamin Harrison" }
+    aliases: ["B. Harrison", "Ben Harrison"]
+    role: президент
+    start: "1889-03-04"
+    end: "1893-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Внук на Уилям Хенри Харисън; подписва Антитръстовия закон на Шърман (1890)."
+      en: "Grandson of William Henry Harrison; signed the Sherman Antitrust Act (1890)."
+
+  - id: pres-cleveland-2
+    kind: ruler
+    name: { bg: "Гроувър Кливланд", en: "Grover Cleveland" }
+    aliases: ["Cleveland", "G. Cleveland", "Кливланд"]
+    role: президент
+    start: "1893-03-04"
+    end: "1897-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Връща се на поста, след като губи изборите през 1888 г.; изправя се пред паниката от 1893 г. и стачката в Пулман."
+      en: "Returned after losing the 1888 election; faced the Panic of 1893 and the Pullman Strike."
+
+  - id: pres-mckinley
+    kind: ruler
+    name: { bg: "Уилям Маккинли", en: "William McKinley" }
+    aliases: ["McKinley", "W. McKinley", "Маккинли"]
+    role: президент
+    start: "1897-03-04"
+    end: "1901-09-14"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Води страната в Испано-американската война (1898), с която придобива Пуерто Рико, Гуам и Филипините; прострелян в Бъфало на 06.09.1901 г."
+      en: "Led the country in the Spanish-American War (1898), gaining Puerto Rico, Guam and the Philippines; shot in Buffalo on 06.09.1901."
+
+  - id: pres-t-roosevelt
+    kind: ruler
+    name: { bg: "Теодор Рузвелт", en: "Theodore Roosevelt" }
+    aliases: ["T. Roosevelt", "Teddy Roosevelt", "TR", "Теди Рузвелт", "Теодор Рузвелт"]
+    role: президент
+    start: "1901-09-14"
+    end: "1909-03-03"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Най-младият човек на поста (42 г.); известен с борбата срещу трестовете, опазването на природата и Панамския канал; получава Нобелова награда за мир през 1906 г. Печели собствен мандат през 1904 г."
+      en: "Youngest person to hold the office (42); known for trust-busting, conservation and the Panama Canal; won the Nobel Peace Prize in 1906. Won his own term in 1904."
+
+  - id: pres-taft
+    kind: ruler
+    name: { bg: "Уилям Хауърд Тафт", en: "William Howard Taft" }
+    aliases: ["Taft", "W. H. Taft", "Тафт"]
+    role: президент
+    start: "1909-03-04"
+    end: "1913-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Единственият човек, бил едновременно президент и председател на Върховния съд на САЩ (1921–1930)."
+      en: "Only person to be both president and Chief Justice of the United States (1921-1930)."
+
+  - id: pres-wilson
+    kind: ruler
+    name: { bg: "Удроу Уилсън", en: "Woodrow Wilson" }
+    aliases: ["Wilson", "W. Wilson", "Уилсън"]
+    role: президент
+    start: "1913-03-04"
+    end: "1921-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Въвлича САЩ в Първата световна война през 1917 г. и предлага Обществото на народите, към което Сенатът отказва да се присъедини."
+      en: "Took the US into World War I in 1917 and proposed the League of Nations, which the Senate refused to join."
+
+  - id: pres-harding
+    kind: ruler
+    name: { bg: "Уорън Г. Хардинг", en: "Warren G. Harding" }
+    aliases: ["Harding", "W. G. Harding", "Хардинг"]
+    role: президент
+    start: "1921-03-04"
+    end: "1923-08-02"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Умира на поста; скандали като „Типот Доум“ излизат наяве след смъртта му."
+      en: "Died in office; scandals such as Teapot Dome came to light after his death."
+
+  - id: pres-coolidge
+    kind: ruler
+    name: { bg: "Калвин Кулидж", en: "Calvin Coolidge" }
+    aliases: ["Coolidge", "C. Coolidge", "Кулидж"]
+    role: президент
+    start: "1923-08-02"
+    end: "1929-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Начело по време на просперитета през 20-те години с тих стил и малко държавна намеса. Печели собствен мандат през 1924 г."
+      en: "Presided over the prosperity of the 1920s with a quiet, small-government style. Won his own term in 1924."
+
+  - id: pres-hoover
+    kind: ruler
+    name: { bg: "Хърбърт Хувър", en: "Herbert Hoover" }
+    aliases: ["Hoover", "H. Hoover", "Хувър"]
+    role: президент
+    start: "1929-03-04"
+    end: "1933-03-03"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Президент, когато борсата се срива през 1929 г. и започва Голямата депресия."
+      en: "President when the stock market crashed in 1929 and the Great Depression began."
+
+  - id: pres-f-roosevelt
+    kind: ruler
+    name: { bg: "Франклин Рузвелт", en: "Franklin D. Roosevelt" }
+    aliases: ["F. D. Roosevelt", "FDR", "Franklin Roosevelt", "Франклин Д. Рузвелт", "Ф. Д. Рузвелт", "ФДР"]
+    role: президент
+    start: "1933-03-04"
+    end: "1945-04-12"
+    precision: exact
+    style: new
+    tier: 1
+    blurb:
+      bg: "Единственият президент, избиран четири пъти; води Новия курс и по-голямата част от Втората световна война и умира на поста."
+      en: "Only president elected four times; led the New Deal and most of World War II, and died in office."
+
+  - id: pres-truman
+    kind: ruler
+    name: { bg: "Хари С. Труман", en: "Harry S. Truman" }
+    aliases: ["Truman", "H. S. Truman", "Труман"]
+    role: президент
+    start: "1945-04-12"
+    end: "1953-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Нарежда атомните бомбардировки над Япония, поставя началото на плана Маршал и доктрината Труман и въвлича САЩ в Корейската война. Печели собствен мандат през 1948 г."
+      en: "Ordered the atomic bombings of Japan, launched the Marshall Plan and the Truman Doctrine, and led the US into the Korean War. Won his own term in 1948."
+
+  - id: pres-eisenhower
+    kind: ruler
+    name: { bg: "Дуайт Айзенхауер", en: "Dwight D. Eisenhower" }
+    aliases: ["Eisenhower", "Ike", "D. D. Eisenhower", "Айзенхауер", "Айк"]
+    role: президент
+    start: "1953-01-20"
+    end: "1961-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Върховен командващ в Европа през Втората световна война, сложил край на Корейската война и построил междущатската магистрална система."
+      en: "WWII supreme commander in Europe who ended the Korean War and built the Interstate Highway System."
+
+  - id: pres-kennedy
+    kind: ruler
+    name: { bg: "Джон Ф. Кенеди", en: "John F. Kennedy" }
+    aliases: ["Kennedy", "JFK", "J. F. Kennedy", "Кенеди"]
+    role: президент
+    start: "1961-01-20"
+    end: "1963-11-22"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Справя се с Кубинската ракетна криза (октомври 1962 г.); убит в Далас."
+      en: "Handled the Cuban Missile Crisis (October 1962); assassinated in Dallas."
+
+  - id: pres-l-johnson
+    kind: ruler
+    name: { bg: "Линдън Джонсън", en: "Lyndon B. Johnson" }
+    aliases: ["L. B. Johnson", "LBJ", "Lyndon Johnson", "Линдън Джонсън", "Ел Би Джей"]
+    role: президент
+    start: "1963-11-22"
+    end: "1969-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Приема Закона за гражданските права (1964), Закона за правото на глас (1965) и Medicare и ескалира войната във Виетнам. Печели собствен мандат през 1964 г."
+      en: "Passed the Civil Rights Act (1964), the Voting Rights Act (1965) and Medicare, and escalated the Vietnam War. Won his own term in 1964."
+
+  - id: pres-nixon
+    kind: ruler
+    name: { bg: "Ричард Никсън", en: "Richard Nixon" }
+    aliases: ["Nixon", "R. Nixon", "Никсън"]
+    role: президент
+    start: "1969-01-20"
+    end: "1974-08-09"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Отваря отношенията с Китай (1972); единственият президент, подал оставка, заради скандала „Уотъргейт“."
+      en: "Opened relations with China (1972); the only president to resign, because of the Watergate scandal."
+
+  - id: pres-ford
+    kind: ruler
+    name: { bg: "Джералд Форд", en: "Gerald Ford" }
+    aliases: ["Ford", "G. Ford", "Форд"]
+    role: президент
+    elected: false
+    start: "1974-08-09"
+    end: "1977-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Става президент, без никога да е избиран нито за президент, нито за вицепрезидент; помилва Никсън."
+      en: "Became president without ever being elected as president or vice president; pardoned Nixon."
+
+  - id: pres-carter
+    kind: ruler
+    name: { bg: "Джими Картър", en: "Jimmy Carter" }
+    aliases: ["Carter", "J. Carter", "James Earl Carter", "Картър"]
+    role: президент
+    start: "1977-01-20"
+    end: "1981-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Посредничи за споразуменията от Камп Дейвид (1978); мандатът му е белязан от заложническата криза в Иран и високата инфлация."
+      en: "Brokered the Camp David Accords (1978); his term was marked by the Iran hostage crisis and high inflation."
+
+  - id: pres-reagan
+    kind: ruler
+    name: { bg: "Роналд Рейгън", en: "Ronald Reagan" }
+    aliases: ["Reagan", "R. Reagan", "Рейгън"]
+    role: президент
+    start: "1981-01-20"
+    end: "1989-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Намалява данъците, увеличава военните разходи и преговаря за съкращаване на въоръженията с Горбачов, докато Студената война затихва."
+      en: "Cut taxes, raised defense spending, and negotiated arms reductions with Gorbachev as the Cold War wound down."
+
+  - id: pres-bush-sr
+    kind: ruler
+    name: { bg: "Джордж Х. У. Буш", en: "George H. W. Bush" }
+    aliases: ["G. H. W. Bush", "Bush Sr", "George Bush Sr", "Bush senior", "Bush 41", "Буш старши", "Буш 41"]
+    role: президент
+    start: "1989-01-20"
+    end: "1993-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Води коалицията във Войната в Залива (1991) и е президент при края на Студената война и обединението на Германия."
+      en: "Led the Gulf War coalition (1991) and presided over the end of the Cold War and German reunification."
+
+  - id: pres-clinton
+    kind: ruler
+    name: { bg: "Бил Клинтън", en: "Bill Clinton" }
+    aliases: ["Clinton", "B. Clinton", "William J. Clinton", "Клинтън", "Уилям Клинтън"]
+    role: президент
+    start: "1993-01-20"
+    end: "2001-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Начело по време на дълъг икономически подем и балансиран бюджет; импийчнат от Камарата през 1998 г. и оправдан от Сената."
+      en: "Presided over a long economic expansion and a balanced budget; impeached by the House in 1998 and acquitted by the Senate."
+
+  - id: pres-bush-jr
+    kind: ruler
+    name: { bg: "Джордж У. Буш", en: "George W. Bush" }
+    aliases: ["G. W. Bush", "Bush Jr", "George Bush Jr", "Bush junior", "Bush 43", "Dubya", "Буш младши", "Буш 43"]
+    role: президент
+    start: "2001-01-20"
+    end: "2009-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Води страната след атентатите от 11.09.2001 г. и започва войните в Афганистан и Ирак; финансовата криза от 2008 г. започва в края на мандата му."
+      en: "Led the country after the attacks of 11.09.2001 and launched the wars in Afghanistan and Iraq; the 2008 financial crisis began late in his term."
+
+  - id: pres-obama
+    kind: ruler
+    name: { bg: "Барак Обама", en: "Barack Obama" }
+    aliases: ["Obama", "B. Obama", "Barack Hussein Obama", "Обама"]
+    role: президент
+    start: "2009-01-20"
+    end: "2017-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Първият афроамерикански президент; приема Закона за достъпни здравни грижи (2010) и нарежда акцията, при която е убит Осама бин Ладен (2011)."
+      en: "First African American president; passed the Affordable Care Act (2010) and ordered the raid that killed Osama bin Laden (2011)."
+
+  - id: pres-trump-1
+    kind: ruler
+    name: { bg: "Доналд Тръмп", en: "Donald Trump" }
+    aliases: ["Trump", "D. Trump", "Donald J. Trump", "Тръмп"]
+    role: президент
+    start: "2017-01-20"
+    end: "2021-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Бизнесмен, който никога не е заемал публична длъжност; приема данъчните облекчения от 2017 г. и е импийчнат два пъти от Камарата, като е оправдан и двата пъти."
+      en: "Businessman who had never held public office; passed the 2017 tax cuts and was impeached twice by the House, acquitted both times."
+
+  - id: pres-biden
+    kind: ruler
+    name: { bg: "Джо Байдън", en: "Joe Biden" }
+    aliases: ["Biden", "J. Biden", "Joseph R. Biden", "Байдън"]
+    role: президент
+    start: "2021-01-20"
+    end: "2025-01-19"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Най-възрастният встъпил в длъжност до онзи момент (на 78 г.); прекратява кандидатурата си за преизбиране през юли 2024 г."
+      en: "The oldest person inaugurated up to that time (age 78); ended his reelection bid in July 2024."
+
+  - id: pres-trump-2
+    kind: ruler
+    name: { bg: "Доналд Тръмп", en: "Donald Trump" }
+    aliases: ["Trump", "D. Trump", "Donald J. Trump", "Тръмп"]
+    role: президент
+    start: "2025-01-20"
+    precision: exact
+    style: new
+    tier: 2
+    blurb:
+      bg: "Втори непоследователен мандат след Гроувър Кливланд; печели изборите през 2024 г. и встъпва в длъжност на 20.01.2025 г."
+      en: "Second non-consecutive presidency after Grover Cleveland; won the 2024 election and was inaugurated on 20.01.2025."

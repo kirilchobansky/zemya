@@ -84,9 +84,34 @@ export const BULGARIA_FILL_QUIZZES: readonly FillQuizConfig[] = [
   }
 ];
 
+export const UNITED_STATES_FILL_QUIZZES: readonly FillQuizConfig[] = [
+  {
+    id: 'united-states-presidents',
+    title: 'Presidents of the United States',
+    kind: 'ruler', role: /президент/,
+    toggle: { label: 'Elected to the office only' }
+  },
+  {
+    id: 'united-states-presidents-1789-1869',
+    title: 'Presidents, 1789-1869',
+    kind: 'ruler', role: /президент/, from: '1789-04-30', before: '1869-03-04'
+  },
+  {
+    id: 'united-states-presidents-1869-1945',
+    title: 'Presidents, 1869-1945',
+    kind: 'ruler', role: /президент/, from: '1869-03-04', before: '1945-04-12'
+  },
+  {
+    id: 'united-states-presidents-1945-today',
+    title: 'Presidents, 1945-today',
+    kind: 'ruler', role: /президент/, from: '1945-04-12'
+  }
+];
+
 /** Per history-country slug (countries.ts). */
 export const FILL_QUIZ_CONFIG: Readonly<Record<string, readonly FillQuizConfig[]>> = {
-  bulgaria: BULGARIA_FILL_QUIZZES
+  bulgaria: BULGARIA_FILL_QUIZZES,
+  'united-states': UNITED_STATES_FILL_QUIZZES
 };
 
 /** The `size` a run is saved and looked up under: the toggle's two settings are two

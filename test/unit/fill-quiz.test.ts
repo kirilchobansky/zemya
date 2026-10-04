@@ -339,3 +339,71 @@ describe('the Bulgarian quiz table on the shipped timeline', () => {
     expect(ids(pmQuizzes[2])).toContain('pm-lukanov');
   });
 });
+
+describe('the United States quiz table on the shipped timeline', () => {
+  const doc = JSON.parse(readFileSync('public/data/history/us.json', 'utf8')) as { entries: FillRawEntry[] };
+  const quizzes = fillQuizzesFromRaw(doc.entries, 'united-states');
+  const quiz = (id: string) => quizzes.find(q => q.id === `united-states-${id}`)!;
+  const all = quiz('presidents');
+  const prepared = prepareFill(all.entries);
+  const idOf = (typed: string, filled: ReadonlySet<string> = new Set()) => {
+    const m = matchFill(typed, prepared, filled);
+    return m ? prepared[m.index].id : null;
+  };
+
+  it('has four quizzes; only the full list has the elected toggle', () => {
+    expect(quizzes.map(q => q.title)).toEqual([
+      'Presidents of the United States', 'Presidents, 1789-1869', 'Presidents, 1869-1945', 'Presidents, 1945-today'
+    ]);
+    expect(quizzes.filter(q => q.toggle).map(q => [q.id, q.toggle!.label])).toEqual([
+      ['united-states-presidents', 'Elected to the office only']
+    ]);
+  });
+
+  it('holds all 47 presidencies; the toggle drops the five never elected', () => {
+    expect(all.entries.length).toBe(47);
+    expect(entriesFor(all, true).length).toBe(42);
+  });
+
+  it('the three windows hold 17, 15 and 15 presidencies, together every one exactly once', () => {
+    const windows = ['presidents-1789-1869', 'presidents-1869-1945', 'presidents-1945-today'].map(quiz);
+    expect(windows.map(q => q.entries.length)).toEqual([17, 15, 15]);
+    expect(windows.flatMap(q => q.entries.map(e => e.id)).sort()).toEqual(all.entries.map(e => e.id).sort());
+  });
+
+  it('rejects a spelling shared by two different people', () => {
+    for (const typed of ['Harrison', 'Johnson', 'Roosevelt', 'Adams', 'Bush', 'Харисън', 'Рузвелт', 'Буш']) {
+      expect(idOf(typed), typed).toBeNull();
+    }
+  });
+
+  it('accepts unambiguous names and aliases', () => {
+    expect(idOf('Lincoln')).toBe('pres-lincoln');
+    expect(idOf('Teddy Roosevelt')).toBe('pres-t-roosevelt');
+    expect(idOf('Franklin Roosevelt')).toBe('pres-f-roosevelt');
+    expect(idOf('Буш старши')).toBe('pres-bush-sr');
+    expect(idOf('Bush Sr')).toBe('pres-bush-sr');
+    expect(idOf('Bush Jr')).toBe('pres-bush-jr');
+  });
+
+  it('the same person twice fills the earliest unfilled rectangle', () => {
+    expect(idOf('Cleveland')).toBe('pres-cleveland-1');
+    expect(idOf('Cleveland', new Set(['pres-cleveland-1']))).toBe('pres-cleveland-2');
+    expect(idOf('Cleveland', new Set(['pres-cleveland-1', 'pres-cleveland-2']))).toBeNull();
+    expect(idOf('Trump')).toBe('pres-trump-1');
+    expect(idOf('Trump', new Set(['pres-trump-1']))).toBe('pres-trump-2');
+  });
+});
+
+describe('matchFill: shared aliases', () => {
+  it('an alias held by two different people is never accepted; the same person twice is', () => {
+    const list = prepareFill([
+      entry('a', 'Иван Петров', 'Ivan Petrov', 1900, ['Ivo']),
+      entry('b', 'Иван Сидоров', 'Ivan Sidorov', 1910, ['Ivo']),
+      entry('c', 'Иван Сидоров', 'Ivan Sidorov', 1920)
+    ]);
+    expect(matchFill('Ivo', list, new Set())).toBeNull();
+    expect(matchFill('Sidorov', list, new Set())?.index).toBe(1);
+    expect(matchFill('Sidorov', list, new Set(['b']))?.index).toBe(2);
+  });
+});

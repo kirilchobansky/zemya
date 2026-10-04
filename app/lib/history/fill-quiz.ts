@@ -12,11 +12,13 @@
  *   - a name carrying a number is accepted only WITH it: the whole name, or cut at the
  *     numeral ("Симеон I Велики" -> "Симеон 1"); the bare "Симеон" never is (`needsNumber`
  *     detects it, for the hint);
- *   - a name of two or more words also gives its surname (last word, numeral excluded) when no
- *     DIFFERENT person in the quiz shares it — the same name twice is the same person, and the
- *     earliest unfilled one fills. The first name alone is never a form;
+ *   - a name of two or more words also gives its surname (last word, numeral excluded). The
+ *     first name alone is never a form;
  *   - a one-word name is its own form.
- * An alias is one exact accepted spelling, no derived forms. Latin letters typed for a
+ * An alias is one exact accepted spelling, no derived forms. Whatever its source, a form
+ * that belongs to two DIFFERENT people in the quiz (a shared surname, a shared alias) is
+ * never accepted — the same name twice is the same person, and the earliest unfilled one
+ * fills. Latin letters typed for a
  * Cyrillic name go through search.ts's Latin-to-Cyrillic compilation, matched against the
  * whole form. A single typo (one edit) is forgiven for names of 6+ letters — see `matchFill`
  * for the two conditions under which it is not.
@@ -110,13 +112,8 @@ export interface PreparedFillEntry {
  *  chronological order: "earliest unfilled" means lowest index. */
 export function prepareFill(entries: readonly FillEntry[]): PreparedFillEntry[] {
   const named = entries.map(e => [e.nameBg, e.nameEn].filter(Boolean).map(parts));
-  // surname -> the distinct full names (people) that carry it
-  const people = new Map<string, Set<string>>();
-  for (const list of named) for (const p of list) {
-    const sn = surnameOf(p);
-    if (sn) (people.get(sn) ?? people.set(sn, new Set()).get(sn)!).add(p.toks.join(''));
-  }
-  return entries.map((e, i) => {
+  // Each entry's candidate forms, and who it is: the same full name is the same person.
+  const candidates = entries.map((e, i) => {
     const forms = new Set<string>();
     const bare = new Set<string>();
     for (const p of named[i]) {
@@ -126,13 +123,22 @@ export function prepareFill(entries: readonly FillEntry[]): PreparedFillEntry[] 
         bare.add(p.toks.slice(0, p.at).join(''));
       }
       const sn = surnameOf(p);
-      if (sn && people.get(sn)!.size === 1) forms.add(sn);
+      if (sn) forms.add(sn);
     }
     for (const a of e.aliases) forms.add(normaliseFill(a)); // exact spelling, nothing derived
     forms.delete('');
     bare.delete('');
-    for (const f of forms) bare.delete(f);
-    return { id: e.id, forms: [...forms], bare: [...bare] };
+    return { forms, bare, person: (named[i][0] ?? parts('')).toks.join('') };
+  });
+  // form -> the distinct people it belongs to; a form of two different people is never accepted
+  const owners = new Map<string, Set<string>>();
+  for (const c of candidates) for (const f of c.forms) {
+    (owners.get(f) ?? owners.set(f, new Set()).get(f)!).add(c.person);
+  }
+  return entries.map((e, i) => {
+    const forms = [...candidates[i].forms].filter(f => owners.get(f)!.size === 1);
+    const bare = [...candidates[i].bare].filter(f => !forms.includes(f));
+    return { id: e.id, forms, bare };
   });
 }
 

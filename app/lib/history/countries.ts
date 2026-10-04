@@ -27,6 +27,10 @@ export const HISTORY_COUNTRIES: HistoryCountry[] = [
   {
     slug: 'bulgaria', file: 'bg', name: 'България', nameEn: 'Bulgaria', adjectiveEn: 'Bulgarian',
     startYear: '681', range: '681–today', pastLabel: 'Стара Велика България', futureLabel: 'Бъдеще'
+  },
+  {
+    slug: 'united-states', file: 'us', name: 'САЩ', nameEn: 'United States', adjectiveEn: 'American',
+    startYear: '1492', range: '1492–днес', pastLabel: 'Коренни американски народи', futureLabel: 'Бъдеще'
   }
 ];
 

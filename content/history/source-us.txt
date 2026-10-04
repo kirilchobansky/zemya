@@ -1,0 +1,81 @@
+# USA data, part 1: COUNTRY, PERIODS, PRESIDENTS
+# Lines starting with # are comments. All text is in English; the Bulgarian name columns are left empty for you to fill.
+# Date format dd.mm.yyyy. An empty end date means the term or period is ongoing.
+# Convention: an end date is the day BEFORE the next item starts (no overlaps), except when a president died or resigned.
+
+COUNTRY
+slug: usa | name in Bulgarian: | English name: United States | adjective: American
+first year shown: 1492
+
+PERIODS
+# name (bg) | name (en) | start | end
+ | Early Exploration | 12.10.1492 | 13.05.1607
+ | Early Colonies | 14.05.1607 | 09.02.1763
+ | Revolutionary Era | 10.02.1763 | 02.09.1783
+ | Confederation and Constitution | 03.09.1783 | 29.04.1789
+ | Early Republic | 30.04.1789 | 03.03.1829
+ | Jacksonian Era and Expansion | 04.03.1829 | 11.04.1861
+ | Civil War | 12.04.1861 | 09.04.1865
+ | Reconstruction | 10.04.1865 | 04.03.1877
+ | Gilded Age and Progressive Era | 05.03.1877 | 05.04.1917
+ | World Wars and Interwar Years | 06.04.1917 | 02.09.1945
+ | Cold War | 03.09.1945 | 26.12.1991
+ | Post-Cold War Era | 27.12.1991 |
+
+PRESIDENTS
+# name (bg) | name (en) | other spellings | start | end | elected to the office? | note
+ | George Washington | Washington, G. Washington | 30.04.1789 | 03.03.1797 | yes | Commanded the Continental Army and set many precedents, including stepping down after two terms.
+ | John Adams | Adams, John Adams Sr | 04.03.1797 | 03.03.1801 | yes | First president to live in the White House; his term was shaped by the Quasi-War with France and the Alien and Sedition Acts.
+ | Thomas Jefferson | Jefferson, T. Jefferson | 04.03.1801 | 03.03.1809 | yes | Author of the Declaration of Independence who doubled the country's size with the Louisiana Purchase (1803).
+ | James Madison | Madison, J. Madison | 04.03.1809 | 03.03.1817 | yes | Main architect of the Constitution and author of the Bill of Rights; led the country in the War of 1812.
+ | James Monroe | Monroe, J. Monroe | 04.03.1817 | 03.03.1825 | yes | Presided over the "Era of Good Feelings" and announced the Monroe Doctrine (1823) against new European colonies in the Americas.
+ | John Quincy Adams | J. Q. Adams, JQA, Adams Jr | 04.03.1825 | 03.03.1829 | yes | Chosen by the House of Representatives after the 1824 election had no majority winner; son of John Adams.
+ | Andrew Jackson | Jackson, A. Jackson | 04.03.1829 | 03.03.1837 | yes | Expanded presidential power, fought the Second Bank of the United States and signed the Indian Removal Act (1830).
+ | Martin Van Buren | Van Buren, M. Van Buren | 04.03.1837 | 03.03.1841 | yes | Presided over the Panic of 1837 and the long depression that followed; first president born a US citizen.
+ | William Henry Harrison | W. H. Harrison, Harrison, Old Tippecanoe | 04.03.1841 | 04.04.1841 | yes | Died 31 days after taking office, the shortest presidency in US history.
+ | John Tyler | Tyler, J. Tyler | 04.04.1841 | 03.03.1845 | no | First vice president to take over after a president's death, setting the precedent that he becomes full president; Texas annexation was approved at the end of his term.
+ | James K. Polk | Polk, J. K. Polk, James Polk | 04.03.1845 | 03.03.1849 | yes | Won the Mexican-American War (1846-48), gaining California and the Southwest, and settled the Oregon border with Britain.
+ | Zachary Taylor | Taylor, Z. Taylor, Old Rough and Ready | 04.03.1849 | 09.07.1850 | yes | General and hero of the Mexican-American War who died in office during the crisis over slavery in the new territories. His oath was taken on 05.03.1849 because 04.03 was a Sunday.
+ | Millard Fillmore | Fillmore, M. Fillmore | 09.07.1850 | 03.03.1853 | no | Signed the Compromise of 1850, including the Fugitive Slave Act.
+ | Franklin Pierce | Pierce, F. Pierce | 04.03.1853 | 03.03.1857 | yes | Signed the Kansas-Nebraska Act (1854), which reopened the fight over slavery in the territories.
+ | James Buchanan | Buchanan, J. Buchanan | 04.03.1857 | 03.03.1861 | yes | Failed to stop the secession of Southern states in the months after Lincoln's election.
+ | Abraham Lincoln | Lincoln, A. Lincoln, Abe Lincoln | 04.03.1861 | 15.04.1865 | yes | Led the Union through the Civil War, issued the Emancipation Proclamation, and was shot by John Wilkes Booth on 14.04.1865.
+ | Andrew Johnson | A. Johnson, Johnson, Andy Johnson | 15.04.1865 | 03.03.1869 | no | Clashed with Congress over Reconstruction and became the first president impeached (1868), but was acquitted by one vote.
+ | Ulysses S. Grant | Grant, U. S. Grant | 04.03.1869 | 03.03.1877 | yes | Union general who won the Civil War; as president he enforced Reconstruction against the Ku Klux Klan, but his administration was hit by corruption scandals.
+ | Rutherford B. Hayes | Hayes, R. B. Hayes | 04.03.1877 | 03.03.1881 | yes | Won the disputed 1876 election by one electoral vote; the Compromise of 1877 ended Reconstruction. His public oath was on 05.03.1877 because 04.03 was a Sunday.
+ | James A. Garfield | Garfield, J. A. Garfield | 04.03.1881 | 19.09.1881 | yes | Shot by Charles Guiteau on 02.07.1881 and died 11 weeks later.
+ | Chester A. Arthur | Arthur, C. A. Arthur | 19.09.1881 | 03.03.1885 | no | Signed the Pendleton Civil Service Reform Act (1883), which began to end the spoils system.
+ | Grover Cleveland | Cleveland, G. Cleveland | 04.03.1885 | 03.03.1889 | yes | First Democrat elected after the Civil War; known for honesty in office and many vetoes. Served two non-consecutive terms (22nd and 24th president).
+ | Benjamin Harrison | B. Harrison, Harrison, Ben Harrison | 04.03.1889 | 03.03.1893 | yes | Grandson of William Henry Harrison; signed the Sherman Antitrust Act (1890).
+ | Grover Cleveland | Cleveland, G. Cleveland | 04.03.1893 | 03.03.1897 | yes | Returned after losing the 1888 election; faced the Panic of 1893 and the Pullman Strike.
+ | William McKinley | McKinley, W. McKinley | 04.03.1897 | 14.09.1901 | yes | Led the country in the Spanish-American War (1898), gaining Puerto Rico, Guam and the Philippines; shot in Buffalo on 06.09.1901.
+ | Theodore Roosevelt | T. Roosevelt, Teddy Roosevelt, TR, Roosevelt | 14.09.1901 | 03.03.1909 | yes | Youngest person to hold the office (42); known for trust-busting, conservation and the Panama Canal; won the Nobel Peace Prize in 1906. Won his own term in 1904.
+ | William Howard Taft | Taft, W. H. Taft | 04.03.1909 | 03.03.1913 | yes | Only person to be both president and Chief Justice of the United States (1921-1930).
+ | Woodrow Wilson | Wilson, W. Wilson | 04.03.1913 | 03.03.1921 | yes | Took the US into World War I in 1917 and proposed the League of Nations, which the Senate refused to join.
+ | Warren G. Harding | Harding, W. G. Harding | 04.03.1921 | 02.08.1923 | yes | Died in office; scandals such as Teapot Dome came to light after his death.
+ | Calvin Coolidge | Coolidge, C. Coolidge | 02.08.1923 | 03.03.1929 | yes | Presided over the prosperity of the 1920s with a quiet, small-government style. Won his own term in 1924.
+ | Herbert Hoover | Hoover, H. Hoover | 04.03.1929 | 03.03.1933 | yes | President when the stock market crashed in 1929 and the Great Depression began.
+ | Franklin D. Roosevelt | F. D. Roosevelt, FDR, Franklin Roosevelt, Roosevelt | 04.03.1933 | 12.04.1945 | yes | Only president elected four times; led the New Deal and most of World War II, and died in office.
+ | Harry S. Truman | Truman, H. S. Truman | 12.04.1945 | 19.01.1953 | yes | Ordered the atomic bombings of Japan, launched the Marshall Plan and the Truman Doctrine, and led the US into the Korean War. Won his own term in 1948.
+ | Dwight D. Eisenhower | Eisenhower, Ike, D. D. Eisenhower | 20.01.1953 | 19.01.1961 | yes | WWII supreme commander in Europe who ended the Korean War and built the Interstate Highway System.
+ | John F. Kennedy | Kennedy, JFK, J. F. Kennedy | 20.01.1961 | 22.11.1963 | yes | Handled the Cuban Missile Crisis (October 1962); assassinated in Dallas.
+ | Lyndon B. Johnson | L. B. Johnson, LBJ, Lyndon Johnson, Johnson | 22.11.1963 | 19.01.1969 | yes | Passed the Civil Rights Act (1964), the Voting Rights Act (1965) and Medicare, and escalated the Vietnam War. Won his own term in 1964.
+ | Richard Nixon | Nixon, R. Nixon | 20.01.1969 | 09.08.1974 | yes | Opened relations with China (1972); the only president to resign, because of the Watergate scandal.
+ | Gerald Ford | Ford, G. Ford | 09.08.1974 | 19.01.1977 | no | Became president without ever being elected as president or vice president; pardoned Nixon.
+ | Jimmy Carter | Carter, J. Carter, James Earl Carter | 20.01.1977 | 19.01.1981 | yes | Brokered the Camp David Accords (1978); his term was marked by the Iran hostage crisis and high inflation.
+ | Ronald Reagan | Reagan, R. Reagan | 20.01.1981 | 19.01.1989 | yes | Cut taxes, raised defense spending, and negotiated arms reductions with Gorbachev as the Cold War wound down.
+ | George H. W. Bush | G. H. W. Bush, Bush Sr, George Bush Sr, Bush senior, Bush 41 | 20.01.1989 | 19.01.1993 | yes | Led the Gulf War coalition (1991) and presided over the end of the Cold War and German reunification.
+ | Bill Clinton | Clinton, B. Clinton, William J. Clinton | 20.01.1993 | 19.01.2001 | yes | Presided over a long economic expansion and a balanced budget; impeached by the House in 1998 and acquitted by the Senate.
+ | George W. Bush | G. W. Bush, Bush Jr, George Bush Jr, Bush junior, Bush 43, Dubya | 20.01.2001 | 19.01.2009 | yes | Led the country after the attacks of 11.09.2001 and launched the wars in Afghanistan and Iraq; the 2008 financial crisis began late in his term.
+ | Barack Obama | Obama, B. Obama, Barack Hussein Obama | 20.01.2009 | 19.01.2017 | yes | First African American president; passed the Affordable Care Act (2010) and ordered the raid that killed Osama bin Laden (2011).
+ | Donald Trump | Trump, D. Trump, Donald J. Trump | 20.01.2017 | 19.01.2021 | yes | Businessman who had never held public office; passed the 2017 tax cuts and was impeached twice by the House, acquitted both times.
+ | Joe Biden | Biden, J. Biden, Joseph R. Biden | 20.01.2021 | 19.01.2025 | yes | The oldest person inaugurated up to that time (age 78); ended his reelection bid in July 2024.
+ | Donald Trump | Trump, D. Trump, Donald J. Trump | 20.01.2025 | | yes | Second non-consecutive presidency after Grover Cleveland; won the 2024 election and was inaugurated on 20.01.2025.
+
+# NOTES TO CHECK
+# 1. Dates before 14.09.1752 are as commonly cited. Columbus (12.10.1492) is the Julian date; Jamestown (14.05.1607) is old style. Period boundaries from 1763 on are Gregorian.
+# 2. Period boundaries are editorial choices, not official dates. The Reconstruction end (04.03.1877) is the day before Hayes's public inauguration; the Cold War end (26.12.1991) is the dissolution of the USSR.
+# 3. Presidents with two lines (Cleveland, Trump) are the 22nd/24th and 45th/47th presidencies, so there are 47 lines but 45 different people.
+# 4. Presidents who were never elected to the office: Tyler, Fillmore, Andrew Johnson, Arthur, Ford. Theodore Roosevelt, Coolidge, Truman and Lyndon Johnson took over after a death but later won their own election, so they are marked yes.
+# 5. John Quincy Adams (House vote) and Hayes (disputed result) are marked yes because both were formally elected; the notes explain how.
+# 6. Trump and Vance as the current president and vice president were confirmed by search; check again before you publish, since this is the only line that can change.
