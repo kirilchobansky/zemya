@@ -18,8 +18,8 @@ import {
 } from "~/lib/core/progress";
 import { formatDuration } from "~/lib/format";
 import { pageMeta } from "~/lib/seo";
-import { subjectById } from "~/lib/quiz/subjects";
-import { NAME_ALL_ID, NAME_ALL_QUIZ, type QuizSelectionMode } from "~/lib/geography/quizzes";
+import { quizCount, subjectById } from "~/lib/quiz/subjects";
+import { NAME_ALL_ID, type QuizSelectionMode } from "~/lib/geography/quizzes";
 import {
   poolForQuiz,
   QUIZ_SCOPES,
@@ -66,7 +66,7 @@ const summariseFill = (): FillSummary[] =>
 /** Every quiz's pool size per scope, from a country list — the size ladders are derived
  *  from these. */
 function poolCounts(countries: Parameters<typeof poolForQuiz>[0]): PoolCounts {
-  const ids = [...(subjectById("geography")?.quizzes ?? []).map((q) => q.id), NAME_ALL_ID];
+  const ids = [...(subjectById("geography")?.quizzes ?? []).map((q) => q.id), ...(subjectById("geography")?.extraQuizzes ?? []).map((q) => q.id)];
   return Object.fromEntries(
     ids.map((id) => [
       id,
@@ -122,7 +122,7 @@ export function meta({ params }: Route.MetaArgs) {
     title: `${subject.name} Quizzes — Zemya`,
     description: subject.fillQuizzes
       ? `Timed ${subject.name.toLowerCase()} quizzes: pick a country, then name every ruler, president or prime minister from their dates.`
-      : `Timed ${subject.name.toLowerCase()} quizzes: ${subject.quizzes.map((q) => q.title).join(", ")}.`,
+      : `Timed ${subject.name.toLowerCase()} quizzes: ${[...subject.quizzes, ...(subject.extraQuizzes ?? [])].map((q) => q.title).join(", ")}.`,
     path: `/quizzes/${subject.id}`,
   });
 }
@@ -281,7 +281,7 @@ function QuizList({
         </div>
       </header>
       <div className="panel__body">
-        {subject.quizzes.length === 0 ? (
+        {quizCount(subject) === 0 ? (
           <div className="empty">
             <div className="empty__icon">🕓</div>
             <p>There are no {subject.name} quizzes yet.</p>
@@ -292,7 +292,7 @@ function QuizList({
         ) : (
           <div className="quiz-list">
             {/* "Name all countries" is geography's one quiz that is not a QuizDefinition */}
-            {(subject.id === "geography" ? [...subject.quizzes, NAME_ALL_QUIZ] : subject.quizzes).map((quiz) => {
+            {[...subject.quizzes, ...(subject.extraQuizzes ?? [])].map((quiz) => {
               const nameAll = quiz.id === NAME_ALL_ID;
               const open = openId === quiz.id;
               const scope = scopeOf(quiz.id);
