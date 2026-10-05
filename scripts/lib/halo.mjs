@@ -22,6 +22,11 @@ const RAD = Math.PI / 180;
 /** Points per full circle when rounding the hull's corners. */
 const CORNER_STEPS = 24;
 
+/** A halo is a territory wash over open sea. Where more than this share of its area is another
+ *  country's land (Singapore: 36% Malaysia and Indonesia) it would paint a neighbour, so the
+ *  country is a dot instead. Everyone else measures under 4%. */
+export const HALO_MAX_NEIGHBOUR_SHARE = 0.15;
+
 /** Owner's call: the Caribbean, Malta and Cyprus keep their dots (and their land shapes once
  *  zoomed in) — a halo there read as clutter over a crowded or already-legible region. */
 export const HALO_EXCLUDED = new Set([
@@ -166,4 +171,42 @@ export function haloLonSpan(ring) {
     if (lon > max) max = lon;
   }
   return max - min;
+}
+
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * The share (0..1) of a halo's area that lies on other countries' land, sampled on a 40x40 grid.
+ * `others`: every polygon of every OTHER country as `{ ring, bbox: [minLon, minLat, maxLon, maxLat] }`
+ * (outer ring, raw lon/lat); a polygon is also tried 360 degrees either side, so a halo unwrapped
+ * across the antimeridian still meets it.
+ */
+export function neighbourLandShare(haloRing, others) {
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  for (const [lon, lat] of haloRing) {
+    minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
+    minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+  }
+  const N = 40;
+  let total = 0, land = 0;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const x = minLon + ((i + 0.5) / N) * (maxLon - minLon);
+      const y = minLat + ((j + 0.5) / N) * (maxLat - minLat);
+      if (!pointInRing(x, y, haloRing)) continue;
+      total += 1;
+      const onLand = others.some(({ ring, bbox }) =>
+        y >= bbox[1] && y <= bbox[3] &&
+        [0, 360, -360].some(shift => x + shift >= bbox[0] && x + shift <= bbox[2] && pointInRing(x + shift, y, ring)));
+      if (onLand) land += 1;
+    }
+  }
+  return total ? land / total : 0;
 }

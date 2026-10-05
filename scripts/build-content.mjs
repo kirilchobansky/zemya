@@ -28,7 +28,7 @@ import { parse } from 'yaml';
 import { mergeArcs } from 'topojson-client';
 import * as simplify from 'topojson-simplify';
 import { slugFor, slugify } from './lib/slug.mjs';
-import { buildHalo, haloLonSpan, HALO_MAX_LON_SPAN, qualifiesForHalo, unwrappedVertices } from './lib/halo.mjs';
+import { buildHalo, haloLonSpan, HALO_MAX_LON_SPAN, HALO_MAX_NEIGHBOUR_SHARE, neighbourLandShare, qualifiesForHalo, unwrappedVertices } from './lib/halo.mjs';
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -853,6 +853,7 @@ const coarse = buildGeometry(COARSE_DETAIL);
  * degrees of longitude once unwrapped (the antimeridian handling failed), is a bug.
  */
 const halos = [];
+const haloOverNeighbour = []; // qualifying by size, a dot because the wash would paint a neighbour
 {
   const { x0, y0, xs, ys } = { x0: X0, y0: Y0, xs: XS, ys: YS };
   const decoded = full.arcs.map(arc => {
@@ -870,6 +871,16 @@ const halos = [];
     return points;
   };
   const geometryById = new Map(full.geometries.map(g => [g.id, g]));
+  /* every polygon's outer ring with its box, for the neighbour-land share below */
+  const landPolygons = [];
+  for (const g of full.geometries) {
+    for (const polygon of g.multi ? g.arcs : [g.arcs]) {
+      const ring = stitch(polygon[0]);
+      let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+      for (const [lon, lat] of ring) { a = Math.min(a, lon); c = Math.max(c, lon); b = Math.min(b, lat); d = Math.max(d, lat); }
+      landPolygons.push({ id: g.id, ring, bbox: [a, b, c, d] });
+    }
+  }
   for (const country of countries) {
     if (!qualifiesForHalo(country)) continue;
     const geometry = geometryById.get(country.id);
@@ -881,6 +892,10 @@ const halos = [];
     const span = haloLonSpan(ring);
     if (span > HALO_MAX_LON_SPAN) {
       throw new Error(`halo: ${country.iso3} spans ${span.toFixed(1)} degrees of longitude — antimeridian unwrapping failed`);
+    }
+    if (neighbourLandShare(ring, landPolygons.filter(p => p.id !== country.id)) > HALO_MAX_NEIGHBOUR_SHARE) {
+      haloOverNeighbour.push(country.iso3);
+      continue;
     }
     halos.push({ id: country.id, ring });
   }
@@ -1082,7 +1097,7 @@ console.log(`detail (coarse) ${COARSE_DETAIL}`);
 console.log(`geometries     ${full.geometries.length}`);
 console.log(`lakes          ${full.lakes.length} (${full.lakes.map(l => l.id).join(', ')})`);
 console.log(`places         ${places.length} (capitals)`);
-console.log(`halos          ${halos.length} (${halos.map(h => countries.find(c => c.id === h.id).iso3).join(', ')})`);
+console.log(`halos          ${halos.length} (${halos.map(h => countries.find(c => c.id === h.id).iso3).join(', ')})${haloOverNeighbour.length ? `; dot instead, halo would cover a neighbour: ${haloOverNeighbour.join(', ')}` : ''}`);
 console.log(`capital aliases ${totalCapitalAliases} extra across ${capitalAliasEntries.size} countries`);
 console.log(
   `facet aliases   currency ${countries.reduce((n, c) => n + Math.max(0, c.currencyAliases.length - 2), 0)}, ` +

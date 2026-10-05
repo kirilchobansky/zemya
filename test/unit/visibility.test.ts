@@ -113,3 +113,47 @@ describe('microMode', () => {
     expect(microMode({ showPins: false, micro: 'dots' })).toBe('dots');
   });
 });
+
+describe('small countries: one rule, never a dot and an area for the same country', () => {
+  const MODES = ['full', 'dots', 'off'] as const;
+
+  it('no country is a dot and a halo (area) in the same frame, in any mode, at any zoom', async () => {
+    const { homeZoom } = await import('~/lib/map/camera');
+    const { haloAlpha, showsAsDot } = await import('~/lib/map/visibility');
+    const world = await loadRealWorld();
+    for (const feature of world.features) {
+      for (const micro of MODES) {
+        for (let factor = 0.8; factor <= 320; factor *= 1.25) {
+          const camera = { x: feature.ux, y: feature.uy, zoom: homeZoom(viewport) * factor };
+          const dot = showsAsDot(feature, camera, micro);
+          // the area is drawn only in `full` (gl-atlas.ts syncView) and only when no dot stands in
+          const area = micro === 'full' && !dot && haloAlpha(feature, camera) > 0;
+          expect(dot && area, `${feature.country.iso3} ${micro} x${factor.toFixed(1)}`).toBe(false);
+          if (dot) {
+            const { landHidden } = await import('~/lib/map/visibility');
+            expect(landHidden(feature, camera, micro), `${feature.country.iso3} land under its dot`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('classifies at world zoom: area-only archipelagos and atolls, dot-only for the rest', async () => {
+    const { homeZoom } = await import('~/lib/map/camera');
+    const { showsAsDot } = await import('~/lib/map/visibility');
+    const world = await loadRealWorld();
+    const camera = (iso3: string) => ({ x: world.byIso3.get(iso3)!.ux, y: world.byIso3.get(iso3)!.uy, zoom: homeZoom(viewport) });
+    // area only (a territory halo, no dot): Maldives, Nauru, Marshall Islands, Tuvalu...
+    for (const iso3 of ['MDV', 'NRU', 'MHL', 'TUV']) {
+      expect(world.byIso3.get(iso3)!.halo, iso3).not.toBeNull();
+      expect(showsAsDot(world.byIso3.get(iso3)!, camera(iso3), 'full'), iso3).toBe(false);
+    }
+    // dot only (no area): Singapore, Brunei, East Timor and the land micro-states
+    for (const iso3 of ['SGP', 'BRN', 'TLS', 'MCO', 'VAT', 'LIE', 'GMB']) {
+      expect(world.byIso3.get(iso3)!.halo, iso3).toBeNull();
+      expect(showsAsDot(world.byIso3.get(iso3)!, camera(iso3), 'full'), iso3).toBe(true);
+    }
+    // a country that is plainly visible is neither
+    for (const iso3 of ['FRA', 'BGR', 'BEN']) expect(showsAsDot(world.byIso3.get(iso3)!, camera(iso3), 'full'), iso3).toBe(false);
+  });
+});

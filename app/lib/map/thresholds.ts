@@ -13,6 +13,13 @@
  *  stay pins longer than they should. */
 export const PIN_MAX_WIDTH = 7;
 
+/** The dot rule: a country whose equivalent square (side = sqrt(area)) is under this many
+ *  on-screen pixels shows as a dot, whatever its bounding box (East Timor's includes Atauro and
+ *  Oecusse; The Gambia is a sliver; the Bahamas are spread over sea; Belize is a shape from
+ *  4 px). See docs/decisions.md "Small countries". Island nations with a territory halo are
+ *  never dots. */
+export const DOT_MAX_SIDE_PX = 3.5;
+
 /** A capital's ring: radius, and the extra its dark halo adds outside it. */
 export const CAPITAL_RING_RADIUS = 3.4;
 export const CAPITAL_RING_HALO = 1.7;

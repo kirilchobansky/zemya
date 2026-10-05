@@ -46,7 +46,7 @@ import { CAPITAL_RING_HALO, CAPITAL_RING_RADIUS } from './thresholds';
 import { reprojectPolygonsToTrueSize } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 import {
-  CAPITAL_PICK_RADIUS, capitalShapeShowing, capitalsVisible, drawsAsPin, haloAlpha, showsAsDot
+  CAPITAL_PICK_RADIUS, capitalShapeShowing, capitalsVisible, drawsAsPin, haloAlpha, landHidden, showsAsDot
 } from './visibility';
 
 const TILES_URL = '/data/geography/world.pmtiles';
@@ -633,9 +633,10 @@ export class GlAtlas implements MapController {
 
     for (const feature of world.features) {
       this.patch(feature, {
-        hide: drawsAsPin(feature, camera),
+        hide: landHidden(feature, camera, micro),
         dot: showsAsDot(feature, camera, micro),
-        halo: micro === 'full' ? Math.round(haloAlpha(feature, camera) * 20) / 20 : 0
+        // a halo (area) and a dot never stand for the same country
+        halo: micro !== 'off' ? Math.round(haloAlpha(feature, camera) * 20) / 20 : 0
       });
     }
 
@@ -655,7 +656,7 @@ export class GlAtlas implements MapController {
       }
       if (micro === 'full') {
         for (const feature of world.features) {
-          if (!named.has(feature) && (drawsAsPin(feature, camera) || haloAlpha(feature, camera) > 0)) micros.push(feature.country.iso3);
+          if (!named.has(feature) && (showsAsDot(feature, camera, micro) || haloAlpha(feature, camera) > 0)) micros.push(feature.country.iso3);
         }
       }
     }
@@ -669,7 +670,7 @@ export class GlAtlas implements MapController {
     this.setSet(LAYER.capitals, capitals);
 
     // the capitals quiz's target ring, unless its country is still drawn as a pin
-    const quizPlace = style.quizMode && style.quizPlace && !drawsAsPin(style.quizPlace.feature, camera) ? style.quizPlace : null;
+    const quizPlace = style.quizMode && style.quizPlace && !landHidden(style.quizPlace.feature, camera, micro) ? style.quizPlace : null;
     const placeKey = quizPlace ? `${quizPlace.place.lon},${quizPlace.place.lat}` : '';
     if (placeKey !== this.quizPlaceKey) {
       this.quizPlaceKey = placeKey;
@@ -721,9 +722,9 @@ export class GlAtlas implements MapController {
 
     for (const hit of this.map.queryRenderedFeatures([sx, sy], { layers: [LAYER.countries] })) {
       const feature = world.byIso3.get(String(hit.properties?.iso3));
-      if (feature && !drawsAsPin(feature, camera)) return feature;
+      if (feature && !landHidden(feature, camera, micro)) return feature;
     }
-    if (micro !== 'full') return null;
+    if (micro === 'off') return null;
     const haloed = new Set<string>();
     for (const hit of this.map.queryRenderedFeatures([sx, sy], { layers: [LAYER.haloFill] })) haloed.add(String(hit.properties?.iso3));
     // smallest halo first, so the smaller country wins an overlap

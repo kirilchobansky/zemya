@@ -10,7 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import type { WorldData } from '~/lib/map/types';
 // @ts-expect-error plain .mjs build helper, no declarations
-import { buildHalo, HALO_MAX_LON_SPAN, HALO_MAX_POINTS, haloLonSpan, qualifiesForHalo } from '../../scripts/lib/halo.mjs';
+import { buildHalo, HALO_MAX_LON_SPAN, HALO_MAX_NEIGHBOUR_SHARE, HALO_MAX_POINTS, haloLonSpan, neighbourLandShare, qualifiesForHalo } from '../../scripts/lib/halo.mjs';
 
 beforeAll(() => {
   class StubPath2D {
@@ -28,9 +28,22 @@ const data = JSON.parse(
 describe('halo payload', () => {
   const qualifying = data.countries.filter(qualifiesForHalo);
 
-  it('every qualifying country has one, and nobody else does', () => {
+  it('every qualifying country has one but Singapore, whose halo would cover Malaysia and Indonesia', () => {
     expect(qualifying.length).toBe(17);
-    expect(data.halos.map(h => h.id).sort()).toEqual(qualifying.map(c => c.id).sort());
+    const covered = ['SGP'];
+    expect(data.halos.map(h => h.id).sort()).toEqual(
+      qualifying.filter(c => !covered.includes(c.iso3)).map(c => c.id).sort()
+    );
+  });
+
+  it('measures the neighbour-land share: Singapore is over the limit, every other halo well under', () => {
+    // a unit square halo with one half of its area covered by a neighbour
+    const halo = [[0, 0], [2, 0], [2, 2], [0, 2]];
+    const half = [{ ring: [[-1, -1], [1, -1], [1, 3], [-1, 3]], bbox: [-1, -1, 1, 3] }];
+    expect(neighbourLandShare(halo, half)).toBeGreaterThan(0.4);
+    expect(neighbourLandShare(halo, half)).toBeLessThan(0.6);
+    expect(neighbourLandShare(halo, [])).toBe(0);
+    expect(HALO_MAX_NEIGHBOUR_SHARE).toBeLessThan(0.36);
   });
 
   it('keeps land micro-states, the Caribbean, Malta, Cyprus and Bahrain on pins', () => {
@@ -65,7 +78,7 @@ describe('halo payload', () => {
       expect(Math.min(...lats), feature.country.iso3).toBeLessThanOrEqual(minLat);
       expect(Math.max(...lats), feature.country.iso3).toBeGreaterThanOrEqual(maxLat);
     }
-    expect(world.haloFeatures.length).toBe(17);
+    expect(world.haloFeatures.length).toBe(16);
     const areas = world.haloFeatures.map(f => f.halo!.area);
     expect(areas).toEqual([...areas].sort((a, b) => a - b));
   });
