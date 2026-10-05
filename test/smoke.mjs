@@ -4,7 +4,9 @@
  * Serves build/client statically the way Cloudflare Pages will, then drives a real
  * browser: the map must paint, hover must hit-test, clicking must navigate *without
  * moving the camera*, the dossier must fill in, overlays must switch, and the
- * size-comparison tool must lift and drop.
+ * size-comparison tool must lift and drop. The map is WebGL: nothing here reads pixels. It asks the
+ * MapLibre instance (window.__zemyaGl, exposed to a page that sets __ZEMYA_PROBE__ in an init
+ * script, see gl-atlas.ts) what it has rendered and which feature state each country carries.
  * Any console error or uncaught exception fails the run.
  *
  * The last step drives the same dev server with the iPhone 13 profile (touch, DPR 3, 390x664): the
@@ -46,6 +48,10 @@ const MIME = {
   '.data': 'text/x-script',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.pmtiles': 'application/octet-stream',
+  '.pbf': 'application/x-protobuf',
+  '.woff2': 'font/woff2',
+  '.png': 'image/png',
   '.webmanifest': 'application/manifest+json'
 };
 
@@ -57,8 +63,24 @@ const server = createServer(async (req, res) => {
     try {
       const info = await stat(candidate);
       if (!info.isFile()) continue;
-      res.writeHead(200, { 'content-type': MIME[extname(candidate)] || 'application/octet-stream' });
-      res.end(await readFile(candidate));
+      const body = await readFile(candidate);
+      const type = MIME[extname(candidate)] || 'application/octet-stream';
+      // world.pmtiles is read with HTTP Range requests, as on Vercel
+      const range = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range || '');
+      if (range) {
+        const start = Number(range[1]);
+        const end = Math.min(range[2] ? Number(range[2]) : body.length - 1, body.length - 1);
+        res.writeHead(206, {
+          'content-type': type,
+          'content-range': `bytes ${start}-${end}/${body.length}`,
+          'content-length': end - start + 1,
+          'accept-ranges': 'bytes'
+        });
+        res.end(body.subarray(start, end + 1));
+        return;
+      }
+      res.writeHead(200, { 'content-type': type, 'content-length': body.length, 'accept-ranges': 'bytes' });
+      res.end(body);
       return;
     } catch {
       /* try the next candidate */
@@ -77,24 +99,64 @@ const check = (ok, message) => { if (!ok) problems.push(message); };
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+await page.addInitScript(() => { window.__ZEMYA_PROBE__ = true; });
+const geometryRequests = [];
+page.on('request', r => { if (/\/data\/geography\/world\.json/.test(r.url())) geometryRequests.push(r.url()); });
 page.on('console', m => {
   if (m.type() === 'error' && !IGNORE.test(m.text())) problems.push(`console: ${m.text()}`);
 });
 page.on('pageerror', e => problems.push(`pageerror: ${e.message}`));
 
+/* The map is WebGL, so the test asks the MapLibre instance rather than reading pixels. */
+async function waitForMapRendered(timeout = 15000) {
+  await page.waitForFunction(() => {
+    const map = window.__zemyaGl;
+    return Boolean(map && map.isStyleLoaded() && map.areTilesLoaded() && !map.isMoving());
+  }, null, { timeout });
+}
+
+/** The feature state the renderer holds for one country: { c: fill colour, sc, sw, hide, ... }. */
+async function countryState(iso3) {
+  return page.evaluate(
+    id => window.__zemyaGl.getFeatureState({ source: 'world', sourceLayer: 'countries', id }),
+    iso3
+  );
+}
+
+/** ISO3 codes of the country polygons actually rendered under a page (CSS) coordinate. */
+async function renderedAt(x, y) {
+  return page.evaluate(([px, py]) => {
+    const map = window.__zemyaGl;
+    const rect = map.getCanvas().getBoundingClientRect();
+    return map.queryRenderedFeatures([px - rect.left, py - rect.top], { layers: ['countries'] })
+      .map(f => f.id ?? f.properties.iso3);
+  }, [x, y]);
+}
+
+/** "rgba(232,163,61,1)" / "#e8a33d" -> [r, g, b]. */
+function rgbOf(colour) {
+  if (typeof colour !== 'string') return null;
+  const hex = colour.match(/^#([0-9a-f]{6})$/i);
+  if (hex) return [0, 2, 4].map(i => parseInt(hex[1].slice(i, i + 2), 16));
+  const rgb = colour.match(/rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/);
+  return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : null;
+}
+
 /* --- 1. the map paints something ------------------------------------------------- */
 await page.goto(`${base}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1200);
 
-const colours = await page.evaluate(() => {
-  const canvas = document.querySelector('canvas');
-  if (!canvas) return 0;
-  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-  const seen = new Set();
-  for (let i = 0; i < data.length; i += 4 * 1009) seen.add(`${data[i]},${data[i + 1]},${data[i + 2]}`);
-  return seen.size;
+await waitForMapRendered();
+const rendered = await page.evaluate(() => {
+  const map = window.__zemyaGl;
+  const isWebGl = Boolean(document.querySelector('canvas.maplibregl-canvas')?.getContext('webgl2') ||
+    document.querySelector('canvas.maplibregl-canvas')?.getContext('webgl'));
+  const countries = new Set(map.queryRenderedFeatures({ layers: ['countries'] }).map(f => f.id ?? f.properties.iso3));
+  return { isWebGl, countries: countries.size, hasLand: map.getLayer('countries') !== undefined };
 });
-check(colours >= 3, `map looks blank — only ${colours} distinct colours sampled`);
+check(rendered.isWebGl, 'the map canvas is not a WebGL canvas');
+check(rendered.countries >= 40, `map looks blank — only ${rendered.countries} countries rendered at the home view`);
+
 
 /* --- 2. a map click selects but leaves the camera alone --------------------------- */
 const restingScale = (await page.textContent('.scalebar')).trim();
@@ -218,21 +280,24 @@ const [maltaX, maltaY] = await page.evaluate(() => {
 });
 
 const BRASS = [232, 163, 61]; // --brass / overlays.ts's SELECTED
-const isBrass = (rgb, tolerance = 12) => BRASS.every((c, i) => Math.abs(rgb[i] - c) <= tolerance);
+const isBrass = (colour, tolerance = 12) => {
+  const rgb = rgbOf(colour);
+  return Boolean(rgb) && BRASS.every((c, i) => Math.abs(rgb[i] - c) <= tolerance);
+};
 
-const maltaCentre = await pixelAt(maltaX, maltaY);
+await waitForMapRendered();
+const maltaState = await countryState('MLT');
+check(isBrass(maltaState.c), `Malta's fill state is not the selection colour — got ${JSON.stringify(maltaState.c)}`);
+
+// A pin would not be a rendered country polygon. Require the Malta polygon itself to be rendered
+// under the centre AND ~40px off it, so what is on screen is a filled shape with extent.
 check(
-  isBrass(maltaCentre),
-  `Malta's centre pixel is not the selection colour — got rgb(${maltaCentre.join(',')})`
+  (await renderedAt(maltaX, maltaY)).includes('MLT'),
+  `no Malta polygon is rendered at its centre — it looks like a pin, not a shape`
 );
-
-// A 9-pixel pin at the centre would pass the check above too. Also require brass ~40px
-// off centre, so what's on screen is a real filled shape with extent, not a dot.
-const maltaOffCentre = await pixelAt(maltaX + 40, maltaY);
 check(
-  isBrass(maltaOffCentre),
-  `Malta has no extent beyond its centre pixel — looks like a pin, not a shape ` +
-    `(rgb(${maltaOffCentre.join(',')}))`
+  (await renderedAt(maltaX + 40, maltaY)).includes('MLT'),
+  `Malta has no extent beyond its centre pixel — looks like a pin, not a shape`
 );
 
 /* --- 11. study mode: answering a question reveals the hook and advances ----------- */
@@ -335,19 +400,6 @@ async function waitForDevServer(url, timeoutMs) {
   );
 }
 
-/** Reads one canvas pixel at a page (CSS) coordinate, accounting for the canvas's own
- *  internal resolution (set from devicePixelRatio in Atlas#resize) — see atlas.ts. */
-async function pixelAt(x, y) {
-  return page.evaluate(([px, py]) => {
-    const canvas = document.querySelector('canvas');
-    const rect = canvas.getBoundingClientRect();
-    const cx = Math.round(((px - rect.left) / rect.width) * canvas.width);
-    const cy = Math.round(((py - rect.top) / rect.height) * canvas.height);
-    const [r, g, b] = canvas.getContext('2d').getImageData(cx, cy, 1, 1).data;
-    return [r, g, b];
-  }, [x, y]);
-}
-
 try {
   const devPort = await getFreePort();
   const devHost = '127.0.0.1';
@@ -409,13 +461,15 @@ try {
 
     await page.click('.chips button:text-is("Mastery")');
     await page.waitForTimeout(300);
-    await page.mouse.move(30, 30); // off-canvas, so nothing is left hovered while sampling
+    await page.mouse.move(30, 30); // off-canvas, so nothing is left hovered while reading state
+    await waitForMapRendered();
 
-    const before1 = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
-    const before2 = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    // The renderer paints through feature state; read the fill colour it holds for Bulgaria.
+    const before1 = (await countryState('BGR')).c;
+    const before2 = (await countryState('BGR')).c;
     check(
-      before1.join() === before2.join(),
-      `pixel sampling is unstable even with nothing changing — ${before1} vs ${before2}`
+      before1 === before2,
+      `fill state is unstable even with nothing changing — ${before1} vs ${before2}`
     );
 
     const tallyBefore = await page.$$eval('.tally__n', els => els.map(e => e.textContent.trim()));
@@ -437,10 +491,16 @@ try {
       `rail counts did not move as expected: ${tallyBefore} -> ${tallyAfter}`
     );
 
-    const after = await pixelAt(bulgariaPoint[0], bulgariaPoint[1]);
+    await waitForMapRendered();
+    const after = (await countryState('BGR')).c;
     check(
-      after.join() !== before1.join(),
-      `mastery overlay pixel under Bulgaria did not change after grading — stayed ${after}`
+      after !== before1,
+      `mastery overlay fill under Bulgaria did not change after grading — stayed ${after}`
+    );
+    // the state is only evidence if it was actually drawn: Bulgaria must still be a rendered polygon
+    check(
+      (await renderedAt(bulgariaPoint[0], bulgariaPoint[1])).includes('BGR'),
+      'Bulgaria is not rendered under its own point after the overlay changed'
     );
   }
 
@@ -1245,13 +1305,17 @@ try {
 await browser.close();
 server.close();
 
+check(
+  geometryRequests.length === 0,
+  `the 3.4 MB world.json was fetched (${geometryRequests[0]}) — the app must only use world-coarse.json and the PMTiles`
+);
 check(phonePassRan, 'the phone (iPhone 13) pass never completed');
 if (problems.length) {
   console.error('FAIL\n' + problems.map(p => `  - ${p}`).join('\n'));
   process.exit(1);
 }
 console.log(
-  `PASS — map painted ${colours} colours, dossier, flag image, neighbours, 5 overlays, ` +
+  `PASS — map rendered ${rendered.countries} countries (WebGL, feature state), no world.json fetch, dossier, flag image, neighbours, 5 overlays, ` +
     'compare tool, cold prerender, Russia antimeridian, Malta shape, study mode, ' +
     'progress grading, quiz mode (no leak), quiz pause/resume, quiz results and personal best, ' +
     'flags quiz (no leak), capitals quiz (no leak), typing survives canvas/drag/reset, quiz camera follows, continent quiz home, ' +

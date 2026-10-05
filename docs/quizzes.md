@@ -559,7 +559,7 @@ Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author 
 
 Fourth quiz, grades `geo:<ISO3>:outline`. `components/quiz/OutlinesStage.tsx` is the flags
 quiz's layout (same fixed 460x300 box, `hidesMap`) with a canvas inside, filling the target's
-existing `Path2D` (full detail once attached, coarse before; every polygon, islands included)
+existing `Path2D` (from the coarse payload, which keeps every polygon, islands included)
 in `--ink`; no labels, neighbours or sea. The Mercator unit-square path is drawn north-up in the
 unwrapped longitude frame (as `topology.ts`), so Russia/Fiji/Kiribati/USA are one shape; a unit
 test asserts no bbox spans over 180 degrees. Size: `app/lib/geography/outline.ts` —

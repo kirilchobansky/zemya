@@ -1131,4 +1131,10 @@ traded resolution for speed while moving). Decided beyond the prompt:
 - **Removed with the canvas renderer:** `atlas.ts`, `renderer.ts`, `Path2D` for context/lakes/halos,
   merged stroke paths, the fast-frame/LOD/snapshot machinery (history in `performance.md`),
   `test/unit/renderer.test.ts` (its threshold tests live on in `visibility.test.ts`).
-- **Stale, to rewrite when asked:** `test/smoke.mjs` (pixel sampling) and `test/perf.mjs`.
+- **Rewritten for WebGL** (the follow-up commit): `test/smoke.mjs` and `test/perf.mjs` use the MapLibre
+  instance (`window.__zemyaGl`, enabled in production builds by an init-script flag `__ZEMYA_PROBE__`
+  — a one-line addition to `gl-atlas.ts`, the only way a test of the production bundle can reach the
+  map), rendered features and feature state, and frame timing; the test servers answer HTTP Range
+  requests because PMTiles needs them. The client no longer downloads `world.json` at all: Outlines and
+  the compare tool use `world-coarse.json` (all polygons, 0.006 deg simplification, invisible at
+  silhouette size and at compare zoom levels); the camera bbox now comes from coarse geometry too.

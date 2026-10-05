@@ -87,10 +87,21 @@ on the symbol layer, so only a placed ring is hittable. Hover is mouse-only.
 **Compare size.** The dragged outline is a GeoJSON source (`reprojectPolygonsToTrueSize`); a
 capture-phase listener starts a drag on it before MapLibre sees the event, so the map does not pan.
 
-**Known follow-ups:** `test/smoke.mjs` and `test/perf.mjs` still read pixels from a 2D canvas and
-need rewriting for WebGL; `world.json` (3.4 MB) is still fetched in the background for the Outlines
-quiz and the compare tool (the tiles carry the same geometry, so this could be trimmed); without
-WebGL the map shows the "failed to load" message (there is no canvas fallback any more).
+**Client geometry payload.** The app fetches `world-coarse.json` (~500 KB, every polygon kept,
+simplified at 0.006 deg ~ 600 m) plus `countries.json`, and nothing else for geometry:
+`geography/world.ts`'s `loadWorld()` builds the `World` from those. It feeds the camera maths
+(bbox, anchors), the Outlines silhouette and the compare shape, none of which can show the difference
+from 1:10m. The full `world.json` (3.4 MB) is a build input only (`build-tiles.mjs` reads it); no
+client code requests it, and `test/smoke.mjs` fails if anything does. Needing it again means
+fetching it on demand from the feature that needs it, cached, never from `loadWorld()`.
+`attachFullDetail` in `topology.ts` is now unused by the app (kept, with its unit coverage, until
+someone decides to delete it). Without WebGL the map shows the "failed to load" message (there is no
+canvas fallback any more).
+
+**Test seam.** `gl-atlas.ts` exposes the MapLibre instance as `window.__zemyaGl` in dev, and in a
+production build only for a page whose init script set `window.__ZEMYA_PROBE__` first; `test/smoke.mjs`
+and `test/perf.mjs` do, nothing a visitor does can. Tests ask it `queryRenderedFeatures`,
+`getFeatureState`, `isStyleLoaded()/areTilesLoaded()` and never read pixels.
 
 ## Framework mode
 
@@ -120,9 +131,8 @@ defaults after any React Router major upgrade.
 ## Places and capitals
 
 `world.json` AND `world-coarse.json` both carry a top-level `places` array — a few KB,
-duplicated on purpose (the brief said world.json; putting it in coarse too means the layer
-and, later, the capital quiz's target dot exist from first paint instead of after the
-3.4 MB download). `kind` is there so "top 3 cities per country" is more rows plus a filter;
+duplicated on purpose (the client only ever loads coarse, so the layer
+and the capital quiz's target dot need it there). `kind` is there so "top 3 cities per country" is more rows plus a filter;
 **do not add non-capital cities without a decision.** `name` is the country's AUTHORED
 capital (what the dossier says), not GeoNames' spelling.
 

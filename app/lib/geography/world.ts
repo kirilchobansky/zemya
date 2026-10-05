@@ -1,30 +1,28 @@
 /**
  * Client-side loader for the map payload.
  *
- * Loads the small coarse-geometry payload (world-coarse.json, ~645 KB) alongside the
- * country facts (countries.json, ~175 KB) so the map can paint from well under a
- * megabyte, then fetches the full 1:10m payload (world.json, ~3.4 MB) in the background
- * and attaches it in place once it arrives — see topology.ts's attachFullDetail and
- * CLAUDE.md's Performance section for why there are two payloads and why full detail is
- * still worth the extra download: it's what the map renders once you're zoomed in far
- * enough to actually see it.
+ * Loads the coarse-geometry payload (world-coarse.json, ~500 KB) alongside the country facts
+ * (countries.json, ~220 KB). That is all the client ever fetches for geometry: the map's
+ * shapes come from the PMTiles archive (gl-atlas.ts), and the only consumers of this payload
+ * are the camera maths, the Outlines quiz silhouette and the size-comparison shape, none of
+ * which can show the difference between 1:10m and the coarse simplification (0.006 deg,
+ * ~600 m; every polygon is kept, see scripts/build-content.mjs). The full 1:10m world.json
+ * (~3.4 MB) is a build input for world.pmtiles and is NOT fetched by the app — see
+ * docs/performance.md. If a feature ever needs it, fetch it on demand from that feature,
+ * cached, never from loadWorld().
  *
- * Both fetches are cached on the module the same way the single fetch used to be, so two
- * components mounting in the same tick share one request each rather than doubling up.
+ * The fetch is cached on the module, so two components mounting in the same tick share one
+ * request rather than doubling up.
  */
-import { attachFullDetail, buildWorld } from '~/lib/map/topology';
-import type { CountryRecord, GeometryData, World, WorldData } from '~/lib/map/types';
+import { buildWorld } from '~/lib/map/topology';
+import type { CountryRecord, GeometryData, World } from '~/lib/map/types';
 
 const COARSE_URL = '/data/geography/world-coarse.json';
 const COUNTRIES_URL = '/data/geography/countries.json';
-const FULL_URL = '/data/geography/world.json';
 
 let pending: Promise<World> | null = null;
 /** The built world once loadWorld() has resolved — null before. */
 let loaded: World | null = null;
-/** Set once loadWorld()'s promise resolves — onFullDetail reads it to know when it's
- *  safe to attach a "call me once the upgrade lands" listener. */
-let fullDetailPromise: Promise<void> | null = null;
 
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
@@ -37,12 +35,6 @@ export function loadWorld(): Promise<World> {
     pending = Promise.all([fetchJson<GeometryData>(COARSE_URL), fetchJson<CountryRecord[]>(COUNTRIES_URL)])
       .then(([coarse, countries]) => {
         const world = buildWorld({ ...coarse, countries });
-        fullDetailPromise = fetchJson<WorldData>(FULL_URL)
-          .then(data => attachFullDetail(world, data))
-          // Losing this upgrade leaves the map at coarse detail forever, which is a
-          // worse experience, not a broken one — never let it surface as an unhandled
-          // rejection or take the already-painted map down with it.
-          .catch(error => console.warn('[world] full-detail payload failed to load', error));
         loaded = world;
         return world;
       })
@@ -59,12 +51,4 @@ export function loadWorld(): Promise<World> {
  *  server loader's prerendered data. */
 export function peekWorld(): World | null {
   return loaded;
-}
-
-/** Runs `cb` once the full-detail payload has attached (or immediately, on a microtask,
- *  if it already had by the time this is called) — the atlas layout uses this to redraw
- *  once geometry it already painted from coarse data gets a full-detail upgrade. A no-op
- *  if loadWorld() hasn't been called yet; there is nothing to upgrade. */
-export function onFullDetail(cb: () => void): void {
-  fullDetailPromise?.then(cb);
 }

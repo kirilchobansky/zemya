@@ -4,8 +4,8 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
 
 **Working:**
 - The atlas: MapLibre GL (WebGL) map over our own PMTiles, 1:10m coastline at the top tile level, search, neighbour highlight, true-size
-  compare, 5 overlays plus mastery; culled drawing, coarse-then-full geometry load
-  (`docs/performance.md`). Real flags at true aspect ratio, offline.
+  compare, 5 overlays plus mastery; only the ~500 KB coarse geometry is fetched, the 3.4 MB
+  `world.json` never is (`docs/architecture.md`). Real flags at true aspect ratio, offline.
 - 197 countries (see below) hand-authored in `content/`, joined with `world-countries` +
   Natural Earth at build time; antimeridian countries and absorbed territories render
   correctly. Vatican City stays a pin (degenerate source geometry). The Caspian is water;

@@ -2,7 +2,7 @@
  * "Name the Country from its Outline"'s Stage: no map, laid out exactly like the flags quiz
  * (FlagsStage.tsx) — a fixed-size box so the input never moves, with the target's silhouette
  * drawn inside it on a canvas, flat ink on the stage background. It reuses the world's own
- * Path2D (full detail once it has attached, coarse before) and draws every part of the
+ * Path2D (the coarse payload, indistinguishable from 1:10m at silhouette size) and draws every part of the
  * country, offshore islands included. Size comes from outlineShare() (area, normalised to the
  * quiz pool). Nothing on screen names a country until a reveal.
  */
@@ -10,7 +10,6 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { outlineShare, outlineTransform } from '~/lib/geography/outline';
-import { onFullDetail } from '~/lib/geography/world';
 import type { QuizStageProps } from '~/lib/quiz/types';
 import { QuizControls } from './QuizControls';
 import { StartCaption } from './StartCaption';
@@ -23,10 +22,9 @@ export function OutlinesStage(props: QuizStageProps) {
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  // bumped on a theme change or when full detail lands, so the silhouette is redrawn
+  // bumped on a theme change, so the silhouette is redrawn
   const [redraw, setRedraw] = useState(0);
   useEffect(() => {
-    onFullDetail(() => setRedraw(n => n + 1));
     // the ink colour is resolved from the token at draw time; only a theme change needs a repaint
     const observer = new MutationObserver(() => setRedraw(n => n + 1));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });

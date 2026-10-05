@@ -26,7 +26,7 @@ import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_Q
 import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
 import { NO_INSETS, type Insets } from '~/lib/map/camera';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
-import { loadWorld, onFullDetail } from '~/lib/geography/world';
+import { loadWorld } from '~/lib/geography/world';
 import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
 import { onThemeChange } from '~/lib/theme';
 import {
@@ -567,10 +567,6 @@ function AtlasShell() {
         applyInsets(atlas);
         if (isPhoneLayout()) atlas.home(false); // reframe now that it knows what covers it
         setAtlasInstance(atlas);
-        // The map has been painting from coarse geometry since `world` first resolved (see
-        // loadWorld) — repaint once the full 1:10m payload attaches in place, so a country
-        // already on screen sharpens up without waiting for the next pan or zoom.
-        onFullDetail(() => atlas.redraw());
       })
       .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
     return () => {

@@ -11,7 +11,7 @@ Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 
 ## Where this is
 
-The map is MapLibre GL over our own PMTiles (`docs/architecture.md`); the canvas renderer is gone.
+The map is MapLibre GL over our own PMTiles (`docs/architecture.md`); the canvas renderer is gone. The client downloads only `world-coarse.json` (~500 KB) for geometry; the 3.4 MB `world.json` is a tile build input and is never fetched. `npm test` / `npm run perf` drive the MapLibre instance (feature state, rendered features, frame timing), not pixels.
 Four top-level sections — Map, Quizzes, Questions, History — share one shell
 (`routes/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), seven quizzes on
 one engine (Countries, Flags, Outlines, Capitals, Currency, Language, Religion — the last three have non-unique answers, `docs/quizzes.md`), a Bulgaria and a United States (`united-states`, `content/history/us.yaml`: 12 periods + 47 presidencies + 50 vice presidents (kind government) + 298 events, eight fill quizzes) history timeline (`/history/:slug`, two countries today,
@@ -80,7 +80,7 @@ npm run audit           # stale-data report. Read-only. RUN BEFORE ANY RELEASE
 npm run audit:flags     # rasterises every flag against its authored description
 npm run check:history    # history content QA report (parent bounds, overlaps, gaps). Read-only
 npm run build:tiles     # world.json -> world.pmtiles (also part of build:content)
-npm run perf            # STALE: measured the removed canvas renderer — rewrite before use
+npm run perf            # frame time while panning and zooming, via the MapLibre instance (docs/performance.md)
 ```
 
 Performance target: 16.7 ms median frame at world zoom, full detail, no low-res frames while moving (WebGL; `docs/performance.md`).
