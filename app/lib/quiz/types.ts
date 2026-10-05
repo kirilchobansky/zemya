@@ -79,6 +79,9 @@ export interface QuizDefinition {
   /** The Stage covers the map (the flags quiz). The route then leaves the camera and the
    *  new-target pulse alone — there is nothing on screen for them to help with. */
   hidesMap?: boolean;
+  /** What a reveal shows for a target — the ANSWER string. The engine also types it into the
+   *  input when the player presses Enter on a revealed answer. Defaults to the country's name. */
+  answerOf?(target: CountryRecord): string;
   /** Extra acceptance rule layered on top of the default name match (matchesCountry) —
    *  return null to fall through to it. The only current use is the flags quiz's
    *  confusable-pair exception; most quizzes omit this entirely. */

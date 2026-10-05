@@ -1980,6 +1980,15 @@ kbd {
 /* Nothing in a quiz stage may change the position of the input — the answer chip gets a
    slot of reserved height that is always there and simply empty when there's nothing to
    say. Same rule for the panel's note slot below the timer. */
+.quiz-dock__fillhint {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--chart-rgb) / 92%);
+  color: var(--ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
 .quiz-feedback {
   display: flex;
   flex: 0 0 auto;
@@ -2188,6 +2197,9 @@ a.quiz-list__row {
   flex: 0 0 auto;
   color: var(--new);
 }
+.fill-quiz__restart {
+  flex: 0 0 auto;
+}
 .fill-quiz__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -2389,9 +2401,73 @@ a.quiz-list__row {
     display: flex;
   }
   .fill-quiz__grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    /* two columns while a cell is at least 160px wide, one below that */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  /* Stacked cell: the years are a small tinted line on top, the name gets the whole cell width
+     (wraps to two lines, never an ellipsis). */
+  .fill-cell {
+    flex-direction: column;
+    min-height: 68px;
+  }
+  .fill-cell__dates {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding: 3px 10px;
+    text-align: left;
+    font-size: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .fill-cell__name {
+    flex: 1 1 auto;
+    align-self: stretch;
+    padding: 6px 10px 8px;
+    font-size: 15px;
+    text-align: left;
+  }
+  .fill-cell__title {
+    font-size: 11px;
+  }
+  .fill-cell__note {
+    font-size: 12px;
+  }
+  .fill-quiz__grid--compact .fill-cell {
+    min-height: 56px;
+  }
+  .fill-quiz__grid--compact .fill-cell__dates {
+    flex-basis: auto;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+  .fill-quiz__grid--compact .fill-cell__name {
+    padding: 3px 8px 4px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  .fill-quiz__grid--compact .fill-cell__title {
+    font-size: 10px;
+  }
+  /* one phone column ("Read down the columns", short list): the cell is wide, so the old side
+     strip fits again, narrower */
+  .fill-quiz__grid--one .fill-cell {
+    flex-direction: row;
+  }
+  .fill-quiz__grid--one .fill-cell__dates {
+    flex: 0 0 4.6rem;
+    justify-content: center;
+    padding: 6px 4px;
+    text-align: center;
+    border-right: 1px solid var(--rule);
+    border-bottom: 0;
+  }
+  .fill-quiz__grid--one .fill-cell__name {
+    align-self: center;
+    padding: 8px 12px;
   }
   .fill-quiz__bar {
+    /* Pause, Give up and Restart share the bar: let it wrap, input on its own full row */
+    flex-wrap: wrap;
     /* the input follows the scroll, so you see what you type while aiming at the grid */
     position: sticky;
     top: 0;
@@ -2400,6 +2476,9 @@ a.quiz-list__row {
     padding: 8px 14px;
     background: var(--chart);
     border-bottom: 1px solid var(--rule);
+  }
+  .fill-quiz__input {
+    flex: 1 1 100%;
   }
   .fill-quiz__grid--columns {
     /* phone: one column (two for long lists) filling the width */

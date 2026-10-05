@@ -3,13 +3,16 @@
  * routes/quiz.$quizId.tsx) run. A second quiz is one entry in QUIZ_DEFINITIONS, never a
  * new route tree — see CLAUDE.md's Quizzes section.
  */
-import { CapitalsStage } from "~/components/quiz/CapitalsStage";
+import { CapitalsStage, capitalAnswer } from "~/components/quiz/CapitalsStage";
 import { CountriesStage } from "~/components/quiz/CountriesStage";
 import { FlagsStage } from "~/components/quiz/FlagsStage";
 import {
   CurrencyStage,
+  currencyAnswer,
   LanguageStage,
+  languageAnswer,
   ReligionStage,
+  religionAnswer,
 } from "~/components/quiz/FacetStages";
 import { OutlinesStage } from "~/components/quiz/OutlinesStage";
 import {
@@ -100,6 +103,7 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     seoTask: "Type the capital of each highlighted country.",
     facet: "capital",
     Stage: CapitalsStage,
+    answerOf: capitalAnswer,
     markCapital: true,
     // Always returns an outcome — never null — so the engine's fallback to the plain
     // COUNTRY-name match never runs: typing "France" must not answer "capital of France".
@@ -119,6 +123,7 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     seoTask: "Type the currency of each highlighted country.",
     facet: "currency",
     Stage: CurrencyStage,
+    answerOf: currencyAnswer,
     match: (typed, target) => ({ accepted: matchesCurrency(typed, target) }),
   },
   {
@@ -130,6 +135,7 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     seoTask: "Type an official language of each highlighted country.",
     facet: "language",
     Stage: LanguageStage,
+    answerOf: languageAnswer,
     match: (typed, target) => ({ accepted: matchesLanguage(typed, target) }),
   },
   {
@@ -141,6 +147,7 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
     seoTask: "Type the predominant religion of each highlighted country.",
     facet: "religion",
     Stage: ReligionStage,
+    answerOf: religionAnswer,
     match: (typed, target) => ({ accepted: matchesReligion(typed, target) }),
   },
 ];

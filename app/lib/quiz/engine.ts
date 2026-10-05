@@ -52,6 +52,8 @@ export interface QuizEngine {
   result: QuizRunResult | null;
   priorBest: number | null;
   start(): void;
+  /** Starts a fresh run over an active one: nothing saved, no FSRS grading — same as "Run it again". */
+  restart(): void;
   skip(): void;
   reveal(): void;
   togglePause(): void;
@@ -73,8 +75,11 @@ function resolveMatch(
   return definition.match?.(typed, target) ?? { accepted: matchesCountry(typed, target) };
 }
 
+/** How long a revealed answer sits in the input before Enter's auto-fill accepts it. */
+export const REVEAL_FILL_MS = 250;
+
 export function useQuizEngine(
-  definition: Pick<QuizDefinition, 'id' | 'facet' | 'match' | 'prepare'>,
+  definition: Pick<QuizDefinition, 'id' | 'facet' | 'match' | 'prepare' | 'answerOf'>,
   countries: CountryRecord[],
   scope: string,
   size: string,
@@ -103,6 +108,15 @@ export function useQuizEngine(
    *  than state. */
   const shownAtRef = useRef<Map<string, number>>(new Map());
   const skippedRef = useRef<Set<string>>(new Set());
+
+  /** Pending Enter-after-reveal fill: the answer is in the input and accepts itself shortly. */
+  const fillTimerRef = useRef<number | null>(null);
+  const cancelFill = useCallback(() => {
+    if (fillTimerRef.current !== null) {
+      window.clearTimeout(fillTimerRef.current);
+      fillTimerRef.current = null;
+    }
+  }, []);
 
   const [priorBest, setPriorBest] = useState<number | null>(null);
   const [result, setResult] = useState<QuizRunResult | null>(null);
@@ -133,6 +147,7 @@ export function useQuizEngine(
 
   const start = useCallback(() => {
     if (!countries.length) return;
+    cancelFill();
     const rng = makeRng(Date.now() ^ (Math.random() * 0xffffffff));
     const shuffled = shuffle(countries, rng);
     setQueue(shuffled);
@@ -147,7 +162,7 @@ export function useQuizEngine(
     segmentStartRef.current = Date.now();
     setPhase('running');
     definition.prepare?.(shuffled.slice(0, PREPARE_LOOKAHEAD));
-  }, [countries, definition]);
+  }, [countries, definition, cancelFill]);
 
   /* Space or Enter also starts a run — the input doesn't exist yet to carry a keydown
      handler while idle, so this is the one shortcut that has to live on the window. */
@@ -197,9 +212,10 @@ export function useQuizEngine(
       definition.prepare?.(next.slice(0, PREPARE_LOOKAHEAD));
       return next;
     });
+    cancelFill();
     setInput('');
     setLastNote(null);
-  }, [phase, queue, definition]);
+  }, [phase, queue, definition, cancelFill]);
 
   const reveal = useCallback(() => {
     if (phase !== 'running' || !target) return;
@@ -246,19 +262,11 @@ export function useQuizEngine(
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [phase, togglePause, abandon]);
 
-  const onInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      // ignored, not disabled, while paused — an actually-disabled <input> can't hold
-      // keyboard focus at all, which is what made Esc-to-resume unreachable (see the
-      // paused-Escape effect above)
+  /* Accepts the current target as answered — the one path for a typed match and for Enter's
+     auto-fill, so scoring, the review rating and the next-question flow cannot drift apart. */
+  const commitAnswer = useCallback(
+    (note?: string) => {
       if (phase !== 'running' || !target) return;
-      const value = e.target.value;
-      setInput(value);
-      if (lastNote) setLastNote(null);
-
-      const outcome = resolveMatch(value, target, definition);
-      if (!outcome.accepted) return;
-
       const iso3 = target.iso3;
       const wasRevealed = revealedSet.has(iso3);
       const wasSkipped = skippedRef.current.has(iso3);
@@ -278,7 +286,7 @@ export function useQuizEngine(
         return next;
       });
       setInput('');
-      if (outcome.note) setLastNote(outcome.note);
+      if (note) setLastNote(note);
 
       const remaining = queue.slice(1);
       setQueue(remaining);
@@ -311,8 +319,44 @@ export function useQuizEngine(
         at: Date.now()
       });
     },
-    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, lastNote]
+    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size]
   );
+
+  const onInputChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      // ignored, not disabled, while paused — an actually-disabled <input> can't hold
+      // keyboard focus at all, which is what made Esc-to-resume unreachable (see the
+      // paused-Escape effect above)
+      if (phase !== 'running' || !target) return;
+      cancelFill(); // typing takes over from a pending auto-fill
+      const value = e.target.value;
+      setInput(value);
+      if (lastNote) setLastNote(null);
+
+      const outcome = resolveMatch(value, target, definition);
+      if (outcome.accepted) commitAnswer(outcome.note);
+    },
+    [phase, target, definition, lastNote, commitAnswer, cancelFill]
+  );
+
+  /* Plain Enter on a revealed answer: put the answer text in the input for REVEAL_FILL_MS,
+     then accept it as a normal answer (outcome "revealed" — the target is in revealedSet). The
+     answer is accepted by construction, not re-matched: the reveal string (e.g. all the
+     languages, or "Euro (EUR)") is not necessarily something the matcher takes. Enter with
+     nothing revealed does nothing. */
+  const fillRevealed = useCallback(() => {
+    if (phase !== 'running' || !target || !revealedSet.has(target.iso3)) return;
+    if (fillTimerRef.current !== null) return; // already filling
+    setInput(definition.answerOf ? definition.answerOf(target) : target.name);
+    fillTimerRef.current = window.setTimeout(() => {
+      fillTimerRef.current = null;
+      commitAnswer();
+    }, REVEAL_FILL_MS);
+  }, [phase, target, revealedSet, definition, commitAnswer]);
+
+  /* A pending fill belongs to one target of one running phase: pause, a new target or
+     unmounting drops it. (commitAnswer clears the timer itself via the target change.) */
+  useEffect(() => cancelFill, [phase, target, cancelFill]);
 
   /* Escape is deliberately not handled here — it's a window-level listener above, so
      pausing can never leave itself with no focused, enabled element to resume from. */
@@ -325,12 +369,13 @@ export function useQuizEngine(
         e.preventDefault();
         reveal();
       } else if (e.key === 'Enter') {
-        // A phone's "done" key would otherwise dismiss the keyboard, and it has no meaning
-        // here — answers are accepted the instant they match.
+        // A phone's "done" key would otherwise dismiss the keyboard; it fills in a revealed
+        // answer, and otherwise has no meaning — answers are accepted the instant they match.
         e.preventDefault();
+        fillRevealed();
       }
     },
-    [skip, reveal]
+    [skip, reveal, fillRevealed]
   );
 
   /* Initial focus, and belt-and-braces refocus after a phase change. NOT what keeps typing
@@ -367,6 +412,12 @@ export function useQuizEngine(
         return;
       }
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // a focused button/link keeps its own Enter (activating it)
+      if (e.key === 'Enter' && !el?.closest?.('button, a')) {
+        e.preventDefault();
+        fillRevealed();
+        return;
+      }
       if (e.key === 'Tab') {
         e.preventDefault();
         skip();
@@ -376,7 +427,7 @@ export function useQuizEngine(
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [phase, skip, reveal]);
+  }, [phase, skip, reveal, fillRevealed]);
 
   const toggleShowNeighbours = useCallback(() => setShowNeighbours(v => !v), []);
 
@@ -396,6 +447,7 @@ export function useQuizEngine(
     result,
     priorBest,
     start,
+    restart: start,
     skip,
     reveal,
     togglePause,

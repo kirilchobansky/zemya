@@ -56,7 +56,19 @@ export function QuizControls({ stage, placeholder, ariaLabel, answer }: QuizCont
 
   return (
     <div className="quiz-controls" data-phase={phase}>
-      {active && <div className="quiz-feedback">{answer ? <div className="quiz-dock__answer">{answer}</div> : null}</div>}
+      {active && (
+        <div className="quiz-feedback">
+          {answer ? (
+            <>
+              <div className="quiz-dock__answer">{answer}</div>
+              <span className="quiz-dock__fillhint">
+                <span className="only-fine">Press Enter to fill it in</span>
+                <span className="only-coarse">Tap Go to fill it in</span>
+              </span>
+            </>
+          ) : null}
+        </div>
+      )}
       <div className="quiz-dock__row">
         <input
           ref={inputRef}

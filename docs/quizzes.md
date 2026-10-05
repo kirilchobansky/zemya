@@ -285,6 +285,27 @@ there is no local state to reset first.
 Not a bare key, and not Esc (already pause) — a bare letter would fire while typing a
 country's own name (e.g. "Qatar").
 
+**Restart.** A secondary "Restart" button, visible only while a run is active (running or
+paused): in the panel's controls next to Abandon, and on the phone pause screen next to
+"Abandon run". It is exactly "Run it again" (`engine.restart` = `start`, called through the
+route's `startRun` so the input is focused inside the tap): a fresh shuffled run, nothing
+saved, no FSRS grading for answers given so far. Before the start and on the results screen
+nothing changed. The History fill quiz has the same button in its input bar (running or
+paused), doing exactly "Try again".
+
+**Enter after a reveal.** Once the current target is revealed (Ctrl+Enter / Reveal button),
+plain Enter — in the input or, like Ctrl+Enter, with focus elsewhere (not on a button/link,
+which keep their own Enter) — puts the reveal's answer string in the input for 250 ms
+(`REVEAL_FILL_MS`), then accepts it through the same `commitAnswer` a typed match uses, so it
+scores as outcome "revealed", rates `again` and advances identically. Accepted by construction,
+not re-matched (the reveal text, e.g. all languages or "Euro (EUR)", need not be matchable).
+Enter with nothing revealed does nothing; typing the answer by hand still works and cancels a
+pending fill. A phone's Go/Done key sends Enter. While revealed, a hint sits by the answer
+("Press Enter to fill it in", phones: "Tap Go to fill it in"). The answer string comes from
+`QuizDefinition.answerOf` (default: the country's name), shared with the Stage's reveal chip.
+Tests: `test/unit/quiz-engine.test.ts` (a tiny hook runtime stands in for React — no DOM in
+the unit environment).
+
 **Feeding the spaced repetition.** Every answer grades that country's
 `geo:<ISO3>:<definition.facet>` card (`app/lib/geography/mastery.ts`'s `cardId`) through
 the normal `review()` from `useProgress()` — the same path study mode uses. For the
@@ -468,8 +489,13 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   `HistoryFillQuiz.tsx` picks 1 column up to 6 entries, 2 up to 12, 3 up to 30, 4 beyond; items run
   top to bottom, then the next column; columns are capped at 340px and left-aligned. Above 30
   entries cells go compact (`fill-quiz__grid--compact`). Phone: 1 column up to 8 entries, else 2,
-  and the input bar is `position: sticky` at the top. Years sit in a tinted strip on the cell's
-  left. Thresholds depend on entry count only, so another country's quizzes reuse them.
+  and the input bar is `position: sticky` at the top (it wraps: input on its own row, then
+  Pause / Give up / Restart). Desktop: years sit in a tinted strip on the cell's left. Phone: the
+  cell is stacked — years as a small mono line (12px, tinted) on top, the name below at 15px,
+  left-aligned, wrapping, never an ellipsis — so the name has the full cell width; grid is
+  `minmax(160px, 1fr)` (two columns, one below ~330px); compact cells (> 30 entries) are ~56px.
+  Only the one-phone-column read-down case (`fill-quiz__grid--one`, ≤ 8 entries) keeps the side
+  strip, narrower (4.6rem). Thresholds depend on entry count only, so another country's quizzes reuse them.
   On a phone the screen is sized to what the keyboard leaves (`inset: var(--vv-top) 0 var(--kb) 0`
   via `useKeyboard()`), not `100dvh`, so the sticky input stays visible and the last entry scrolls
   clear of the keyboard.

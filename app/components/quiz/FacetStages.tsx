@@ -4,29 +4,34 @@
  * No marker is drawn (no `markCapital`), and nothing on screen says the country's name or the
  * answer until a reveal. See docs/quizzes.md.
  */
+import type { CountryRecord } from '~/lib/map/types';
 import type { QuizStageProps } from '~/lib/quiz/types';
 import { MapStage, type MapStageConfig } from './MapStage';
+
+export const currencyAnswer = (target: CountryRecord) =>
+  target.currencyName ? `${target.currencyName} (${target.currencyCode})` : target.name;
+/** every official language: the quiz accepts any, so a reveal shows them all */
+export const languageAnswer = (target: CountryRecord) => target.languages.join(', ');
+export const religionAnswer = (target: CountryRecord) => target.religion;
 
 const CURRENCY: MapStageConfig = {
   placeholder: "Type the currency's name…",
   ariaLabel: "Type the currency's name",
-  answerOf: target =>
-    target.currencyName ? `${target.currencyName} (${target.currencyCode})` : target.name,
+  answerOf: currencyAnswer,
   neighbourToggle: false
 };
 
 const LANGUAGE: MapStageConfig = {
   placeholder: 'Type an official language…',
   ariaLabel: 'Type an official language',
-  // every official language: the quiz accepts any, so a reveal shows them all
-  answerOf: target => target.languages.join(', '),
+  answerOf: languageAnswer,
   neighbourToggle: false
 };
 
 const RELIGION: MapStageConfig = {
   placeholder: "Type the predominant religion…",
   ariaLabel: 'Type the predominant religion',
-  answerOf: target => target.religion,
+  answerOf: religionAnswer,
   neighbourToggle: false
 };
 

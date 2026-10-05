@@ -289,6 +289,18 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           >
             Give up
           </button>
+          {/* only while a run is active (running or paused), and exactly "Try again" */}
+          {phase === 'running' && (
+            <button
+              type="button"
+              className="action fill-quiz__restart"
+              onPointerDown={keepFocus}
+              onMouseDown={keepFocus}
+              onClick={restart}
+            >
+              Restart
+            </button>
+          )}
         </div>
 
         <p className="fill-quiz__hint" role="status">{hint ? 'Add the number, for example II' : ''}</p>
@@ -304,6 +316,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
         <ol
           className={
             `fill-quiz__grid${byColumns ? ' fill-quiz__grid--columns' : ''}` +
+            (byColumns && entries.length <= 8 ? ' fill-quiz__grid--one' : '') +
             (entries.length > 30 ? ' fill-quiz__grid--compact' : '')
           }
           style={byColumns ? columnLayout(entries.length) : undefined}

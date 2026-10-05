@@ -359,6 +359,7 @@ describe("the capitals quiz", () => {
     // not the definition. This pins that a definition carries no size list of its own.
     expect(Object.keys(definition).sort()).toEqual([
       "Stage",
+      "answerOf",
       "description",
       "facet",
       "id",

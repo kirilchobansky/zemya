@@ -47,7 +47,8 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   (`docs/quizzes.md`): one engine, one route behind a subject picker; a new quiz is a
   `QuizDefinition` plus its id in `QUIZ_IDS`; anything showing a country's name is gated on
   `quiz`/`quizMode`; no Stage moves when its content changes size; never `disabled` the run
-  input.
+  input. Run keys: Esc pause, Tab skip, Ctrl+Enter reveal, Enter (after a reveal) fills in the
+  answer, Ctrl+Backspace abandon; "Restart" (active run only) = a fresh run, nothing saved.
 - **Mobile** (`docs/mobile.md`): layout follows viewport width, affordances follow the
   pointer — never gate markup on a JS media query; one `100dvh` shell; `position: fixed`
   inside the bottom sheet must be portalled to `<body>`. **Visual identity**

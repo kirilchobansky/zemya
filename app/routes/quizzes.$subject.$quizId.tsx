@@ -600,7 +600,7 @@ function QuizRun() {
      effect or a timeout leaves the keyboard closed and the player stuck. The input is mounted
      (hidden) in every phase precisely so this has something to focus. `preventScroll` because
      iOS otherwise scrolls the page to "reveal" the input it is about to cover with a keyboard. */
-  const startRun = () => {
+  const startRun = () => { // also Restart: a fresh run over an active one, nothing saved
     engine.inputRef.current?.focus({ preventScroll: true });
     engine.start();
   };
@@ -685,6 +685,9 @@ function QuizRun() {
                 onClick={engine.togglePause}
               >
                 {engine.phase === "paused" ? "Resume" : "Pause"} <kbd>Esc</kbd>
+              </button>
+              <button type="button" className="action" onClick={startRun}>
+                Restart
               </button>
               <button type="button" className="action" onClick={engine.abandon}>
                 Abandon <kbd>Ctrl+⌫</kbd>
@@ -850,6 +853,15 @@ function QuizRun() {
                   onClick={engine.togglePause}
                 >
                   Resume
+                </button>
+                <button
+                  type="button"
+                  className="quiz-pause__btn"
+                  onPointerDown={keepFocus}
+                  onMouseDown={keepFocus}
+                  onClick={startRun}
+                >
+                  Restart
                 </button>
                 <button
                   type="button"
