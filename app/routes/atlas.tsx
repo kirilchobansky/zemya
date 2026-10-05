@@ -539,10 +539,10 @@ function AtlasShell() {
           host,
           world,
           {
-            onHover: (feature, x, y, place) => {
+            onHover: (feature, x, y, place, labelShown) => {
               setHovered(feature);
               setHoveredPlace(place ?? null);
-              setTip(feature ? { x, y } : null);
+              setTip(feature && !labelShown ? { x, y } : null);
             },
             onSelect: f => handleSelectRef.current(f),
             onCameraChange: setScale,

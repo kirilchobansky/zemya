@@ -341,3 +341,5 @@ test/smoke.mjs          end-to-end browser test against the production build
 Framework mode replaces `index.html`/`main.tsx`/`App.tsx` with `root.tsx`,
 `entry.client.tsx` and `routes.ts`; nothing is missing. See `docs/architecture.md`.
 
+
+**Hover tooltip.** The `.tip` is anchored to the hovered country's label point (its anchor, or the hovered capital ring), never the pointer, and shown only when MapLibre has not placed that country's name (`labelShown` in `onHover`). `GlAtlas` reports a hover only when the country/ring changes, and again on camera moves while one is hovered (the point moves); moving inside one country does nothing. Hover and selection change feature state only.

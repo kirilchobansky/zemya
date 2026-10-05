@@ -9,8 +9,10 @@ import type { Feature, PlaceMark } from './types';
 
 export interface AtlasCallbacks {
   /** `place` is set when the pointer is over a capital's ring — `feature` is then that
-   *  capital's country, so hovering a ring also lights up its country. */
-  onHover(feature: Feature | null, x: number, y: number, place?: PlaceMark | null): void;
+   *  capital's country, so hovering a ring also lights up its country. `x`, `y` are the screen
+   *  position of the country's label point (or the ring), never the pointer; `labelShown` is
+   *  whether its name is already on the map. */
+  onHover(feature: Feature | null, x: number, y: number, place?: PlaceMark | null, labelShown?: boolean): void;
   onSelect(feature: Feature | null): void;
   onCameraChange?(scale: { km: number; px: number }): void;
   onCompareMove?(feature: Feature, over: Feature | null): void;
