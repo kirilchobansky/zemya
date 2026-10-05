@@ -29,9 +29,9 @@ export function onScreenWidth(feature: Feature, camera: CameraState): number {
  *  never neither — renderer, hit-testing and labelling all call this so they can't
  *  disagree with each other. */
 export function drawsAsPin(feature: Feature, camera: CameraState): boolean {
-  if (!feature.path && !feature.fullPath) return true;
   // an island nation's halo stands in for the pin; its land is hidden while the halo shows (landHidden)
   if (feature.halo) return false;
+  if (!feature.path && !feature.fullPath) return true;
   return equivalentSidePx(feature, camera) < DOT_MAX_SIDE_PX;
 }
 
