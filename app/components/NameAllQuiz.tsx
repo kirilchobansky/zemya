@@ -32,6 +32,7 @@ import { useKeyboard, useQuizPageLock } from '~/lib/keyboard';
 import { NO_INSETS } from '~/lib/map/follow';
 import { measureInsets } from '~/lib/quiz/insets';
 import { useUpStep } from '~/lib/up';
+import { StageClock } from '~/components/quiz/StageClock';
 import type { CountryRecord, World } from '~/lib/map/types';
 import { isCoarsePointer, isPhoneLayout } from '~/lib/viewport';
 
@@ -42,6 +43,8 @@ interface Outcome {
   previousBest: number | null;
 }
 
+/** How long an exact name that is also the start of another unnamed country waits for a further key. */
+const AUTO_ACCEPT_MS = 500;
 const NO_NAMED: readonly string[] = [];
 
 function Flag({ country }: { country: CountryRecord }) {
@@ -283,18 +286,37 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
     if (pausedRef.current) setElapsedMs(elapsedRef.current);
   }, []);
 
+  /* An exact name that is also the start of a longer, still unnamed one ("niger" / "nigeria",
+     "dominica" / "dominican republic") is accepted after AUTO_ACCEPT_MS without a further key;
+     any key before that cancels it and the player keeps typing. Enter takes it at once. */
+  const acceptTimerRef = useRef<number | null>(null);
+  const cancelAccept = useCallback(() => {
+    if (acceptTimerRef.current !== null) window.clearTimeout(acceptTimerRef.current);
+    acceptTimerRef.current = null;
+  }, []);
+  useEffect(() => cancelAccept, [cancelAccept]);
+  useEffect(() => { if (paused || !active) cancelAccept(); }, [paused, active, cancelAccept]);
+
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!active || pausedRef.current) return;
+    cancelAccept();
     const value = e.target.value;
     setHint('');
     const match = matchCountryName(value, prepared, namedSetRef.current);
-    if (match && match.instant && !match.typo) accept(match.index, match.already);
-    else setInput(value);
+    if (match && match.instant && !match.typo) { accept(match.index, match.already); return; }
+    setInput(value);
+    if (match && !match.typo && !match.already) {
+      acceptTimerRef.current = window.setTimeout(() => {
+        acceptTimerRef.current = null;
+        if (phaseRef.current === 'running' && !pausedRef.current) accept(match.index, false);
+      }, AUTO_ACCEPT_MS);
+    }
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter' || !active || pausedRef.current) return;
     e.preventDefault();
+    cancelAccept();
     const match = matchCountryName(input, prepared, namedSetRef.current);
     if (match) accept(match.index, match.already);
     else if (input.trim()) setShaking(true); // nothing is cleared and nothing is penalised
@@ -425,8 +447,11 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
 
         {running && (
           <>
-            <div className="quiz-run__timer numeric">{formatDuration(elapsedMs)}</div>
-            <div className="quiz-run__count numeric">{named.length} / {total}</div>
+            {/* sticky: stays at the top of the panel while the flag list grows and scrolls */}
+            <div className="quiz-run__clock">
+              <div className="quiz-run__timer numeric">{formatDuration(elapsedMs)}</div>
+              <div className="quiz-run__count numeric">{named.length} / {total}</div>
+            </div>
             <div className="name-all__hint" role="status">{hint}</div>
             <div className="actions">
               <button type="button" className="action" onClick={togglePause}>
@@ -483,6 +508,7 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
         )}
       </div>
 
+      {running && <StageClock host={stageHost} ms={elapsedMs} />}
       {paused && stageHost && createPortal(
         <div className="quiz-pause-desk" role="dialog" aria-label="Paused">
           <p className="quiz-pause__title">Paused</p>

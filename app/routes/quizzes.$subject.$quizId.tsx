@@ -57,6 +57,7 @@ import { useKeyboard, useQuizPageLock } from "~/lib/keyboard";
 import { NO_INSETS } from "~/lib/map/follow";
 import { measureInsets } from "~/lib/quiz/insets";
 import { useUpStep } from "~/lib/up";
+import { StageClock } from "~/components/quiz/StageClock";
 import { isCoarsePointer, isPhoneLayout } from "~/lib/viewport";
 import type { CountryRecord, World } from "~/lib/map/types";
 
@@ -661,11 +662,14 @@ function QuizRun() {
 
         {(engine.phase === "running" || engine.phase === "paused") && (
           <>
-            <div className="quiz-run__timer numeric">
-              {formatDuration(engine.elapsedMs)}
-            </div>
-            <div className="quiz-run__count numeric">
-              {engine.answeredCount} / {engine.totalCount}
+            {/* sticky: stays at the top of the panel while the body scrolls */}
+            <div className="quiz-run__clock">
+              <div className="quiz-run__timer numeric">
+                {formatDuration(engine.elapsedMs)}
+              </div>
+              <div className="quiz-run__count numeric">
+                {engine.answeredCount} / {engine.totalCount}
+              </div>
             </div>
 
             {/* always present, empty when there is nothing to say — the buttons below it
@@ -796,6 +800,9 @@ function QuizRun() {
       </div>
 
       <Stage {...stageProps} slot="stage" />
+      {(engine.phase === "running" || engine.phase === "paused") && (
+        <StageClock host={stageHost} ms={engine.elapsedMs} />
+      )}
 
       {/* Desktop pause: covers the stage (map / flag / outline), so a pause can't be used to
           study the target; the panel stays clickable for Resume. Phone has .quiz-pause below. */}

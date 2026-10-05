@@ -36,6 +36,33 @@ describe('matchCountryName', () => {
     expect(matchCountryName('niger', prepared, new Set([nigeria]))?.instant).toBe(true);
   });
 
+  it('waits (not instant) for every exact name that starts a longer unnamed one, found from the list, and takes it once the longer is named', () => {
+    const pairs: [number, number][] = []; // [exact country, longer country it prefixes]
+    for (let i = 0; i < prepared.length; i++) {
+      for (let j = 0; j < prepared.length; j++) {
+        if (i === j) continue;
+        for (const form of prepared[i].forms) {
+          if (/[а-я]/.test(form)) continue;
+          if (prepared[j].forms.some(f => f.length > form.length && f.startsWith(form)) && !prepared[i].forms.some(f => f.length > form.length && f.startsWith(form))) pairs.push([i, j]);
+        }
+      }
+    }
+    expect(pairs.length).toBeGreaterThan(5);
+    const names = (k: number) => countries[pairs[k][0]].name;
+    expect(pairs.some((_, k) => names(k) === 'Niger')).toBe(true);
+    expect(pairs.some((_, k) => names(k) === 'Dominica')).toBe(true);
+    for (const [i, j] of pairs) {
+      for (const form of prepared[i].forms.filter(f => !/[а-я]/.test(f))) {
+        if (!prepared[j].forms.some(f => f.length > form.length && f.startsWith(form))) continue;
+        const open = matchCountryName(form, prepared, none);
+        if (!open || open.index !== i) continue; // a form that names someone else is that country's business
+        expect(open.instant, `${form} while ${countries[j].name} is open`).toBe(false);
+        const others = prepared.filter((p, k) => k !== i && p.forms.some(f => f.length > form.length && f.startsWith(form))).map(p => p.iso3);
+        expect(matchCountryName(form, prepared, new Set(others))?.instant, `${form} once ${others.length} longer named`).toBe(true);
+      }
+    }
+  });
+
   it('allows one typo for names of 6+ letters, never instantly', () => {
     const m = matchCountryName('germani', prepared, none);
     expect(nameOf(m)).toBe('Germany');
