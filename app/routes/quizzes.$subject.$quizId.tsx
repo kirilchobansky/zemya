@@ -260,15 +260,23 @@ function QuizRun() {
       ? requestedSize
       : null;
 
-  const countries = useMemo(
+  const drawnCountries = useMemo(
     () => (definition && size ? selectQuizCountries(pool, size, mode) : []),
     [definition, mode, pool, size],
   );
+  /* A Restart's newly drawn set, valid only for the draw it replaced: a different quiz, scope,
+     size or mode produces a new `drawnCountries`, which drops it. */
+  const [redraw, setRedraw] = useState<{
+    from: CountryRecord[];
+    list: CountryRecord[];
+  } | null>(null);
+  const countries =
+    redraw && redraw.from === drawnCountries ? redraw.list : drawnCountries;
 
   const abandon = () => navigate(backTo, { state: { sheet: "half" } });
   const engine = useQuizEngine(
     definition ?? { id: "unknown", facet: "location" },
-    countries,
+    drawnCountries,
     scope ?? "world",
     requestedSize ?? "all",
     abandon,
@@ -600,9 +608,19 @@ function QuizRun() {
      effect or a timeout leaves the keyboard closed and the player stuck. The input is mounted
      (hidden) in every phase precisely so this has something to focus. `preventScroll` because
      iOS otherwise scrolls the page to "reveal" the input it is about to cover with a keyboard. */
-  const startRun = () => { // also Restart: a fresh run over an active one, nothing saved
+  const startRun = () => {
     engine.inputRef.current?.focus({ preventScroll: true });
     engine.start();
+  };
+
+  /* Restart (active run only): a NEW run on a NEWLY DRAWN set of the same size, scope and mode
+     (random draws differ; population / Top-N and "all" come back as the same set), started at
+     once. Nothing is saved or graded. Focus inside the tap, like startRun. */
+  const restartRun = () => {
+    engine.inputRef.current?.focus({ preventScroll: true });
+    const next = selectQuizCountries(pool, size, mode);
+    setRedraw({ from: drawnCountries, list: next });
+    engine.restart(next);
   };
 
   const stageProps = {
@@ -686,7 +704,7 @@ function QuizRun() {
               >
                 {engine.phase === "paused" ? "Resume" : "Pause"} <kbd>Esc</kbd>
               </button>
-              <button type="button" className="action" onClick={startRun}>
+              <button type="button" className="action" onClick={restartRun}>
                 Restart
               </button>
               <button type="button" className="action" onClick={engine.abandon}>
@@ -859,7 +877,7 @@ function QuizRun() {
                   className="quiz-pause__btn"
                   onPointerDown={keepFocus}
                   onMouseDown={keepFocus}
-                  onClick={startRun}
+                  onClick={restartRun}
                 >
                   Restart
                 </button>

@@ -287,9 +287,13 @@ country's own name (e.g. "Qatar").
 
 **Restart.** A secondary "Restart" button, visible only while a run is active (running or
 paused): in the panel's controls next to Abandon, and on the phone pause screen next to
-"Abandon run". It is exactly "Run it again" (`engine.restart` = `start`, called through the
-route's `startRun` so the input is focused inside the tap): a fresh shuffled run, nothing
-saved, no FSRS grading for answers given so far. Before the start and on the results screen
+"Abandon run". It starts a NEW run on a NEWLY DRAWN set of the same scope, size and
+selection mode: the route calls `selectQuizCountries` again (random subsets differ; population /
+Top-N and size "all" come back as the same set, just reshuffled), keeps it as an override of the
+`countries` memo (so "N rounds" follows) and calls `engine.restart(next)`, which holds the set
+as its run list (totals, results and the progress counter follow it); it is focused inside the
+tap. Nothing saved, no FSRS grading for answers given so far. "Run it again" is unchanged
+(reshuffles the current set). Before the start and on the results screen
 nothing changed. The History fill quiz has the same button in its input bar (running or
 paused), doing exactly "Try again".
 

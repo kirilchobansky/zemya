@@ -52,8 +52,9 @@ export interface QuizEngine {
   result: QuizRunResult | null;
   priorBest: number | null;
   start(): void;
-  /** Starts a fresh run over an active one: nothing saved, no FSRS grading — same as "Run it again". */
-  restart(): void;
+  /** Starts a fresh run over an active one — nothing saved, no FSRS grading — on `next`, a newly
+   *  drawn set (the route passes it; omitted = reshuffle the current set). */
+  restart(next?: CountryRecord[]): void;
   skip(): void;
   reveal(): void;
   togglePause(): void;
@@ -80,7 +81,7 @@ export const REVEAL_FILL_MS = 250;
 
 export function useQuizEngine(
   definition: Pick<QuizDefinition, 'id' | 'facet' | 'match' | 'prepare' | 'answerOf'>,
-  countries: CountryRecord[],
+  baseCountries: CountryRecord[],
   scope: string,
   size: string,
   onAbandon: () => void
@@ -118,6 +119,12 @@ export function useQuizEngine(
     }
   }, []);
 
+  /** The set a Restart drew; null = the route's own `baseCountries`. */
+  const [runList, setRunList] = useState<CountryRecord[] | null>(null);
+  const countries = runList ?? baseCountries;
+  // a new base draw (another mode, scope, size) replaces whatever a Restart drew
+  useEffect(() => setRunList(null), [baseCountries]);
+
   const [priorBest, setPriorBest] = useState<number | null>(null);
   const [result, setResult] = useState<QuizRunResult | null>(null);
 
@@ -134,6 +141,7 @@ export function useQuizEngine(
   useEffect(() => {
     setPhase('idle');
     setQueue([]);
+    setRunList(null);
     setInput('');
     setRevealedSet(new Set());
     setAnswered(new Map());
@@ -145,11 +153,11 @@ export function useQuizEngine(
     skippedRef.current = new Set();
   }, [definition.id, scope, size]);
 
-  const start = useCallback(() => {
-    if (!countries.length) return;
+  const begin = useCallback((list: CountryRecord[]) => {
+    if (!list.length) return;
     cancelFill();
     const rng = makeRng(Date.now() ^ (Math.random() * 0xffffffff));
-    const shuffled = shuffle(countries, rng);
+    const shuffled = shuffle(list, rng);
     setQueue(shuffled);
     setInput('');
     setRevealedSet(new Set());
@@ -162,7 +170,16 @@ export function useQuizEngine(
     segmentStartRef.current = Date.now();
     setPhase('running');
     definition.prepare?.(shuffled.slice(0, PREPARE_LOOKAHEAD));
-  }, [countries, definition, cancelFill]);
+  }, [definition, cancelFill]);
+
+  const start = useCallback(() => begin(countries), [begin, countries]);
+  const restart = useCallback(
+    (next?: CountryRecord[]) => {
+      if (next) setRunList(next);
+      begin(next ?? countries);
+    },
+    [begin, countries]
+  );
 
   /* Space or Enter also starts a run — the input doesn't exist yet to carry a keydown
      handler while idle, so this is the one shortcut that has to live on the window. */
@@ -447,7 +464,7 @@ export function useQuizEngine(
     result,
     priorBest,
     start,
-    restart: start,
+    restart,
     skip,
     reveal,
     togglePause,

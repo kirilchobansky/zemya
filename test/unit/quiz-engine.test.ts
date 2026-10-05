@@ -187,6 +187,17 @@ describe('Restart', () => {
     expect(abandon).not.toHaveBeenCalled();
   });
 
+  it('runs on a newly drawn set when given one, and finishes against it', () => {
+    const fresh = [country('DDD', 'Dland', 'Delta City'), country('EEE', 'Eland', 'Eps City')];
+    engine.restart(fresh);
+    expect(engine.totalCount).toBe(2);
+    expect(engine.remainingCount).toBe(2);
+    expect(fresh).toContain(engine.target);
+    for (let n = 0; n < 2; n++) type(engine.target!.capital!);
+    expect(engine.phase).toBe('done');
+    expect(engine.result?.firstTryCount).toBe(2);
+  });
+
   it('drops a pending Enter fill', () => {
     engine.reveal();
     enterInInput();
