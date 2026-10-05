@@ -75,7 +75,7 @@ the same symbol layer as its name, neither optional, so a ring whose name found 
 answering empty ranges, so nothing is fetched from outside. Country-name size comes from area
 (`labelSize`), not from the on-screen width.
 
-**Camera.** MapLibre's gestures, inertia and easing; a CameraState is converted to centre + zoom.
+**Camera.** MapLibre's gestures and easing, with no momentum: drags, flicks and pinches stop where the input stops, wheel steps apply directly (`GlAtlas.disableMomentum` replaces two MapLibre internals, guarded; programmatic `easeTo` keeps its animation). `fadeDuration: 0` and a zero style `transition` make labels vanish the frame they should; `syncView` is gated on a `ready` flag, not `isStyleLoaded()` (false while tiles load, which left labels stale). A CameraState is converted to centre + zoom.
 `transformConstrain` reimplements `clampY`/`clampZoom` (the visible area, minus insets, stays in the
 map; a portrait phone can still show the whole world). Zoom range is `homeZoom * 0.78 .. * 320`.
 `ownEase`/`heading` give `followTarget` the camera's destination while a fly is running.

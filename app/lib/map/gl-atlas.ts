@@ -13,7 +13,7 @@
  *   - labels, capitals: symbol layers; the per-frame "which ones" decision reuses the exact
  *     predicates the canvas renderer used (visibility.ts), applied as a layer filter only when
  *     the set actually changes, so a pinch costs nothing in steady state;
- *   - camera: MapLibre's own (gestures, inertia, easing, world copies). The app's camera maths
+ *   - camera: MapLibre's own (gestures, no inertia, easing, world copies). The app's camera maths
  *     (camera.ts, follow.ts) is unchanged: a CameraState {x, y, zoom} is converted to a centre and
  *     a map zoom (`zoom px = 512 * 2^z`), and a constrain callback keeps the old clamp rules.
  */
@@ -108,6 +108,8 @@ export class GlAtlas implements MapController {
   private target: CameraState;
   /** True from the moment our own easeTo starts until it ends (or a gesture interrupts it). */
   private ownEase = false;
+  /** True once the style is in (set by create); gates syncView. */
+  private ready = false;
   private style: Style;
   private focus = new Set<Feature>();
   private uiFont = 'system-ui, sans-serif';
@@ -176,7 +178,7 @@ export class GlAtlas implements MapController {
       touchPitch: false,
       keyboard: false,
       attributionControl: false,
-      fadeDuration: 150,
+      fadeDuration: 0, // labels and icons vanish the frame they should, never fade out
       pixelRatio: dpr,
       trackResize: false,
       canvasContextAttributes: { antialias: true },
@@ -189,6 +191,7 @@ export class GlAtlas implements MapController {
       }
     } as ConstructorParameters<typeof GlMap>[0]);
     this.map.touchZoomRotate.disableRotation();
+    this.disableMomentum();
     this.map.addControl(new AttributionControl({ compact: true }), 'bottom-right');
     // collapsed behind its (i) button: the credit is one tap away, and out of the way of the HUD
     container.querySelector('.maplibregl-ctrl-attrib')?.removeAttribute('open');
@@ -212,6 +215,21 @@ export class GlAtlas implements MapController {
     this.resizeObserver.observe(container);
   }
 
+  /** No glide after a drag, pinch or flick, and no smoothing of wheel steps: the camera stops
+   *  where the input stopped. MapLibre exposes neither switch (zoom inertia is hardcoded and
+   *  pan's `maxSpeed` leaves the zoom path alone), so the two internals are replaced; both are
+   *  guarded, and without them the map only keeps its default feel. Programmatic easeTo is untouched. */
+  private disableMomentum(): void {
+    const internals = this.map as unknown as {
+      handlers?: { _inertia?: { _onMoveEnd?: () => unknown } };
+      scrollZoom?: { _smoothOutEasing?: () => (t: number) => number };
+    };
+    const inertia = internals.handlers?._inertia;
+    if (inertia && typeof inertia._onMoveEnd === 'function') inertia._onMoveEnd = () => undefined;
+    const wheel = internals.scrollZoom;
+    if (wheel && typeof wheel._smoothOutEasing === 'function') wheel._smoothOutEasing = () => () => 1;
+  }
+
   /** Builds the map and resolves once its style is in, with every country's state written. */
   static async create(container: HTMLElement, world: World, callbacks: AtlasCallbacks, style: Style): Promise<GlAtlas> {
     const atlas = new GlAtlas(container, world, callbacks, style);
@@ -219,6 +237,7 @@ export class GlAtlas implements MapController {
       atlas.map.once('style.load', () => resolve());
       atlas.map.once('error', e => reject(e.error ?? new Error('map failed to load')));
     });
+    atlas.ready = true;
     atlas.installRingImage();
     atlas.applyGraticuleRanges();
     atlas.restyle();
@@ -590,7 +609,9 @@ export class GlAtlas implements MapController {
   /** What depends on the camera: which countries are pins, halo strength, which names and
    *  capitals show. Each part writes only when its answer changed. */
   private syncView(): void {
-    if (this.destroyed || !this.map.isStyleLoaded()) return;
+    // `ready`, not isStyleLoaded(): that is false while any tile is still loading, which would
+    // skip the update on exactly the moves where labels must follow the zoom
+    if (this.destroyed || !this.ready) return;
     const { world, style, viewport } = this;
     const camera = this.camera;
     const micro = microMode(style);

@@ -217,6 +217,7 @@ export function buildStyle(inputs: GlStyleInputs): StyleSpecification {
   const empty = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
   return {
     version: 8,
+    transition: { duration: 0, delay: 0 },
     projection: { type: 'mercator' },
     glyphs: inputs.glyphsUrl,
     'font-faces': Object.fromEntries(
