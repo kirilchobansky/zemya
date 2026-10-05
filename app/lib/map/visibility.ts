@@ -9,7 +9,7 @@ import { homeZoom } from './camera';
 import { lonToX } from './projection';
 import type { MicroMode, Style } from './style';
 import {
-  CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, haloStrength, PIN_MAX_WIDTH
+  CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, DOT_MAX_SIDE_PX, haloStrength
 } from './thresholds';
 import type { Feature, PlaceMark } from './types';
 
@@ -30,19 +30,38 @@ export function onScreenWidth(feature: Feature, camera: CameraState): number {
  *  disagree with each other. */
 export function drawsAsPin(feature: Feature, camera: CameraState): boolean {
   if (!feature.path && !feature.fullPath) return true;
-  // an island nation's halo stands in for the pin; its land is drawn at every zoom, on top
+  // an island nation's halo stands in for the pin; its land is hidden while the halo shows (landHidden)
   if (feature.halo) return false;
-  return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
+  return equivalentSidePx(feature, camera) < DOT_MAX_SIDE_PX;
 }
 
 
-/** Whether this feature shows as a dot this frame under `micro`: a pin-sized country, and in
- *  `dots` mode also an island nation whose land is still too small to read (its halo would
- *  show). One predicate for drawing, labelling and hit-testing. */
+const EQUATOR_KM = 40075;
+
+/** On-screen side, in CSS pixels, of a square as large as the country (sqrt of its area), at the
+ *  current zoom and the country's latitude (Mercator stretches by 1/cos). The measure for a
+ *  country whose bounding box says little about how much of it there is. */
+export function equivalentSidePx(feature: Feature, camera: CameraState): number {
+  const cos = Math.max(0.05, Math.cos((feature.anchor[1] * Math.PI) / 180));
+  return (Math.sqrt(Math.max(feature.country.area, 0)) * camera.zoom) / (EQUATOR_KM * cos);
+}
+
+/** Whether this feature shows as a dot this frame under `micro`. One rule sorts every small
+ *  country: an island nation with a territory halo is an AREA, in every mode but Off, and never a
+ *  dot; any other country is a DOT while its equivalent square is under DOT_MAX_SIDE_PX, and its
+ *  shape after. One predicate for drawing, labelling and hit-testing; `landHidden` below is its
+ *  other half, so a country is never both. */
 export function showsAsDot(feature: Feature, camera: CameraState, micro: MicroMode): boolean {
   if (micro === 'off') return false;
+  return drawsAsPin(feature, camera);
+}
+
+/** Whether the country's own land is withheld this frame: it is a pin (with Micro off nothing
+ *  replaces it, as before), or its halo is showing — the halo is the area, and the specks of
+ *  land inside it would read as a dot. The land returns as the halo fades out. */
+export function landHidden(feature: Feature, camera: CameraState, micro?: MicroMode): boolean {
   if (drawsAsPin(feature, camera)) return true;
-  return micro === 'dots' && haloAlpha(feature, camera) > 0;
+  return micro !== 'off' && haloAlpha(feature, camera) > 0;
 }
 
 /** How strongly this feature's halo shows right now: 0 for no halo or readable land. One

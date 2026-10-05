@@ -829,7 +829,10 @@ Each country with **no land borders and under 25,000 km2** (derived in `scripts/
 `qualifiesForHalo`, 30 before the exclusions below) gets a `halo` ring instead.
 
 - **Exclusions** (`HALO_EXCLUDED`, owner request after seeing it): Bahamas, Jamaica, every Caribbean
-  island nation (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta, Cyprus and Bahrain keep pins — **17 halos remain**.
+  island nation (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta, Cyprus and Bahrain keep pins — 17 qualify.
+- **Neighbour rule**: a halo is a wash over open sea. One that would be more than 15% another country's land
+  (`HALO_MAX_NEIGHBOUR_SHARE`, `neighbourLandShare`, sampled at build) is not built — only **Singapore** (36%;
+  every other halo is under 4%) — so **16 halos remain** and Singapore is a dot.
 - **Build** (`build-content.mjs`, pure maths in `scripts/lib/halo.mjs`): every outer-ring vertex
   of the full geometry, unwrapped by the same rules as `topology.ts` (ring unwrap, then a rigid
   per-polygon shift to the branch nearest the country's own longitude — keep the two in sync), convex hull in a
@@ -842,6 +845,7 @@ Each country with **no land borders and under 25,000 km2** (derived in `scripts/
 - **Fade**: strength 1 while the country's widest single piece (`Feature.pieceWidth`, not its bbox —
   Kiribati's bbox is 37 degrees of specks) is <= 24 px, 0 at 60 px (`thresholds.ts`). The same number
   gates hit-testing, so a halo you can't see can't be hit.
+- **Land hidden under the halo** (owner request: halo AND a dot inside it): while a halo shows, the country's own land is withheld (`landHidden` in `visibility.ts`), so the area is the only mark; the land returns as the halo fades out.
 - **Hit-testing** (`pick`): land first, then halos, smallest first, so Florida is still the USA and
   the smaller country wins an overlap. Not gated on the "Micro-states" toggle (the halo is the country's
   area, not a marker); the toggle still controls the land micro-states' pins.
@@ -850,6 +854,27 @@ Each country with **no land borders and under 25,000 km2** (derived in `scripts/
   1440x900 12 of 30, 8-11 px; 390 px phone 27 of 30), so those still get a modest zoom — far less
   than the old fly to a dot. Lowering the floor or the minimum is a one-constant decision, not made here.
 - **Not measured**: `npm run perf` could not launch a browser in the session that built this.
+
+## Small countries: dot or area — detail
+
+One rule sorts every small country, applied per frame from its on-screen size (`visibility.ts`;
+thresholds in `thresholds.ts`). Never both for the same country: where a dot is shown the country's land is
+withheld (`landHidden`), and a halo is never drawn under a dot.
+
+- **Area only** (territory halo, no dot): an island nation with a halo (above) — the 16: Comoros, Cape Verde,
+  Fiji, Micronesia, Kiribati, Maldives, Marshall Islands, Mauritius, Nauru, Palau, São Tomé and Príncipe,
+  Seychelles, Tonga, Tuvalu, Vanuatu, Samoa. Their land is drawn on top of the wash at every zoom.
+- **Dot only**: any other country while its equivalent square (side = sqrt(area), Mercator-corrected) is under
+  `DOT_MAX_SIDE_PX` (3.5 px); its shape once larger (the bounding-box width test is gone: a thin or spread-out
+  country is judged by how much of it there is, so Belize, Israel, Kuwait, Albania are shapes from ~4 px).
+  At world zoom (1000 px wide map) that is 26 countries: Andorra, Antigua and Barbuda, Bahrain, Bahamas,
+  Barbados, Brunei, Cyprus, Dominica, Gambia, Grenada, Jamaica, Saint Kitts and Nevis, Lebanon, Saint Lucia,
+  Liechtenstein, Luxembourg, Monaco, Malta, Palestine, Qatar, Singapore, San Marino, East Timor,
+  Trinidad and Tobago, Vatican City, Saint Vincent and the Grenadines. Singapore is a dot because its halo
+  would paint Malaysia and Indonesia.
+- **Micro: Dots / Full** both show the area-only countries as areas (never as dots) and the dot-only
+  ones as dots; **Off** shows neither. A quiz forces Full.
+- **Dot look** is the original: 4.2 px (6.5 hovered/focused, 9 as the quiz target), 1.2 px dark edge, 9 px pick radius, 24 px touch.
 
 ## What counts as a country — detail
 
@@ -1003,6 +1028,17 @@ and cites third-party colour sites. `sy.svg` therefore uses the conventional val
 Wikimedia's own SVG uses (#007a3d, #ce1126) and its geometry (stars centred on the white
 band at 1/4, 1/2, 3/4, bounding height 150 of 900x600). Say so in the note; revisit if an
 official specification is published.
+
+## Country names and aliases — display names
+
+Display name = `world-countries`' common name unless a country's YAML `override:` says otherwise.
+**East Timor** is such an override (display only; the slug stays `timor-leste`, a public URL);
+"Timor-Leste", "Timor Leste" and "Timor" stay accepted. **Czechia** keeps one display name and
+"Czech Republic" as an alias. Belize, Laos, Tunisia and Suriname were already the display names; the
+old spellings Beliz, Lao, Tunis and Surinam are accepted as aliases (`aliases: add:` in each YAML; Lao
+already came from upstream). "Tunis" is also Tunisia's capital, so `names.test.ts` exempts TUN from the
+"no capital alias equals a country alias" check. Search (`SearchBox.tsx`) matches the display name and
+capital anywhere in the text, and every alias and Bulgarian name (`names-bg.ts`) from the start.
 
 ## Search and sharing metadata
 
