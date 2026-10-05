@@ -4,23 +4,15 @@
  * for hover and click.
  */
 import {
-  centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, NO_INSETS, screenToWorld, settled,
+  centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, NO_INSETS, scaleBar, screenToWorld, settled,
   shortestX, step, type CameraState, type Insets, type Viewport
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
 import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
-import { COLORS, hitOverlay, microMode, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
+import { COLORS, hitOverlay, microMode, pick, pickPlace, render, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
+import type { AtlasCallbacks, MapController } from './controller';
 import type { Feature, PlaceMark, World } from './types';
-
-export interface AtlasCallbacks {
-  /** `place` is set when the pointer is over a capital's ring — `feature` is then that
-   *  capital's country, so hovering a ring also lights up its country. */
-  onHover(feature: Feature | null, x: number, y: number, place?: PlaceMark | null): void;
-  onSelect(feature: Feature | null): void;
-  onCameraChange?(scale: { km: number; px: number }): void;
-  onCompareMove?(feature: Feature, over: Feature | null): void;
-}
 
 /** How long a new-target pulse lasts. Once, not a loop. */
 const PULSE_MS = 1000;
@@ -34,7 +26,7 @@ const TOUCH_HIT_RADIUS_PX = 24;
  *  render one full frame. */
 const GESTURE_SETTLE_MS = 120;
 
-export class Atlas {
+export class Atlas implements MapController {
   private ctx: CanvasRenderingContext2D;
   private viewport: Viewport = { width: 0, height: 0 };
   /** The DPR the canvas is sized for and RenderContext.dpr carries: always the device's (capped

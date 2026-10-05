@@ -11,7 +11,7 @@
  * its target latitude silently rewritten to the equator, and the camera zooms into empty
  * ocean.
  */
-import { wrapX } from './projection';
+import { kmPerPixel, wrapX, yToLat } from './projection';
 
 /** Pixels of the canvas covered by something on top of it, per side — the phone's bottom
  *  sheet and tab bar, a quiz's docked input. The "visible map area" is the viewport minus these. */
@@ -168,3 +168,13 @@ export function shortestX(currentX: number, targetX: number): number {
   if (Math.abs(targetX - current) > 0.5) return targetX + (targetX < current ? 1 : -1);
   return targetX;
 }
+
+/** Nearest round distance that fits in roughly 90 px, for the scale bar. */
+export function scaleBar(camera: CameraState, viewport: Viewport): { km: number; px: number } {
+  const km = kmPerPixel(yToLat(camera.y), camera.zoom);
+  const target = km * 90;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(target)));
+  const nice = [1, 2, 5, 10].map(m => m * magnitude).find(v => v >= target) ?? magnitude * 10;
+  return { km: nice, px: nice / km };
+}
+

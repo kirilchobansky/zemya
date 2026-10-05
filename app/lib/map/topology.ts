@@ -9,88 +9,14 @@ import type {
   ContextShape, Feature, GeometryData, LonLat, PlaceMark, Ring, World, WorldData
 } from './types';
 import { latToY, lonToX, wrapX } from './projection';
+import { buildRing, decodeArcs, frameToReference, unwrapRing } from '../../../scripts/lib/geom.mjs';
+
+// Antimeridian handling lives in scripts/lib/geom.mjs, shared with the tile builder so the
+// vector tiles and these Features always agree on the longitude frame (see its header).
+export { unwrapRing };
 
 /** Below this span in degrees a country cannot render as a recognisable shape. */
 const MICRO_DEGREES = 0.55;
-
-/**
- * Longitudes arrive in [-180, 180], so a ring that crosses the antimeridian (Russia's
- * mainland, via Chukotka) contains a ±360 jump. Unwrap it into one continuous frame: walk
- * the ring and whenever consecutive longitudes differ by more than 180, shift everything
- * after that point by ∓360. The result may run outside [-180, 180] — Russia becomes
- * roughly 19°E .. 190°E — and that is exactly what we want: a single Path2D subpath draws
- * it with no diagonal seam (the renderer already draws the world at −1, 0 and +1 world
- * widths, so a continuous path lands correctly in every copy with no clipping), and its
- * longitude span describes its real angular width instead of "the whole world".
- *
- * INVARIANT: longitudes stay unwrapped through all geometry and bbox maths below, and are
- * normalised (wrapX, or folded back into [-180, 180)) only at the moment they are handed
- * to the camera. Never before.
- */
-export function unwrapRing(ring: Ring): Ring {
-  if (ring.length < 2) return ring;
-  const out: Ring = [ring[0]];
-  let shift = 0;
-  for (let i = 1; i < ring.length; i++) {
-    const d = ring[i][0] - ring[i - 1][0];
-    if (d > 180) shift -= 360;
-    else if (d < -180) shift += 360;
-    out.push([ring[i][0] + shift, ring[i][1]]);
-  }
-  return out;
-}
-
-/**
- * A ring crossing the antimeridian inside itself is only half the bug. The USA's
- * Aleutians, Kiribati's three archipelagos and New Zealand's Chathams are each split into
- * separate rings (separate islands) that individually never cross ±180 — every ring in
- * KIR's outer-island group sits happily within its own hemisphere — but land on opposite
- * sides of it, so naively merging their raw longitudes into one bbox still produces "the
- * whole world" even after unwrapRing().
- *
- * Fixed the same way, one level up: shift each polygon (as a rigid unit — outer ring and
- * any holes together) by whichever multiple of 360° brings it closest to the country's own
- * reference longitude (its authored latlng, always in [-180, 180]). That puts every piece
- * of a feature into one mutually consistent frame regardless of how upstream happened to
- * split it into rings, with no per-country special case.
- */
-function nearestBranch(lon: number, reference: number): number {
-  return lon + Math.round((reference - lon) / 360) * 360;
-}
-
-function meanLon(ring: Ring): number {
-  let sum = 0;
-  for (const [lon] of ring) sum += lon;
-  return sum / ring.length;
-}
-
-function decodeArcs(data: GeometryData): LonLat[][] {
-  const { x0, y0, xs, ys } = data.grid;
-  return data.arcs.map(arc => {
-    let x = 0;
-    let y = 0;
-    const out: LonLat[] = new Array(arc.length);
-    for (let i = 0; i < arc.length; i++) {
-      x += arc[i][0];
-      y += arc[i][1];
-      out[i] = [x * xs + x0, y * ys + y0];
-    }
-    return out;
-  });
-}
-
-/** Stitch arc indices into a ring. A negative index means "that arc, reversed". */
-function buildRing(indices: number[], arcs: LonLat[][]): Ring {
-  let points: Ring = [];
-  for (const index of indices) {
-    const reversed = index < 0;
-    const arc = arcs[reversed ? ~index : index];
-    if (!arc) continue;
-    const segment = reversed ? arc.slice().reverse() : arc;
-    points = points.length ? points.concat(segment.slice(1)) : segment.slice();
-  }
-  return points;
-}
 
 /**
  * Append a ring to a path as one continuous subpath. Safe to do unconditionally now that
@@ -254,13 +180,8 @@ export function buildWorld(data: WorldData): World {
  */
 function finalizeFeature(feature: Feature, polygons: Ring[][], target: 'path' | 'fullPath'): void {
   // Bring every disjoint piece of this feature into one consistent angular frame before
-  // measuring anything — see nearestBranch's doc comment.
-  const reference = feature.country.latlng[1];
-  const shifted = polygons.map(polygon => {
-    const shift = nearestBranch(meanLon(polygon[0]), reference) - meanLon(polygon[0]);
-    if (!shift) return polygon;
-    return polygon.map(ring => ring.map(([lon, lat]): LonLat => [lon + shift, lat]));
-  });
+  // measuring anything — see frameToReference in scripts/lib/geom.mjs.
+  const shifted = frameToReference(polygons, feature.country.latlng[1]);
   // reprojectToTrueSize (the size-comparison tool) reads this — always keep it in sync
   // with whichever detail level most recently ran through here, coarse or full.
   feature.polygons = shifted;
@@ -428,14 +349,23 @@ export function reprojectToTrueSize(
   targetLon: number,
   targetLat: number
 ): Ring[] {
+  return reprojectPolygonsToTrueSize(feature, targetLon, targetLat).flat();
+}
+
+/** reprojectToTrueSize, keeping the polygon grouping (outer ring first, then its holes) —
+ *  what the GL renderer needs to fill a polygon with its holes cut out. */
+export function reprojectPolygonsToTrueSize(
+  feature: Feature,
+  targetLon: number,
+  targetLat: number
+): Ring[][] {
   const KM_PER_DEG_LAT = 110.574;
   const KM_PER_DEG_LON = 111.32;
   const RAD = Math.PI / 180;
   const [originLon, originLat] = feature.anchor;
-  const out: Ring[] = [];
 
-  for (const polygon of feature.polygons) {
-    for (const ring of polygon) {
+  return feature.polygons.map(polygon =>
+    polygon.map(ring => {
       const moved: Ring = [];
       for (const [lon, lat] of ring) {
         const northKm = (lat - originLat) * KM_PER_DEG_LAT;
@@ -445,10 +375,9 @@ export function reprojectToTrueSize(
         const newLon = targetLon + eastKm / (KM_PER_DEG_LON * (Math.abs(cos) < 1e-4 ? 1e-4 : cos));
         moved.push([newLon, newLat]);
       }
-      out.push(moved);
-    }
-  }
-  return out;
+      return moved;
+    })
+  );
 }
 
 /** Build a Path2D from already-projected lon-lat rings (used for the dragged outline). */

@@ -9,127 +9,19 @@
  * is wider than the viewport the copies are dropped.
  */
 import type { CameraState, Viewport } from './camera';
-import { homeZoom, worldToScreen } from './camera';
-import { kmPerPixel, wrapX, yToLat, lonToX, latToY } from './projection';
+import { homeZoom, scaleBar, worldToScreen } from './camera';
+import { wrapX, lonToX, latToY } from './projection';
+import { COLORS, microMode, type MicroMode, type Style } from './style';
 import { mergedStrokePath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
+import { CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, HALO_EDGE_ALPHA, HALO_FILL_ALPHA } from './thresholds';
 import {
-  CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, HALO_EDGE_ALPHA, HALO_FILL_ALPHA, haloStrength, PIN_MAX_WIDTH
-} from './thresholds';
+  CAPITAL_PICK_RADIUS, capitalShapeShowing, capitalsVisible, drawsAsPin, haloAlpha, onScreenWidth, showsAsDot
+} from './visibility';
 
-export type MicroMode = 'full' | 'dots' | 'off';
-
-/** The effective micro mode of a style — one reading for drawing, labelling and hit-testing. */
-export function microMode(style: Pick<Style, 'showPins' | 'micro'>): MicroMode {
-  return style.micro ?? (style.showPins ? 'full' : 'off');
-}
-
-export interface Style {
-  /** Fill for a country, or null to skip drawing it entirely. */
-  fill(feature: Feature): string | null;
-  /** [colour, width in CSS pixels], or null for no stroke. */
-  stroke(feature: Feature): [string, number] | null;
-  /** Whether this feature's stroke differs from `defaultStroke()` — normally the selected
-   *  country and its neighbours. render() strokes every OTHER feature in one pass, via the
-   *  whole map's merged Path2D (topology.ts's mergedStrokePath) rather than one `stroke()`
-   *  lookup and one canvas call per country; only features this returns true for get their
-   *  own individual stroke() call, on top. Omit (with defaultStroke also omitted) to fall
-   *  back to stroking every feature individually, the pre-merged-path behaviour. */
-  highlight?(feature: Feature): boolean;
-  /** The stroke every feature NOT covered by `highlight()` shares — what the merged path
-   *  above is stroked with. Both real Style objects (overlays.ts's strokeFor/quizStrokeFor)
-   *  return the same value from here as their own fallback case, so the two can never
-   *  disagree about what "not highlighted" looks like. Null (or omitted) skips the merged
-   *  pass — nothing not individually highlighted gets a stroke at all. */
-  defaultStroke?(): [string, number] | null;
-  /** Extra outline dragged over the map by the size-comparison tool. */
-  overlay?: { path: Path2D; fill: string; stroke: string } | null;
-  /** Country names (the Names toggle). Capital names follow the capitals layer, not this. */
-  showLabels: boolean;
-  /** Legacy on/off for micro-states; `micro` wins when set. */
-  showPins: boolean;
-  /** How micro-states and island nations draw (the Micro toggle): `full` = pin or territory
-   *  halo, plus a name when `showLabels`; `dots` = a small dot each, no halo, no name; `off` =
-   *  nothing, and nothing to hit. Default: `full` when showPins, else `off`. */
-  micro?: MicroMode;
-  /** The capitals layer: a ring per capital city once zoomed in past
-   *  CAPITAL_ZOOM_FACTOR (or later, for a small country), together with its name. Off if omitted. */
-  showCapitals?: boolean;
-  /** The one capital the capitals quiz is asking about: drawn with the quiz-target ring at
-   *  ANY zoom, and only under quizMode (every other capital ring stays hidden there). It
-   *  carries no name — labels and tooltips stay suppressed, so the ring is a question, not
-   *  an answer. */
-  quizPlace?: PlaceMark | null;
-  /**
-   * True for the whole lifetime of a quiz run. Suppresses every surface that could hand
-   * over the answer: no country labels and no place (capital) labels or dots here (see
-   * drawLabels and capitalsVisible below); the hover tooltip — country AND place — the
-   * search box and the default neighbour-glow are suppressed at their call sites in
-   * app/routes/atlas.tsx and app/lib/map/atlas.ts, gated on this same flag. One name for
-   * all of them, so a further surface that shows a name has one obvious place to check —
-   * see CLAUDE.md's Quizzes section.
-   */
-  quizMode?: boolean;
-}
-
-/**
- * Every colour the canvas paints, resolved from app/styles/tokens.css. A canvas
- * fillStyle/strokeStyle can't be `var(--x)`, so these start as the tokens' dark-theme
- * defaults (kept in sync by hand — see tokens.css's own header note) and are only ever
- * overwritten by refreshMapColours() below, never read fresh inside the render loop.
- */
-export const COLORS = {
-  ocean: '#080D13',
-  context: '#16222D',
-  graticule: 'rgba(78,169,201,.075)',
-  graticuleMajor: 'rgba(78,169,201,.16)',
-  land: '#31485A',
-  microPin: '#68889D',
-  labelHalo: 'rgba(8,13,19,.85)',
-  labelText: 'rgba(230,238,243,.9)',
-  pinEdge: 'rgba(8,13,19,.9)',
-  capital: 'rgba(230,238,243,.95)',
-  capitalHalo: 'rgba(8,13,19,.85)',
-  capitalLabelText: 'rgba(159,179,192,1)',
-  /** The pulse ring's colour, at whatever alpha the pulse's own animation wants — kept as a
-   *  bare "r,g,b" triplet rather than a full colour for that reason (see drawPulse). */
-  pulseRgb: '232,163,61',
-  /** The size-comparison drag overlay (atlas.ts's compare state) — brass, so it reads as
-   *  the same accent the rest of the "selected" language uses. */
-  compareFill: 'rgba(232,163,61,.42)',
-  compareStroke: '#F5CE86'
-};
-
-/**
- * Re-reads every entry in COLORS from tokens.css and caches it in place — called once from
- * app/routes/atlas.tsx before the first frame and again on every theme change, never from
- * inside render(). getComputedStyle is real work; a canvas frame can't afford it 60 times a
- * second, which is the whole reason COLORS is a cache rather than a live lookup.
- */
-export function refreshMapColours(): void {
-  const cs = getComputedStyle(document.documentElement);
-  const read = (name: string) => cs.getPropertyValue(name).trim();
-  const rgb = (name: string) => read(name).replace(/\s+/g, ',');
-  const abyssRgb = rgb('--abyss-rgb');
-  const seaRgb = rgb('--sea-rgb');
-  const inkRgb = rgb('--ink-rgb');
-
-  COLORS.ocean = read('--ocean');
-  COLORS.context = read('--map-context');
-  COLORS.graticule = `rgba(${seaRgb},${read('--graticule-alpha')})`;
-  COLORS.graticuleMajor = `rgba(${seaRgb},${read('--graticule-major-alpha')})`;
-  COLORS.land = read('--land');
-  COLORS.microPin = read('--micro-pin');
-  COLORS.labelHalo = `rgba(${abyssRgb},.85)`;
-  COLORS.labelText = `rgba(${inkRgb},.9)`;
-  COLORS.pinEdge = `rgba(${abyssRgb},.9)`;
-  COLORS.capital = `rgba(${inkRgb},.95)`;
-  COLORS.capitalHalo = `rgba(${abyssRgb},.85)`;
-  COLORS.capitalLabelText = read('--ink-2');
-  COLORS.pulseRgb = rgb('--brass-rgb');
-  COLORS.compareFill = `rgba(${COLORS.pulseRgb},.42)`;
-  COLORS.compareStroke = read('--brass-2');
-}
+// re-exported so the canvas controller (atlas.ts) keeps one import site
+export { COLORS, microMode };
+export type { MicroMode, Style };
 
 /**
  * A one-shot ring that grows out of a point and fades, marking a NEW quiz target so it can
@@ -266,28 +158,6 @@ function isBoxVisible(rc: RenderContext, x0: number, x1: number, y0: number, y1:
   );
 }
 
-/* PIN_MAX_WIDTH, the capital ring's size and CAPITAL_MIN_SHAPE_WIDTH live in thresholds.ts,
-   shared with the quiz camera (follow.ts) and tied to each other there. */
-
-/** A feature's on-screen width in CSS pixels at the current zoom, from its (unwrapped,
- *  already-consistent — see topology.ts) bbox. A feature with no bbox at all has no
- *  shape to draw at any zoom, so it is always a pin. */
-function onScreenWidth(feature: Feature, camera: CameraState): number {
-  if (!feature.bbox) return 0;
-  const [minLon, , maxLon] = feature.bbox;
-  return (lonToX(maxLon) - lonToX(minLon)) * camera.zoom;
-}
-
-/** Whether this feature draws as a pin THIS FRAME. Never both a pin and a shape, and
- *  never neither — renderer, hit-testing and labelling all call this so they can't
- *  disagree with each other. */
-export function drawsAsPin(feature: Feature, camera: CameraState): boolean {
-  if (!feature.path && !feature.fullPath) return true;
-  // an island nation's halo stands in for the pin; its land is drawn at every zoom, on top
-  if (feature.halo) return false;
-  return onScreenWidth(feature, camera) < PIN_MAX_WIDTH;
-}
-
 /**
  * Below this zoom (a multiple of homeZoom, the zoom at which the whole world fills the
  * viewport), the map renders from the coarse payload — full 1:10m coastline is sub-pixel
@@ -308,21 +178,6 @@ function useFullDetail(camera: CameraState, viewport: Viewport): boolean {
  *  a different shape than what's on screen. */
 function activePath(feature: Feature, full: boolean): Path2D | null {
   return full && feature.fullPath ? feature.fullPath : feature.path;
-}
-
-/** Whether this feature shows as a dot this frame under `micro`: a pin-sized country, and in
- *  `dots` mode also an island nation whose land is still too small to read (its halo would
- *  show). One predicate for drawing, labelling and hit-testing. */
-function showsAsDot(feature: Feature, camera: CameraState, micro: MicroMode): boolean {
-  if (micro === 'off') return false;
-  if (drawsAsPin(feature, camera)) return true;
-  return micro === 'dots' && haloAlpha(feature, camera) > 0;
-}
-
-/** How strongly this feature's halo shows right now: 0 for no halo or readable land. One
- *  number for drawing and hit-testing, so a halo you can't see can't be hit. */
-export function haloAlpha(feature: Feature, camera: CameraState): number {
-  return feature.halo ? haloStrength(feature.pieceWidth * camera.zoom) : 0;
 }
 
 /** Fill and soft outline for every visible halo, beneath the land (which draws on top).
@@ -400,33 +255,6 @@ function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feat
  *     is degenerate; the pin stands in).
  * Chosen by looking, zooming into Central Europe and the Caribbean in a real browser.
  */
-const CAPITAL_PICK_RADIUS = 7;
-
-/** Whether the capitals layer draws (and can be hovered or clicked) this frame. quizMode
- *  is a hard veto: a capital's ring is not an answer, but the hover tooltip and label that
- *  come with it are, and one predicate for all three means they cannot disagree. */
-export function capitalsVisible(
-  style: Pick<Style, 'showCapitals' | 'quizMode'>,
-  camera: CameraState,
-  viewport: Viewport
-): boolean {
-  return (
-    Boolean(style.showCapitals) &&
-    !style.quizMode &&
-    camera.zoom >= homeZoom(viewport) * CAPITAL_ZOOM_FACTOR
-  );
-}
-
-/** Second gate, per capital: its country is a drawn shape right now, wide enough that the ring sits
- *  on an outline rather than floating beside it (CAPITAL_MIN_SHAPE_WIDTH, derived from
- *  PIN_MAX_WIDTH — so it can never pass while the country is a pin), AND we are past the zoom its
- *  AREA calls for (capitalRevealFactor: small countries wait longer). Rings, names and
- *  hit-testing all go through this, so a ring, its name and its hover cannot disagree. */
-function capitalShapeShowing(mark: PlaceMark, camera: CameraState, viewport: Viewport): boolean {
-  if (drawsAsPin(mark.feature, camera) || onScreenWidth(mark.feature, camera) < CAPITAL_MIN_SHAPE_WIDTH) return false;
-  const home = homeZoom(viewport);
-  return camera.zoom >= home * capitalRevealFactor(mark.feature.country.area, mark.place.lat, home, mark.place.iso3);
-}
 
 /** A small hollow ring — deliberately NOT the filled circle a micro-state pin is, so the
  *  map never has two dot languages that mean different things. */
@@ -827,15 +655,6 @@ export function render(
   drawCapitals(rc, world, style);
   drawLabels(rc, world, uiFont, style);
   if (pulse) drawPulse(rc, pulse);
-}
-
-/** Nearest round distance that fits in roughly 90 px, for the scale bar. */
-export function scaleBar(camera: CameraState, viewport: Viewport): { km: number; px: number } {
-  const km = kmPerPixel(yToLat(camera.y), camera.zoom);
-  const target = km * 90;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(target)));
-  const nice = [1, 2, 5, 10].map(m => m * magnitude).find(v => v >= target) ?? magnitude * 10;
-  return { km: nice, px: nice / km };
 }
 
 /**

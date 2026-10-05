@@ -122,7 +122,7 @@ export function Rail({
         <span>{countryCount || '—'} states</span>
         <span>Pre-alpha</span>
         <p className="rail__credit">
-          Capitals: <a href="https://www.geonames.org/">GeoNames</a>, CC BY 4.0 ·{' '}
+          Capitals: <a href="https://www.geonames.org/">GeoNames</a>, CC BY 4.0 · Data: ODbL ·{' '}
           <a href="https://github.com/kirilchobansky/zemya#data-sources">All sources</a>
         </p>
       </div>

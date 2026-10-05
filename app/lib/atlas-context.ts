@@ -9,7 +9,7 @@
  */
 import { createContext, useContext, type Dispatch, type SetStateAction } from 'react';
 
-import type { Atlas } from '~/lib/map/atlas';
+import type { MapController } from '~/lib/map/controller';
 import type { HistoryTimeline } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
 import type { EntryKind } from '~/lib/history/scale';
@@ -31,7 +31,7 @@ export interface TimelineLabels {
 }
 
 export interface AtlasContextValue {
-  atlas: Atlas | null;
+  atlas: MapController | null;
   quiz: QuizOverride | null;
   setQuiz: Dispatch<SetStateAction<QuizOverride | null>>;
   /** Phone layout only (no effect on desktop): a quiz run takes the whole screen — no sheet,

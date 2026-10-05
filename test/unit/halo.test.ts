@@ -96,7 +96,7 @@ describe('haloStrength / pick', () => {
 
   it('island nations never draw as pins; land micro-states still do', async () => {
     const { buildWorld } = await import('~/lib/map/topology');
-    const { drawsAsPin } = await import('~/lib/map/renderer');
+    const { drawsAsPin } = await import('~/lib/map/visibility');
     const world = buildWorld(data);
     const camera = { x: 0.5, y: 0.5, zoom: 1000 };
     expect(drawsAsPin(world.byIso3.get('NRU')!, camera)).toBe(false);

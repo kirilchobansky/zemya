@@ -15,8 +15,9 @@ import { Rail } from '~/components/Rail';
 import { SearchBox } from '~/components/SearchBox';
 import { AtlasContext, type TimelineLabels } from '~/lib/atlas-context';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
-import { Atlas } from '~/lib/map/atlas';
-import { refreshMapColours, type MicroMode } from '~/lib/map/renderer';
+import type { MapController } from '~/lib/map/controller';
+import { loadMapEngine, MAP_ENGINE } from '~/lib/map/engine';
+import { refreshMapColours, type MicroMode } from '~/lib/map/style';
 import HistoryCard, { PinnedHistoryCard } from '~/components/HistoryCard';
 import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
@@ -135,8 +136,9 @@ export default function AtlasLayout() {
 }
 
 function AtlasShell() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const atlasRef = useRef<Atlas | null>(null);
+  /** The map's host element: a <div> MapLibre fills (engine 'gl') or a <canvas> (engine 'canvas'). */
+  const mapHostRef = useRef<HTMLDivElement & HTMLCanvasElement>(null);
+  const atlasRef = useRef<MapController | null>(null);
   const historyCanvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HistoryTimeline | null>(null);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
@@ -277,7 +279,7 @@ function AtlasShell() {
   const [scale, setScale] = useState({ km: 0, px: 0 });
   const [comparing, setComparing] = useState<{ feature: Feature; over: Feature | null } | null>(null);
   const [armingCompare, setArmingCompare] = useState(false);
-  const [atlasInstance, setAtlasInstance] = useState<Atlas | null>(null);
+  const [atlasInstance, setAtlasInstance] = useState<MapController | null>(null);
   const [quiz, setQuiz] = useState<QuizOverride | null>(null);
 
   /* ---------------------------------------------------------------- sidebar resize/collapse
@@ -417,7 +419,7 @@ function AtlasShell() {
   snapRef.current = snap;
   const immersiveRef = useRef(immersive);
   immersiveRef.current = immersive;
-  const applyInsets = useCallback((atlas: Atlas) => {
+  const applyInsets = useCallback((atlas: MapController) => {
     // Desktop: the panel is a grid column beside the map, so nothing covers the canvas.
     // A quiz run on a phone sets its own insets (HUD above, input below) — not this.
     if (!isPhoneLayout()) return atlas.setInsets(NO_INSETS);
@@ -525,53 +527,66 @@ function AtlasShell() {
   const styleRef = useRef(styleInputs);
   styleRef.current = styleInputs;
 
-  /* create the controller once the payload has arrived */
+  /* create the controller once the payload has arrived. The engine (and, for 'gl', MapLibre) is
+     imported on demand here, so neither is in the first page load. */
   useEffect(() => {
-    if (!world || !canvasRef.current || atlasRef.current) return;
-    // The canvas can't read a CSS variable per frame (CLAUDE.md's Visual identity note) —
-    // both colour caches must be fresh before the very first frame Atlas's constructor
-    // draws, which is why this runs here rather than only from the theme-change effect
-    // below.
+    if (!world || !mapHostRef.current || atlasRef.current) return;
+    const host = mapHostRef.current;
+    let cancelled = false;
+    let created: MapController | null = null;
+    // Colours are resolved from CSS once, here and on a theme change — never per frame
+    // (CLAUDE.md's Visual identity note) — and must be fresh before the first frame is drawn.
     refreshOverlayColours();
     refreshMapColours();
-    const atlas = new Atlas(
-      canvasRef.current,
-      world,
-      {
-        onHover: (feature, x, y, place) => {
-          setHovered(feature);
-          setHoveredPlace(place ?? null);
-          setTip(feature ? { x, y } : null);
-        },
-        onSelect: f => handleSelectRef.current(f),
-        onCameraChange: setScale,
-        onCompareMove: (feature, over) => setComparing({ feature, over })
-      },
-      {
-        fill: f => fillFor(f, styleRef.current),
-        stroke: f => strokeFor(f, styleRef.current),
-        highlight: f => isSelectedOrNeighbour(f, styleRef.current),
-        defaultStroke: defaultStrokeFor,
-        showLabels: true,
-        showPins: true,
-        showCapitals: true
-      }
-    );
-    atlas.setUiFont(
-      getComputedStyle(document.body).getPropertyValue('--font-ui') || 'system-ui, sans-serif'
-    );
-    atlasRef.current = atlas;
-    applyInsets(atlas);
-    if (isPhoneLayout()) atlas.home(false); // reframe now that it knows what covers it
-    setAtlasInstance(atlas);
-    // The map has been painting from coarse geometry since `world` first resolved (see
-    // loadWorld) — repaint once the full 1:10m payload attaches in place, so a country
-    // already on screen sharpens up without waiting for the next pan or zoom.
-    onFullDetail(() => atlas.redraw());
+    loadMapEngine()
+      .then(engine => {
+        if (cancelled) return null;
+        return engine.create(
+          host,
+          world,
+          {
+            onHover: (feature, x, y, place) => {
+              setHovered(feature);
+              setHoveredPlace(place ?? null);
+              setTip(feature ? { x, y } : null);
+            },
+            onSelect: f => handleSelectRef.current(f),
+            onCameraChange: setScale,
+            onCompareMove: (feature, over) => setComparing({ feature, over })
+          },
+          {
+            fill: f => fillFor(f, styleRef.current),
+            stroke: f => strokeFor(f, styleRef.current),
+            highlight: f => isSelectedOrNeighbour(f, styleRef.current),
+            defaultStroke: defaultStrokeFor,
+            showLabels: true,
+            showPins: true,
+            showCapitals: true
+          }
+        );
+      })
+      .then(atlas => {
+        if (!atlas) return;
+        if (cancelled) return atlas.destroy();
+        created = atlas;
+        atlas.setUiFont(getComputedStyle(document.body).getPropertyValue('--font-ui') || 'system-ui, sans-serif');
+        atlasRef.current = atlas;
+        applyInsets(atlas);
+        if (isPhoneLayout()) atlas.home(false); // reframe now that it knows what covers it
+        setAtlasInstance(atlas);
+        // The map has been painting from coarse geometry since `world` first resolved (see
+        // loadWorld) — repaint once the full 1:10m payload attaches in place, so a country
+        // already on screen sharpens up without waiting for the next pan or zoom.
+        onFullDetail(() => atlas.redraw());
+      })
+      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
     return () => {
-      atlas.destroy();
-      atlasRef.current = null;
-      setAtlasInstance(null);
+      cancelled = true;
+      if (created) {
+        created.destroy();
+        atlasRef.current = null;
+        setAtlasInstance(null);
+      }
     };
   }, [world, applyInsets]);
 
@@ -652,7 +667,7 @@ function AtlasShell() {
             quizMode: false
           }
     );
-  }, [styleInputs, micro, showNames, showCapitals, quiz, world]);
+  }, [styleInputs, micro, showNames, showCapitals, quiz, world, atlasInstance]);
 
   /**
    * Where the phone sheet rests after a navigation. Links and navigate() say so with
@@ -691,7 +706,7 @@ function AtlasShell() {
       applyInsets(atlas); // frame in what the sheet leaves visible, at the snap it is about to have
       atlas.flyTo(selected);
     }
-  }, [selected, location.state, applyInsets]);
+  }, [selected, location.state, applyInsets, atlasInstance]);
 
   const toggleCompare = () => {
     if (comparing || armingCompare) {
@@ -748,7 +763,11 @@ function AtlasShell() {
       />
 
       <main className="stage">
-        <canvas ref={canvasRef} className={canvasClass} aria-label="World map" />
+        {MAP_ENGINE === 'gl' ? (
+          <div ref={mapHostRef} className={canvasClass} role="img" aria-label="World map" />
+        ) : (
+          <canvas ref={mapHostRef} className={canvasClass} aria-label="World map" />
+        )}
         <canvas
           ref={historyCanvasRef}
           className={`stage__canvas${showTimeline ? '' : ' is-hidden'}`}

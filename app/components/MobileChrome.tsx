@@ -10,7 +10,7 @@ import { Link, useLocation } from 'react-router';
 import { DataSection, LayerControls, ProgressSection, ThemeControls } from '~/components/Rail';
 import type { MasteryTotals } from '~/lib/geography/mastery';
 import type { OverlayId } from '~/lib/geography/overlays';
-import type { MicroMode } from '~/lib/map/renderer';
+import type { MicroMode } from '~/lib/map/style';
 import type { SheetSnap } from '~/lib/sheet';
 import { isPhoneLandscape } from '~/lib/viewport';
 

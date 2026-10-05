@@ -445,6 +445,40 @@ a {
 .stage__canvas.is-picking {
   cursor: crosshair;
 }
+
+/* The map host when the engine is MapLibre (app/lib/map/engine.ts): the library's own CSS arrives
+   with its lazy chunk and sets position: relative on .maplibregl-map — this wins by specificity. */
+.stage__canvas.maplibregl-map {
+  position: absolute;
+  font: inherit;
+}
+.stage__canvas.is-picking .maplibregl-canvas {
+  cursor: crosshair;
+}
+/* The attribution control (kept: the ODbL/Natural Earth credit travels with the map): themed,
+   and folded to its (i) button until hovered or focused so it never sits on the HUD. */
+.stage .maplibregl-ctrl-attrib.maplibregl-ctrl {
+  margin: 0 8px 8px 0;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--chart-rgb) / 82%);
+  color: var(--ink-3);
+  font: 10px/1.5 var(--font-mono);
+}
+.stage .maplibregl-ctrl-attrib a {
+  color: var(--ink-2);
+}
+.stage .maplibregl-ctrl-attrib-button {
+  background-image: none;
+  color: var(--ink-3);
+  font: 600 11px/24px var(--font-mono);
+  text-align: center;
+}
+.stage .maplibregl-ctrl-attrib-button::before {
+  content: 'i';
+}
+.stage .maplibregl-ctrl-attrib:not(:hover):not(:focus-within) .maplibregl-ctrl-attrib-inner {
+  display: none;
+}
 /* Map vs. timeline (routes/atlas.tsx's showTimeline): both canvases stay mounted — the
    hidden one keeps its Atlas/HistoryTimeline controller alive rather than paying to
    reconstruct it on every visit — display:none is enough since neither is animating while
