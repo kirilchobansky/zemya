@@ -2240,9 +2240,6 @@ a.quiz-list__row {
 @media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
   .quiz-pause-desk, .quiz-back-desk { display: none; }
 }
-.fill-quiz__pausebtn {
-  flex: 0 0 auto;
-}
 .fill-quiz__giveup {
   flex: 0 0 auto;
   color: var(--new);
@@ -2602,8 +2599,7 @@ a.quiz-list__row {
     background: var(--chart);
     pointer-events: none;
   }
-  /* Pause, Restart and Give up live in the HUD / pause screen on a phone */
-  .fill-quiz__pausebtn,
+  /* Restart and Give up live in the HUD / pause screen on a phone */
   .fill-quiz__giveup,
   .fill-quiz__restart {
     display: none;

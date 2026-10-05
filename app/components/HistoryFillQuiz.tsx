@@ -297,7 +297,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
               if (e.relatedTarget) return;
               requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
             }}
-            placeholder="Type a name — Enter to confirm"
+            placeholder="Type a name to start"
             aria-label="Type a name"
             autoComplete="off"
             autoCapitalize="off"
@@ -305,16 +305,6 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             spellCheck={false}
             enterKeyHint="done"
           />
-          <button
-            type="button"
-            className="action fill-quiz__pausebtn"
-            disabled={phase !== 'running'}
-            onPointerDown={keepFocus}
-            onMouseDown={keepFocus}
-            onClick={togglePause}
-          >
-            {paused ? 'Resume' : 'Pause'} <kbd className="only-fine">Esc</kbd>
-          </button>
           <button
             type="button"
             className="action fill-quiz__giveup"
