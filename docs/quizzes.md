@@ -567,3 +567,11 @@ test asserts no bbox spans over 180 degrees. Size: `app/lib/geography/outline.ts
 `OUTLINE_MIN_SHARE`); the pool is the run's whole scope pool (before Top-N), so Oceania is not
 all at the floor. To give the Stage the world and pool, `QuizStageProps` gained `world` and
 `pool` (other Stages ignore them). No `prepare`: nothing to load.
+
+
+## Phone runs and the keyboard (page lock)
+
+- `useQuizPageLock` (`app/lib/keyboard.ts`) runs for a geography run (while it owns the screen) and for the whole fill quiz: `html.is-quiz-locked` (overflow hidden, `overscroll-behavior: none`, body `position: fixed`, `--chart` background) plus a non-passive `touchmove` guard that cancels any drag outside `.fill-quiz` / `.panel__body` and inside the pause screens (iOS pans the visual viewport on a drag nothing scrolls). Removed on unmount. Phone layout only; desktop untouched.
+- `--kb` / `--vv-top` are read once per animation frame and written only when the rounded value changed; React (camera re-frame, canvas redraw) hears about the keyboard 120ms after it stops moving.
+- Behind the keyboard only the bar's colour shows: `.quiz-controls` is opaque with a screen-tall `::after` in the same colour (landscape: the same on the bottom HUD); `.fill-quiz` extends under the keyboard and pads its content by `--kb`. No `backdrop-filter` on the run's HUD, bar or pause screens.
+- Pause screens (`.quiz-pause`, `.fill-quiz__pause`) are `position: fixed` over exactly what the keyboard leaves, `touch-action: none`, `overscroll-behavior: contain`; buttons still tap.

@@ -19,7 +19,7 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 
 import { keepFocus } from '~/components/quiz/QuizControls';
-import { useKeyboard } from '~/lib/keyboard';
+import { useKeyboard, useQuizPageLock } from '~/lib/keyboard';
 import { useAtlasContext } from '~/lib/atlas-context';
 import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
@@ -54,6 +54,7 @@ function columnLayout(n: number): CSSProperties {
 }
 
 export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: string }) {
+  useQuizPageLock(true);
   useKeyboard(); // publishes --kb / --vv-top, which size the phone screen to what the keyboard leaves
   const { setQuiz, setImmersive } = useAtlasContext();
   const [phase, setPhase] = useState<Phase>('idle');

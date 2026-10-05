@@ -2383,11 +2383,29 @@ a.quiz-list__row {
   .fill-quiz {
     /* a phone run owns the whole screen, over the bottom sheet */
     position: fixed;
-    /* exactly the part of the screen the keyboard leaves (--vv-top / --kb: app/lib/keyboard.ts),
-       so the sticky input stays in view and the last entry scrolls clear of the keyboard */
-    inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
+    /* from the top of the visual viewport (--vv-top / --kb: app/lib/keyboard.ts) */
+    inset: var(--vv-top, 0px) 0 0 0;
     height: auto;
-    padding: 0;
+    /* the stage colour runs on under the keyboard (nothing but it is ever visible there, also
+       mid-animation); the padding keeps the content above the keyboard */
+    padding: 0 0 var(--kb, 0px);
+    /* the only thing that scrolls while the page is locked; it never chains to the page */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* paused: nothing behind the pause screen scrolls */
+  .fill-quiz:has(.fill-quiz__pause) {
+    overflow: hidden;
+  }
+  /* the pause screen covers exactly what the keyboard leaves and stays there while the content
+     scrolls or the visual viewport changes; inert to dragging, buttons still tap */
+  .fill-quiz__pause {
+    position: fixed;
+    inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
+    touch-action: none;
+    overscroll-behavior: contain;
+    backdrop-filter: none;
+    background: rgb(var(--abyss-rgb) / 94%);
   }
   .fill-quiz__panel {
     width: 100%;
@@ -3003,6 +3021,20 @@ a.quiz-list__row {
     overscroll-behavior: contain;
   }
 
+  /* --- a quiz run locks the page behind it (useQuizPageLock, app/lib/keyboard.ts): no scroll,
+         no rubber-band, a quiz-coloured background wherever the page could show --- */
+  html.is-quiz-locked,
+  html.is-quiz-locked body {
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: var(--chart);
+  }
+  html.is-quiz-locked body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+  }
+
   /* --- a quiz run takes the whole screen: no sheet, no tab bar, no overlays --- */
   .is-immersive .tabbar,
   .is-immersive .ovl {
@@ -3031,8 +3063,8 @@ a.quiz-list__row {
     padding: env(safe-area-inset-top, 0px) 4px 0 16px;
     align-items: center;
     gap: 14px;
-    background: rgb(var(--chart-rgb) / 92%);
-    backdrop-filter: blur(10px);
+    /* no backdrop-filter: a blur over a canvas that redraws is a per-frame paint cost */
+    background: rgb(var(--chart-rgb) / 96%);
     border-bottom: 1px solid var(--rule);
   }
   .quiz-hud__timer {
@@ -3082,9 +3114,22 @@ a.quiz-list__row {
     bottom: var(--kb, 0px);
     gap: 8px;
     padding: 8px 12px calc(8px + max(0px, env(safe-area-inset-bottom, 0px) - var(--kb, 0px)));
-    background: rgb(var(--chart-rgb) / 94%);
-    backdrop-filter: blur(10px);
+    /* opaque: its ::after carries the same colour down under the keyboard */
+    background: var(--chart);
     border-top: 1px solid var(--rule);
+  }
+  /* The bar's own colour continues below it, a screen tall: the keyboard covers it, but while
+     the keyboard opens, closes or the visual viewport is panned, only the bar colour is ever
+     visible beneath the input — never the map or the app. */
+  .quiz-controls::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 100vh;
+    background: var(--chart);
+    pointer-events: none;
   }
   /* idle and results: the input exists (START must focus it inside the tap) but is invisible */
   .quiz-controls[data-phase='idle'],
@@ -3100,6 +3145,10 @@ a.quiz-list__row {
     pointer-events: none;
     background: none;
     border: 0;
+  }
+  .quiz-controls[data-phase='idle']::after,
+  .quiz-controls[data-phase='done']::after {
+    display: none;
   }
   .quiz-dock__row {
     display: flex;
@@ -3199,8 +3248,12 @@ a.quiz-list__row {
     z-index: 10;
     gap: 12px;
     padding: 24px;
-    background: rgb(var(--abyss-rgb) / 88%);
-    backdrop-filter: blur(6px);
+    background: rgb(var(--abyss-rgb) / 94%);
+    /* inert to scrolling and dragging: nothing here moves, nothing chains to the page; taps
+       on the buttons are unaffected */
+    touch-action: none;
+    overscroll-behavior: contain;
+    overflow: hidden;
   }
   .quiz-pause__title {
     margin: 0;
@@ -3368,6 +3421,16 @@ a.quiz-list__row {
     gap: 10px;
     border-bottom: 0;
     border-top: 1px solid var(--rule);
+  }
+  .quiz-hud[data-phase='running']::after,
+  .quiz-hud[data-phase='paused']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 100vh;
+    background: rgb(var(--chart-rgb) / 96%);
   }
   .quiz-hud__timer {
     font-size: 17px;

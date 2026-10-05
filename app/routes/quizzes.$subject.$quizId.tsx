@@ -49,7 +49,7 @@ import {
 } from "~/lib/geography/scopes";
 import { loadWorld, peekWorld } from "~/lib/geography/world";
 import { keepFocus } from "~/components/quiz/QuizControls";
-import { useKeyboard } from "~/lib/keyboard";
+import { useKeyboard, useQuizPageLock } from "~/lib/keyboard";
 import { NO_INSETS, type Insets } from "~/lib/map/follow";
 import {
   isCoarsePointer,
@@ -338,6 +338,7 @@ function QuizRun() {
     setImmersive(runOwnsScreen);
     return () => setImmersive(false);
   }, [runOwnsScreen, setImmersive]);
+  useQuizPageLock(runOwnsScreen);
   const finished = validRun && engine.phase === "done";
   useEffect(() => {
     if (finished) setSheetSnap("full");
