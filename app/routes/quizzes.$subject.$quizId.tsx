@@ -27,6 +27,7 @@ import { allCountries } from "~/lib/geography/catalog.server";
 import { fillQuizzes } from "~/lib/history/catalog.server";
 import type { FillQuiz } from "~/lib/history/fill-quiz";
 import { HistoryFillQuiz } from "~/components/HistoryFillQuiz";
+import { NameAllQuiz } from "~/components/NameAllQuiz";
 import { quizPageSeo } from "~/lib/geography/quizSeo";
 import { pageMeta } from "~/lib/seo";
 import type { Route } from "./+types/quizzes.$subject.$quizId";
@@ -34,6 +35,8 @@ import { useQuizEngine } from "~/lib/quiz/engine";
 import { formatDuration } from "~/lib/format";
 import { subjectById, quizInSubject } from "~/lib/quiz/subjects";
 import {
+  NAME_ALL_ID,
+  NAME_ALL_QUIZ,
   selectQuizCountries,
   type QuizSelectionMode,
 } from "~/lib/geography/quizzes";
@@ -45,55 +48,25 @@ import {
   SCOPE_LABELS,
   SCOPE_VIEWS,
   sizesForPool,
+  type QuizScope,
   type QuizSize,
 } from "~/lib/geography/scopes";
 import { loadWorld, peekWorld } from "~/lib/geography/world";
 import { keepFocus } from "~/components/quiz/QuizControls";
 import { useKeyboard, useQuizPageLock } from "~/lib/keyboard";
-import { NO_INSETS, type Insets } from "~/lib/map/follow";
-import {
-  isCoarsePointer,
-  isPhoneLandscape,
-  isPhoneLayout,
-} from "~/lib/viewport";
+import { NO_INSETS } from "~/lib/map/follow";
+import { measureInsets } from "~/lib/quiz/insets";
+import { isCoarsePointer, isPhoneLayout } from "~/lib/viewport";
 import type { CountryRecord, World } from "~/lib/map/types";
 
-/** What sits on top of the canvas during a run, so a target hidden under it counts as not
- *  visible. Desktop: the docked input, at the bottom. The right-hand panel is a grid column
- *  BESIDE the stage, not over it, so a country "behind the panel" is simply off the canvas and
- *  needs no inset. Phone: the strip between the HUD (top) and the input bar (bottom, sitting on
- *  the keyboard) — measured from the DOM, so it is whatever the keyboard has made it right now. */
-function measureInsets(): Insets {
-  const canvas = document.querySelector(".stage__canvas");
-  if (!canvas) return NO_INSETS;
-  const c = canvas.getBoundingClientRect();
-  if (!isPhoneLayout()) {
-    const dock = document.querySelector(".quiz-dock");
-    if (!dock) return NO_INSETS;
-    return {
-      ...NO_INSETS,
-      bottom: Math.max(0, c.bottom - dock.getBoundingClientRect().top),
-    };
-  }
-  const hud = document.querySelector(".quiz-hud");
-  const bar = document.querySelector(".quiz-controls");
-  if (!hud || !bar) return NO_INSETS;
-  if (isPhoneLandscape()) {
-    // landscape: the HUD sits inline at the left of the input bar, both on the keyboard; the
-    // answer chip floats just above them. The map gets everything above that.
-    const feedback = document.querySelector(".quiz-controls .quiz-feedback");
-    const barTop = Math.min(
-      hud.getBoundingClientRect().top,
-      bar.getBoundingClientRect().top,
-      feedback ? feedback.getBoundingClientRect().top : Infinity,
-    );
-    return { ...NO_INSETS, bottom: Math.max(0, c.bottom - barTop) };
-  }
-  return {
-    ...NO_INSETS,
-    top: Math.max(0, hud.getBoundingClientRect().bottom - c.top),
-    bottom: Math.max(0, c.bottom - bar.getBoundingClientRect().top),
-  };
+/** /quizzes/geography/name-all/:scope/all — the free-recall quiz (components/NameAllQuiz.tsx). */
+function isNameAll(params: { subject?: string; quizId?: string; scope?: string; size?: string }): boolean {
+  return (
+    params.subject === "geography" &&
+    params.quizId === NAME_ALL_ID &&
+    params.size === "all" &&
+    isQuizScope(params.scope ?? "")
+  );
 }
 
 /** A history "fill the list" run has no :scope — its URL is /quizzes/history/:slug/:quizId, and it
@@ -152,6 +125,18 @@ export function meta({ params, loaderData, location }: Route.MetaArgs) {
         });
   }
   const subject = params.subject ? subjectById(params.subject) : undefined;
+  if (isNameAll(params)) {
+    const scope = params.scope as QuizScope;
+    const label = SCOPE_LABELS[scope];
+    const count = loaderData?.poolSize ?? 0;
+    return pageMeta({
+      title: `${label} ${NAME_ALL_QUIZ.seoName} Quiz — All ${count} Countries | Zemya`,
+      description:
+        `${label} name-all quiz: type every one of the ${count} ${scope === "world" ? "" : `${label} `}countries you can, in any order, ` +
+        `English or Bulgarian. The run is timed. No sign-up.`,
+      path: location.pathname,
+    });
+  }
   const definition =
     subject && params.quizId
       ? quizInSubject(subject, params.quizId)
@@ -182,7 +167,12 @@ export function meta({ params, loaderData, location }: Route.MetaArgs) {
 /** One file, two kinds of run: a geography run carries :scope/:size, a history "fill the
  *  list" run (routes.ts) has neither. Dispatching here keeps QuizRun's hooks unconditional. */
 export default function QuizRoute({ loaderData }: Route.ComponentProps) {
-  const params = useParams<{ scope?: string }>();
+  const params = useParams<{ subject?: string; quizId?: string; scope?: string; size?: string }>();
+  // "Name all countries" is a geography quiz that isn't a QuizDefinition (no engine): its own screen
+  if (isNameAll(params)) {
+    const scope = params.scope as QuizScope;
+    return <NameAllQuiz key={scope} scope={scope} backTo="/quizzes/geography" />;
+  }
   if (params.scope) return <QuizRun />;
   if (loaderData.fill) {
     return <HistoryFillQuiz key={loaderData.fill.id} quiz={loaderData.fill} backTo={`/quizzes/history/${loaderData.fill.slug}`} />;

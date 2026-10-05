@@ -41,6 +41,10 @@ const historyQuizRuns = HISTORY_COUNTRIES.flatMap(c => {
   return fillQuizzesFromRaw(doc.entries, c.slug).map(q => `/quizzes/history/${c.slug}/${q.id}`);
 });
 
+/** "Name all countries" (app/lib/geography/quizzes.ts's NAME_ALL_ID) — not a QuizDefinition, one
+ *  page per scope with size "all": /quizzes/geography/name-all/<scope>/all. */
+const nameAllRuns = QUIZ_SCOPES.map(scope => `/quizzes/geography/name-all/${scope}/all`);
+
 /** The quizzes that existed before scopes did — only these have old bookmarks to keep
  *  alive, so the legacy redirect pages are prerendered for these and not for newer quizzes. */
 const LEGACY_QUIZ_IDS = ['countries', 'flags'];
@@ -81,6 +85,7 @@ const indexable = [
   '/', '/questions', '/quizzes', '/history',
   ...SUBJECT_IDS.map(id => `/quizzes/${id}`),
   ...quizRuns,
+  ...nameAllRuns,
   ...HISTORY_COUNTRIES.map(c => `/quizzes/history/${c.slug}`),
   ...historyQuizRuns,
   ...slugs.map(slug => `/country/${slug}`),

@@ -16,6 +16,8 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   study mode with 9 question kinds and `disputed:` facets.
 - Seven quizzes on one shared engine (Countries, Flags, Outlines, Capitals, Currency, Language, Religion): continent scopes, a
   computed size ladder, personal bests and run history, still layouts (`docs/quizzes.md`).
+- "Name all countries": a free-recall geography quiz (World + six continents, any order, English and Bulgarian names, one
+  typo for 6+ letters, Give up shows the missed on the map and by continent); only a completed run is saved (`docs/quizzes.md`).
   One camera path for every new question (skip = answer): centres a target that isn't
   comfortably inside, zooms in until it is legible (12 px wide; micro-states go far),
   continent as home. Brass = question, red = revealed, green = correct. A capital ring never

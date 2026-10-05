@@ -19,7 +19,7 @@ import {
 import { formatDuration } from "~/lib/format";
 import { pageMeta } from "~/lib/seo";
 import { subjectById } from "~/lib/quiz/subjects";
-import type { QuizSelectionMode } from "~/lib/geography/quizzes";
+import { NAME_ALL_ID, NAME_ALL_QUIZ, type QuizSelectionMode } from "~/lib/geography/quizzes";
 import {
   poolForQuiz,
   QUIZ_SCOPES,
@@ -66,7 +66,7 @@ const summariseFill = (): FillSummary[] =>
 /** Every quiz's pool size per scope, from a country list — the size ladders are derived
  *  from these. */
 function poolCounts(countries: Parameters<typeof poolForQuiz>[0]): PoolCounts {
-  const ids = (subjectById("geography")?.quizzes ?? []).map((q) => q.id);
+  const ids = [...(subjectById("geography")?.quizzes ?? []).map((q) => q.id), NAME_ALL_ID];
   return Object.fromEntries(
     ids.map((id) => [
       id,
@@ -125,6 +125,13 @@ export function meta({ params }: Route.MetaArgs) {
       : `Timed ${subject.name.toLowerCase()} quizzes: ${subject.quizzes.map((q) => q.title).join(", ")}.`,
     path: `/quizzes/${subject.id}`,
   });
+}
+
+/** dd.mm.yyyy, whatever the browser's locale. */
+function formatRunDate(at: number): string {
+  const d = new Date(at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
 const bestKey = (quizId: string, scope: QuizScope, size: QuizSize) =>
@@ -284,7 +291,9 @@ function QuizList({
           </div>
         ) : (
           <div className="quiz-list">
-            {subject.quizzes.map((quiz) => {
+            {/* "Name all countries" is geography's one quiz that is not a QuizDefinition */}
+            {(subject.id === "geography" ? [...subject.quizzes, NAME_ALL_QUIZ] : subject.quizzes).map((quiz) => {
+              const nameAll = quiz.id === NAME_ALL_ID;
               const open = openId === quiz.id;
               const scope = scopeOf(quiz.id);
               const selectionMode = selectionModeOf(quiz.id);
@@ -330,6 +339,7 @@ function QuizList({
                         ))}
                       </div>
 
+                      {!nameAll && (
                       <div
                         className="chips quiz-order"
                         role="group"
@@ -352,6 +362,7 @@ function QuizList({
                           {selectionMode === "random" ? "Random" : "Population"}
                         </button>
                       </div>
+                      )}
 
                       <div
                         className="quiz-sizes"
@@ -362,21 +373,23 @@ function QuizList({
                           } as CSSProperties
                         }
                       >
-                        {sizesForPool(poolSize).map((size) => {
+                        {(nameAll ? (["all"] as QuizSize[]) : sizesForPool(poolSize)).map((size) => {
                           const best = bestTimes[bestKey(quiz.id, scope, size)];
                           return (
                             <div key={size} className="quiz-size-card">
                               <Link
                                 className="quiz-size-card__link"
-                                to={`/quizzes/${subject.id}/${quiz.id}/${scope}/${size}${selectionMode === "population" ? "?order=population" : ""}`}
+                                to={`/quizzes/${subject.id}/${quiz.id}/${scope}/${size}${!nameAll && selectionMode === "population" ? "?order=population" : ""}`}
                               >
                                 <span className="quiz-size-card__n">
                                   {size === "all" ? "All" : size}
                                 </span>
                                 <span className="quiz-size-card__label">
-                                  {size === "all"
-                                    ? `${poolSize} rounds`
-                                    : "rounds"}
+                                  {nameAll
+                                    ? `${poolSize} countries`
+                                    : size === "all"
+                                      ? `${poolSize} rounds`
+                                      : "rounds"}
                                 </span>
                               </Link>
                               {best != null && (
@@ -401,8 +414,10 @@ function QuizList({
                             <div className="quiz-history__head">
                               <h4>
                                 {SCOPE_LABELS[history.scope]} ·{" "}
-                                {history.size === "all" ? "All" : history.size}{" "}
-                                rounds — history
+                                {history.quizId === NAME_ALL_ID
+                                  ? "name all"
+                                  : `${history.size === "all" ? "All" : history.size} rounds`}{" "}
+                                — history
                               </h4>
                               <button
                                 type="button"
@@ -425,14 +440,14 @@ function QuizList({
                                     className="quiz-history__row"
                                   >
                                     <span className="quiz-history__date">
-                                      {new Date(run.at).toLocaleDateString()}
+                                      {formatRunDate(run.at)}
                                     </span>
                                     <span className="quiz-history__time numeric">
                                       {formatDuration(run.timeMs)}
                                     </span>
                                     <span className="quiz-history__tally">
                                       {run.firstTryCount}/{run.totalCount}{" "}
-                                      first-try
+                                      {history.quizId === NAME_ALL_ID ? "named" : "first-try"}
                                     </span>
                                     <button
                                       type="button"

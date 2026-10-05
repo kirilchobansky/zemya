@@ -54,6 +54,13 @@ export const SCOPE_VIEWS: Partial<Record<QuizScope, [number, number, number, num
   oceania: [110, -48, 195, 5]
 };
 
+/** The continent scope a country belongs to (never 'world'): the "Name all countries" results
+ *  group a World run's missed countries by it. Same membership tests as the scope pools. */
+export function continentOf(country: CountryGeo): Exclude<QuizScope, 'world'> {
+  const scopes = QUIZ_SCOPES.filter((s): s is Exclude<QuizScope, 'world'> => s !== 'world');
+  return scopes.find(s => SCOPE_MEMBERS[s](country)) ?? 'asia';
+}
+
 export function isQuizScope(value: string): value is QuizScope {
   return (QUIZ_SCOPES as readonly string[]).includes(value);
 }

@@ -422,6 +422,48 @@ override, which is only cleared on unmounting the route) and the panel shows the
 the personal-best comparison, a first-try-vs-revealed tally, and every revealed country
 as a dossier link — "the ones worth another look", the actual point of the screen.
 
+## Geography: "Name all countries" (`name-all`)
+
+A free-recall quiz: no prompt, no target — the player types country names in any order until all
+are named or they give up. Seven runs, one per scope (World + the six continents), at
+`/quizzes/geography/name-all/:scope/all` (the existing run route, dispatched in
+`routes/quizzes.$subject.$quizId.tsx` by `quizId === 'name-all'`; `size` is always `all`, which keeps
+the saved-run key shape and needs no new route). The count is "x / N" over the scope's ordinary pool
+(`poolForQuiz`, the same 197 / continent sets every geography quiz uses — the catalogue's own
+sovereignty line, `docs/decisions.md`).
+
+- **Not a `QuizDefinition`.** Like History's fill quiz it has no queue, so it skips the engine
+  (`NAME_ALL_QUIZ` in `quizzes.ts` is a plain record: id, title, SEO strings). It is listed after the
+  seven quizzes in Geography's list (scope chips, one "N countries" card, best time and history; no
+  order toggle, no size ladder) and prerendered per scope (`react-router.config.ts`).
+- **Matching** (`matchCountryName`, `names.ts`): forms are the name, official name, every alias and the
+  Bulgarian names (`names-bg.ts` — the catalogue has none, so they are a plain table there; it can move
+  to `content/` as YAML later). Normalised with `normaliseName`, spaces dropped. Latin letters typed for
+  a Cyrillic form go through the history search's Latin-to-Cyrillic regex (`latinToCyrillicRegExp`), as
+  in the fill quiz. A form two countries share is dropped, unless it is exactly one country's own name;
+  text that could be two countries names none — rejected, never guessed. One typo (a single insert /
+  delete / substitute) is forgiven for names of 6+ letters, only when exactly one country is that
+  close, never instantly — the one place the "no fuzzy matching" rule is relaxed, because there is no
+  prompt to anchor an answer. An exact match is accepted at once unless a longer still-unnamed name
+  starts with it ("Niger" while Nigeria is open — Enter takes it). Naming one already named shows
+  "Already named: X", not an error.
+- **Screen** (`components/NameAllQuiz.tsx`): the geography run's chrome. The map stays live, framed on
+  the scope (`SCOPE_VIEWS`, `setRegionView`), correct countries in the "mastered" colour via the
+  quiz override's `answered` map; names stay hidden (quiz mode). Desktop: START (or Space/Enter) docks
+  over the map, the input is always focused (a printable key aimed elsewhere refocuses it), the panel
+  holds the timer, `x / N`, Pause / Restart / Give up / Abandon and the named list (flag + name, in
+  the order named). Phone: immersive, the shared HUD and input bar ride the keyboard, Give up is a
+  text button in the bar, results open the sheet at `full` — no half sheet. Esc pauses, Ctrl+Backspace
+  abandons, "Restart" (active run only) is a fresh run with nothing saved. `measureInsets` moved to
+  `app/lib/quiz/insets.ts` for it.
+- **Results.** On finish: time, "N / N named" and the personal best. On Give up: the score, the missed
+  countries in red on the map and as a list (grouped by continent for World, `continentOf`) and the
+  named list. Only a **completed** run is saved (`quizId: 'name-all'`, scope, size `all`,
+  `firstTryCount = totalCount = N`): `bestQuizTime` is "fastest time", so a quick give-up must never
+  count as a best. Runs show as dd.mm.yyyy in the list's history (all quizzes now).
+- **Mastery.** No FSRS cards are graded: a free-recall list has no per-country prompt to grade. Saved
+  runs are the same `quizRuns` rows as every quiz, so reset, export and import already cover them.
+
 ## History: "fill the list"
 
 The first History quiz type, and the first that is not a `QuizDefinition` — there is no queue,

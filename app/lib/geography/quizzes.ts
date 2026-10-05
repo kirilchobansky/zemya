@@ -152,6 +152,23 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
   },
 ];
 
+/**
+ * "Name all countries" — a free-recall list quiz, not a QuizDefinition: there is no prompt, no
+ * target and no queue, so it has no Stage and is not in QUIZ_DEFINITIONS (the engine, the size
+ * ladder and the mastery cards are for quizzes that ask one country at a time). It is listed
+ * after them, and runs at /quizzes/geography/name-all/:scope/all (components/NameAllQuiz.tsx);
+ * its runs are saved under this id with size "all". See docs/quizzes.md.
+ */
+export const NAME_ALL_ID = "name-all";
+export const NAME_ALL_QUIZ = {
+  id: NAME_ALL_ID,
+  title: "Name all Countries",
+  description:
+    "No prompt: type every country you can, in any order, until all are named or you give up. English and Bulgarian names both work.",
+  seoName: "Name All",
+  seoTask: "Type every country you can name, in any order.",
+} as const;
+
 export function quizDefinition(id: string): QuizDefinition | undefined {
   return QUIZ_DEFINITIONS.find((q) => q.id === id);
 }
