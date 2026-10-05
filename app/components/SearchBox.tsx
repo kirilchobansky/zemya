@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Flag } from '~/components/Flag';
 import { normalise } from '~/lib/format';
+import { normaliseName } from '~/lib/geography/names';
+import { BULGARIAN_NAMES } from '~/lib/geography/names-bg';
 import { isCoarsePointer } from '~/lib/viewport';
 import type { Feature, World } from '~/lib/map/types';
 
@@ -26,17 +28,24 @@ export function SearchBox({ world, onPick }: SearchBoxProps) {
       feature,
       name: normalise(feature.country.name),
       capital: normalise(feature.country.capital ?? ''),
-      iso3: feature.country.iso3.toLowerCase()
+      iso3: feature.country.iso3.toLowerCase(),
+      /** other spellings the country answers to (English aliases, Bulgarian names): "Czech Republic",
+       *  "Burma", "Чехия". Matched from the start only, so "republic" does not find half the list. */
+      alts: [...new Set([...feature.country.aliases, ...(BULGARIAN_NAMES[feature.country.iso3] ?? [])].map(normaliseName).filter(Boolean))]
     }));
   }, [world]);
 
   const results = useMemo(() => {
     const q = normalise(query);
-    if (!q) return [];
+    const qAlt = normaliseName(query);
+    if (!q && !qAlt) return [];
+    const altHit = (e: (typeof index)[number]) => qAlt.length >= 2 && e.alts.some(a => a.startsWith(qAlt));
+    const nameHit = (e: (typeof index)[number]) => q.length > 0 && e.name.includes(q);
     return index
-      .filter(e => e.name.includes(q) || e.capital.includes(q) || e.iso3 === q)
+      .filter(e => nameHit(e) || (q.length > 0 && (e.capital.includes(q) || e.iso3 === q)) || altHit(e))
       .sort((a, b) => {
-        const byPosition = a.name.indexOf(q) - b.name.indexOf(q);
+        // a hit on the displayed name leads, then capital/code, then another spelling
+        const byPosition = (nameHit(a) ? a.name.indexOf(q) : 1e3) - (nameHit(b) ? b.name.indexOf(q) : 1e3);
         if (byPosition !== 0) return byPosition;
         return b.feature.country.population - a.feature.country.population;
       })
