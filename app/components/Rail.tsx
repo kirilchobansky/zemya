@@ -1,6 +1,7 @@
 import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useLocation, useMatch } from 'react-router';
 
+import { useBack } from '~/lib/back';
 import { useProgress } from '~/lib/core/ProgressProvider';
 import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
 import type { MasteryTotals } from '~/lib/geography/mastery';
@@ -37,6 +38,7 @@ export function Rail({
   const onCountry = useMatch('/country/:slug') !== null;
   const Wordmark = onCountry ? 'div' : 'h1';
   const { pathname } = useLocation();
+  const { canGoBack, goBack } = useBack();
   return (
     <aside className={`rail${collapsed ? ' rail--collapsed' : ''}`}>
       <div
@@ -48,14 +50,20 @@ export function Rail({
         onPointerDown={onHandlePointerDown}
         onDoubleClick={onHandleDoubleClick}
       />
+      {/* Back: where the collapse button used to be. In the collapsed rail (zero width) it stays as a
+          small icon tab on the stage's left edge, so it is reachable in both states. */}
       <button
         type="button"
-        className="sidebar-collapse"
-        title={collapsed ? 'Expand sidebar ([)' : 'Collapse sidebar ([)'}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        onClick={onToggleCollapsed}
+        className="rail__back"
+        title="Back (Alt+←)"
+        aria-label="Back"
+        disabled={!canGoBack}
+        onClick={goBack}
       >
-        {collapsed ? '›' : '‹'}
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
+        <span className="rail__back-label">Back</span>
       </button>
       {collapsed && (
         <button
@@ -126,6 +134,17 @@ export function Rail({
           <a href="https://github.com/kirilchobansky/zemya#data-sources">All sources</a>
         </p>
       </div>
+
+      {/* bottom of the sidebar; collapsed, the edge tab above takes over at the same height */}
+      <button
+        type="button"
+        className="sidebar-collapse"
+        title={collapsed ? 'Expand sidebar ([)' : 'Collapse sidebar ([)'}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onClick={onToggleCollapsed}
+      >
+        {collapsed ? '›' : '‹'}
+      </button>
     </aside>
   );
 }

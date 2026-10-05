@@ -155,7 +155,11 @@ a {
   border-color: var(--brass);
 }
 .rail .sidebar-collapse {
-  right: 8px;
+  /* bottom of the sidebar, after the footer, not floating over the brand */
+  position: static;
+  align-self: flex-end;
+  flex: 0 0 auto;
+  margin: 8px 8px 10px 0;
 }
 .panel .sidebar-collapse {
   left: 8px;
@@ -189,6 +193,11 @@ a {
   border-color: var(--brass);
 }
 .rail .sidebar-edge-tab {
+  /* collapsed: at the bottom of the edge, where the collapse button was */
+  top: auto;
+  bottom: 14px;
+  transform: none;
+  height: 48px;
   left: 0;
   border-radius: 0 8px 8px 0;
   border-left: none;
@@ -206,6 +215,50 @@ a {
    than duplicating the rule inside a phone media query to undo it. */
 .panel:has(> .sidebar-collapse) .panel__head {
   padding-left: 46px;
+}
+
+/* Back, top of the sidebar: a labelled button; collapsed, an icon tab on the stage's edge. */
+.rail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  margin: 10px 0 0 14px;
+  padding: 5px 11px 5px 8px;
+  border-radius: 8px;
+  background: var(--chart-2);
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.rail__back:hover:not(:disabled),
+.rail__back:focus-visible {
+  color: var(--ink);
+  background: var(--chart-3);
+  border-color: var(--brass-dim);
+}
+.rail__back:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.rail--collapsed > .rail__back {
+  position: absolute;
+  z-index: 7;
+  top: 10px;
+  left: 0;
+  margin: 0;
+  width: 30px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+}
+.rail--collapsed > .rail__back .rail__back-label {
+  display: none;
 }
 
 .rail--collapsed > .brand,
