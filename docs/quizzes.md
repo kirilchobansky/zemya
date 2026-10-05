@@ -450,6 +450,7 @@ sovereignty line, `docs/decisions.md`).
 - **Timer, desktop**: the run's timer and count are sticky at the top of the panel body (`.quiz-run__clock`),
   so a growing flag list scrolls under them; with the panel collapsed the same timer shows on the stage's
   top-left (`StageClock`, geography runs and Name all). The History fill quiz's head is sticky likewise.
+- **Rejected spellings** (`REJECTED_SPELLINGS` in `names-bg.ts`, owner request): "Beliz", "Lao", "Tunis", "Surinam" are never accepted — not as the Latin typing of Белиз / Лаос / Тунис / Суринам, and not through the one-typo allowance (Surinam is one edit from Suriname). The accepted names are Belize, Laos, Tunisia, Suriname; the Cyrillic names still work. Removing an alias is not enough for a spelling like these: the matcher derives Latin-typed Cyrillic matches and typos on its own.
 - **Screen** (`components/NameAllQuiz.tsx`): the geography run's chrome. The map stays live, framed on
   the scope (`SCOPE_VIEWS`, `setRegionView`), correct countries in the "mastered" colour via the
   quiz override's `answered` map; names stay hidden (quiz mode). Desktop: START (or Space/Enter) docks

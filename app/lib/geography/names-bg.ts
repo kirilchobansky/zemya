@@ -207,3 +207,17 @@ export const BULGARIAN_NAMES: Readonly<Record<string, readonly string[]>> = {
   ZMB: ['Замбия'],
   ZWE: ['Зимбабве']
 };
+
+/**
+ * Latin spellings that must NOT be accepted for a country, owner's call: the transliteration of
+ * the Bulgarian name ("Beliz" for Белиз) or a clipped English one ("Tunis", "Lao") is not the
+ * name. The matcher otherwise accepts typed Latin letters for a Cyrillic form and allows one
+ * typo, which would let each of these through. The accepted names are Belize, Tunisia, Suriname
+ * and Laos. Compared after normalisation, spaces removed.
+ */
+export const REJECTED_SPELLINGS: Readonly<Record<string, readonly string[]>> = {
+  BLZ: ['beliz'],
+  LAO: ['lao'],
+  SUR: ['surinam'],
+  TUN: ['tunis']
+};

@@ -11,7 +11,7 @@
  */
 import type { CountryRecord } from '~/lib/map/types';
 import { latinToCyrillicRegExp } from '~/lib/history/search';
-import { BULGARIAN_NAMES } from './names-bg';
+import { BULGARIAN_NAMES, REJECTED_SPELLINGS } from './names-bg';
 import { religionChain } from './questions';
 
 /** lowercase · strip diacritics (NFD + remove combining marks) · strip apostrophes
@@ -98,6 +98,8 @@ export interface PreparedCountryName {
   iso3: string;
   /** Every spelling the country is named by, squashed, minus the ambiguous ones. */
   forms: readonly string[];
+  /** Squashed spellings that name nobody here, however close (REJECTED_SPELLINGS). */
+  rejected: readonly string[];
 }
 
 /** Compiles each country's typeable forms once: its name, official name and every alias
@@ -116,6 +118,7 @@ export function prepareCountryNames(countries: readonly CountryRecord[]): Prepar
   });
   return countries.map((c, i) => ({
     iso3: c.iso3,
+    rejected: (REJECTED_SPELLINGS[c.iso3] ?? []).map(squash),
     forms: [...formsOf[i]].filter(form => {
       const claimed = ownName.get(form);
       const holders = claimed?.size === 1 ? claimed : owners.get(form)!;
@@ -165,8 +168,9 @@ export function matchCountryName(
   const whole = latin ? latinToCyrillicRegExp(t, true) : null;
   const prefix = latin ? latinToCyrillicRegExp(t, false) : null;
 
+  const allowed = (p: PreparedCountryName) => !p.rejected.includes(t);
   let hits = prepared.flatMap((p, i) => (p.forms.includes(t) ? [i] : []));
-  if (hits.length === 0 && whole) hits = prepared.flatMap((p, i) => (p.forms.some(f => whole.test(f)) ? [i] : []));
+  if (hits.length === 0 && whole) hits = prepared.flatMap((p, i) => (allowed(p) && p.forms.some(f => whole.test(f)) ? [i] : []));
   if (hits.length > 1) return null; // ambiguous: rejected, never guessed
   if (hits.length === 1) {
     const index = hits[0];
@@ -178,7 +182,7 @@ export function matchCountryName(
   }
 
   const near = prepared.flatMap((p, i) =>
-    p.forms.some(f => f.replace(/\d/g, '').length >= MIN_TYPO_LETTERS && oneEditApart(t, f)) ? [i] : []
+    allowed(p) && p.forms.some(f => f.replace(/\d/g, '').length >= MIN_TYPO_LETTERS && oneEditApart(t, f)) ? [i] : []
   );
   if (near.length !== 1) return null;
   return { index: near[0], instant: false, typo: true, already: named.has(prepared[near[0]].iso3) };

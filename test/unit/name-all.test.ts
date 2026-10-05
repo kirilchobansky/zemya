@@ -63,6 +63,15 @@ describe('matchCountryName', () => {
     }
   });
 
+  it('accepts Belize, Laos, Tunisia and Suriname, and not Beliz, Lao, Tunis or Surinam (transliteration or typo)', () => {
+    for (const [good, bad, cyr] of [['Belize', 'Beliz', 'Белиз'], ['Laos', 'Lao', 'Лаос'], ['Tunisia', 'Tunis', 'Тунис'], ['Suriname', 'Surinam', 'Суринам']]) {
+      expect(nameOf(matchCountryName(good, prepared, none)), good).toBe(good);
+      expect(nameOf(matchCountryName(cyr, prepared, none)), cyr).toBe(good);
+      expect(matchCountryName(bad, prepared, none), bad).toBeNull();
+      expect(matchCountryName(bad.toUpperCase(), prepared, none), bad.toUpperCase()).toBeNull();
+    }
+  });
+
   it('allows one typo for names of 6+ letters, never instantly', () => {
     const m = matchCountryName('germani', prepared, none);
     expect(nameOf(m)).toBe('Germany');
