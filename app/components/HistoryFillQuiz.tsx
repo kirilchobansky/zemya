@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import { keepFocus } from '~/components/quiz/QuizControls';
 import { useKeyboard, useQuizPageLock } from '~/lib/keyboard';
@@ -57,6 +57,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   useQuizPageLock(true);
   useKeyboard(); // publishes --kb / --vv-top, which size the phone screen to what the keyboard leaves
   const { setQuiz, setImmersive } = useAtlasContext();
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>('idle');
   /* The quiz's toggle, as currently chosen. The finished run keeps the setting it was played
      with (`runToggle`) while the result screen lets the player pick the next one. */
@@ -237,8 +238,33 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     </div>
   );
 
+  const resultHook = (
+    <div className="hook">
+      <div className="hook__label">
+        {phase === 'done' ? 'Result' : 'Gave up'}
+        {quiz.toggle && runToggle && <> · {quiz.toggle.label.toLowerCase()}</>}
+      </div>
+      <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
+      <p style={{ marginBottom: 0 }}>
+        <b>{filled.size} / {total}</b> filled
+        {phase === 'gaveup' && <> — {missed} shown in red</>}.{' '}
+        {phase === 'done' && outcome && (
+          outcome.beatBest
+            ? outcome.previousBest !== null
+              ? <>New personal best — beat <b>{formatDuration(outcome.previousBest)}</b>.</>
+              : <>First run of this list — now your personal best.</>
+            : <>Personal best stays <b>{formatDuration(outcome.previousBest ?? outcome.timeMs)}</b>.</>
+        )}
+        {phase === 'gaveup' && <>A given-up run is not saved.</>}
+      </p>
+    </div>
+  );
+
+  /* Phone: leave at any time, nothing saved (the run is only ever saved by finishing it). */
+  const leave = () => navigate(backTo, { state: { sheet: 'full' } });
+
   const screen = (
-    <div className="fill-quiz" role="dialog" aria-label={quiz.title}>
+    <div className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
       <div className="fill-quiz__panel">
         <header className="fill-quiz__head">
           <h2 className="fill-quiz__title">{quiz.title}</h2>
@@ -247,6 +273,14 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             <span className="quiz-run__count numeric">{filled.size} / {total}</span>
           </div>
         </header>
+
+        {/* phone: the result card the desktop sidebar would show, at the top of the scrolling area */}
+        {finished && (
+          <div className="fill-quiz__summary">
+            {resultHook}
+            {toggleBox(false)}
+          </div>
+        )}
 
         <div className={`fill-quiz__bar${active ? '' : ' fill-quiz__bar--off'}`}>
           <input
@@ -363,10 +397,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
         )}
 
         {finished && (
-          <div className="fill-quiz__result fill-quiz__result--phone">
-            {toggleBox(false)}
-            {buttons}
-          </div>
+          <div className="fill-quiz__result fill-quiz__result--phone">{buttons}</div>
         )}
       </div>
     </div>
@@ -396,25 +427,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
         )}
         {finished ? (
           <>
-            <div className="hook">
-              <div className="hook__label">
-                {phase === 'done' ? 'Result' : 'Gave up'}
-                {quiz.toggle && runToggle && <> · {quiz.toggle.label.toLowerCase()}</>}
-              </div>
-              <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
-              <p style={{ marginBottom: 0 }}>
-                <b>{filled.size} / {total}</b> filled
-                {phase === 'gaveup' && <> — {missed} shown in red</>}.{' '}
-                {phase === 'done' && outcome && (
-                  outcome.beatBest
-                    ? outcome.previousBest !== null
-                      ? <>New personal best — beat <b>{formatDuration(outcome.previousBest)}</b>.</>
-                      : <>First run of this list — now your personal best.</>
-                    : <>Personal best stays <b>{formatDuration(outcome.previousBest ?? outcome.timeMs)}</b>.</>
-                )}
-                {phase === 'gaveup' && <>A given-up run is not saved.</>}
-              </p>
-            </div>
+            {resultHook}
             <div className="fill-quiz__side-toggle">{toggleBox(false)}</div>
             {buttons}
           </>
@@ -428,6 +441,59 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
         )}
       </div>
       {mounted && host && createPortal(screen, host)}
+      {/* phone layout only (`display: none` above the breakpoint): the geography run's HUD and
+          pause screen, reused. Portalled to <body> like that run's. */}
+      {mounted && createPortal(
+        <>
+          <div className="quiz-hud" data-phase={`fill-${phase}`}>
+            <button type="button" className="quiz-hud__back" onClick={leave}>‹ Quizzes</button>
+            {phase === 'idle' && <span className="quiz-hud__count quiz-hud__count--end numeric">{total} entries</span>}
+            {phase === 'running' && (
+              <>
+                <span className="quiz-hud__timer numeric">{formatDuration(elapsedMs)}</span>
+                <span className="quiz-hud__count numeric">{filled.size} / {total}</span>
+                <button
+                  type="button"
+                  className="quiz-hud__pause"
+                  aria-label={paused ? 'Resume' : 'Pause'}
+                  onPointerDown={keepFocus}
+                  onMouseDown={keepFocus}
+                  onClick={togglePause}
+                >
+                  <PauseIcon />
+                </button>
+              </>
+            )}
+          </div>
+          {paused && (
+            <div className="quiz-pause" role="dialog" aria-label="Paused">
+              <p className="quiz-pause__title">Paused</p>
+              <p className="quiz-pause__sub">The timer is stopped.</p>
+              <button type="button" className="quiz-pause__btn quiz-pause__btn--primary" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={togglePause}>
+                Resume
+              </button>
+              <button type="button" className="quiz-pause__btn" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={restart}>
+                Restart
+              </button>
+              <button type="button" className="quiz-pause__btn" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={giveUp}>
+                Give up
+              </button>
+              <button type="button" className="quiz-pause__btn" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={leave}>
+                Abandon run
+              </button>
+            </div>
+          )}
+        </>,
+        document.body,
+      )}
     </>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M8.5 6v12M15.5 6v12" />
+    </svg>
   );
 }

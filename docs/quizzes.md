@@ -575,3 +575,12 @@ all at the floor. To give the Stage the world and pool, `QuizStageProps` gained 
 - `--kb` / `--vv-top` are read once per animation frame and written only when the rounded value changed; React (camera re-frame, canvas redraw) hears about the keyboard 120ms after it stops moving.
 - Behind the keyboard only the bar's colour shows: `.quiz-controls` is opaque with a screen-tall `::after` in the same colour (landscape: the same on the bottom HUD); `.fill-quiz` extends under the keyboard and pads its content by `--kb`. No `backdrop-filter` on the run's HUD, bar or pause screens.
 - Pause screens (`.quiz-pause`, `.fill-quiz__pause`) are `position: fixed` over exactly what the keyboard leaves, `touch-action: none`, `overscroll-behavior: contain`; buttons still tap.
+
+## History fill quiz on a phone
+
+Same chrome as the geography run (`HistoryFillQuiz.tsx`, phone layout only; desktop markup and behaviour unchanged):
+
+- **HUD** (`.quiz-hud`, portalled to `<body>`, `data-phase="fill-<phase>"` so the landscape bottom-HUD rules don't apply): idle `‹ Quizzes` + entry count; running `‹ Quizzes`, timer, `n / total`, Pause. **Decision:** Restart and Give up don't fit a 360px HUD, so they live on the pause screen (`.quiz-pause`) beside Resume and Abandon run. Finished / given up: only `‹ Quizzes`.
+- **Leaving:** `‹ Quizzes` and Abandon run navigate to the quiz list (`sheet: 'full'`) at once and save nothing; only finishing a run saves.
+- **Input:** the one `.fill-quiz__bar` is fixed to the bottom, riding on the keyboard, with the page-lock filler under it; its Pause / Restart / Give up buttons are `display: none` on a phone. The "add the number" hint floats just above the bar. The grid scrolls between the HUD and the bar (`.fill-quiz` starts below `--hud-h`, the panel pads past the bar, `--fill-bar-h`).
+- **Idle:** the toggles stay at the top of the scrolling area. **Finished:** the result card (`.fill-quiz__summary`: time, count, personal-best message, "A given-up run is not saved.", the toggle for the next run) is at the top of the area, missed cells stay red, and "Try again" / "Back to quizzes" sit in a fixed bottom bar (safe-area aware).

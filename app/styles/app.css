@@ -2349,7 +2349,8 @@ a.quiz-list__row {
   flex-direction: column;
   gap: 12px;
 }
-.fill-quiz__result--phone {
+.fill-quiz__result--phone,
+.fill-quiz__summary {
   display: none;
 }
 .fill-quiz__side-toggle {
@@ -2393,19 +2394,18 @@ a.quiz-list__row {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
-  /* paused: nothing behind the pause screen scrolls */
-  .fill-quiz:has(.fill-quiz__pause) {
+  /* the scroll area is what is left between the HUD (top) and the keyboard; the input bar
+     (fixed, riding on the keyboard) is over its bottom edge, the panel pads past it */
+  .fill-quiz {
+    top: calc(var(--vv-top, 0px) + var(--hud-h));
+  }
+  /* paused: nothing behind the pause screen scrolls (the pause screen is the .quiz-pause portal) */
+  .fill-quiz.is-paused {
     overflow: hidden;
   }
-  /* the pause screen covers exactly what the keyboard leaves and stays there while the content
-     scrolls or the visual viewport changes; inert to dragging, buttons still tap */
-  .fill-quiz__pause {
-    position: fixed;
-    inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
-    touch-action: none;
-    overscroll-behavior: contain;
-    backdrop-filter: none;
-    background: rgb(var(--abyss-rgb) / 94%);
+  .fill-quiz__pause,
+  .fill-quiz__head .fill-quiz__stats {
+    display: none;
   }
   .fill-quiz__panel {
     width: 100%;
@@ -2413,10 +2413,57 @@ a.quiz-list__row {
     margin: 0;
     border-radius: 0;
     border: 0;
-    padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 14px calc(var(--fill-bar-h, 66px) + 14px + env(safe-area-inset-bottom, 0px));
   }
+  /* finished or given up: the result card on top of the grid */
+  .fill-quiz__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+    background: var(--chart-2);
+  }
+  .fill-quiz__summary .hook {
+    margin: 0;
+  }
+  /* ... and its action bar, always on screen however far the grid is scrolled */
   .fill-quiz__result--phone {
     display: flex;
+    flex-direction: row;
+    position: fixed;
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--chart);
+    border-top: 1px solid var(--rule);
+  }
+  .fill-quiz__result--phone .actions {
+    flex: 1;
+    margin: 0;
+  }
+  .fill-quiz__result--phone .action {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+  }
+  .fill-quiz__hint {
+    position: fixed;
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--kb, 0px) + var(--fill-bar-h, 66px));
+    margin: 0;
+    padding: 4px 16px;
+    text-align: center;
+    background: var(--chart);
+    pointer-events: none;
+  }
+  .fill-quiz__hint:empty {
+    display: none;
   }
   .fill-quiz__grid {
     /* two columns while a cell is at least 160px wide, one below that */
@@ -2483,19 +2530,36 @@ a.quiz-list__row {
     align-self: center;
     padding: 8px 12px;
   }
+  /* the input bar: the geography run's, riding on the keyboard (its filler runs down under it) */
   .fill-quiz__bar {
-    /* Pause, Give up and Restart share the bar: let it wrap, input on its own full row */
-    flex-wrap: wrap;
-    /* the input follows the scroll, so you see what you type while aiming at the grid */
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    margin: 0 -14px;
-    padding: 8px 14px;
+    position: fixed;
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: var(--kb, 0px);
+    margin: 0;
+    padding: 8px 12px calc(8px + max(0px, env(safe-area-inset-bottom, 0px) - var(--kb, 0px)));
     background: var(--chart);
-    border-bottom: 1px solid var(--rule);
+    border-top: 1px solid var(--rule);
+  }
+  .fill-quiz__bar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 100vh;
+    background: var(--chart);
+    pointer-events: none;
+  }
+  /* Pause, Restart and Give up live in the HUD / pause screen on a phone */
+  .fill-quiz__pausebtn,
+  .fill-quiz__giveup,
+  .fill-quiz__restart {
+    display: none;
   }
   .fill-quiz__input {
+    height: 48px;
     flex: 1 1 100%;
   }
   .fill-quiz__grid--columns {
@@ -3078,6 +3142,10 @@ a.quiz-list__row {
     color: var(--ink-3);
   }
   .quiz-hud__back {
+    padding-left: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     min-height: 44px;
@@ -3094,6 +3162,7 @@ a.quiz-list__row {
     border-radius: 50%;
     color: var(--ink-2);
   }
+  .quiz-hud__count--end,
   .quiz-hud[data-phase='idle'] .quiz-hud__count {
     margin-left: auto;
     padding-right: 12px;
