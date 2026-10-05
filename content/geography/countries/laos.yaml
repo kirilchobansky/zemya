@@ -17,3 +17,6 @@ flag: Red, blue and red bands with a white disc in the centre.
 outline: A narrow landlocked strip curling along the Mekong.
 hook: The most heavily bombed country per person in history — and Southeast Asia's only landlocked one.
 population: 7769819
+aliases:
+  note: The accepted name is "Laos"; the bare upstream alias "Lao" is dropped (owner request) rather than kept beside it.
+  remove: [Lao]

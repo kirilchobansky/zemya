@@ -234,3 +234,25 @@ describe('matchesCapital', () => {
     expect(ownersOf('Luxembourg')).toEqual(['LUX']);
   });
 });
+
+describe('country names and aliases the owner asked for', () => {
+  const by = (slug: string) => allCountries().find(c => c.slug === slug)!;
+  it('shows East Timor, and accepts Timor-Leste, Timor Leste and Timor', () => {
+    const c = by('timor-leste');
+    expect(c.name).toBe('East Timor');
+    for (const typed of ['East Timor', 'Timor-Leste', 'Timor Leste', 'timor']) expect(matchesCountry(typed, c), typed).toBe(true);
+  });
+  it('keeps Czechia as the name and Czech Republic as an alias', () => {
+    const c = by('czechia');
+    expect(c.name).toBe('Czechia');
+    expect(matchesCountry('Czech Republic', c)).toBe(true);
+  });
+  it('the accepted names are Belize, Laos, Tunisia and Suriname — Beliz, Lao, Tunis and Surinam are not accepted beside them', () => {
+    for (const [slug, name, old] of [['belize', 'Belize', 'Beliz'], ['laos', 'Laos', 'Lao'], ['tunisia', 'Tunisia', 'Tunis'], ['suriname', 'Suriname', 'Surinam']]) {
+      const c = by(slug);
+      expect(c.name).toBe(name);
+      expect(c.aliases.map(normaliseName), `${slug} aliases`).not.toContain(normaliseName(old));
+      expect(matchesCountry(name, c), name).toBe(true);
+    }
+  });
+});

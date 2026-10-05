@@ -17,3 +17,6 @@ flag: Red field with black and yellow triangles and a white star.
 outline: The eastern half of an island, plus a small exclave.
 hook: One of the youngest countries on Earth, independent only since 2002.
 population: 1400638
+override:
+  name: East Timor
+  note: Shown as "East Timor", the form English speakers use; "Timor-Leste", "Timor Leste" and "Timor" stay accepted as aliases (the slug stays timor-leste, a public URL).
