@@ -454,3 +454,21 @@ describe('matchFill: shared aliases', () => {
     expect(matchFill('Sidorov', list, new Set(['b']))?.index).toBe(2);
   });
 });
+
+describe('number-optional exceptions', () => {
+  it('accepts Михаил Шишман / Михаил Асен, still rejects a spelling shared by two people', () => {
+    const list = prepareFill([
+      entry('ruler-mihail-2-asen', 'Михаил II Асен', 'Mihail II Asen', 1, ['Михаил Асен']),
+      entry('ruler-mihail-3-shishman', 'Михаил III Шишман', 'Mihail III Shishman', 2, ['Михаил Шишман']),
+      entry('ruler-ivan-shishman', 'Иван Шишман', 'Ivan Shishman', 3)
+    ]);
+    expect(matchFill('Михаил Асен', list, NONE)).toMatchObject({ index: 0 });
+    expect(matchFill('Михаил Шишман', list, NONE)).toMatchObject({ index: 1 });
+    expect(matchFill('Шишман', list, NONE)).toBeNull();
+    const clash = prepareFill([
+      entry('a', 'Михаил II Асен', '', 1, ['Михаил Асен']),
+      entry('b', 'Михаил I Асен', '', 2, ['Михаил Асен'])
+    ]);
+    expect(matchFill('Михаил Асен', clash, NONE)).toBeNull();
+  });
+});

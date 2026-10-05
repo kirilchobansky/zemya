@@ -79,3 +79,7 @@ update). That costs a conditional round trip per asset on every visit. The real 
 (and the flags likewise), and those responses can then be `immutable` like `/assets/*`.
 Not built yet. Revalidation on a warm cache is a 304 with no body, so the cost is latency,
 not bandwidth; do it when repeat-visit load time is measured to matter.
+
+## No blur while moving (decision)
+
+The canvas backing store is never resized or downscaled during a gesture or fly-to: `FAST_FRAME_DPR` (DPR 1 on coarse pointers while moving) is removed, so a pan or pinch is as sharp as a still frame. Moving frames also use full-detail geometry at the zoom where a still frame would (`FAST_FRAME_FULL_DETAIL = true`); far-out zooms keep the coarse payload through the normal LOD. Fast frames still skip the graticule and the per-country border pass. The phone frame-time numbers above predate this change and were not re-measured.

@@ -707,7 +707,7 @@ function drawLabels(rc: RenderContext, world: World, font: string, style: Style)
  * rings were already cheap) and borders (mergedStrokes below, cheap via the whole map's
  * merged Path2D instead of a per-country stroke).
  */
-const FAST_FRAME_FULL_DETAIL = false;
+const FAST_FRAME_FULL_DETAIL = true; // moving frames use the same geometry as still ones: coarse only where zoom is far out (LOD)
 const FAST_FRAME_GRATICULE = false;
 
 /**

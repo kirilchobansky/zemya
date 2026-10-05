@@ -33,6 +33,17 @@ export interface FillQuizConfig {
   toggle?: FillQuizToggle;
 }
 
+/**
+ * Rulers whose bare name (no number) is also accepted, as one extra exact alias each — the same
+ * as an `aliases` entry in the content file (Ferdinand's), kept here so a quiz exception does not
+ * need a content edit. By entry id. An alias that spells two different people is still rejected
+ * (prepareFill), so add only spellings that are one person's.
+ */
+export const NUMBER_OPTIONAL_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  'ruler-mihail-3-shishman': ['Михаил Шишман'],
+  'ruler-mihail-2-asen': ['Михаил Асен']
+};
+
 const ANY_ROLE = /(?:)/; // matches every role, an entry with none included
 
 export const BULGARIA_FILL_QUIZZES: readonly FillQuizConfig[] = [

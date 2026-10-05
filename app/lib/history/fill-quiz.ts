@@ -26,7 +26,7 @@
 import { latinToCyrillicRegExp } from './search';
 import { decimalYearOf } from './scale';
 import { historyCountryFor } from './countries';
-import { FILL_QUIZ_CONFIG, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
+import { FILL_QUIZ_CONFIG, NUMBER_OPTIONAL_ALIASES, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
 
 export type FillKind = 'ruler' | 'government';
 
@@ -339,7 +339,7 @@ export function fillQuizzesFromRaw(
           kind: row.kind,
           name: r.name[lang] || r.name[other],
           nameAlt: r.name[lang] ? r.name[other] : '',
-          aliases: r.aliases,
+          aliases: [...r.aliases, ...(NUMBER_OPTIONAL_ALIASES[r.id] ?? [])],
           start: decimalYearOf(r.start, `${r.id}.start`),
           end: r.end == null ? null : decimalYearOf(r.end, `${r.id}.end`),
           startRaw: r.start,

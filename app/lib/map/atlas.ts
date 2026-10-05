@@ -33,18 +33,14 @@ const TOUCH_HIT_RADIUS_PX = 24;
 /** After the last pan / pinch / wheel event, wait this long, then restore full detail and
  *  render one full frame. */
 const GESTURE_SETTLE_MS = 120;
-/** Canvas DPR while a fast frame is active (normally capped at 2 — see resize()). Cutting
- *  it to 1 is what keeps a real render cheap enough to draw every frame of a gesture. */
-const FAST_FRAME_DPR = 1;
 
 export class Atlas {
   private ctx: CanvasRenderingContext2D;
   private viewport: Viewport = { width: 0, height: 0 };
-  /** The DPR actually in effect right now — FAST_FRAME_DPR during a fast frame, deviceDpr
-   *  otherwise. What the canvas is sized for and what RenderContext.dpr carries. */
+  /** The DPR the canvas is sized for and RenderContext.dpr carries: always the device's (capped
+   *  at 2), also while moving — the render resolution is never lowered, so the map stays sharp. */
   private dpr = 1;
-  /** The real device pixel ratio (capped at 2), recomputed on resize. What `dpr` restores to
-   *  once a fast frame ends. */
+  /** The real device pixel ratio (capped at 2), recomputed on resize. */
   private deviceDpr = 1;
   private camera: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
   private target: CameraState = { x: 0.5, y: 0.46, zoom: 1 };
@@ -426,24 +422,18 @@ export class Atlas {
   private setGestureActive(active: boolean): void {
     if (this.gestureActive === active) return;
     this.gestureActive = active;
-    this.syncFastFrameDpr();
+    this.syncFastFrame();
   }
 
   private setFlying(active: boolean): void {
     if (this.flying === active) return;
     this.flying = active;
-    this.syncFastFrameDpr();
+    this.syncFastFrame();
   }
 
-  /** The canvas is resized for the new DPR only on an actual transition into or out of a
-   *  fast frame, never per frame — a fast frame's whole point is cheap frames, and resizing
-   *  the backing store every frame would undo that. */
-  private syncFastFrameDpr(): void {
-    const dpr = this.fastFrame ? FAST_FRAME_DPR : this.deviceDpr;
-    if (dpr === this.dpr) return;
-    this.dpr = dpr;
-    this.canvas.width = Math.round(this.viewport.width * dpr);
-    this.canvas.height = Math.round(this.viewport.height * dpr);
+  /** A transition into or out of a fast frame repaints once (the settled frame restores the
+   *  skipped detail); the backing store is never resized, so nothing is ever drawn blurry. */
+  private syncFastFrame(): void {
     this.drawNow();
   }
 

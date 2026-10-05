@@ -589,3 +589,5 @@ Same chrome as the geography run (`HistoryFillQuiz.tsx`, phone layout only; desk
 
 - **Micro** is `Style.micro: 'full' | 'dots' | 'off'` (`microMode()` in `renderer.ts`, falls back to `showPins`). Full = pins and island halos, named beside the pin when Names is on; Dots = small dots only (island nations whose land is unreadable get one too), no halo, no name; Off = nothing drawn and nothing hittable (`pick` takes the mode). A quiz run always uses Full, so its target is never hidden. **Names** is `showLabels` (country names only; capital names stay with the Capitals layer, so a ring never loses its name).
 - Geography run: `‹ Quizzes` top-left (phone HUD, desktop `.quiz-back-desk`) = Abandon. Flags: `.flag` has no shadow or radius, only a 0.5px alpha-following hairline; the `--flag-shadow-*` / `--flag-stage-shadow` tokens are now unused.
+
+- **Number-optional rulers:** `NUMBER_OPTIONAL_ALIASES` (`fill-quiz-config.ts`, by entry id) adds one exact alias per ruler, like Ferdinand's `aliases` in `bg.yaml`: "Михаил Шишман" (`ruler-mihail-3-shishman`) and "Михаил Асен" (`ruler-mihail-2-asen`). A spelling that belongs to two different people is still rejected.
