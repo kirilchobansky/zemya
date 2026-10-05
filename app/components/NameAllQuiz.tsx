@@ -287,9 +287,9 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
   }, []);
 
   /* An exact name that is also the start of a longer, still unnamed one ("niger" / "nigeria",
-     "dominica" / "dominican republic", "uk" / "ukraine") is filled at once, like any other. Its
-     text stays in the input for AUTO_ACCEPT_MS so the player can keep typing the longer name; a
-     key that does not lead toward a longer open name starts fresh after the leftover. */
+     "dominica" / "dominican republic", "uk" / "ukraine") is filled at once, like any other, and
+     the input clears at once. The text is remembered for AUTO_ACCEPT_MS: a key that continues it
+     toward a longer open name restores it and carries on; any other key starts fresh. */
   const acceptTimerRef = useRef<number | null>(null);
   const leftoverRef = useRef('');
   const cancelAccept = useCallback(() => {
@@ -305,23 +305,22 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
     let value = e.target.value;
     const leftover = leftoverRef.current;
     leftoverRef.current = '';
-    if (leftover && value.startsWith(leftover) && value.length > leftover.length) {
-      const squashed = normaliseName(value).replace(/ /g, '');
-      const leads = matchCountryName(value, prepared, namedSetRef.current) !== null ||
+    if (leftover && value) {
+      const joined = leftover + value;
+      const squashed = normaliseName(joined).replace(/ /g, '');
+      const leads = matchCountryName(joined, prepared, namedSetRef.current) !== null ||
         prepared.some(p => !namedSetRef.current.has(p.iso3) && p.forms.some(f => f.startsWith(squashed)));
-      if (!leads) value = value.slice(leftover.length);
+      if (leads) value = joined;
     }
     setHint('');
     const match = matchCountryName(value, prepared, namedSetRef.current);
     if (match && !match.typo && (match.instant || !match.already)) {
       accept(match.index, match.already);
       if (!match.instant) {
-        leftoverRef.current = value;
-        setInput(value);
+        leftoverRef.current = value; // the input is cleared at once; the text is only remembered
         acceptTimerRef.current = window.setTimeout(() => {
           acceptTimerRef.current = null;
           leftoverRef.current = '';
-          setInput('');
         }, AUTO_ACCEPT_MS);
       }
       return;

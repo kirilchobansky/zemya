@@ -445,8 +445,8 @@ sovereignty line, `docs/decisions.md`).
   delete / substitute) is forgiven for names of 6+ letters, only when exactly one country is that
   close, never instantly — the one place the "no fuzzy matching" rule is relaxed, because there is no
   prompt to anchor an answer. An exact match is always accepted at once. When a longer still-unnamed name starts with it ("Niger" while Nigeria is open, "Dominica" / "Dominican Republic", "UK" / "Ukraine"; found from the
-  list, not hard-coded) its text stays in the input for **500 ms** (`AUTO_ACCEPT_MS`) so the player can keep
-  typing the longer name; a key that leads toward no open name starts fresh after the leftover. Naming one already named shows "Already named: X", not an error.
+  list, not hard-coded) the input clears at once, but the text is remembered for **500 ms** (`AUTO_ACCEPT_MS`): a key that
+  continues it toward the longer name restores it and carries on; any other key starts fresh. Naming one already named shows "Already named: X", not an error.
 - **Timer, desktop**: the run's timer and count are sticky at the top of the panel body (`.quiz-run__clock`),
   so a growing flag list scrolls under them; with the panel collapsed the same timer shows on the stage's
   top-left (`StageClock`, geography runs and Name all). The History fill quiz's head is sticky likewise.
