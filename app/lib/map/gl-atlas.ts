@@ -212,6 +212,10 @@ export class GlAtlas implements MapController {
     this.map.on('click', this.onClick);
     this.map.on('error', e => console.warn('[map]', e.error?.message ?? e));
     container.addEventListener('mouseleave', this.onMouseLeave);
+    container.addEventListener('pointerleave', this.onMouseLeave);
+    container.addEventListener('pointerup', this.onPointerUp);
+    container.addEventListener('pointercancel', this.onPointerUp);
+    window.addEventListener('blur', this.onMouseLeave);
     container.addEventListener('mousedown', this.onCaptureStart, true);
     container.addEventListener('touchstart', this.onCaptureStart, { capture: true, passive: false });
 
@@ -255,6 +259,11 @@ export class GlAtlas implements MapController {
     cancelAnimationFrame(this.pulseHandle);
     cancelAnimationFrame(this.compareFrame);
     this.container.removeEventListener('mouseleave', this.onMouseLeave);
+    this.container.removeEventListener('pointerleave', this.onMouseLeave);
+    this.container.removeEventListener('pointerup', this.onPointerUp);
+    this.container.removeEventListener('pointercancel', this.onPointerUp);
+    window.removeEventListener('blur', this.onMouseLeave);
+    this.clearHover();
     this.container.removeEventListener('mousedown', this.onCaptureStart, true);
     this.container.removeEventListener('touchstart', this.onCaptureStart, true);
     this.endCompareDrag();
@@ -483,6 +492,7 @@ export class GlAtlas implements MapController {
 
   private onMoveStart = (e: object): void => {
     if (!(e as { zemya?: boolean }).zemya) {
+      this.clearHover(); // a drag starts: the pointer is carrying the map, not pointing at a country
       this.ownEase = false;
       this.target = this.camera;
     }
@@ -758,6 +768,7 @@ export class GlAtlas implements MapController {
     const { x, y } = e.point;
     const mark = this.pickPlaceAt(x, y);
     const feature = mark?.feature ?? this.pickAt(x, y);
+    if (!feature) { this.clearHover(); return; } // ocean: nothing is hovered
     // moving within one country (or one ring) is not a change: no work, no callback
     if (feature === this.hoverFeature && mark === this.hoverMark) return;
     this.hoverFeature = feature;
@@ -766,11 +777,21 @@ export class GlAtlas implements MapController {
     this.emitHover();
   };
 
-  private onMouseLeave = (): void => {
+  private onMouseLeave = (): void => this.clearHover();
+
+  /** Drops the hover (one country at a time, and none when nothing is under the pointer).
+   *  Safe to call any time; reports only if something was hovered. */
+  clearHover(): void {
+    const had = this.hoverFeature !== null;
     this.hoverFeature = null;
     this.hoverMark = null;
     this.hoverKey = '';
-    this.callbacks.onHover(null, 0, 0);
+    if (had) this.callbacks.onHover(null, 0, 0);
+  }
+
+  /** A finger that lifts leaves no hover behind (touch never hovers; a tap may have set one). */
+  private onPointerUp = (e: PointerEvent): void => {
+    if (e.pointerType === 'touch') this.clearHover();
   };
 
   /** Reports the hover with the position of the country's own label point (its anchor, the

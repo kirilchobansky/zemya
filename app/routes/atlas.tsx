@@ -621,6 +621,15 @@ function AtlasShell() {
     atlasRef.current?.redraw();
   }), []);
 
+  // entering or leaving a quiz run starts with no hover, so no stale country is kept
+  const inQuiz = quiz !== null;
+  useEffect(() => {
+    atlasRef.current?.clearHover();
+    setHovered(null);
+    setHoveredPlace(null);
+    setTip(null);
+  }, [inQuiz, atlasInstance]);
+
   /* restyle whenever anything visual changes — quiz mode takes over the whole style
      rather than folding into fillFor/strokeFor, since none of the normal overlay/
      selection/mastery logic applies mid-quiz (see quizFillFor's own doc comment) */

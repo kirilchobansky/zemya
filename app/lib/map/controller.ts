@@ -21,6 +21,8 @@ export interface AtlasCallbacks {
 export interface MapController {
   /** Restyle: colours, borders, which layers are on. Cheap — never touches geometry. */
   setStyle(style: Style): void;
+  /** Drops any hover (reports `onHover(null)` if there was one). */
+  clearHover(): void;
   /** Marks features for a bigger pin; the quiz target stays findable at the world view. */
   setFocus(features: Iterable<Feature>): void;
   /** During a quiz run the map must not take focus (the answer input keeps the keyboard). */
