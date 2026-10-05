@@ -6,7 +6,7 @@
  * a list of fills.
  */
 import type {
-  ContextShape, Feature, GeometryData, LonLat, PlaceMark, Ring, World, WorldData
+  Feature, GeometryData, LonLat, PlaceMark, Ring, World, WorldData
 } from './types';
 import { latToY, lonToX, wrapX } from './projection';
 import { buildRing, decodeArcs, frameToReference, unwrapRing } from '../../../scripts/lib/geom.mjs';
@@ -73,31 +73,16 @@ export function buildWorld(data: WorldData): World {
     bySlug.set(country.slug, feature);
   }
 
-  const context: ContextShape[] = [];
-
-  for (const geometry of data.geometries) {
+    for (const geometry of data.geometries) {
     const polygonList = (geometry.multi
       ? (geometry.arcs as number[][][])
       : [geometry.arcs as number[][]]);
 
     const feature = byId.get(geometry.id);
 
-    if (!feature) {
-      // no country record: Greenland, Western Sahara, overseas departments. Drawn dim,
-      // never clickable — the map would look broken with holes in it.
-      const path = new Path2D();
-      let drew = false;
-      for (const polygon of polygonList) {
-        for (const indices of polygon) {
-          const ring = unwrapRing(buildRing(indices, arcs));
-          if (ring.length < 3) continue;
-          traceRing(path, ring);
-          drew = true;
-        }
-      }
-      if (drew) context.push({ path });
-      continue;
-    }
+    // no country record (Greenland, Western Sahara, dependencies): shapes only, drawn from
+    // the vector tiles — nothing to build here
+    if (!feature) continue;
 
     for (const polygon of polygonList) {
       const rings = polygon
@@ -105,21 +90,6 @@ export function buildWorld(data: WorldData): World {
         .filter(r => r.length > 2);
       if (rings.length) feature.polygons.push(rings);
     }
-  }
-
-  // Not clickable, not joined to any country — see data.lakes's own doc comment for
-  // where these come from. Built the same way context shapes are.
-  const lakes: ContextShape[] = [];
-  for (const lake of data.lakes) {
-    const path = new Path2D();
-    let drew = false;
-    for (const indices of lake.arcs) {
-      const ring = unwrapRing(buildRing(indices, arcs));
-      if (ring.length < 3) continue;
-      traceRing(path, ring);
-      drew = true;
-    }
-    if (drew) lakes.push({ path });
   }
 
   for (const feature of features) {
@@ -139,8 +109,6 @@ export function buildWorld(data: WorldData): World {
   for (const { id, ring } of data.halos) {
     const feature = byId.get(id);
     if (!feature || ring.length < 3) continue;
-    const path = new Path2D();
-    traceRing(path, ring);
     let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
     for (const [lon, lat] of ring) {
       if (lon < minLon) minLon = lon;
@@ -149,7 +117,7 @@ export function buildWorld(data: WorldData): World {
       if (lat > maxLat) maxLat = lat;
     }
     const x0 = lonToX(minLon), x1 = lonToX(maxLon), y0 = latToY(maxLat), y1 = latToY(minLat);
-    feature.halo = { path, x0, x1, y0, y1, area: (x1 - x0) * (y1 - y0) };
+    feature.halo = { x0, x1, y0, y1, area: (x1 - x0) * (y1 - y0) };
     haloFeatures.push(feature);
   }
   haloFeatures.sort((a, b) => a.halo!.area - b.halo!.area);
@@ -161,10 +129,7 @@ export function buildWorld(data: WorldData): World {
     places.push({ place, feature, ux: wrapX(lonToX(place.lon)), uy: latToY(place.lat) });
   }
 
-  return {
-    data, features, byIso3, bySlug, byId, context, lakes, fullContext: [], fullLakes: [], places, haloFeatures,
-    mergedPath: null, mergedFullPath: null
-  };
+  return { data, features, byIso3, bySlug, byId, places, haloFeatures };
 }
 
 /**
@@ -256,21 +221,7 @@ export function attachFullDetail(world: World, data: GeometryData): void {
 
     const feature = world.byId.get(geometry.id);
 
-    if (!feature) {
-      // no country record: Greenland, Western Sahara, overseas departments
-      const path = new Path2D();
-      let drew = false;
-      for (const polygon of polygonList) {
-        for (const indices of polygon) {
-          const ring = unwrapRing(buildRing(indices, arcs));
-          if (ring.length < 3) continue;
-          traceRing(path, ring);
-          drew = true;
-        }
-      }
-      if (drew) world.fullContext.push({ path });
-      continue;
-    }
+    if (!feature) continue;
 
     for (const polygon of polygonList) {
       const rings = polygon
@@ -287,54 +238,6 @@ export function attachFullDetail(world: World, data: GeometryData): void {
   for (const [feature, polygons] of polygonsByFeature) {
     finalizeFeature(feature, polygons, 'fullPath');
   }
-
-  for (const lake of data.lakes) {
-    const path = new Path2D();
-    let drew = false;
-    for (const indices of lake.arcs) {
-      const ring = unwrapRing(buildRing(indices, arcs));
-      if (ring.length < 3) continue;
-      traceRing(path, ring);
-      drew = true;
-    }
-    if (drew) world.fullLakes.push({ path });
-  }
-
-  // `fullPath` just changed for (almost) every feature — the merged full-detail path built
-  // from the old (missing or coarse-fallback) values is stale. Coarse `path` never changes
-  // after buildWorld, so `mergedPath` is left alone.
-  world.mergedFullPath = null;
-}
-
-/**
- * The union of every feature's outline at one detail level, in a single Path2D — built
- * lazily on first need and cached on `world` (see World.mergedPath's own doc comment).
- * Stroking this once, with one uniform style, is what makes borders cheap enough to draw
- * during a fast-frame gesture (renderer.ts) instead of a per-country lookup and 197
- * separate stroke() calls. A shared border between two touching countries is traced
- * twice — stroked with one uniform colour, which makes the overlap invisible, so this
- * must never be used to stroke a colour that could actually differ at that seam.
- */
-export function mergedStrokePath(world: World, full: boolean): Path2D {
-  if (full) {
-    if (!world.mergedFullPath) {
-      const merged = new Path2D();
-      for (const feature of world.features) {
-        const path = feature.fullPath ?? feature.path;
-        if (path) merged.addPath(path);
-      }
-      world.mergedFullPath = merged;
-    }
-    return world.mergedFullPath;
-  }
-  if (!world.mergedPath) {
-    const merged = new Path2D();
-    for (const feature of world.features) {
-      if (feature.path) merged.addPath(feature.path);
-    }
-    world.mergedPath = merged;
-  }
-  return world.mergedPath;
 }
 
 /**
@@ -378,11 +281,4 @@ export function reprojectPolygonsToTrueSize(
       return moved;
     })
   );
-}
-
-/** Build a Path2D from already-projected lon-lat rings (used for the dragged outline). */
-export function ringsToPath(rings: Ring[]): Path2D {
-  const path = new Path2D();
-  for (const ring of rings) traceRing(path, ring);
-  return path;
 }

@@ -16,7 +16,7 @@ import { SearchBox } from '~/components/SearchBox';
 import { AtlasContext, type TimelineLabels } from '~/lib/atlas-context';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import type { MapController } from '~/lib/map/controller';
-import { loadMapEngine, MAP_ENGINE } from '~/lib/map/engine';
+import { loadMapEngine } from '~/lib/map/engine';
 import { refreshMapColours, type MicroMode } from '~/lib/map/style';
 import HistoryCard, { PinnedHistoryCard } from '~/components/HistoryCard';
 import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
@@ -42,12 +42,6 @@ const nextMicro = (current: MicroMode): MicroMode => MICRO_CYCLE[(MICRO_CYCLE.in
 /** Routes whose phone sheet has no half snap (the History timeline keeps peek / half / full). */
 const TWO_STOP_PATH = /^\/(quizzes|questions)(\/|$)/;
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
-
-/** Which features keep their stroke during a fast frame (atlas.ts, renderer.ts's Style.highlight)
- *  — the same selected-country-plus-neighbours pair strokeFor/fillFor already single out. */
-function isSelectedOrNeighbour(feature: Feature, s: StyleInputs): boolean {
-  return feature === s.selected || Boolean(s.showNeighbours && s.selected?.neighbours.includes(feature));
-}
 
 /* ------------------------------------------------------------------- sidebar resize/collapse
    Desktop layout only — the left rail and the right panel each get a drag handle (resize),
@@ -136,8 +130,8 @@ export default function AtlasLayout() {
 }
 
 function AtlasShell() {
-  /** The map's host element: a <div> MapLibre fills (engine 'gl') or a <canvas> (engine 'canvas'). */
-  const mapHostRef = useRef<HTMLDivElement & HTMLCanvasElement>(null);
+  /** The map's host element: MapLibre fills it with its own canvas. */
+  const mapHostRef = useRef<HTMLDivElement>(null);
   const atlasRef = useRef<MapController | null>(null);
   const historyCanvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HistoryTimeline | null>(null);
@@ -557,7 +551,6 @@ function AtlasShell() {
           {
             fill: f => fillFor(f, styleRef.current),
             stroke: f => strokeFor(f, styleRef.current),
-            highlight: f => isSelectedOrNeighbour(f, styleRef.current),
             defaultStroke: defaultStrokeFor,
             showLabels: true,
             showPins: true,
@@ -646,7 +639,6 @@ function AtlasShell() {
         ? {
             fill: f => quizFillFor(f, quiz),
             stroke: f => quizStrokeFor(f, quiz),
-            highlight: f => f === quiz.target || Boolean(quiz.showNeighbours && quiz.target?.neighbours.includes(f)),
             defaultStroke: defaultStrokeFor,
             showLabels: true,
             showPins: true,
@@ -658,7 +650,6 @@ function AtlasShell() {
         : {
             fill: f => fillFor(f, styleRef.current),
             stroke: f => strokeFor(f, styleRef.current),
-            highlight: f => isSelectedOrNeighbour(f, styleRef.current),
             defaultStroke: defaultStrokeFor,
             showLabels: showNames,
             showPins: micro !== 'off',
@@ -763,11 +754,7 @@ function AtlasShell() {
       />
 
       <main className="stage">
-        {MAP_ENGINE === 'gl' ? (
-          <div ref={mapHostRef} className={canvasClass} role="img" aria-label="World map" />
-        ) : (
-          <canvas ref={mapHostRef} className={canvasClass} aria-label="World map" />
-        )}
+        <div ref={mapHostRef} className={canvasClass} role="img" aria-label="World map" />
         <canvas
           ref={historyCanvasRef}
           className={`stage__canvas${showTimeline ? '' : ' is-hidden'}`}

@@ -1,5 +1,12 @@
 # Performance reference
 
+> **Superseded for the map.** Everything below measured the Canvas 2D renderer (LOD switch, fast
+> frames, merged strokes, DPR cap), now removed in favour of MapLibre GL (WebGL) over vector tiles —
+> see `docs/architecture.md` "Map renderer". The GPU redraws every frame at full device resolution,
+> simplification is per tile zoom (`scripts/build-tiles.mjs`), and nothing is ever rendered at a
+> lowered resolution while moving. `npm run perf` has not been ported; the tables are history.
+> Target unchanged: 16.7 ms median frame at world zoom.
+
 Measured numbers and the LOD design, moved out of CLAUDE.md. The rule and the target stay
 there ("## Performance" in CLAUDE.md): 16.7 ms median frame time, full 1:10m detail preserved, and any
 change touching `app/lib/map/` runs `npm run perf` and reports the number in the commit.

@@ -128,7 +128,6 @@ export type Ring = LonLat[];
  *  its box in unit-square map space; `area` is that box's area, used only to order overlapping
  *  halos for hit-testing (the smaller one is on top). */
 export interface Halo {
-  path: Path2D;
   x0: number; x1: number; y0: number; y1: number;
   area: number;
 }
@@ -184,41 +183,15 @@ export interface PlaceMark {
   uy: number;
 }
 
-/** Landmasses with no country record — Greenland, Western Sahara, dependencies. */
-export interface ContextShape {
-  path: Path2D;
-}
-
 export interface World {
   data: WorldData;
   features: Feature[];
   byIso3: Map<string, Feature>;
   bySlug: Map<string, Feature>;
   byId: Map<string, Feature>;
-  /** Coarse-detail landmasses with no country record (Greenland, Western Sahara,
-   *  dependencies) — see Feature.path's own doc comment for why "coarse first" here too. */
-  context: ContextShape[];
-  /** Built from data.lakes the same way context shapes are — see ContextShape. */
-  lakes: ContextShape[];
-  /** Full-detail counterparts to context/lakes, empty until attachFullDetail runs. */
-  fullContext: ContextShape[];
-  fullLakes: ContextShape[];
   /** Every place that joined to a country in this dataset. */
   places: PlaceMark[];
   /** Features with a halo, smallest halo first — the order hit-testing walks them in, so
    *  where two halos overlap the smaller country wins. */
   haloFeatures: Feature[];
-  /**
-   * Every feature's outline, unioned into one Path2D per detail level — built lazily on
-   * first need (topology.ts's mergedStrokePath) and cached here after: coarse `path` is
-   * set once by buildWorld and never changes again, so `mergedPath` never needs
-   * rebuilding once built. `mergedFullPath` is reset to null by attachFullDetail (the one
-   * event that actually changes `fullPath` data), forcing one lazy rebuild the next time
-   * it's needed — "rebuild only if the world data is rebuilt". Stroking one merged path
-   * once, instead of every country individually, is what keeps borders cheap enough to
-   * draw during a fast frame (renderer.ts) — a shared border between two touching
-   * countries is traced twice, which a single uniform stroke colour makes invisible.
-   */
-  mergedPath: Path2D | null;
-  mergedFullPath: Path2D | null;
 }

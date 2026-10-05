@@ -3,7 +3,7 @@
 Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list).
 
 **Working:**
-- The atlas: canvas map at full 1:10m coastline, search, neighbour highlight, true-size
+- The atlas: MapLibre GL (WebGL) map over our own PMTiles, 1:10m coastline at the top tile level, search, neighbour highlight, true-size
   compare, 5 overlays plus mastery; culled drawing, coarse-then-full geometry load
   (`docs/performance.md`). Real flags at true aspect ratio, offline.
 - 197 countries (see below) hand-authored in `content/`, joined with `world-countries` +

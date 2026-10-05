@@ -31,6 +31,67 @@ Intent travels as React Router location state: `state={{ fly: true }}` on a `Lin
 `flyTo` and `home` on the Atlas controller are unchanged by this rule — it governs who
 calls them, not what they do.
 
+## Map renderer (MapLibre GL)
+
+One renderer: MapLibre GL JS, Web Mercator, our own data only (no basemap, no outside tiles, no
+glyph server). `app/lib/map/`:
+
+| file | role |
+| --- | --- |
+| `controller.ts` | `MapController` + `AtlasCallbacks`: everything the app may ask of the map (`setStyle`, `setFocus`, `home`, `flyTo`, `followTarget`, `pulse`, `fit`, `startCompare`, `view`, `screenPosition`, ...) |
+| `engine.ts` | lazy loader — the only way `gl-atlas.ts` (and so MapLibre) is reached |
+| `gl-atlas.ts` | the controller: map creation, camera, feature state, filters, hit-testing, compare drag |
+| `gl-style.ts` | sources, layer table, feature-state keys (read top to bottom = "what the map is") |
+| `gl-geo.ts` | runtime GeoJSON: country anchors, capitals, graticule, compare outline |
+| `visibility.ts` | the per-camera predicates (`drawsAsPin`, `showsAsDot`, `haloAlpha`, `capitalsVisible`, `capitalShapeShowing`) — pure, unit-tested; thresholds in `thresholds.ts` |
+| `style.ts` | the app's `Style` (callbacks per country) and the `COLORS` palette |
+| `camera.ts`, `follow.ts`, `projection.ts` | unit-square camera maths, unchanged. `zoom` = world width in px = `512 * 2^mapZoom` |
+| `topology.ts` | `World`/`Feature` records (bbox, anchor, polygons, neighbours, halos); `Path2D` only for the Outlines quiz silhouettes |
+
+**Tiles.** `scripts/build-tiles.mjs` (second half of `build:content`) cuts `world.json` into
+`public/data/geography/world.pmtiles` with geojson-vt: layers `countries` (`iso3`, the feature id
+via `promoteId`), `context` (Greenland etc.), `lakes`, `halos`; z0-z7, extent 4096, tolerance 2.5
+units (about a third of a pixel at every zoom), **no simplification at z7** (full 1:10m); beyond z7
+MapLibre overzooms. Written by `scripts/lib/pmtiles-writer.mjs` (PMTiles v3, gzip). Read in the
+browser through the `pmtiles` protocol with range requests, so static hosting is enough. The
+longitude frame (antimeridian unwrap, `frameToReference`) is `scripts/lib/geom.mjs`, shared with
+`topology.ts`, so tiles and Features always agree. Attribution (Natural Earth, ODbL country data)
+rides in the source and shows in MapLibre's attribution control; the rail footer says ODbL too.
+
+**Feature state, not geometry.** Keys: `c` land colour, `pc` pin/halo colour, `sc`/`sw` emphasised
+border (selected, neighbour, hover, quiz target; two line layers so the heavy one is on top), `fo`
+pin focus (2 = quiz target), `hide` (country is a pin right now: no shape), `dot`, `halo` (0..1).
+`restyle()` writes them from the app's `Style` callbacks (overlays, mastery and quiz outcome all
+arrive that way), `syncView()` from the camera; both diff against what was last applied, so a pan
+costs nothing in steady state. A theme change re-reads the palette and rewrites everything.
+
+**Labels and capitals.** Symbol layers; MapLibre does the collision (country names first, largest
+area first via `symbol-sort-key`; capitals beneath them; micro-state names beside the pin). Which
+features are *candidates* is the old canvas logic (`visibility.ts` + a minimum on-screen width and a
+text-fits test), applied as a layer filter only when the set changes. A capital's ring is an icon in
+the same symbol layer as its name, neither optional, so a ring whose name found no room is not placed
+(and cannot be hit). Glyphs: MapLibre's `font-faces` with the self-hosted Archivo files
+(`@fontsource/archivo`, OFL, bundled by Vite) rasterised locally; the `glyphs` URL is a stub protocol
+answering empty ranges, so nothing is fetched from outside. Country-name size comes from area
+(`labelSize`), not from the on-screen width.
+
+**Camera.** MapLibre's gestures, inertia and easing; a CameraState is converted to centre + zoom.
+`transformConstrain` reimplements `clampY`/`clampZoom` (the visible area, minus insets, stays in the
+map; a portrait phone can still show the whole world). Zoom range is `homeZoom * 0.78 .. * 320`.
+`ownEase`/`heading` give `followTarget` the camera's destination while a fly is running.
+
+**Hit-testing.** Pins by screen distance (touch radius 24 px), then `queryRenderedFeatures` on the
+countries layer (shapes that are pins are skipped), then halos (smallest first). Capitals are queried
+on the symbol layer, so only a placed ring is hittable. Hover is mouse-only.
+
+**Compare size.** The dragged outline is a GeoJSON source (`reprojectPolygonsToTrueSize`); a
+capture-phase listener starts a drag on it before MapLibre sees the event, so the map does not pan.
+
+**Known follow-ups:** `test/smoke.mjs` and `test/perf.mjs` still read pixels from a 2D canvas and
+need rewriting for WebGL; `world.json` (3.4 MB) is still fetched in the background for the Outlines
+quiz and the compare tool (the tiles carry the same geometry, so this could be trimmed); without
+WebGL the map shows the "failed to load" message (there is no canvas fallback any more).
+
 ## Framework mode
 
 React Router's framework mode fixes two of these names: the app lives in `app/`, and
@@ -248,7 +309,7 @@ app/routes.ts           the route table
 app/entry.client.tsx    hydrates the prerendered document
 app/entry.server.tsx    renders each route to HTML at build time
 app/lib/core/           scheduler + Dexie store. subject-agnostic; no geography imports.
-app/lib/map/            projection, topology, camera, renderer, controller. no React.
+app/lib/map/            projection, topology, camera, follow, MapLibre renderer (gl-*.ts). no React.
 app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers,
                         mastery derivation
 app/lib/history/        time-axis + layout logic (scale.ts, layout.ts), the canvas renderer

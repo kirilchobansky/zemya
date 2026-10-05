@@ -1,7 +1,7 @@
 /**
- * What the map is asked to draw, and the palette it draws it in — shared by every renderer
- * (the canvas one and the GL one) so a style, a colour and a micro mode mean the same thing
- * to both. React-free, and free of anything geography-specific: a Style is just callbacks.
+ * What the map is asked to draw, and the palette it draws it in
+ * and the app's own idea of a style: callbacks per country, resolved to feature state by
+ * gl-atlas.ts. React-free, and free of anything geography-specific: a Style is just callbacks.
  */
 import type { PlaceMark, Feature } from './types';
 
@@ -17,21 +17,11 @@ export interface Style {
   fill(feature: Feature): string | null;
   /** [colour, width in CSS pixels], or null for no stroke. */
   stroke(feature: Feature): [string, number] | null;
-  /** Whether this feature's stroke differs from `defaultStroke()` — normally the selected
-   *  country and its neighbours. render() strokes every OTHER feature in one pass, via the
-   *  whole map's merged Path2D (topology.ts's mergedStrokePath) rather than one `stroke()`
-   *  lookup and one canvas call per country; only features this returns true for get their
-   *  own individual stroke() call, on top. Omit (with defaultStroke also omitted) to fall
-   *  back to stroking every feature individually, the pre-merged-path behaviour. */
-  highlight?(feature: Feature): boolean;
-  /** The stroke every feature NOT covered by `highlight()` shares — what the merged path
-   *  above is stroked with. Both real Style objects (overlays.ts's strokeFor/quizStrokeFor)
-   *  return the same value from here as their own fallback case, so the two can never
-   *  disagree about what "not highlighted" looks like. Null (or omitted) skips the merged
-   *  pass — nothing not individually highlighted gets a stroke at all. */
+  /** The stroke every feature shares unless its own `stroke()` says otherwise: the one border
+   *  line layer is painted with it, and a feature whose stroke differs (selected, neighbour,
+   *  hovered, quiz target) gets the emphasised border via feature state. Both real Style
+   *  objects (overlays.ts's strokeFor/quizStrokeFor) return this as their own fallback. */
   defaultStroke?(): [string, number] | null;
-  /** Extra outline dragged over the map by the size-comparison tool. */
-  overlay?: { path: Path2D; fill: string; stroke: string } | null;
   /** Country names (the Names toggle). Capital names follow the capitals layer, not this. */
   showLabels: boolean;
   /** Legacy on/off for micro-states; `micro` wins when set. */
@@ -61,10 +51,10 @@ export interface Style {
 }
 
 /**
- * Every colour the canvas paints, resolved from app/styles/tokens.css. A canvas
- * fillStyle/strokeStyle can't be `var(--x)`, so these start as the tokens' dark-theme
- * defaults (kept in sync by hand — see tokens.css's own header note) and are only ever
- * overwritten by refreshMapColours() below, never read fresh inside the render loop.
+ * Every colour the map paints, resolved from app/styles/tokens.css. A map style can't be
+ * `var(--x)`, so these start as the tokens' dark-theme defaults (kept in sync by hand — see
+ * tokens.css's own header note) and are only ever overwritten by refreshMapColours() below,
+ * never read per frame.
  */
 export const COLORS = {
   ocean: '#080D13',
@@ -80,9 +70,9 @@ export const COLORS = {
   capitalHalo: 'rgba(8,13,19,.85)',
   capitalLabelText: 'rgba(159,179,192,1)',
   /** The pulse ring's colour, at whatever alpha the pulse's own animation wants — kept as a
-   *  bare "r,g,b" triplet rather than a full colour for that reason (see drawPulse). */
+   *  bare "r,g,b" triplet rather than a full colour for that reason (gl-atlas.ts's pulse). */
   pulseRgb: '232,163,61',
-  /** The size-comparison drag overlay (atlas.ts's compare state) — brass, so it reads as
+  /** The size-comparison drag overlay (gl-atlas.ts's compare state) — brass, so it reads as
    *  the same accent the rest of the "selected" language uses. */
   compareFill: 'rgba(232,163,61,.42)',
   compareStroke: '#F5CE86'
@@ -91,7 +81,7 @@ export const COLORS = {
 /**
  * Re-reads every entry in COLORS from tokens.css and caches it in place — called once from
  * app/routes/atlas.tsx before the first frame and again on every theme change, never from
- * inside render(). getComputedStyle is real work; a canvas frame can't afford it 60 times a
+ * per frame. getComputedStyle is real work; a frame can't afford it 60 times a
  * second, which is the whole reason COLORS is a cache rather than a live lookup.
  */
 export function refreshMapColours(): void {

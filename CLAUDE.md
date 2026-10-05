@@ -11,6 +11,7 @@ Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 
 ## Where this is
 
+The map is MapLibre GL over our own PMTiles (`docs/architecture.md`); the canvas renderer is gone.
 Four top-level sections — Map, Quizzes, Questions, History — share one shell
 (`routes/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), seven quizzes on
 one engine (Countries, Flags, Outlines, Capitals, Currency, Language, Religion — the last three have non-unique answers, `docs/quizzes.md`), a Bulgaria and a United States (`united-states`, `content/history/us.yaml`: 12 periods + 47 presidencies + 50 vice presidents (kind government) + 298 events, eight fill quizzes) history timeline (`/history/:slug`, two countries today,
@@ -23,8 +24,9 @@ ODbL data. Full current-state list: `docs/status.md`; narrative and "Next" items
 
 Web, PWA-installable; React 19 + Vite 8 + TS + React Router v8, framework mode (every route
 loader runs at **build time**); Vercel static hosting, Hobby tier (no commercial use); no
-backend; IndexedDB via Dexie, local-first; ts-fsrs scheduling; custom canvas map engine (not
-Leaflet/MapLibre), coastlines 1:10m unsimplified; repo public. 197 countries (193 UN members
+backend; IndexedDB via Dexie, local-first; ts-fsrs scheduling; map = MapLibre GL JS (WebGL, Web Mercator) over our own
+PMTiles cut at build time — owner's decision, replaced the custom canvas engine (`docs/decisions.md`),
+coastlines 1:10m unsimplified in the top tile level; repo public. 197 countries (193 UN members
 + Vatican City + Palestine + Taiwan + Kosovo — an editorial recognition line, not a fact);
 absorbed territories merge into a real country at build time via `ABSORB` in
 `scripts/build-content.mjs`, never a special case in `topology.ts`. Reasoning: `docs/decisions.md`.
@@ -49,10 +51,17 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   `quiz`/`quizMode`; no Stage moves when its content changes size; never `disabled` the run
   input. Run keys: Esc pause, Tab skip, Ctrl+Enter reveal, Enter (after a reveal) fills in the
   answer, Ctrl+Backspace abandon; "Restart" (active run only) = a fresh run, nothing saved.
+- **Map** (`docs/architecture.md` "Map renderer"): the rest of the app talks to `MapController`
+  (`app/lib/map/controller.ts`), never to MapLibre. `maplibre-gl` is imported ONLY by
+  `app/lib/map/gl-atlas.ts`, reached only through `engine.ts`'s dynamic import (first load stays
+  small, prerender never evaluates it). Per-country colour and emphasis are **feature state**,
+  never rebuilt geometry. Shapes come from `public/data/geography/world.pmtiles`
+  (`scripts/build-tiles.mjs`, run by `build:content`, committed). Camera maths (`camera.ts`,
+  `follow.ts`) is unchanged; MapLibre only draws and moves.
 - **Mobile** (`docs/mobile.md`): layout follows viewport width, affordances follow the
   pointer — never gate markup on a JS media query; one `100dvh` shell; `position: fixed`
   inside the bottom sheet must be portalled to `<body>`. **Visual identity**
-  (`docs/decisions.md`): `tokens.css` is the single source of truth for theming; canvas
+  (`docs/decisions.md`): `tokens.css` is the single source of truth for theming; map
   colours resolve once via `getComputedStyle`, re-read only on a theme change, never per
   frame; any colour change is checked in both themes against WCAG AA.
 
@@ -70,10 +79,11 @@ npm run check:seo       # audits build/client: sitemap, titles, canonical, JSON-
 npm run audit           # stale-data report. Read-only. RUN BEFORE ANY RELEASE
 npm run audit:flags     # rasterises every flag against its authored description
 npm run check:history    # history content QA report (parent bounds, overlaps, gaps). Read-only
-npm run perf            # frame-time report — run only when explicitly asked
+npm run build:tiles     # world.json -> world.pmtiles (also part of build:content)
+npm run perf            # STALE: measured the removed canvas renderer — rewrite before use
 ```
 
-Performance target: 16.7 ms median frame at world zoom, full detail — numbers, LOD design: `docs/performance.md`.
+Performance target: 16.7 ms median frame at world zoom, full detail, no low-res frames while moving (WebGL; `docs/performance.md`).
 
 ## Git conventions
 

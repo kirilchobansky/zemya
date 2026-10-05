@@ -103,22 +103,13 @@ describe('haloStrength / pick', () => {
     expect(drawsAsPin(world.byIso3.get('MCO')!, camera)).toBe(true);
   });
 
-  it('a halo is hit only while it is showing', async () => {
+  it('a halo shows only while the land is too small to read', async () => {
     const { buildWorld } = await import('~/lib/map/topology');
-    const { pick } = await import('~/lib/map/renderer');
+    const { haloAlpha } = await import('~/lib/map/visibility');
     const world = buildWorld(data);
     const nauru = world.byIso3.get('NRU')!;
-    const viewport = { width: 1000, height: 700 } as never;
-    const inside = (zoom: number) => {
-      const camera = { x: nauru.ux, y: nauru.uy, zoom };
-      // a context whose isPointInPath says yes to the halo path only
-      const ctx = {
-        setTransform() {},
-        isPointInPath: (path: unknown) => path === nauru.halo!.path
-      } as unknown as CanvasRenderingContext2D;
-      return pick({ ctx, camera, viewport, dpr: 1 }, world, 500, 350);
-    };
-    expect(inside(1000)).toBe(nauru); // world-ish zoom: the land is a speck
-    expect(inside(1e6)).toBeNull(); // zoomed right in: land readable, halo gone
+    const at = (zoom: number) => haloAlpha(nauru, { x: nauru.ux, y: nauru.uy, zoom });
+    expect(at(1000)).toBeGreaterThan(0); // world-ish zoom: the land is a speck
+    expect(at(1e6)).toBe(0); // zoomed right in: land readable, halo gone
   });
 });

@@ -51,7 +51,7 @@ it replaces the desktop toolbar, which is `display: none` on phones. ⌂ is a sm
 under it; the scale bar is hidden on phones. Icons are inline SVG (glyph characters fall back to
 tofu on some fonts).
 
-**Touch map** (`app/lib/map/atlas.ts`): `touch-action: none` on the canvas; one finger pans, two
+**Touch map** (MapLibre's handlers in `app/lib/map/gl-atlas.ts`; the notes that follow describe the removed canvas controller — the 24 px touch hit radius and the focus-keeping capture listeners were carried over, the DPR cap of 2 is the map's `pixelRatio`): `touch-action: none` on the canvas; one finger pans, two
 fingers pinch about their midpoint (the world point that started under the fingers stays under
 them, so a two-finger drag also pans). No hover for `pointerType === 'touch'` (no tooltip, no
 hover highlight); a tap selects. Hit areas on touch are 24 px radius for capital rings and
