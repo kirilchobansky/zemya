@@ -46,6 +46,13 @@ export function equivalentSidePx(feature: Feature, camera: CameraState): number 
   return (Math.sqrt(Math.max(feature.country.area, 0)) * camera.zoom) / (EQUATOR_KM * cos);
 }
 
+/** Countries drawn as their halo alone, at every zoom: no land specks, no capital ring (owner
+ *  request — the Maldives' atolls and Malé read as dots). Their halo never fades. */
+const AREA_ONLY = new Set(['MDV']);
+export function isAreaOnly(feature: Feature): boolean {
+  return AREA_ONLY.has(feature.country.iso3);
+}
+
 /** Whether this feature shows as a dot this frame under `micro`. One rule sorts every small
  *  country: an island nation with a territory halo is an AREA, in every mode but Off, and never a
  *  dot; any other country is a DOT while its equivalent square is under DOT_MAX_SIDE_PX, and its
@@ -61,12 +68,14 @@ export function showsAsDot(feature: Feature, camera: CameraState, micro: MicroMo
  *  land inside it would read as a dot. The land returns as the halo fades out. */
 export function landHidden(feature: Feature, camera: CameraState, micro?: MicroMode): boolean {
   if (drawsAsPin(feature, camera)) return true;
+  if (isAreaOnly(feature)) return micro !== 'off';
   return micro !== 'off' && haloAlpha(feature, camera) > 0;
 }
 
 /** How strongly this feature's halo shows right now: 0 for no halo or readable land. One
  *  number for drawing and hit-testing, so a halo you can't see can't be hit. */
 export function haloAlpha(feature: Feature, camera: CameraState): number {
+  if (isAreaOnly(feature) && feature.halo) return 1;
   return feature.halo ? haloStrength(feature.pieceWidth * camera.zoom) : 0;
 }
 
@@ -91,6 +100,7 @@ export function capitalsVisible(
  *  AREA calls for (capitalRevealFactor: small countries wait longer). Rings, names and
  *  hit-testing all go through this, so a ring, its name and its hover cannot disagree. */
 export function capitalShapeShowing(mark: PlaceMark, camera: CameraState, viewport: Viewport): boolean {
+  if (isAreaOnly(mark.feature)) return false;
   if (drawsAsPin(mark.feature, camera) || onScreenWidth(mark.feature, camera) < CAPITAL_MIN_SHAPE_WIDTH) return false;
   const home = homeZoom(viewport);
   return camera.zoom >= home * capitalRevealFactor(mark.feature.country.area, mark.place.lat, home, mark.place.iso3);

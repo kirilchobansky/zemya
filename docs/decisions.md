@@ -846,6 +846,7 @@ Each country with **no land borders and under 25,000 km2** (derived in `scripts/
   Kiribati's bbox is 37 degrees of specks) is <= 24 px, 0 at 60 px (`thresholds.ts`). The same number
   gates hit-testing, so a halo you can't see can't be hit.
 - **Land hidden under the halo** (owner request: halo AND a dot inside it): while a halo shows, the country's own land is withheld (`landHidden` in `visibility.ts`), so the area is the only mark; the land returns as the halo fades out.
+- **Maldives: area only** (owner request, `AREA_ONLY` in `visibility.ts`): halo at full strength at every zoom, land never drawn, no capital ring.
 - **Hit-testing** (`pick`): land first, then halos, smallest first, so Florida is still the USA and
   the smaller country wins an overlap. Not gated on the "Micro-states" toggle (the halo is the country's
   area, not a marker); the toggle still controls the land micro-states' pins.
