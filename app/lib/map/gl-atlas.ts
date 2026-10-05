@@ -482,12 +482,16 @@ export class GlAtlas implements MapController {
     const wasHome = Math.abs(this.camera.zoom / before - 1) < 1e-3;
     this.viewport = { width: rect.width, height: rect.height, insets: this.insets };
     this.map.resize();
+    // Resizing clears the canvas, and MapLibre repaints on the NEXT frame: while a sidebar is dragged
+    // that is a black flash every frame. Painting synchronously, after the camera is settled below,
+    // puts the picture back before the browser presents.
     const home = homeZoom(this.viewport);
     this.map.setMinZoom(pxToZoom(home * 0.78));
     this.map.setMaxZoom(pxToZoom(home * 320));
     this.applyGraticuleRanges();
     if (wasHome) this.home(false);
     this.syncView();
+    (this.map as unknown as { _render?: (t: number) => void })._render?.(performance.now());
   }
 
   private onMoveStart = (e: object): void => {
