@@ -505,8 +505,11 @@ a {
 .stage .maplibregl-ctrl-attrib a {
   color: var(--ink-2);
 }
-.stage .maplibregl-ctrl-attrib-button {
+.stage .maplibregl-ctrl-attrib-button,
+.stage .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
   background-image: none;
+  background-color: transparent; /* the library's light disc made the glyph and its ground one dot */
+  border: 1px solid var(--ink-3);
   color: var(--ink-3);
   font: 600 11px/24px var(--font-mono);
   text-align: center;
