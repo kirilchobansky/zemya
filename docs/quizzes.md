@@ -444,11 +444,9 @@ sovereignty line, `docs/decisions.md`).
   text that could be two countries names none — rejected, never guessed. One typo (a single insert /
   delete / substitute) is forgiven for names of 6+ letters, only when exactly one country is that
   close, never instantly — the one place the "no fuzzy matching" rule is relaxed, because there is no
-  prompt to anchor an answer. An exact match is accepted at once unless a longer still-unnamed name
-  starts with it ("Niger" while Nigeria is open, "Dominica" / "Dominican Republic"; found from the
-  list, not hard-coded). Such an exact match is accepted after **500 ms** without a further key
-  (`AUTO_ACCEPT_MS`); any key before that cancels it and Enter accepts at once. Once the longer country is
-  named it is instant. Naming one already named shows "Already named: X", not an error.
+  prompt to anchor an answer. An exact match is always accepted at once. When a longer still-unnamed name starts with it ("Niger" while Nigeria is open, "Dominica" / "Dominican Republic", "UK" / "Ukraine"; found from the
+  list, not hard-coded) its text stays in the input for **500 ms** (`AUTO_ACCEPT_MS`) so the player can keep
+  typing the longer name; a key that leads toward no open name starts fresh after the leftover. Naming one already named shows "Already named: X", not an error.
 - **Timer, desktop**: the run's timer and count are sticky at the top of the panel body (`.quiz-run__clock`),
   so a growing flag list scrolls under them; with the panel collapsed the same timer shows on the stage's
   top-left (`StageClock`, geography runs and Name all). The History fill quiz's head is sticky likewise.

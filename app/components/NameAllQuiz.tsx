@@ -24,7 +24,7 @@ import { StartCaption } from '~/components/quiz/StartCaption';
 import { useAtlasContext } from '~/lib/atlas-context';
 import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
 import { formatDuration } from '~/lib/format';
-import { matchCountryName, prepareCountryNames } from '~/lib/geography/names';
+import { matchCountryName, normaliseName, prepareCountryNames } from '~/lib/geography/names';
 import { NAME_ALL_ID, NAME_ALL_QUIZ } from '~/lib/geography/quizzes';
 import { continentOf, poolForQuiz, QUIZ_SCOPES, SCOPE_LABELS, SCOPE_VIEWS, type QuizScope } from '~/lib/geography/scopes';
 import { loadWorld } from '~/lib/geography/world';
@@ -287,30 +287,46 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
   }, []);
 
   /* An exact name that is also the start of a longer, still unnamed one ("niger" / "nigeria",
-     "dominica" / "dominican republic") is accepted after AUTO_ACCEPT_MS without a further key;
-     any key before that cancels it and the player keeps typing. Enter takes it at once. */
+     "dominica" / "dominican republic", "uk" / "ukraine") is filled at once, like any other. Its
+     text stays in the input for AUTO_ACCEPT_MS so the player can keep typing the longer name; a
+     key that does not lead toward a longer open name starts fresh after the leftover. */
   const acceptTimerRef = useRef<number | null>(null);
+  const leftoverRef = useRef('');
   const cancelAccept = useCallback(() => {
     if (acceptTimerRef.current !== null) window.clearTimeout(acceptTimerRef.current);
     acceptTimerRef.current = null;
   }, []);
   useEffect(() => cancelAccept, [cancelAccept]);
-  useEffect(() => { if (paused || !active) cancelAccept(); }, [paused, active, cancelAccept]);
+  useEffect(() => { if (paused || !active) { cancelAccept(); leftoverRef.current = ''; } }, [paused, active, cancelAccept]);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!active || pausedRef.current) return;
     cancelAccept();
-    const value = e.target.value;
+    let value = e.target.value;
+    const leftover = leftoverRef.current;
+    leftoverRef.current = '';
+    if (leftover && value.startsWith(leftover) && value.length > leftover.length) {
+      const squashed = normaliseName(value).replace(/ /g, '');
+      const leads = matchCountryName(value, prepared, namedSetRef.current) !== null ||
+        prepared.some(p => !namedSetRef.current.has(p.iso3) && p.forms.some(f => f.startsWith(squashed)));
+      if (!leads) value = value.slice(leftover.length);
+    }
     setHint('');
     const match = matchCountryName(value, prepared, namedSetRef.current);
-    if (match && match.instant && !match.typo) { accept(match.index, match.already); return; }
-    setInput(value);
-    if (match && !match.typo && !match.already) {
-      acceptTimerRef.current = window.setTimeout(() => {
-        acceptTimerRef.current = null;
-        if (phaseRef.current === 'running' && !pausedRef.current) accept(match.index, false);
-      }, AUTO_ACCEPT_MS);
+    if (match && !match.typo && (match.instant || !match.already)) {
+      accept(match.index, match.already);
+      if (!match.instant) {
+        leftoverRef.current = value;
+        setInput(value);
+        acceptTimerRef.current = window.setTimeout(() => {
+          acceptTimerRef.current = null;
+          leftoverRef.current = '';
+          setInput('');
+        }, AUTO_ACCEPT_MS);
+      }
+      return;
     }
+    setInput(value);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

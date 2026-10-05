@@ -1975,7 +1975,7 @@ a {
    nothing moves; the body's own 16px gap is kept between the two. */
 .quiz-run__clock {
   position: sticky;
-  top: 0;
+  top: -18px; /* sticky respects the body's padding, so reach up over it: no see-through strip */
   z-index: 3;
   display: flex;
   flex-direction: column;
@@ -3003,6 +3003,11 @@ a.quiz-list__row {
     padding: 14px 16px 28px;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+  }
+  .quiz-run__clock {
+    top: -14px;
+    margin: -14px -16px -10px;
+    padding: 14px 16px 10px;
   }
 
   /* --- polish: catalogue, study, dossier --- */
