@@ -16,7 +16,7 @@ import { SearchBox } from '~/components/SearchBox';
 import { AtlasContext, type TimelineLabels } from '~/lib/atlas-context';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
 import { Atlas } from '~/lib/map/atlas';
-import { refreshMapColours } from '~/lib/map/renderer';
+import { refreshMapColours, type MicroMode } from '~/lib/map/renderer';
 import HistoryCard, { PinnedHistoryCard } from '~/components/HistoryCard';
 import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
 import type { TimelineEntry } from '~/lib/history/renderer';
@@ -33,8 +33,13 @@ import {
   type QuizOverride, type StyleInputs
 } from '~/lib/geography/overlays';
 
-/** Routes whose phone sheet has no half snap. */
-const TWO_STOP_PATH = /^\/(quizzes|questions|history)(\/|$)/;
+/** The Micro toggle's cycle, and what its button says. */
+const MICRO_CYCLE: readonly MicroMode[] = ['full', 'dots', 'off'];
+const MICRO_LABEL: Record<MicroMode, string> = { full: 'Full', dots: 'Dots', off: 'Off' };
+const nextMicro = (current: MicroMode): MicroMode => MICRO_CYCLE[(MICRO_CYCLE.indexOf(current) + 1) % MICRO_CYCLE.length];
+
+/** Routes whose phone sheet has no half snap (the History timeline keeps peek / half / full). */
+const TWO_STOP_PATH = /^\/(quizzes|questions)(\/|$)/;
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
 
 /** Which features keep their stroke during a fast frame (atlas.ts, renderer.ts's Style.highlight)
@@ -263,7 +268,8 @@ function AtlasShell() {
   const [error, setError] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<OverlayId>('terrain');
   const [showNeighbours, setShowNeighbours] = useState(true);
-  const [showPins, setShowPins] = useState(true);
+  const [micro, setMicro] = useState<MicroMode>('full');
+  const [showNames, setShowNames] = useState(true);
   const [showCapitals, setShowCapitals] = useState(true);
   const [hovered, setHovered] = useState<Feature | null>(null);
   const [hoveredPlace, setHoveredPlace] = useState<PlaceMark | null>(null);
@@ -395,7 +401,7 @@ function AtlasShell() {
   const phone = useMediaQuery(PHONE_QUERY);
   const coarse = useMediaQuery(COARSE_QUERY);
   const landscape = useMediaQuery(LANDSCAPE_QUERY);
-  /* Quizzes, Questions and History: the sheet is peek or full, never half. */
+  /* Quizzes and Questions: the sheet is peek or full, never half. */
   const twoStop = TWO_STOP_PATH.test(location.pathname);
   useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive, twoStop });
   useEffect(() => {
@@ -628,7 +634,8 @@ function AtlasShell() {
             highlight: f => f === quiz.target || Boolean(quiz.showNeighbours && quiz.target?.neighbours.includes(f)),
             defaultStroke: defaultStrokeFor,
             showLabels: true,
-            showPins,
+            showPins: true,
+            micro: 'full', // a quiz target must never be hidden by the player's Micro choice
             showCapitals: false,
             quizPlace,
             quizMode: true
@@ -638,13 +645,14 @@ function AtlasShell() {
             stroke: f => strokeFor(f, styleRef.current),
             highlight: f => isSelectedOrNeighbour(f, styleRef.current),
             defaultStroke: defaultStrokeFor,
-            showLabels: true,
-            showPins,
+            showLabels: showNames,
+            showPins: micro !== 'off',
+            micro,
             showCapitals,
             quizMode: false
           }
     );
-  }, [styleInputs, showPins, showCapitals, quiz, world]);
+  }, [styleInputs, micro, showNames, showCapitals, quiz, world]);
 
   /**
    * Where the phone sheet rests after a navigation. Links and navigate() say so with
@@ -816,10 +824,12 @@ function AtlasShell() {
               <button
                 type="button"
                 className="tool"
-                aria-pressed={showPins}
-                onClick={() => setShowPins(v => !v)}
+                aria-pressed={micro !== 'off'}
+                data-state={micro}
+                title="Micro-states and islands: full, dots, off"
+                onClick={() => setMicro(nextMicro)}
               >
-                Micro-states
+                Micro: {MICRO_LABEL[micro]}
               </button>
               <button
                 type="button"
@@ -828,6 +838,14 @@ function AtlasShell() {
                 onClick={() => setShowCapitals(v => !v)}
               >
                 Capitals
+              </button>
+              <button
+                type="button"
+                className="tool"
+                aria-pressed={showNames}
+                onClick={() => setShowNames(v => !v)}
+              >
+                Names
               </button>
             </div>
           </div>
@@ -950,10 +968,12 @@ function AtlasShell() {
         onOverlayChange={setOverlay}
         showNeighbours={showNeighbours}
         onNeighbours={() => setShowNeighbours(v => !v)}
-        showPins={showPins}
-        onPins={() => setShowPins(v => !v)}
+        micro={micro}
+        onMicro={() => setMicro(nextMicro)}
         showCapitals={showCapitals}
         onCapitals={() => setShowCapitals(v => !v)}
+        showNames={showNames}
+        onNames={() => setShowNames(v => !v)}
         comparing={Boolean(comparing) || armingCompare}
         onCompare={toggleCompare}
       />

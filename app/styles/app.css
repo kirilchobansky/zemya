@@ -1126,11 +1126,10 @@ a {
   display: block;
   flex: 0 0 auto;
   object-fit: contain;
-  border-radius: 3px;
-  /* drop-shadow follows the image's alpha, not its box: a thin light rim plus a soft dark
-     lift, so a flag's own outline reads against --chart (Nepal's pennant, Qatar's
-     serrated edge) without a rectangle round it. */
-  filter: drop-shadow(0 0 1px var(--flag-shadow-rim)) drop-shadow(0 2px 6px var(--flag-shadow-lift));
+  /* no shadow, no frame, no crop: the flag at its own ratio. A faint neutral hairline that
+     follows the image's alpha (so Nepal's pennant gets no false rectangle) keeps a white flag
+     readable on --chart. */
+  filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--ink) 45%, transparent));
   /* width/height are set inline per flag (Flag.tsx), as two explicit pixel numbers
      computed from its own true viewBox — not assumed 4:3, and deliberately not
      width:auto/height:auto, which renders at zero size once the source SVG has no
@@ -2036,7 +2035,6 @@ kbd {
   justify-content: center;
   width: 460px;
   height: 300px;
-  filter: drop-shadow(0 6px 18px var(--flag-stage-shadow));
 }
 .quiz-flag-stage__outline {
   filter: none;
@@ -2187,8 +2185,26 @@ a.quiz-list__row {
   color: var(--ink-3);
   font-size: 13px;
 }
+.quiz-back-desk {
+  /* desktop: leaves a geography run, top-left of the stage */
+  position: absolute;
+  z-index: 7;
+  top: 14px;
+  left: 14px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--chart);
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.quiz-back-desk:hover {
+  color: var(--ink);
+  border-color: var(--brass-dim);
+}
 @media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
-  .quiz-pause-desk { display: none; }
+  .quiz-pause-desk, .quiz-back-desk { display: none; }
 }
 .fill-quiz__pausebtn {
   flex: 0 0 auto;
@@ -3525,4 +3541,10 @@ a.quiz-list__row {
     bottom: auto;
     top: calc(var(--vv-top, 0px) + 8px + env(safe-area-inset-top, 0px));
   }
+}
+
+/* Micro toggle's middle state: pressed, but dashed — Full solid, Dots dashed, Off unpressed */
+.tool[data-state='dots'],
+.chip[data-state='dots'] {
+  border-style: dashed;
 }

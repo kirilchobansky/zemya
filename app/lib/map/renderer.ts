@@ -17,6 +17,13 @@ import {
   CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_HALO, CAPITAL_RING_RADIUS, CAPITAL_ZOOM_FACTOR, capitalRevealFactor, HALO_EDGE_ALPHA, HALO_FILL_ALPHA, haloStrength, PIN_MAX_WIDTH
 } from './thresholds';
 
+export type MicroMode = 'full' | 'dots' | 'off';
+
+/** The effective micro mode of a style — one reading for drawing, labelling and hit-testing. */
+export function microMode(style: Pick<Style, 'showPins' | 'micro'>): MicroMode {
+  return style.micro ?? (style.showPins ? 'full' : 'off');
+}
+
 export interface Style {
   /** Fill for a country, or null to skip drawing it entirely. */
   fill(feature: Feature): string | null;
@@ -37,8 +44,14 @@ export interface Style {
   defaultStroke?(): [string, number] | null;
   /** Extra outline dragged over the map by the size-comparison tool. */
   overlay?: { path: Path2D; fill: string; stroke: string } | null;
+  /** Country names (the Names toggle). Capital names follow the capitals layer, not this. */
   showLabels: boolean;
+  /** Legacy on/off for micro-states; `micro` wins when set. */
   showPins: boolean;
+  /** How micro-states and island nations draw (the Micro toggle): `full` = pin or territory
+   *  halo, plus a name when `showLabels`; `dots` = a small dot each, no halo, no name; `off` =
+   *  nothing, and nothing to hit. Default: `full` when showPins, else `off`. */
+  micro?: MicroMode;
   /** The capitals layer: a ring per capital city once zoomed in past
    *  CAPITAL_ZOOM_FACTOR (or later, for a small country), together with its name. Off if omitted. */
   showCapitals?: boolean;
@@ -297,6 +310,15 @@ function activePath(feature: Feature, full: boolean): Path2D | null {
   return full && feature.fullPath ? feature.fullPath : feature.path;
 }
 
+/** Whether this feature shows as a dot this frame under `micro`: a pin-sized country, and in
+ *  `dots` mode also an island nation whose land is still too small to read (its halo would
+ *  show). One predicate for drawing, labelling and hit-testing. */
+function showsAsDot(feature: Feature, camera: CameraState, micro: MicroMode): boolean {
+  if (micro === 'off') return false;
+  if (drawsAsPin(feature, camera)) return true;
+  return micro === 'dots' && haloAlpha(feature, camera) > 0;
+}
+
 /** How strongly this feature's halo shows right now: 0 for no halo or readable land. One
  *  number for drawing and hit-testing, so a halo you can't see can't be hit. */
 export function haloAlpha(feature: Feature, camera: CameraState): number {
@@ -336,8 +358,9 @@ const QUIZ_FOCUS_RING_GAP = 7;
 
 function drawPins(rc: RenderContext, world: World, style: Style, focus: Set<Feature>): void {
   const { ctx, camera, viewport } = rc;
+  const micro = microMode(style);
   for (const feature of world.features) {
-    if (!drawsAsPin(feature, camera)) continue;
+    if (!showsAsDot(feature, camera, micro)) continue;
     const colour = style.fill(feature);
     if (!colour) continue;
     const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
@@ -522,9 +545,10 @@ function computeLabelLayout(rc: RenderContext, world: World, font: string, style
   const placements: LabelPlacement[] = [];
   const placed: [number, number, number][] = [];
 
-  const candidates = world.features
-    .filter(f => f.bbox)
-    .sort((a, b) => b.country.area - a.country.area);
+  const candidates = style.showLabels
+    ? world.features.filter(f => f.bbox).sort((a, b) => b.country.area - a.country.area)
+    : [];
+  const labelled = new Set<Feature>();
 
   for (const feature of candidates) {
     const box = feature.bbox!;
@@ -551,7 +575,37 @@ function computeLabelLayout(rc: RenderContext, world: World, font: string, style
     }
     if (clashes) continue;
     placed.push([x, y, textWidth]);
+    labelled.add(feature);
     placements.push({ kind: 'country', ux: feature.ux, uy: feature.uy, text: feature.country.name, font: labelFont, align: 'center', dx: 0, dy: 0 });
+  }
+
+  // micro-states and island nations in `full` mode are named beside their pin / halo centre
+  if (style.showLabels && microMode(style) === 'full') {
+    const microFont = `500 11px ${font}`;
+    const micros = world.features
+      .filter(f => !labelled.has(f) && (drawsAsPin(f, camera) || haloAlpha(f, camera) > 0))
+      .sort((a, b) => b.country.area - a.country.area);
+    for (const feature of micros) {
+      const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
+      if (x < 0 || x > viewport.width || y < 0 || y > viewport.height) continue;
+      const textWidth = measuredWidth(ctx, feature.country.name, microFont, 11);
+      const gap = 9;
+      const spots: [number, number][] = [
+        [x + gap, y],
+        [x - gap - textWidth, y],
+        [x - textWidth / 2, y + 16],
+        [x - textWidth / 2, y - 16]
+      ];
+      const spot = spots.find(([left, ly]) =>
+        !placed.some(([px, py, pw]) => Math.abs(px - (left + textWidth / 2)) < (pw + textWidth) / 2 + 6 && Math.abs(py - ly) < 15)
+      );
+      if (!spot) continue;
+      placed.push([spot[0] + textWidth / 2, spot[1], textWidth]);
+      placements.push({
+        kind: 'country', ux: feature.ux, uy: feature.uy, text: feature.country.name, font: microFont, align: 'left',
+        dx: spot[0] - x, dy: spot[1] - y
+      });
+    }
   }
 
   if (capitalsVisible(style, camera, viewport)) {
@@ -705,7 +759,7 @@ export function render(
     ctx.fillStyle = COLORS.context;
     for (const shape of contextShapes) ctx.fill(shape.path);
 
-    drawHalos(rc, world, style, copy);
+    if (microMode(style) === 'full') drawHalos(rc, world, style, copy);
 
     // Computed once per copy and reused for both passes below — same bbox test the pin
     // logic already needs (onScreenWidth), just against the viewport instead of a pixel
@@ -769,9 +823,9 @@ export function render(
   }
 
   resetTransform(rc);
-  if (style.showPins) drawPins(rc, world, style, focus);
+  if (microMode(style) !== 'off') drawPins(rc, world, style, focus);
   drawCapitals(rc, world, style);
-  if (style.showLabels) drawLabels(rc, world, uiFont, style);
+  drawLabels(rc, world, uiFont, style);
   if (pulse) drawPulse(rc, pulse);
 }
 
@@ -799,7 +853,8 @@ export function pick(
   world: World,
   sx: number,
   sy: number,
-  pinRadius = 9
+  pinRadius = 9,
+  micro: MicroMode = 'full'
 ): Feature | null {
   const { ctx, camera, viewport, dpr } = rc;
   const full = useFullDetail(camera, viewport);
@@ -807,7 +862,7 @@ export function pick(
   let nearestPin: Feature | null = null;
   let nearestDistance = pinRadius;
   for (const feature of world.features) {
-    if (!drawsAsPin(feature, camera)) continue;
+    if (!showsAsDot(feature, camera, micro)) continue;
     const [x, y] = worldToScreen(camera, viewport, feature.ux, feature.uy);
     const distance = Math.hypot(x - sx, y - sy);
     if (distance < nearestDistance) {
@@ -832,6 +887,10 @@ export function pick(
   }
   // no land hit: an island nation's halo is part of the country — a finger-sized target
   // where the land is a speck. Smallest halo first, so the smaller country wins an overlap.
+  if (micro !== 'full') {
+    resetTransform(rc);
+    return null;
+  }
   for (const copy of [0, -1, 1]) {
     applyTransform(rc, copy);
     for (const feature of world.haloFeatures) {

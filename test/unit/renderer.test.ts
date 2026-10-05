@@ -366,3 +366,12 @@ describe('the new-target pulse', () => {
     expect(ctx.strokeText).not.toHaveBeenCalled();
   });
 });
+
+describe('microMode', () => {
+  it('falls back to showPins and lets `micro` win', async () => {
+    const { microMode } = await import('~/lib/map/renderer');
+    expect(microMode({ showPins: true })).toBe('full');
+    expect(microMode({ showPins: false })).toBe('off');
+    expect(microMode({ showPins: false, micro: 'dots' })).toBe('dots');
+  });
+});

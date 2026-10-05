@@ -584,3 +584,8 @@ Same chrome as the geography run (`HistoryFillQuiz.tsx`, phone layout only; desk
 - **Leaving:** `‹ Quizzes` and Abandon run navigate to the quiz list (`sheet: 'full'`) at once and save nothing; only finishing a run saves.
 - **Input:** the one `.fill-quiz__bar` is fixed to the bottom, riding on the keyboard, with the page-lock filler under it; its Pause / Restart / Give up buttons are `display: none` on a phone. The "add the number" hint floats just above the bar. The grid scrolls between the HUD and the bar (`.fill-quiz` starts below `--hud-h`, the panel pads past the bar, `--fill-bar-h`).
 - **Idle:** the toggles stay at the top of the scrolling area. **Finished:** the result card (`.fill-quiz__summary`: time, count, personal-best message, "A given-up run is not saved.", the toggle for the next run) is at the top of the area, missed cells stay red, and "Try again" / "Back to quizzes" sit in a fixed bottom bar (safe-area aware).
+
+## Map toggles, flags (decisions)
+
+- **Micro** is `Style.micro: 'full' | 'dots' | 'off'` (`microMode()` in `renderer.ts`, falls back to `showPins`). Full = pins and island halos, named beside the pin when Names is on; Dots = small dots only (island nations whose land is unreadable get one too), no halo, no name; Off = nothing drawn and nothing hittable (`pick` takes the mode). A quiz run always uses Full, so its target is never hidden. **Names** is `showLabels` (country names only; capital names stay with the Capitals layer, so a ring never loses its name).
+- Geography run: `‹ Quizzes` top-left (phone HUD, desktop `.quiz-back-desk`) = Abandon. Flags: `.flag` has no shadow or radius, only a 0.5px alpha-following hairline; the `--flag-shadow-*` / `--flag-stage-shadow` tokens are now unused.

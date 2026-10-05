@@ -4,13 +4,15 @@
  * `display: none` above the phone width (app.css, `@media (max-width: 819px)`), so the desktop
  * layout and the prerendered HTML are the same for everyone.
  */
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router';
 
 import { DataSection, LayerControls, ProgressSection, ThemeControls } from '~/components/Rail';
 import type { MasteryTotals } from '~/lib/geography/mastery';
 import type { OverlayId } from '~/lib/geography/overlays';
+import type { MicroMode } from '~/lib/map/renderer';
 import type { SheetSnap } from '~/lib/sheet';
+import { isPhoneLandscape } from '~/lib/viewport';
 
 /** Stroke icons drawn inline: glyph characters (⏱, ◍) fall back to tofu on fonts without them,
  *  and a tab bar can't have one icon missing on one phone. */
@@ -109,11 +111,85 @@ export function TabBar({ overlay, onOverlay }: { overlay: OverlayName; onOverlay
   );
 }
 
+/** A drag this far (px), or a flick this fast (px/ms), closes an overlay sheet. */
+const SWIPE_CLOSE_PX = 40;
+const SWIPE_CLOSE_FLICK = 0.4;
+
+/**
+ * Swipe an overlay sheet (Layers, Progress) away like the main sheet: a downward drag (rightward
+ * in landscape, where it is a side panel) on the header, or on the body when it is scrolled to the
+ * top, follows the finger — the transform is written straight to the element — and closes on a
+ * short drag or a flick; otherwise it springs back.
+ */
+function useSwipeToClose(ref: RefObject<HTMLElement | null>, open: boolean, onClose: () => void): void {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !open) return;
+    let g: { x: number; y: number; mode: 'pending' | 'drag' | 'scroll'; body: HTMLElement | null; landscape: boolean; last: number; lastT: number; v: number } | null = null;
+    const axis = (x: number, y: number) => (g!.landscape ? x : y);
+    const start = (e: TouchEvent) => {
+      if (e.touches.length !== 1) { g = null; return; }
+      const t = e.touches[0];
+      g = {
+        x: t.clientX, y: t.clientY, mode: 'pending',
+        body: (e.target as Element).closest<HTMLElement>('.ovl__body'),
+        landscape: isPhoneLandscape(), last: 0, lastT: performance.now(), v: 0
+      };
+      g.last = axis(t.clientX, t.clientY);
+    };
+    const move = (e: TouchEvent) => {
+      if (!g || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const along = axis(t.clientX, t.clientY) - axis(g.x, g.y);
+      const across = g.landscape ? t.clientY - g.y : t.clientX - g.x;
+      if (g.mode === 'pending') {
+        if (Math.abs(along) < 6 && Math.abs(across) < 6) return;
+        g.mode = along > 0 && Math.abs(along) > Math.abs(across) && (!g.body || g.body.scrollTop <= 0) ? 'drag' : 'scroll';
+        if (g.mode === 'drag') {
+          el.style.transition = 'none';
+          g.x = t.clientX; g.y = t.clientY;
+        }
+      }
+      if (g.mode !== 'drag') return;
+      const now = performance.now();
+      const at = axis(t.clientX, t.clientY);
+      const dt = now - g.lastT;
+      if (dt > 0) g.v = g.v * 0.6 + ((at - g.last) / dt) * 0.4;
+      g.last = at; g.lastT = now;
+      const d = Math.max(0, at - axis(g.x, g.y));
+      el.style.transform = `translate${g.landscape ? 'X' : 'Y'}(${d}px)`;
+      if (e.cancelable) e.preventDefault();
+    };
+    const end = () => {
+      const d = g;
+      g = null;
+      if (!d || d.mode !== 'drag') return;
+      const moved = parseFloat(el.style.transform.replace(/[^\d.-]/g, '')) || 0;
+      el.style.transition = '';
+      el.style.transform = '';
+      if (moved >= SWIPE_CLOSE_PX || d.v >= SWIPE_CLOSE_FLICK) onClose();
+    };
+    el.addEventListener('touchstart', start, { passive: true });
+    el.addEventListener('touchmove', move, { passive: false });
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
+    return () => {
+      el.removeEventListener('touchstart', start);
+      el.removeEventListener('touchmove', move);
+      el.removeEventListener('touchend', end);
+      el.removeEventListener('touchcancel', end);
+      el.style.transition = '';
+      el.style.transform = '';
+    };
+  }, [ref, open, onClose]);
+}
+
 /** A small sheet that slides up over the map, above the tab bar. Not a route: it has no URL and
  *  no page, it is just a panel of controls. Closes on the backdrop, ×, or Escape. */
 function OverlaySheet({
   open, title, onClose, children
 }: { open: boolean; title: string; onClose(): void; children: ReactNode }) {
+  const sheetRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -121,10 +197,12 @@ function OverlaySheet({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  useSwipeToClose(sheetRef, open, onClose);
+
   return (
     <div className="ovl" data-open={open} inert={!open}>
       <div className="ovl__backdrop" onClick={onClose} />
-      <section className="ovl__sheet" role="dialog" aria-label={title}>
+      <section ref={sheetRef} className="ovl__sheet" role="dialog" aria-label={title}>
         <header className="ovl__head">
           <h2>{title}</h2>
           <button type="button" className="ovl__close" onClick={onClose} aria-label={`Close ${title}`}>
@@ -144,10 +222,12 @@ interface LayersSheetProps {
   onOverlayChange(overlay: OverlayId): void;
   showNeighbours: boolean;
   onNeighbours(): void;
-  showPins: boolean;
-  onPins(): void;
+  micro: MicroMode;
+  onMicro(): void;
   showCapitals: boolean;
   onCapitals(): void;
+  showNames: boolean;
+  onNames(): void;
   comparing: boolean;
   onCompare(): void;
 }
@@ -164,11 +244,14 @@ export function LayersSheet(props: LayersSheetProps) {
           <button type="button" className="chip" aria-pressed={props.showNeighbours} onClick={props.onNeighbours}>
             Neighbour glow
           </button>
-          <button type="button" className="chip" aria-pressed={props.showPins} onClick={props.onPins}>
-            Micro-states
+          <button type="button" className="chip" aria-pressed={props.micro !== 'off'} data-state={props.micro} onClick={props.onMicro}>
+            Micro: {props.micro === 'full' ? 'Full' : props.micro === 'dots' ? 'Dots' : 'Off'}
           </button>
           <button type="button" className="chip" aria-pressed={props.showCapitals} onClick={props.onCapitals}>
             Capitals
+          </button>
+          <button type="button" className="chip" aria-pressed={props.showNames} onClick={props.onNames}>
+            Names
           </button>
         </div>
       </section>

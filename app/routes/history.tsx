@@ -34,7 +34,7 @@ export default function HistoryPicker() {
       <div className="panel__body">
         <div className="subject-list">
           {HISTORY_COUNTRIES.map(country => (
-            <Link key={country.slug} to={`/history/${country.slug}`} state={{ sheet: 'full' }} className="subject-card">
+            <Link key={country.slug} to={`/history/${country.slug}`} state={{ sheet: 'half' }} className="subject-card">
               <span className="subject-card__name">{country.nameEn}</span>
               <span className="subject-card__blurb">{country.range}</span>
             </Link>

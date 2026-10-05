@@ -9,7 +9,7 @@ import {
 } from './camera';
 import { lonToX, latToY, wrapX, xToLon, yToLat } from './projection';
 import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
-import { COLORS, hitOverlay, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
+import { COLORS, hitOverlay, microMode, pick, pickPlace, render, scaleBar, type Pulse, type RenderContext, type Style } from './renderer';
 import { reprojectToTrueSize, ringsToPath } from './topology';
 import type { Feature, PlaceMark, World } from './types';
 
@@ -507,7 +507,7 @@ export class Atlas {
       })()
     ];
     const screen = this.worldPointToScreen(sx, sy);
-    const over = pick(this.renderContext, this.world, screen[0], screen[1]);
+    const over = pick(this.renderContext, this.world, screen[0], screen[1], undefined, microMode(this.style));
     this.callbacks.onCompareMove?.(this.compare.feature, over === this.compare.feature ? null : over);
   }
 
@@ -607,7 +607,7 @@ export class Atlas {
     // tooltip/highlight that hover drives would only flash under a tap. A tap selects instead.
     if (e.pointerType === 'touch') return;
     const mark = pickPlace(this.renderContext, this.world, this.style, e.offsetX, e.offsetY);
-    const feature = mark?.feature ?? pick(this.renderContext, this.world, e.offsetX, e.offsetY);
+    const feature = mark?.feature ?? pick(this.renderContext, this.world, e.offsetX, e.offsetY, undefined, microMode(this.style));
     this.callbacks.onHover(feature, e.offsetX, e.offsetY, mark);
   };
 
@@ -630,7 +630,7 @@ export class Atlas {
       );
       this.callbacks.onSelect(
         mark?.feature ??
-          pick(this.renderContext, this.world, e.offsetX, e.offsetY, touch ? TOUCH_HIT_RADIUS_PX : undefined)
+          pick(this.renderContext, this.world, e.offsetX, e.offsetY, touch ? TOUCH_HIT_RADIUS_PX : undefined, microMode(this.style))
       );
     }
     this.drag = null;

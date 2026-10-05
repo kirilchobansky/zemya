@@ -139,4 +139,5 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   `docs/decisions.md`'s "Sidebar collapse/resize".
 
 
-- Phone sheet: Quizzes, Questions and History have only peek and full (no half); short drag/flick down closes. Map and dossier keep half.
+- Phone sheet: Quizzes and Questions have only peek and full (no half); short drag/flick down closes. Map, dossier and History keep half. Layers/Progress overlay sheets swipe down to close.
+- Map toggles: Micro (Full / Dots / Off, cycles), Capitals, Names (country names). Geography runs have a top-left Quizzes button (phone HUD and desktop stage). Flags: no shadow, hairline only.

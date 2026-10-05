@@ -33,7 +33,7 @@ handle/arrow to step peek -> half -> full -> half. Snap state lives in `AtlasShe
 asks for one with `state={{ sheet: 'peek' | 'half' }}` (map tap and search pick: peek; tabs:
 half). A link that says nothing (a neighbour chip in the sheet) leaves it where it is. **Decision:**
 a cold load of anything but `/` opens at half (the page is why they came).
-**Two-stop routes:** under `/quizzes`, `/questions` and `/history` the sheet has no half — only peek and full (`TWO_STOP_PATH` in `atlas.tsx`, `twoStop` in `sheet.ts`). A `sheet: 'half'` request, or a stray half left over from the map, resolves to full. A drag of 40px (or a flick) down on the handle/header — or in the body scrolled to the top — closes to peek, up opens to full; the handle taps full <-> peek. An opened quiz also scrolls into view when the sheet has just reached full.
+**Two-stop routes:** under `/quizzes` and `/questions` the sheet has no half — only peek and full (`TWO_STOP_PATH` in `atlas.tsx`, `twoStop` in `sheet.ts`); `/history` and the timeline keep peek / half / full. A `sheet: 'half'` request, or a stray half left over from the map, resolves to full. A drag of 40px (or a flick) down on the handle/header — or in the body scrolled to the top — closes to peek, up opens to full; the handle taps full <-> peek. An opened quiz also scrolls into view when the sheet has just reached full.
 Each panel route's `<header className="panel__head panel__head--peek">` holds a `.peek` block —
 what shows at the lowest snap (country: flag + name + capital · population · currency; home:
 "Explore the map" + a search prompt; catalogue: "Quizzes"). Routes without one show their
@@ -167,3 +167,5 @@ phone; the smoke test covers everything that doesn't need one.
   If the cylinder (plus the centre-date line) is still taller than that strip, `render` shrinks the
   whole thing uniformly (`phoneScale` in renderer.ts, 0.6-1): laid out in logical px and drawn
   through a canvas scale, hit regions and pinned-card rects converted at the boundary.
+
+- Overlay sheets (Layers, Progress/mastery) close by swiping down (sideways in landscape) from the header or a body scrolled to the top: 40px or a flick, `useSwipeToClose` in `MobileChrome.tsx`.

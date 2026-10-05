@@ -804,6 +804,16 @@ function QuizRun() {
 
       <Stage {...stageProps} slot="stage" />
 
+      {/* Quizzes: top-left of the stage on desktop (the phone HUD has its own); leaves the run
+          exactly like Abandon */}
+      {engine.phase !== "done" && stageHost &&
+        createPortal(
+          <button type="button" className="quiz-back-desk" onClick={engine.abandon}>
+            ‹ Quizzes
+          </button>,
+          stageHost,
+        )}
+
       {/* Desktop pause: covers the stage (map / flag / outline), so a pause can't be used to
           study the target; the panel stays clickable for Resume. Phone has .quiz-pause below. */}
       {engine.phase === "paused" && stageHost &&
@@ -841,6 +851,15 @@ function QuizRun() {
                 </>
               ) : (
                 <>
+                  <button
+                    type="button"
+                    className="quiz-hud__back"
+                    onPointerDown={keepFocus}
+                    onMouseDown={keepFocus}
+                    onClick={engine.abandon}
+                  >
+                    ‹ Quizzes
+                  </button>
                   <span className="quiz-hud__timer numeric">
                     {formatDuration(engine.elapsedMs)}
                   </span>
