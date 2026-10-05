@@ -11,5 +11,6 @@ export default defineConfig({
       '~': fileURLToPath(new URL('./app', import.meta.url))
     }
   },
+  server: { allowedHosts: ['.trycloudflare.com'] },
   plugins: [reactRouter()]
 });
