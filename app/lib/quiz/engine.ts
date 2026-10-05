@@ -59,6 +59,8 @@ export interface QuizEngine {
   reveal(): void;
   togglePause(): void;
   abandon(): void;
+  /** Leave a run (or its results) for the start screen, nothing saved — the panel's Up button. */
+  toStart(): void;
   onInputChange(e: ChangeEvent<HTMLInputElement>): void;
   onInputKeyDown(e: ReactKeyboardEvent<HTMLInputElement>): void;
   inputRef: RefObject<HTMLInputElement | null>;
@@ -137,8 +139,8 @@ export function useQuizEngine(
   const target = queue.length ? queue[0] : null;
 
   /* a different :scope, :size (or quiz) while this route stays mounted is a fresh run, not a
-     continuation of the old one */
-  useEffect(() => {
+     continuation of the old one; toStart is the same reset, asked for by the panel's Up button */
+  const toStart = useCallback(() => {
     setPhase('idle');
     setQueue([]);
     setRunList(null);
@@ -151,7 +153,8 @@ export function useQuizEngine(
     segmentStartRef.current = null;
     shownAtRef.current = new Map();
     skippedRef.current = new Set();
-  }, [definition.id, scope, size]);
+  }, []);
+  useEffect(toStart, [definition.id, scope, size, toStart]);
 
   const begin = useCallback((list: CountryRecord[]) => {
     if (!list.length) return;
@@ -469,6 +472,7 @@ export function useQuizEngine(
     reveal,
     togglePause,
     abandon,
+    toStart,
     onInputChange,
     onInputKeyDown,
     inputRef

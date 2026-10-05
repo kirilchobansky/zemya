@@ -56,6 +56,7 @@ import { keepFocus } from "~/components/quiz/QuizControls";
 import { useKeyboard, useQuizPageLock } from "~/lib/keyboard";
 import { NO_INSETS } from "~/lib/map/follow";
 import { measureInsets } from "~/lib/quiz/insets";
+import { useUpStep } from "~/lib/up";
 import { isCoarsePointer, isPhoneLayout } from "~/lib/viewport";
 import type { CountryRecord, World } from "~/lib/map/types";
 
@@ -330,6 +331,8 @@ function QuizRun() {
   }, [runOwnsScreen, setImmersive]);
   useQuizPageLock(runOwnsScreen);
   const finished = validRun && engine.phase === "done";
+  // Up: a run or its results go back to this quiz's start screen; the start screen's Up is the list
+  useUpStep(validRun && engine.phase !== "idle", engine.toStart);
   useEffect(() => {
     if (finished) setSheetSnap("full");
   }, [finished, setSheetSnap]);
@@ -784,7 +787,7 @@ function QuizRun() {
               >
                 Run it again
               </button>
-              <Link to={backTo} state={{ sheet: "full" }} className="action">
+              <Link to={backTo} state={{ sheet: "full" }} className="action desk-hide">
                 Back to quizzes
               </Link>
             </div>
@@ -793,16 +796,6 @@ function QuizRun() {
       </div>
 
       <Stage {...stageProps} slot="stage" />
-
-      {/* Quizzes: top-left of the stage on desktop (the phone HUD has its own); leaves the run
-          exactly like Abandon */}
-      {engine.phase !== "done" && stageHost &&
-        createPortal(
-          <button type="button" className="quiz-back-desk" onClick={engine.abandon}>
-            ‹ Quizzes
-          </button>,
-          stageHost,
-        )}
 
       {/* Desktop pause: covers the stage (map / flag / outline), so a pause can't be used to
           study the target; the panel stays clickable for Resume. Phone has .quiz-pause below. */}

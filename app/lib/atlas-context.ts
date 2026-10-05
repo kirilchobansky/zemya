@@ -75,6 +75,10 @@ export interface AtlasContextValue {
   historyHiddenCategories: ReadonlySet<string>;
   toggleHistoryCategory: (category: string) => void;
   resetHistoryFilters: () => void;
+  /** The route's own "one level up" (lib/up.ts `useUpStep`): a run leaving to its start
+   *  screen. Null when the route has no level inside it, so Up follows the URL hierarchy. */
+  upStep: (() => void) | null;
+  setUpStep: (step: (() => void) | null) => void;
 }
 
 export const AtlasContext = createContext<AtlasContextValue | null>(null);

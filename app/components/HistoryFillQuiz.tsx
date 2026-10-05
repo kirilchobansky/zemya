@@ -28,6 +28,7 @@ import {
 } from '~/lib/history/fill-quiz';
 import { historyCountryFor } from '~/lib/history/countries';
 import { toggleSize } from '~/lib/history/fill-quiz-config';
+import { useUpStep } from '~/lib/up';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
 
@@ -217,6 +218,9 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     inputRef.current?.focus({ preventScroll: true });
   };
 
+  // Up from a run or its results: back to the start screen (restart's reset), nothing saved
+  useUpStep(phase !== 'idle', restart);
+
   const toggleBox = (hidden: boolean) => quiz.toggle && (
     <label
       className={`fill-quiz__toggle${hidden ? ' fill-quiz__toggle--off' : ''}`}
@@ -234,7 +238,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const buttons = (
     <div className="actions">
       <button type="button" className="action action--primary" onClick={restart}>Try again</button>
-      <Link to={backTo} state={{ sheet: 'full' }} className="action">Back to quizzes</Link>
+      <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
     </div>
   );
 
@@ -422,12 +426,15 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             {buttons}
           </>
         ) : (
-          <div className="actions">
-            <button type="button" className="action" disabled={phase !== 'running'} onClick={togglePause}>
-              {paused ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
-            </button>
-            <Link to={backTo} state={{ sheet: 'full' }} className="action">Back to quizzes</Link>
-          </div>
+          // Pause exists only while a run is active: nothing on the start screen
+          phase === 'running' && (
+            <div className="actions">
+              <button type="button" className="action" onClick={togglePause}>
+                {paused ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
+              </button>
+              <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
+            </div>
+          )
         )}
       </div>
       {mounted && host && createPortal(screen, host)}

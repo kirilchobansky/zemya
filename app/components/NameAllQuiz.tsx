@@ -31,6 +31,7 @@ import { loadWorld } from '~/lib/geography/world';
 import { useKeyboard, useQuizPageLock } from '~/lib/keyboard';
 import { NO_INSETS } from '~/lib/map/follow';
 import { measureInsets } from '~/lib/quiz/insets';
+import { useUpStep } from '~/lib/up';
 import type { CountryRecord, World } from '~/lib/map/types';
 import { isCoarsePointer, isPhoneLayout } from '~/lib/viewport';
 
@@ -256,6 +257,23 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
 
   const leave = () => navigate(backTo, { state: { sheet: 'full' } });
 
+  /* The panel's Up from a run or its results: back to the start screen, nothing saved. */
+  const toStart = () => {
+    pausedRef.current = false;
+    setPaused(false);
+    namedRef.current = NO_NAMED;
+    namedSetRef.current = new Set();
+    setNamed(NO_NAMED);
+    setInput('');
+    setHint('');
+    setOutcome(null);
+    elapsedRef.current = 0;
+    setElapsedMs(0);
+    phaseRef.current = 'idle';
+    setPhase('idle');
+  };
+  useUpStep(phase !== 'idle', toStart);
+
   const togglePause = useCallback(() => {
     if (phaseRef.current !== 'running') return;
     if (pausedRef.current) startedAtRef.current = Date.now() - elapsedRef.current;
@@ -459,17 +477,12 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
             )}
             <div className="actions">
               <button type="button" className="action action--primary" onClick={restart}>Run it again</button>
-              <Link to={backTo} state={{ sheet: 'full' }} className="action">Back to quizzes</Link>
+              <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
             </div>
           </>
         )}
       </div>
 
-      {/* Desktop: top-left of the stage; leaves the run like Abandon. */}
-      {!finished && stageHost && createPortal(
-        <button type="button" className="quiz-back-desk" onClick={leave}>‹ Quizzes</button>,
-        stageHost
-      )}
       {paused && stageHost && createPortal(
         <div className="quiz-pause-desk" role="dialog" aria-label="Paused">
           <p className="quiz-pause__title">Paused</p>

@@ -1,7 +1,6 @@
 import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useLocation, useMatch } from 'react-router';
 
-import { useBack } from '~/lib/back';
 import { useProgress } from '~/lib/core/ProgressProvider';
 import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
 import type { MasteryTotals } from '~/lib/geography/mastery';
@@ -29,6 +28,15 @@ const SECTIONS = [
   { to: '/history', label: 'History', isActive: (p: string) => p.startsWith('/history') }
 ];
 
+/** The big chevron on a collapsed sidebar's expand tab. */
+export function EdgeArrow({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={dir === 'right' ? 'M9 4l8 8-8 8' : 'M15 4l-8 8 8 8'} />
+    </svg>
+  );
+}
+
 export function Rail({
   overlay, onOverlayChange, countryCount, totals,
   collapsed, onToggleCollapsed, onHandlePointerDown, onHandleDoubleClick
@@ -38,7 +46,6 @@ export function Rail({
   const onCountry = useMatch('/country/:slug') !== null;
   const Wordmark = onCountry ? 'div' : 'h1';
   const { pathname } = useLocation();
-  const { canGoBack, goBack } = useBack();
   return (
     <aside className={`rail${collapsed ? ' rail--collapsed' : ''}`}>
       <div
@@ -50,21 +57,6 @@ export function Rail({
         onPointerDown={onHandlePointerDown}
         onDoubleClick={onHandleDoubleClick}
       />
-      {/* Back: where the collapse button used to be. In the collapsed rail (zero width) it stays as a
-          small icon tab on the stage's left edge, so it is reachable in both states. */}
-      <button
-        type="button"
-        className="rail__back"
-        title="Back (Alt+←)"
-        aria-label="Back"
-        disabled={!canGoBack}
-        onClick={goBack}
-      >
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
-        <span className="rail__back-label">Back</span>
-      </button>
       {collapsed && (
         <button
           type="button"
@@ -73,7 +65,7 @@ export function Rail({
           aria-label="Expand sidebar"
           onClick={onToggleCollapsed}
         >
-          ›
+          <EdgeArrow dir="right" />
         </button>
       )}
 
@@ -135,7 +127,7 @@ export function Rail({
         </p>
       </div>
 
-      {/* bottom of the sidebar; collapsed, the edge tab above takes over at the same height */}
+      {/* bottom of the sidebar; collapsed, the expand tab on the screen edge (vertically centred) takes over */}
       <button
         type="button"
         className="sidebar-collapse"

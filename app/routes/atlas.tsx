@@ -11,7 +11,8 @@ import {
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router';
 
 import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName } from '~/components/MobileChrome';
-import { Rail } from '~/components/Rail';
+import { EdgeArrow, Rail } from '~/components/Rail';
+import { UpButton } from '~/components/UpButton';
 import { SearchBox } from '~/components/SearchBox';
 import { AtlasContext, type TimelineLabels } from '~/lib/atlas-context';
 import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
@@ -369,6 +370,9 @@ function AtlasShell() {
     setPanelCollapsed(false);
   }, [location.pathname]);
   const togglePanelCollapsed = useCallback(() => setPanelCollapsed(v => !v), []);
+  /* A route's own level for the panel's Up button (lib/up.ts useUpStep): a run leaving to its start screen */
+  const [upStep, setUpStepState] = useState<(() => void) | null>(null);
+  const setUpStep = useCallback((step: (() => void) | null) => setUpStepState(() => step), []);
 
   // "[" toggles the rail, "]" toggles the panel — ignored while typing in an input (Ctrl+[ and
   // Ctrl+] still work there: they type nothing), and desktop-only (phone has no rail and the panel is the bottom sheet, not this sidebar).
@@ -734,7 +738,8 @@ function AtlasShell() {
         setTimelineEntries, setTimelineLabels,
         historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId, pinHistoryEntry,
         historyTimeline: historyTimelineInstance, historyCurrentPeriodId,
-        historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
+        historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters,
+        upStep, setUpStep
       }}
     >
     <div
@@ -743,8 +748,8 @@ function AtlasShell() {
         '--rail-width': `${railCollapsed ? 0 : railWidth}px`,
         '--panel-width': `${panelCollapsed ? 0 : panelWidth}px`,
         // room for a collapsed side's edge tab, so full-area screens never sit under it
-        '--rail-gap': railCollapsed ? '32px' : '0px',
-        '--panel-gap': panelCollapsed ? '32px' : '0px'
+        '--rail-gap': railCollapsed ? '40px' : '0px',
+        '--panel-gap': panelCollapsed ? '40px' : '0px'
       } as CSSProperties}
     >
       <Rail
@@ -943,15 +948,7 @@ function AtlasShell() {
               onPointerDown={e => startSidebarDrag('panel', e)}
               onDoubleClick={() => resetSidebarWidth('panel')}
             />
-            <button
-              type="button"
-              className="sidebar-collapse"
-              title={panelCollapsed ? 'Expand panel (])' : 'Collapse panel (])'}
-              aria-label={panelCollapsed ? 'Expand panel' : 'Collapse panel'}
-              onClick={togglePanelCollapsed}
-            >
-              {panelCollapsed ? '‹' : '›'}
-            </button>
+            {!panelCollapsed && <UpButton />}
             {panelCollapsed && (
               <button
                 type="button"
@@ -960,7 +957,7 @@ function AtlasShell() {
                 aria-label="Expand panel"
                 onClick={togglePanelCollapsed}
               >
-                ‹
+                <EdgeArrow dir="left" />
               </button>
             )}
           </>
@@ -969,6 +966,17 @@ function AtlasShell() {
           <SheetGrip snap={snap} twoStop={twoStop} onStep={() => setSnap(stepSnap(snap, twoStop))} />
           <Outlet />
         </div>
+        {!phone && !panelCollapsed && (
+          <button
+            type="button"
+            className="sidebar-collapse"
+            title="Collapse panel (])"
+            aria-label="Collapse panel"
+            onClick={togglePanelCollapsed}
+          >
+            ›
+          </button>
+        )}
       </aside>
 
       <TabBar overlay={overlaySheet} onOverlay={setOverlaySheet} />
