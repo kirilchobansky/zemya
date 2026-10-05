@@ -49,12 +49,12 @@ const NEXT_LABEL: Record<SheetSnap, string> = {
 
 /** The sheet's drag handle and ⌃ arrow. Dragging is wired by useSheetDrag on the whole panel;
  *  this is what a plain tap lands on, and the accessible name of the control. */
-export function SheetGrip({ snap, onStep }: { snap: SheetSnap; onStep(): void }) {
+export function SheetGrip({ snap, onStep, twoStop = false }: { snap: SheetSnap; onStep(): void; twoStop?: boolean }) {
   return (
     <button
       type="button"
       className="sheet__grip"
-      aria-label={NEXT_LABEL[snap]}
+      aria-label={twoStop && snap === 'peek' ? 'Expand panel to full height' : twoStop ? 'Close panel' : NEXT_LABEL[snap]}
       data-snap={snap}
       onClick={onStep}
     >

@@ -22,6 +22,10 @@ export const DRAWER_TAB_PX = 36;
 export const DRAWER_HALF_FRACTION = 0.4;
 export const DRAWER_FULL_FRACTION = 0.7;
 const SNAPS: readonly SheetSnap[] = ['peek', 'half', 'full'];
+const TWO_STOP_SNAPS: readonly SheetSnap[] = ['peek', 'full'];
+/** Two-stop routes: a drag this far (px), or a flick this fast (px/ms), settles toward its direction. */
+const TWO_STOP_DRAG_PX = 40;
+const TWO_STOP_FLICK = 0.4;
 
 /** A drag must move this far before it is a drag rather than a tap or a scroll. */
 const DRAG_SLOP_PX = 6;
@@ -41,15 +45,17 @@ export function sheetVisible(snap: SheetSnap, size: number, tabBar: number, land
 }
 
 /** The snap point one step up (or down, from full) — what tapping the handle does. */
-export function stepSnap(snap: SheetSnap): SheetSnap {
+export function stepSnap(snap: SheetSnap, twoStop = false): SheetSnap {
+  if (twoStop) return snap === 'peek' ? 'full' : 'peek';
   return snap === 'peek' ? 'half' : snap === 'half' ? 'full' : 'half';
 }
 
-/** The snap whose visible height is closest to `visible`. */
-export function nearestSnap(visible: number, size: number, tabBar: number, landscape = false): SheetSnap {
+/** The snap whose visible height is closest to `visible`. `twoStop` (Quizzes, Questions and
+ *  History) has no half step: only peek and full. */
+export function nearestSnap(visible: number, size: number, tabBar: number, landscape = false, twoStop = false): SheetSnap {
   let best: SheetSnap = 'peek';
   let bestDistance = Infinity;
-  for (const snap of SNAPS) {
+  for (const snap of twoStop ? TWO_STOP_SNAPS : SNAPS) {
     const distance = Math.abs(sheetVisible(snap, size, tabBar, landscape) - visible);
     if (distance < bestDistance) {
       bestDistance = distance;
@@ -64,6 +70,8 @@ interface SheetOptions {
   onSnap(snap: SheetSnap): void;
   /** No dragging at all when the sheet isn't the layout (desktop) or is hidden (a quiz run). */
   enabled: boolean;
+  /** Only peek and full (no half): a downward drag or flick of any length closes to peek. */
+  twoStop?: boolean;
 }
 
 /**
@@ -75,7 +83,7 @@ interface SheetOptions {
  *     native scrolling); a mouse can drag the handle too, for a narrow desktop window.
  */
 export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: SheetOptions): void {
-  const { snap, onSnap, enabled } = options;
+  const { snap, onSnap, enabled, twoStop = false } = options;
 
   useEffect(() => {
     const el = panel.current;
@@ -165,7 +173,13 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       if (!g || g.mode !== 'sheet') return;
       const current = sheetSize() - (parseFloat(el!.style.transform.replace(/[^\d.-]/g, '')) || 0);
       const projected = current + g.velocity * FLING_PROJECTION_MS;
-      const next = nearestSnap(projected, viewportSize(), tabBarHeight(), landscape);
+      let next = nearestSnap(projected, viewportSize(), tabBarHeight(), landscape, twoStop);
+      if (twoStop) {
+        const dragged = current - g.startVisible; // positive = opened further
+        if (dragged <= -TWO_STOP_DRAG_PX || g.velocity <= -TWO_STOP_FLICK) next = 'peek';
+        else if (dragged >= TWO_STOP_DRAG_PX || g.velocity >= TWO_STOP_FLICK) next = 'full';
+        else next = snap;
+      }
       // set the attribute and drop the inline transform in the same tick, so the browser
       // animates from the dragged position to the snap instead of jumping
       el!.style.transition = '';
@@ -231,5 +245,5 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
       el.style.transition = '';
       el.style.transform = '';
     };
-  }, [panel, snap, onSnap, enabled]);
+  }, [panel, snap, onSnap, enabled, twoStop]);
 }

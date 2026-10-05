@@ -138,3 +138,5 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   collapsed state persist per browser (localStorage). Phone layout is unchanged. See
   `docs/decisions.md`'s "Sidebar collapse/resize".
 
+
+- Phone sheet: Quizzes, Questions and History have only peek and full (no half); short drag/flick down closes. Map and dossier keep half.

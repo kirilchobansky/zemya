@@ -189,10 +189,24 @@ function QuizList({
   );
 
   // An opened quiz brings its options into view (on a phone the list is longer than the sheet).
+  // Also when the sheet has only just opened: it scrolls once the panel reaches full.
   useEffect(() => {
     if (!openId) return;
-    const el = document.querySelector<HTMLElement>(`[data-quiz-id="${openId}"]`);
-    el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const scroll = () =>
+      document
+        .querySelector<HTMLElement>(`[data-quiz-id="${openId}"]`)
+        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const panel = document.querySelector<HTMLElement>('.panel');
+    scroll();
+    if (!panel) return;
+    let wasFull = panel.dataset.snap === 'full';
+    const observer = new MutationObserver(() => {
+      const full = panel.dataset.snap === 'full';
+      if (full && !wasFull) scroll();
+      wasFull = full;
+    });
+    observer.observe(panel, { attributes: true, attributeFilter: ['data-snap'] });
+    return () => observer.disconnect();
   }, [openId]);
 
   useEffect(() => {

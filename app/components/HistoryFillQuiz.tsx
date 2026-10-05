@@ -232,7 +232,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const buttons = (
     <div className="actions">
       <button type="button" className="action action--primary" onClick={restart}>Try again</button>
-      <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
+      <Link to={backTo} state={{ sheet: 'full' }} className="action">Back to quizzes</Link>
     </div>
   );
 
@@ -422,7 +422,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
             <button type="button" className="action" disabled={phase !== 'running'} onClick={togglePause}>
               {paused ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
             </button>
-            <Link to={backTo} state={{ sheet: 'half' }} className="action">Back to quizzes</Link>
+            <Link to={backTo} state={{ sheet: 'full' }} className="action">Back to quizzes</Link>
           </div>
         )}
       </div>

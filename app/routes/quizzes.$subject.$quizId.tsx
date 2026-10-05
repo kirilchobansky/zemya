@@ -273,7 +273,7 @@ function QuizRun() {
   const countries =
     redraw && redraw.from === drawnCountries ? redraw.list : drawnCountries;
 
-  const abandon = () => navigate(backTo, { state: { sheet: "half" } });
+  const abandon = () => navigate(backTo, { state: { sheet: "full" } });
   const engine = useQuizEngine(
     definition ?? { id: "unknown", facet: "location" },
     drawnCountries,
@@ -793,7 +793,7 @@ function QuizRun() {
               >
                 Run it again
               </button>
-              <Link to={backTo} state={{ sheet: "half" }} className="action">
+              <Link to={backTo} state={{ sheet: "full" }} className="action">
                 Back to quizzes
               </Link>
             </div>
@@ -829,7 +829,7 @@ function QuizRun() {
                 <>
                   <Link
                     to={backTo}
-                    state={{ sheet: "half" }}
+                    state={{ sheet: "full" }}
                     className="quiz-hud__back"
                   >
                     ‹ Quizzes

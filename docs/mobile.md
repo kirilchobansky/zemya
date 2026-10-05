@@ -33,6 +33,7 @@ handle/arrow to step peek -> half -> full -> half. Snap state lives in `AtlasShe
 asks for one with `state={{ sheet: 'peek' | 'half' }}` (map tap and search pick: peek; tabs:
 half). A link that says nothing (a neighbour chip in the sheet) leaves it where it is. **Decision:**
 a cold load of anything but `/` opens at half (the page is why they came).
+**Two-stop routes:** under `/quizzes`, `/questions` and `/history` the sheet has no half — only peek and full (`TWO_STOP_PATH` in `atlas.tsx`, `twoStop` in `sheet.ts`). A `sheet: 'half'` request, or a stray half left over from the map, resolves to full. A drag of 40px (or a flick) down on the handle/header — or in the body scrolled to the top — closes to peek, up opens to full; the handle taps full <-> peek. An opened quiz also scrolls into view when the sheet has just reached full.
 Each panel route's `<header className="panel__head panel__head--peek">` holds a `.peek` block —
 what shows at the lowest snap (country: flag + name + capital · population · currency; home:
 "Explore the map" + a search prompt; catalogue: "Quizzes"). Routes without one show their

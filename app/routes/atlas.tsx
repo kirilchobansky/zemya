@@ -33,6 +33,8 @@ import {
   type QuizOverride, type StyleInputs
 } from '~/lib/geography/overlays';
 
+/** Routes whose phone sheet has no half snap. */
+const TWO_STOP_PATH = /^\/(quizzes|questions|history)(\/|$)/;
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
 
 /** Which features keep their stroke during a fast frame (atlas.ts, renderer.ts's Style.highlight)
@@ -393,7 +395,14 @@ function AtlasShell() {
   const phone = useMediaQuery(PHONE_QUERY);
   const coarse = useMediaQuery(COARSE_QUERY);
   const landscape = useMediaQuery(LANDSCAPE_QUERY);
-  useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive });
+  /* Quizzes, Questions and History: the sheet is peek or full, never half. */
+  const twoStop = TWO_STOP_PATH.test(location.pathname);
+  useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive, twoStop });
+  useEffect(() => {
+    if (!twoStop || snap !== 'half') return;
+    snapRef.current = 'full';
+    setSnap('full');
+  }, [twoStop, snap]);
 
   /* What the sheet and tab bar cover, for the camera — read through refs so an effect that
      fires in the same commit as a snap change (a cold load flying to its country) sees the
@@ -653,8 +662,9 @@ function AtlasShell() {
       (location.state as { sheet?: SheetSnap } | null)?.sheet ??
       (first && location.pathname !== '/' ? 'half' : undefined);
     if (!asked) return;
-    snapRef.current = asked; // the fly effect below runs in this same flush
-    setSnap(asked);
+    const target = asked === 'half' && TWO_STOP_PATH.test(location.pathname) ? 'full' : asked;
+    snapRef.current = target; // the fly effect below runs in this same flush
+    setSnap(target);
   }, [location.key, location.pathname, location.state]);
 
   /**
@@ -927,7 +937,7 @@ function AtlasShell() {
           </>
         )}
         <div className="panel__content">
-          <SheetGrip snap={snap} onStep={() => setSnap(stepSnap(snap))} />
+          <SheetGrip snap={snap} twoStop={twoStop} onStep={() => setSnap(stepSnap(snap, twoStop))} />
           <Outlet />
         </div>
       </aside>
