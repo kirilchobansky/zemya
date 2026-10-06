@@ -1,0 +1,223 @@
+/* ---------------------------------------------------------------- history timeline */
+
+/* Not a grid like .shell (no rail, no panel) — the timeline route is a single full-bleed
+   canvas, so it just needs the same 100dvh rule .shell gives the atlas layout. */
+
+.history-page {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.history-page > .stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------------------------------------------------------------- stage */
+
+.stage {
+  position: relative;
+  background: var(--abyss);
+  overflow: hidden;
+}
+
+.stage__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+.stage__canvas.is-dragging {
+  cursor: grabbing;
+}
+
+.stage__canvas.is-picking {
+  cursor: crosshair;
+}
+
+/* The map host when the engine is MapLibre (app/engines/map/engine.ts): the library's own CSS arrives
+   with its lazy chunk and sets position: relative on .maplibregl-map — this wins by specificity. */
+
+.stage__canvas.maplibregl-map {
+  position: absolute;
+  font: inherit;
+}
+
+.stage__canvas.is-picking .maplibregl-canvas {
+  cursor: crosshair;
+}
+
+/* The attribution control (kept: the ODbL/Natural Earth credit travels with the map): themed,
+   and folded to its (i) button until hovered or focused so it never sits on the HUD. */
+
+.stage .maplibregl-ctrl-attrib.maplibregl-ctrl {
+  margin: 0 8px 8px 0;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--chart-rgb) / 82%);
+  color: var(--ink-3);
+  font: 10px/1.5 var(--font-mono);
+}
+
+.stage .maplibregl-ctrl-attrib a {
+  color: var(--ink-2);
+}
+
+.stage .maplibregl-ctrl-attrib-button,
+.stage .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  background-image: none;
+  background-color: transparent; /* the library's light disc made the glyph and its ground one dot */
+  border: 1px solid var(--ink-3);
+  color: var(--ink-3);
+  font: 600 11px/24px var(--font-mono);
+  text-align: center;
+}
+
+.stage .maplibregl-ctrl-attrib-button::before {
+  content: 'i';
+}
+
+.stage .maplibregl-ctrl-attrib:not(:hover):not(:focus-within) .maplibregl-ctrl-attrib-inner {
+  display: none;
+}
+
+/* Map vs. timeline (routes/map/atlas.tsx's showTimeline): both canvases stay mounted — the
+   hidden one keeps its Atlas/HistoryTimeline controller alive rather than paying to
+   reconstruct it on every visit — display:none is enough since neither is animating while
+   hidden (each render loop is request-driven, not a rAF loop that runs regardless). */
+
+.stage__canvas.is-hidden {
+  display: none;
+}
+
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 60%, rgb(var(--shadow-rgb) / 42%) 100%);
+}
+
+.hud {
+  position: absolute;
+  z-index: 3;
+}
+
+.hud--top {
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.hud--bottom {
+  bottom: 14px;
+  left: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.zoomer {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+}
+
+.zoomer button {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  display: grid;
+  place-items: center;
+}
+
+.zoomer button:hover {
+  background: var(--chart-3);
+  color: var(--ink);
+}
+
+.scalebar {
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.scalebar__bar {
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: var(--ink-3);
+  transition: width 0.15s;
+}
+
+.tip {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  transform: translate(-50%, -150%);
+}
+
+.compare-hud {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 11px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  max-width: min(560px, 90%);
+}
+
+.compare-hud p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+
+.compare-hud b {
+  color: var(--brass-2);
+}
+
+.stage__canvas.is-quiz-paused {
+  filter: blur(6px);
+  transition: filter 0.2s ease;
+}
+
+@media (pointer: coarse) {
+  /* no hover on touch, and pinch already zooms */
+
+  .tip,
+  .zoomer .zoom-step {
+    display: none;
+  }
+
+  .zoomer button {
+    width: 44px;
+    height: 44px;
+  }
+}

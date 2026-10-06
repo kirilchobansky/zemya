@@ -9,7 +9,10 @@ import {
   ScrollRestoration
 } from 'react-router';
 
-import '~/shared/styles/app.css';
+import '~/shared/styles/tokens.css';
+import '~/shared/styles/base.css';
+import '~/shared/styles/empty.css';
+import '~/shared/styles/buttons.css';
 
 export function links() {
   return [

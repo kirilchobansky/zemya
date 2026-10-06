@@ -1,0 +1,279 @@
+/* ---------------------------------------------------------------- name-the-country */
+
+.quiz-scope {
+  gap: 4px;
+  margin: 0 0 12px;
+}
+
+.quiz-order { margin-bottom: 8px; }
+
+.quiz-scope .chip {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+/* --cols / --max-rows come from routes/quizzes/quiz.tsx (the column count and the tallest grid
+   any scope can produce for this quiz); the card height is the one number here. min-height
+   is rows x card height + the gaps between them, so a smaller scope leaves empty space
+   below its cards instead of shoving the quiz under it up. */
+
+.quiz-sizes {
+  --card-h: 96px;
+  --gap: 8px;
+  --cols: 3;
+  --max-rows: 2;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-auto-rows: var(--card-h);
+  gap: var(--gap);
+  align-content: start;
+  min-height: calc(var(--max-rows) * var(--card-h) + (var(--max-rows) - 1) * var(--gap));
+}
+
+/* ---------------------------------------------------------------- quiz list (per subject) */
+
+.quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quiz-list__item {
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  overflow: hidden;
+}
+
+.quiz-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.quiz-list__row:hover {
+  background: var(--chart-3);
+}
+
+.quiz-list__name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--sea);
+}
+
+.quiz-list__chevron {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--ink-3);
+  line-height: 1;
+}
+
+.quiz-list__body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+}
+
+.quiz-desc {
+  margin: 0 0 12px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.quiz-sizes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* The <a> IS the card: block, full tile, border/background/padding on the link itself, so
+   there is no clickable-looking-but-dead margin anywhere inside it. The card wrapper only
+   positions the best-time button, which can't live inside the link (an <button> in an <a>
+   is invalid) and so floats over the link's reserved bottom padding as a sibling. */
+
+.quiz-size-card {
+  position: relative;
+  display: flex;
+  height: var(--card-h);
+}
+
+.quiz-size-card__link {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 8px 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  color: var(--ink);
+  text-align: center;
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.quiz-size-card__link:hover,
+.quiz-size-card:hover .quiz-size-card__link {
+  border-color: var(--sea);
+  background: var(--chart-3);
+}
+
+.quiz-size-card__link:focus-visible {
+  outline: none;
+  border-color: var(--sea);
+  background: var(--chart-3);
+  box-shadow: 0 0 0 2px var(--sea);
+}
+
+.quiz-size-card__n {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.quiz-size-card__label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.quiz-size-card__best {
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  transform: translateX(-50%);
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--brass-2);
+  cursor: pointer;
+}
+
+.quiz-size-card__best:hover {
+  text-decoration: underline;
+}
+
+.quiz-size-card__best:focus-visible {
+  outline: 2px solid var(--sea);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.quiz-history {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule-soft);
+  background: var(--chart-2);
+}
+
+.quiz-history__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.quiz-history__head h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.quiz-history__close {
+  color: var(--ink-3);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.quiz-history__close:hover {
+  color: var(--ink);
+}
+
+.quiz-history__empty {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.quiz-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quiz-history__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+.quiz-history__row:hover {
+  background: var(--chart-3);
+}
+
+.quiz-history__date {
+  color: var(--ink-3);
+  flex: 0 0 auto;
+}
+
+.quiz-history__time {
+  color: var(--brass-2);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.quiz-history__tally {
+  color: var(--ink-2);
+  flex: 1 1 auto;
+}
+
+.quiz-history__delete {
+  flex: 0 0 auto;
+  color: var(--ink-3);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.quiz-history__delete:hover {
+  color: var(--new);
+  background: rgb(var(--new-rgb) / 12%);
+}
+
+a.quiz-list__row {
+  text-decoration: none;
+}
+
+.quiz-list__meta {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-3);
+}

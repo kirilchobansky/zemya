@@ -19,6 +19,8 @@ import { allCountries } from "~/features/countries/catalog.server";
 import { fillQuizzes } from "~/features/quizzes/history-fill/fill-quizzes.server";
 import { HISTORY_COUNTRIES, historyCountryFor } from '~/features/history';
 import type { Route } from "./+types/quizzes.$subject";
+import '~/features/quizzes/engine/quiz-list.css';
+import '~/features/quizzes/engine/quiz-list.phone.css';
 
 type ScopeCounts = Record<QuizScope, number>;
 /** Pool sizes per quiz id, then scope — a facet quiz's pool is narrower than the continent's

@@ -4,6 +4,17 @@
  * can be linked to directly; whether a selection *also* moves the camera is carried in the
  * navigation's state rather than inferred from the selection itself.
  */
+import '~/shared/styles/phone.css';
+import '~/shared/styles/layout.css';
+import '~/shared/styles/panels.css';
+import '~/shared/styles/content.css';
+import '~/shared/styles/buttons.css';
+import '~/shared/styles/sheet.css';
+import '~/shared/styles/progress.css';
+import '~/shared/styles/dossier.css';
+import '~/shared/styles/empty.css';
+import '~/shared/styles/subject-list.css';
+import '~/shared/styles/pointer.css';
 import {
   useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type CSSProperties, type PointerEvent as ReactPointerEvent
@@ -23,6 +34,8 @@ import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/shared/l
 import { NO_INSETS, type Insets } from '~/engines/map/camera';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/engines/map/types';
 import { onThemeChange } from '~/shared/lib/theme';
+import './atlas.css';
+import './atlas.phone.css';
 
 /** The Micro toggle's cycle, and what its button says. */
 const MICRO_CYCLE: readonly MicroMode[] = ['full', 'dots', 'off'];

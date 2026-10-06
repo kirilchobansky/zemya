@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 
 import { formatDuration } from '~/shared/lib/format';
+import './StageClock.css';
 
 /**
  * The run timer on the desktop stage, top-left, for the one moment the panel's own timer is out

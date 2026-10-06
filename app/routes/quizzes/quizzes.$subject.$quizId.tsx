@@ -35,6 +35,7 @@ import { useKeyboard, useQuizPageLock } from "~/shared/lib/keyboard";
 import { NO_INSETS } from "~/engines/map/follow";
 import { isCoarsePointer, isPhoneLayout } from "~/shared/layout/viewport";
 import type { CountryRecord, World } from "~/engines/map/types";
+import '~/features/quizzes/engine/quiz-run.css';
 
 /** /quizzes/geography/name-all/:scope/all — the free-recall quiz (features/quizzes/name-all/NameAllQuiz.tsx). */
 function isNameAll(params: { subject?: string; quizId?: string; scope?: string; size?: string }): boolean {

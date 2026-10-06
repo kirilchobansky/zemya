@@ -5,6 +5,7 @@ import { useProgress } from '~/features/progress';
 import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/features/countries';
 import type { MasteryTotals } from '~/features/countries';
 import { setTheme, useTheme, type Theme } from '~/shared/lib/theme';
+import './Rail.css';
 
 interface RailProps {
   overlay: OverlayId;

@@ -1,0 +1,114 @@
+/* ---------------------------------------------------------------- search */
+
+.search {
+  position: relative;
+  width: 250px;
+}
+
+.search input {
+  width: 100%;
+  padding: 9px 12px 9px 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: rgb(var(--chart-rgb) / 86%);
+  backdrop-filter: blur(10px);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.search input::placeholder {
+  color: var(--ink-3);
+}
+
+.search__icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.search__results {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: var(--radius);
+  padding: 5px;
+  z-index: 5;
+}
+
+.search__results button {
+  display: flex;
+  width: 100%;
+  gap: 9px;
+  align-items: center;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 13px;
+}
+
+.search__results button:hover,
+.search__results button[data-active='true'] {
+  background: var(--chart-3);
+}
+
+.search__meta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+@media (pointer: coarse) {
+  /* iOS zooms the page when a focused input's text is under 16px */
+
+  .search input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  .search {
+    width: 250px;
+    flex: 0 1 auto;
+    transition: width 0.2s ease;
+  }
+
+  .search:focus-within {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .search input {
+    height: 44px;
+    padding: 0 16px 0 38px;
+    border-radius: 999px;
+    font-size: 15px;
+  }
+
+  .search input::placeholder {
+    text-overflow: ellipsis;
+  }
+
+  .search__icon {
+    left: 15px;
+    font-size: 15px;
+  }
+
+  .search__results {
+    max-height: min(280px, 42dvh);
+  }
+}
+
+@media (max-width: 819px) and (orientation: landscape),
+  (pointer: coarse) and (max-height: 499px) and (orientation: landscape) {
+  .search {
+    width: 220px;
+  }
+}

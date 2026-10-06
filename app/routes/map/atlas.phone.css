@@ -1,0 +1,83 @@
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  .stage {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* --- top: search pill, layers button --- */
+
+  .hud--top {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: 12px;
+    right: 12px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hud--top:has(.search:focus-within) .layers-btn {
+    display: none;
+  }
+
+  /* --- ⌂ as a small floating button under the layers button; the scale bar goes --- */
+
+  .hud--bottom {
+    top: calc(10px + env(safe-area-inset-top, 0px) + 54px);
+    right: 12px;
+    bottom: auto;
+    left: auto;
+  }
+
+  .zoomer {
+    border-radius: 50%;
+    padding: 2px;
+  }
+
+  .zoomer button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .zoomer button:not(.zoom-step) {
+    border-radius: 50%;
+  }
+
+  .scalebar {
+    display: none;
+  }
+
+  .compare-hud {
+    bottom: auto;
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    max-width: calc(100% - 24px);
+  }
+
+  /* ⌂ sits under the HUD during a run */
+
+  .is-immersive .hud--bottom {
+    top: calc(var(--vv-top, 0px) + var(--hud-h) + 10px);
+  }
+}
+
+@media (max-width: 819px) and (orientation: landscape),
+  (pointer: coarse) and (max-height: 499px) and (orientation: landscape) {
+  .hud--top {
+    left: calc(var(--tabbar-w) + 10px);
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  .hud--bottom {
+    top: auto;
+    right: auto;
+    left: calc(var(--tabbar-w) + 10px);
+    bottom: 10px;
+  }
+
+  .is-immersive .hud--bottom {
+    left: auto;
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: auto;
+    top: calc(var(--vv-top, 0px) + 8px + env(safe-area-inset-top, 0px));
+  }
+}

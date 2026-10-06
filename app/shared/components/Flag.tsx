@@ -15,6 +15,7 @@
  * does or does not declare. See CLAUDE.md's Quizzes section.
  */
 import { useState } from 'react';
+import './Flag.css';
 
 /** Bounding box a flag fits inside, in CSS px. A typical ~3:2-ish flag ends up close to
  *  the size flags always rendered at; a genuinely different shape (Qatar, Nepal, a

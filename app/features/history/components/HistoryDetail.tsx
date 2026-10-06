@@ -17,6 +17,7 @@ import { contextAt } from '~/features/history/timeline/layout';
 import type { TimelineEntry } from '~/features/history/timeline/renderer';
 import { formatDuration } from '~/features/history/timeline/scale';
 import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
+import './HistoryDetail.css';
 
 const KIND_LABELS: Readonly<Record<TimelineEntry['kind'], string>> = {
   event: 'Event',

@@ -33,7 +33,8 @@ React, no knowledge of the rest of the app; the app talks to it through `MapCont
 
 **`app/shared/`** — small things any part of the app can use and that know nothing about any
 feature: `components/` (the flag image), `layout/` (bottom-sheet and viewport helpers), `lib/`
-(formatting, keyboard, SEO, theme), `styles/` (design tokens and the stylesheet).
+(formatting, keyboard, SEO, theme), `styles/` (design tokens, the base reset, and the small
+stylesheets several features share — see "CSS" below).
 
 **`content/`** — the hand-written data (YAML). **`public/data/`** — what the build generates from
 it; committed.
@@ -60,6 +61,9 @@ Unit tests are **not** here: they sit next to the code (`scale.ts` has `scale.te
 | a formatting / keyboard / theme helper | `app/shared/lib/` |
 | layout helpers (sheet, viewport) | `app/shared/layout/` |
 | colours, theme tokens | `app/shared/styles/tokens.css` |
+| styles for one component | `Component.css` next to it, imported by it |
+| styles for a page / a feature's screens | a named `.css` in the feature folder (or beside the route) |
+| styles several features use | a small `.css` in `app/shared/styles/` named by purpose, imported in `routes/map/atlas.tsx` (mind the order) |
 | a unit test | next to the file it tests, `name.test.ts` |
 | a browser test | `tests/e2e/` |
 | a script that generates data | `scripts/build/` |
@@ -100,3 +104,44 @@ features/progress -> never features/countries
 - Tests next to code, same name plus `.test.ts`.
 
 `npm run check` runs both the line limit and the import rules; `npm test` runs it first.
+
+## CSS
+
+There is no big stylesheet. Every rule lives in a small file with the thing it styles, and the
+file is imported by that thing.
+
+- **Per component:** `HistoryCard.css` sits beside `HistoryCard.tsx`, which imports it. A
+  component's phone rules stay in its file; if the file would pass 300 lines it splits by purpose
+  (`HistoryFillQuiz.phone.css`, `HistoryFillQuiz.grid.css`), never in the middle of a rule.
+- **Per page or feature:** a screen's styles go in the feature folder (`quizzes/engine/quiz-run.css`,
+  `quiz-list.css`) or beside its route (`routes/map/atlas.css`). Whoever renders the screen imports
+  it.
+- **Shared:** a class used by several features lives in `app/shared/styles/`, in a small file
+  named by purpose: `layout.css` (shell and sidebars), `panels.css`, `sheet.css`, `buttons.css`,
+  `content.css`, `progress.css`, `dossier.css`, `empty.css`, `subject-list.css`, `phone.css`
+  (furniture hidden on desktop, phone variables), `pointer.css` (touch-sized targets).
+- **Global:** only `tokens.css` and `base.css` (reset, body, element defaults). `root.tsx` imports
+  them, plus `empty.css` and `buttons.css` because its error screen uses `.empty` and `.action`.
+- Do not rename classes or "tidy" selectors while moving them: the point of the split is that
+  nothing visual changes.
+
+**The cascade is part of the structure.** CSS applies by specificity, then by *order*, and order
+now depends on which file is loaded first. The map shell loads first (its stylesheets are imported
+at the top of `routes/map/atlas.tsx`, in an order that matters), then each section's chunk, so a
+shared file can safely be overridden by a feature file but not the other way round. Rules for
+this:
+
+1. A rule that overrides another rule of equal specificity must be in the same file, or in a file
+   that loads later. Shared files load before feature files; inside `atlas.tsx` the shared imports
+   keep their order (`phone`, `layout`, ... `pointer` last).
+2. A feature file may therefore not hold a rule that has to come *before* a shared rule on the
+   same element. That is why one `HistoryFillQuiz` phone rule (`.fill-quiz__giveup, .fill-quiz__restart`)
+   sits in `phone.css`: `pointer.css` (shared, loaded with the shell) must stay after it.
+3. Before moving a rule, ask whether another rule can hit the same element and set the same
+   property. If so, keep their order (same file, or the earlier one in an earlier-loading file).
+4. If you add a shared stylesheet, import it in `atlas.tsx` at the right place, and check the built
+   CSS: `npm run build` and look at the per-route CSS list in `build/client/assets/manifest-*.js`.
+
+Phase 2 of the restructure moved the old `app.css` into these files with a throwaway script that
+checked the built CSS before and after (same rule set; same relative order of every pair of rules
+that can hit one element, on every page and every navigation order).

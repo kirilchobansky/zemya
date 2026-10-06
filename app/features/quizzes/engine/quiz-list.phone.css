@@ -1,0 +1,42 @@
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  /* --- polish: catalogue, study, dossier --- */
+
+  /* Catalogue: the region chips are ONE row that scrolls sideways, not three wrapped rows. The
+     size cards below keep three per row and their fixed grid height (the no-reflow rule); the
+     whole card is the link. */
+
+  .quiz-scope {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: 0 -16px 12px;
+    padding: 0 16px 2px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .quiz-scope::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quiz-scope .chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .quiz-list__name {
+    font-size: 16px;
+  }
+
+  .quiz-size-card__link {
+    padding-bottom: 34px;
+  }
+
+  .quiz-size-card__best {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}

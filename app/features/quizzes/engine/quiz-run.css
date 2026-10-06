@@ -1,0 +1,241 @@
+.quiz-run__timer {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.quiz-run__count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* The panel's timer and count stay at the top of the scrolling body (a long flag list scrolls
+   under them). The negative margins cancel the body's padding and the padding puts it back, so
+   nothing moves; the body's own 16px gap is kept between the two. */
+
+.quiz-run__clock {
+  position: sticky;
+  top: -18px; /* sticky respects the body's padding, so reach up over it: no see-through strip */
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: -18px -18px -10px;
+  padding: 18px 18px 10px;
+  background: var(--chart);
+}
+
+.quiz-result__time {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--brass-2);
+  margin: 2px 0 8px;
+}
+
+.quiz-run__note-slot {
+  --note-lines: 4;
+  font-size: 13px;
+  min-height: calc(var(--note-lines) * 1.5em + 24px);
+}
+
+.quiz-pause-desk {
+  /* desktop quiz pause: opaque cover over the stage area, above the dock and flag stage */
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--flag-stage-bg);
+}
+
+.quiz-pause-desk .quiz-pause__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.quiz-pause-desk .quiz-pause__sub {
+  margin: -6px 0 12px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  .quiz-pause-desk { display: none; }
+
+  .quiz-run__clock {
+    top: -14px;
+    margin: -14px -16px -10px;
+    padding: 14px 16px 10px;
+  }
+
+  /* --- a quiz run locks the page behind it (useQuizPageLock, app/shared/lib/keyboard.ts): no scroll,
+         no rubber-band, a quiz-coloured background wherever the page could show --- */
+
+  html.is-quiz-locked,
+  html.is-quiz-locked body {
+    overflow: hidden;
+    overscroll-behavior: none;
+    background: var(--chart);
+  }
+
+  html.is-quiz-locked body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+  }
+
+  .quiz-hud {
+    display: flex;
+    position: fixed;
+    z-index: 8;
+    top: var(--vv-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--hud-h);
+    padding: env(safe-area-inset-top, 0px) 4px 0 16px;
+    align-items: center;
+    gap: 14px;
+    /* no backdrop-filter: a blur over a canvas that redraws is a per-frame paint cost */
+    background: rgb(var(--chart-rgb) / 96%);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .quiz-hud__timer {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .quiz-hud__count {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  .quiz-hud__back {
+    padding-left: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-right: 12px;
+    font-size: 15px;
+    color: var(--sea);
+  }
+
+  .quiz-hud__pause {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    border-radius: 50%;
+    color: var(--ink-2);
+  }
+
+  .quiz-hud__count--end,
+  .quiz-hud[data-phase='idle'] .quiz-hud__count {
+    margin-left: auto;
+    padding-right: 12px;
+  }
+
+  /* pause: Resume and Abandon (the shortcuts don't exist on a phone) */
+
+  .quiz-pause {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    /* above the keyboard when it is up, so Resume / Abandon are visible at once; the full
+       screen again when it closes (--vv-top / --kb: app/shared/lib/keyboard.ts) */
+    inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
+    z-index: 10;
+    gap: 12px;
+    padding: 24px;
+    background: rgb(var(--abyss-rgb) / 94%);
+    /* inert to scrolling and dragging: nothing here moves, nothing chains to the page; taps
+       on the buttons are unaffected */
+    touch-action: none;
+    overscroll-behavior: contain;
+    overflow: hidden;
+  }
+
+  .quiz-pause__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+  }
+
+  .quiz-pause__sub {
+    margin: -6px 0 12px;
+    color: var(--ink-3);
+    font-size: 13px;
+  }
+
+  .quiz-pause__btn {
+    width: min(320px, 100%);
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid var(--rule);
+    background: var(--chart-2);
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .quiz-pause__btn--primary {
+    background: var(--brass-fill);
+    border-color: var(--brass-fill);
+    color: var(--ink-on-brass);
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 819px) and (orientation: landscape),
+  (pointer: coarse) and (max-height: 499px) and (orientation: landscape) {
+  /* quiz run: HUD inline with the input bar, both on the keyboard; the map gets the rest */
+
+  .quiz-hud[data-phase='idle'] {
+    height: calc(44px + env(safe-area-inset-top, 0px));
+  }
+
+  .quiz-hud[data-phase='running'],
+  .quiz-hud[data-phase='paused'] {
+    top: auto;
+    bottom: var(--kb, 0px);
+    width: 200px;
+    height: 64px;
+    padding: 0 0 0 calc(12px + env(safe-area-inset-left, 0px));
+    gap: 10px;
+    border-bottom: 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .quiz-hud[data-phase='running']::after,
+  .quiz-hud[data-phase='paused']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 100vh;
+    background: rgb(var(--chart-rgb) / 96%);
+  }
+
+  .quiz-hud__timer {
+    font-size: 17px;
+  }
+}

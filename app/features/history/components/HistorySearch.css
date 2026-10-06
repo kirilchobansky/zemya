@@ -1,0 +1,79 @@
+/* ---------------------------------------------------------------- history search */
+
+.history-search {
+  position: relative;
+  width: 100%;
+}
+
+.history-search input {
+  width: 100%;
+  padding: 9px 12px 9px 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.history-search input::placeholder {
+  color: var(--ink-3);
+}
+
+.history-search__icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.history-search__results {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: var(--radius);
+  padding: 5px;
+  z-index: 5;
+}
+
+.history-search__results button {
+  display: flex;
+  width: 100%;
+  gap: 9px;
+  align-items: center;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 13px;
+}
+
+.history-search__results button:hover,
+.history-search__results button[data-active='true'] {
+  background: var(--chart-3);
+}
+
+.history-search__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.history-search__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-search__meta {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}

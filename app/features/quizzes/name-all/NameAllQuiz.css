@@ -1,0 +1,57 @@
+/* ---- "Name all countries" (features/quizzes/name-all/NameAllQuiz.tsx) ----
+   Reuses the geography run's dock, HUD and pause screens; only the list and a few details are new. */
+
+.name-all__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.name-all__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 3px 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.name-all__item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-all__flag {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 15px;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+/* a slot that is always there: the "already named" hint must not move the buttons below it */
+
+.name-all__hint {
+  min-height: 1.5em;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.name-all__group {
+  margin-bottom: 10px;
+}
+
+.name-all__continent {
+  margin: 8px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}

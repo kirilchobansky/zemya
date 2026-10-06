@@ -19,6 +19,7 @@ import { Flag } from '~/shared/components/Flag';
 import { useProgress, makeRng, type Question } from '~/features/progress';
 import { pageMeta } from '~/shared/lib/seo';
 import { buildCatalogue, generateSession, type Catalogue, parseCardId, loadWorld } from '~/features/countries';
+import './questions.css';
 
 const SESSION_SIZE = 12;
 /** Grading thresholds for a binary right/wrong quiz screen, mapped onto FSRS's four

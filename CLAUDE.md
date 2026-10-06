@@ -59,6 +59,15 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   **Tests live next to the code they test**, same name plus `.test.ts` (`scale.ts` ->
   `scale.test.ts`); only the browser tests (`smoke.mjs`, `perf.mjs`) live in `tests/e2e/`. Unit
   test files are not typechecked (`tsconfig.json` excludes them), as before.
+- **CSS: one file per component, next to it** (`HistoryCard.css` beside `HistoryCard.tsx`, imported
+  by it). Page- or feature-level styles live in the feature folder (`quiz-run.css`) or beside the
+  route (`atlas.css`); styles several features use live in `app/shared/styles/`, named by purpose
+  (`buttons.css`, `panels.css`, `sheet.css`, `phone.css`). Only `tokens.css` and `base.css` are
+  global (imported in `root.tsx`, plus the two stylesheets its error screen needs). A CSS file stays
+  under 300 lines; split by purpose (`Component.phone.css`), never mid-rule. **Cascade order is a
+  contract:** two rules that can hit one element keep their original relative order, and the shared
+  stylesheets are imported in a fixed order by `routes/map/atlas.tsx` — read `docs/structure.md`
+  "CSS" before moving a rule or adding a shared stylesheet. There is no `app.css`.
 - The camera moves only when the user could not already see the
   target (click vs. fly-to, quiz follow) — full contract: `docs/architecture.md`.
 - **Places/capitals** (`docs/architecture.md`): no non-capital cities without a decision;

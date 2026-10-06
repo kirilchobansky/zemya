@@ -1,0 +1,28 @@
+/* ---------------------------------------------------------------- history filters */
+
+.history-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.history-filters__category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-filters__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.history-filters__reset {
+  color: var(--ink-3);
+}
+
+.history-filters__reset:hover {
+  color: var(--ink);
+}

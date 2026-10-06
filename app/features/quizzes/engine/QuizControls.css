@@ -1,0 +1,247 @@
+/* Docked over the canvas, not the panel — see quiz.$quizId.tsx's own doc comment for
+   why a panel-route component renders a fixed-position element outside the panel.
+   Centred on the STAGE, not the viewport: the stage sits between the rail and the panel,
+   so centring on 50vw would drift toward the panel on desktop widths. */
+
+.quiz-dock {
+  position: fixed;
+  z-index: 6;
+  bottom: 26px;
+  left: calc(var(--rail-width) + (100% - var(--rail-width) - var(--panel-width)) / 2);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+}
+
+.quiz-dock__start {
+  padding: 18px 46px;
+  border-radius: 999px;
+  border: none;
+  background: var(--brass-fill);
+  color: var(--ink-on-brass);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: var(--shadow);
+}
+
+.quiz-dock__start:hover {
+  background: var(--brass-fill-hover);
+}
+
+.quiz-dock__input {
+  width: min(380px, 60vw);
+  padding: 13px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: rgb(var(--chart-rgb) / 92%);
+  backdrop-filter: blur(10px);
+  color: var(--ink);
+  font-size: 15px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.quiz-dock__input:focus {
+  outline: none;
+  border-color: var(--brass-dim);
+}
+
+.quiz-dock__input--paused {
+  opacity: 0.5;
+}
+
+.quiz-dock__answer {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgb(var(--chart-rgb) / 92%);
+  border: 1px solid var(--new);
+  color: var(--brass-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Nothing in a quiz stage may change the position of the input — the answer chip gets a
+   slot of reserved height that is always there and simply empty when there's nothing to
+   say. Same rule for the panel's note slot below the timer. */
+
+.quiz-dock__fillhint {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--chart-rgb) / 92%);
+  color: var(--ink-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.quiz-feedback {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  /* the input bar rides on the keyboard: bottom = the keyboard's height (0 when closed, and then
+     it clears the home indicator instead) */
+
+  .quiz-dock {
+    display: contents;
+  }
+
+  .quiz-controls {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    z-index: 8;
+    left: 0;
+    right: 0;
+    bottom: var(--kb, 0px);
+    gap: 8px;
+    padding: 8px 12px calc(8px + max(0px, env(safe-area-inset-bottom, 0px) - var(--kb, 0px)));
+    /* opaque: its ::after carries the same colour down under the keyboard */
+    background: var(--chart);
+    border-top: 1px solid var(--rule);
+  }
+
+  /* The bar's own colour continues below it, a screen tall: the keyboard covers it, but while
+     the keyboard opens, closes or the visual viewport is panned, only the bar colour is ever
+     visible beneath the input — never the map or the app. */
+
+  .quiz-controls::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 100vh;
+    background: var(--chart);
+    pointer-events: none;
+  }
+
+  /* idle and results: the input exists (START must focus it inside the tap) but is invisible */
+
+  .quiz-controls[data-phase='idle'],
+  .quiz-controls[data-phase='done'] {
+    left: 0;
+    right: auto;
+    bottom: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: none;
+    border: 0;
+  }
+
+  .quiz-controls[data-phase='idle']::after,
+  .quiz-controls[data-phase='done']::after {
+    display: none;
+  }
+
+  .quiz-dock__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .quiz-dock__input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 48px;
+    padding: 0 18px;
+    font-size: 16px; /* under 16px iOS zooms the page on focus */
+    text-align: left;
+  }
+
+  .quiz-dock__input--idle {
+    display: block;
+  }
+
+  .quiz-dock__btn {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: var(--chart-2);
+    color: var(--ink-2);
+  }
+
+  .quiz-dock__btn:disabled {
+    opacity: 0.35;
+  }
+
+  .quiz-controls .quiz-feedback {
+    height: 34px;
+  }
+
+  /* START: big, and centred in the visible map area (no sheet beside it any more) */
+
+  .quiz-dock__start {
+    position: fixed;
+    z-index: 8;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .quiz-dock__caption {
+    display: block;
+    position: fixed;
+    z-index: 8;
+    left: 24px;
+    right: 24px;
+    top: calc(50% + 62px);
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    text-shadow: 0 1px 8px rgb(var(--shadow-rgb) / 80%);
+  }
+}
+
+@media (max-width: 819px) and (orientation: landscape),
+  (pointer: coarse) and (max-height: 499px) and (orientation: landscape) {
+  .quiz-controls {
+    left: 200px;
+    padding: 8px calc(12px + env(safe-area-inset-right, 0px)) 8px 8px;
+  }
+
+  .quiz-controls .quiz-feedback {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 34px;
+    pointer-events: none;
+  }
+}
+
+.quiz-dock__input.is-shaking {
+  animation: fill-shake 0.32s ease;
+  border-color: var(--new);
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  /* Give up is a text button where the other quizzes have Skip / Reveal icons */
+
+  .quiz-dock__btn--text {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+}

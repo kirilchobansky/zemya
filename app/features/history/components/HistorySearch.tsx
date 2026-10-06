@@ -10,6 +10,7 @@ import { formatCardDate } from './HistoryCard';
 import { search } from '~/features/history/data/search';
 import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
 import type { TimelineEntry } from '~/features/history/timeline/renderer';
+import './HistorySearch.css';
 
 const RESULT_LIMIT = 8;
 

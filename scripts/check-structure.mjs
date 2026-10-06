@@ -1,8 +1,9 @@
 /**
  * Structure check: `npm run check` (also the first step of `npm test`). Read-only. Fails on
  *
- *   1. a source file under app/ or scripts/ over 400 lines (the TEMPORARY allow-list below holds
- *      the files that are already over; each entry is removed when its file is split — phase 3), and
+ *   1. a source file under app/ or scripts/ over 400 lines — 300 for a .css file — (the TEMPORARY
+ *      allow-list below holds the files that are already over; each entry is removed when its file
+ *      is split — phase 3), and
  *   2. an import that breaks the dependency rules in docs/structure.md:
  *        - app/shared imports nothing from app/features, app/engines or app/routes
  *        - app/engines imports no React (react, react-dom, react-router) and nothing from
@@ -10,7 +11,8 @@
  *        - app/features/progress imports nothing from app/features/countries
  *        - a feature imports another feature only through its index.ts (`~/features/<name>`);
  *          a `*.server.ts` file cannot be re-exported (it would leak into the client bundle), so
- *          those are the one deep import allowed (and unit tests, which mock real module paths)
+ *          those are the one deep import allowed (and unit tests, which mock real module paths,
+ *          and `.css` files, which are not exports)
  *        - nothing outside a feature (routes included) reaches into a feature's folders
  *
  * Imports are resolved to files first, so `./x`, `../x` and `~/x` are judged the same way.
@@ -21,11 +23,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MAX_LINES = 400;
+const MAX_CSS_LINES = 300; // stylesheets are split by component/purpose, never mid-rule
 
 /** TEMPORARY: files over MAX_LINES today. Phase 3 splits them; delete each entry as it goes.
  *  A file not listed here that grows past the limit fails the check. */
 const LINE_LIMIT_ALLOW_LIST = new Map([
-  ['app/shared/styles/app.css', 'phase 2 splits the stylesheet'],
   ['app/engines/map/gl-atlas.ts', 'phase 3'],
   ['app/features/history/timeline/renderer.ts', 'phase 3'],
   ['app/features/history/timeline/timeline.ts', 'phase 3'],
@@ -65,7 +67,8 @@ const problems = [];
 for (const f of files) {
   const text = readFileSync(join(root, f), 'utf8');
   const lines = text.endsWith('\n') ? text.split('\n').length - 1 : text.split('\n').length;
-  if (lines > MAX_LINES && !LINE_LIMIT_ALLOW_LIST.has(f)) problems.push(`${f}: ${lines} lines (limit ${MAX_LINES}) — split it`);
+  const limit = f.endsWith('.css') ? MAX_CSS_LINES : MAX_LINES;
+  if (lines > limit && !LINE_LIMIT_ALLOW_LIST.has(f)) problems.push(`${f}: ${lines} lines (limit ${limit}) — split it`);
 }
 for (const f of LINE_LIMIT_ALLOW_LIST.keys()) {
   if (!fileSet.has(f)) problems.push(`allow-list entry ${f} no longer exists — remove it from scripts/check-structure.mjs`);
@@ -112,7 +115,7 @@ for (const f of files.filter(x => x.startsWith('app/') && !x.endsWith('.css'))) 
     if (to.kind === 'feature' && !(from.kind === 'feature' && from.name === to.name)) {
       if (from.kind === 'feature' && from.name === 'progress' && to.name === 'countries') bad('features/progress imports nothing from features/countries');
       const viaIndex = to.rest === 'index.ts';
-      const server = /\.server\.tsx?$/.test(target);
+      const server = /\.server\.tsx?$/.test(target) || target.endsWith('.css'); // stylesheets are not exports
       // tests may mock or probe a module directly (vi.mock needs the real module path)
       if (!viaIndex && !server && !f.endsWith('.test.ts') && !DEEP_IMPORT_ALLOW_LIST.has(f)) bad(`reach into features/${to.name} only through ~/features/${to.name}`);
     }

@@ -13,6 +13,7 @@ import { outlineShare, outlineTransform } from '~/features/countries';
 import type { QuizStageProps } from '~/features/quizzes/engine/types';
 import { QuizControls } from '~/features/quizzes/engine/QuizControls';
 import { StartCaption } from '~/features/quizzes/engine/StartCaption';
+import './quiz-flag-stage.css';
 
 export function OutlinesStage(props: QuizStageProps) {
   const { slot, phase, target, revealed, onStart, world, pool } = props;

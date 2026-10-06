@@ -1,0 +1,112 @@
+/* ---------------------------------------------------------------- quiz */
+
+.quiz__bar {
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--chart-2);
+  border: 1px solid var(--rule-soft);
+}
+
+.quiz__bar-fill {
+  height: 100%;
+  background: var(--brass);
+  transition: width 0.25s ease;
+}
+
+.quiz__prompt {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.quiz__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.quiz__prompt-flag {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+
+.quiz__options {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.quiz__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  color: var(--ink);
+  font-size: 13.5px;
+  text-align: left;
+  transition: border-color 0.14s, background 0.14s, opacity 0.14s;
+}
+
+.quiz__option:hover:not(:disabled) {
+  border-color: var(--sea);
+  background: var(--chart-3);
+}
+
+.quiz__option:disabled {
+  cursor: default;
+}
+
+.quiz__option[data-state='correct'] {
+  border-color: var(--master);
+  background: rgb(var(--master-rgb) / 12%);
+  color: var(--master);
+}
+
+.quiz__option[data-state='wrong'] {
+  border-color: var(--new);
+  background: rgb(var(--new-rgb) / 12%);
+  color: var(--new);
+}
+
+.quiz__option[data-state='eliminated'] {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
+.quiz__option-key {
+  flex: 0 0 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: var(--chart-3);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  /* Study: answers are full-width, at least 48px tall */
+
+  .quiz__option {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+
+  .quiz__option-key {
+    display: none; /* the 1-4 shortcut badges: there is no keyboard to press them on */
+  }
+
+  .quiz__prompt {
+    font-size: 19px;
+  }
+}

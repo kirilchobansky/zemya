@@ -1,0 +1,28 @@
+/* Desktop only: the same timer on the stage, but only while the panel is collapsed (its own is
+   then out of sight). Above the pause cover (8) and every full-area screen (6). */
+
+.quiz-clock-desk {
+  display: none;
+  position: absolute;
+  z-index: 9;
+  top: 14px;
+  left: max(14px, var(--rail-gap, 0px));
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: var(--chart);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.shell:has(.panel[data-collapsed="true"]) .quiz-clock-desk {
+  display: block;
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  .quiz-clock-desk { display: none !important; }
+}

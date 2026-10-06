@@ -32,6 +32,8 @@ import { measureInsets } from '~/features/quizzes/engine/insets';
 import { StageClock } from '~/features/quizzes/engine/StageClock';
 import type { CountryRecord, World } from '~/engines/map/types';
 import { isCoarsePointer, isPhoneLayout } from '~/shared/layout/viewport';
+import '~/features/quizzes/engine/quiz-run.css';
+import './NameAllQuiz.css';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
 

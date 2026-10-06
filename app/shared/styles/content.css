@@ -1,0 +1,171 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group__title {
+  margin: 0;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.hook {
+  position: relative;
+  padding: 14px 16px 14px 18px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgb(var(--brass-rgb) / 10%), rgb(var(--brass-rgb) / 3%));
+  border: 1px solid rgb(var(--brass-rgb) / 22%);
+}
+
+.hook::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--brass);
+}
+
+.hook__label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin-bottom: 5px;
+}
+
+.hook p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--brass-2);
+}
+
+.facts {
+  display: grid;
+  gap: 1px;
+  background: var(--rule-soft);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 0;
+}
+
+.fact {
+  background: var(--chart-2);
+  padding: 9px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.fact dt {
+  flex: 0 0 88px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.fact dd {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.disputed {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: help;
+  vertical-align: 1px;
+}
+
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.subhead {
+  margin: 0 0 7px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.neighbours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.neighbour {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--chart-2);
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-size: 12px;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
+}
+
+.neighbour:hover {
+  border-color: var(--sea);
+  color: var(--ink);
+  background: var(--chart-3);
+}
+
+.note {
+  background: var(--chart-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.note b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  .fact dd {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .neighbours {
+    gap: 7px;
+  }
+}
+
+.neighbour .name-all__flag {
+  width: 18px;
+  height: 12px;
+}

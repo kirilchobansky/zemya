@@ -6,6 +6,7 @@ import { normaliseName } from '~/features/countries/names';
 import { BULGARIAN_NAMES } from '~/features/countries/names-bg';
 import { isCoarsePointer } from '~/shared/layout/viewport';
 import type { Feature, World } from '~/engines/map/types';
+import './SearchBox.css';
 
 const MAX_RESULTS = 8;
 

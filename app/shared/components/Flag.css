@@ -1,0 +1,25 @@
+/* ---------------------------------------------------------------- flag */
+
+.flag {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  /* no shadow, no frame, no crop: the flag at its own ratio. A faint neutral hairline that
+     follows the image's alpha (so Nepal's pennant gets no false rectangle) keeps a white flag
+     readable on --chart. */
+  filter: drop-shadow(0 0 0.5px color-mix(in srgb, var(--ink) 45%, transparent));
+  /* width/height are set inline per flag (Flag.tsx), as two explicit pixel numbers
+     computed from its own true viewBox — not assumed 4:3, and deliberately not
+     width:auto/height:auto, which renders at zero size once the source SVG has no
+     intrinsic dimensions of its own (see Flag.tsx's own comment). No background colour
+     either, and no border: a flag that isn't a plain rectangle (Nepal's pennant) has
+     transparent corners, and a background or border would draw a false rectangle round
+     it. White flags don't bleed into --chart; they out-contrast a coloured one. */
+}
+
+.flag--emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}

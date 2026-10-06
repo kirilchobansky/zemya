@@ -1,0 +1,17 @@
+.empty {
+  text-align: center;
+  padding: 34px 18px;
+  color: var(--ink-3);
+}
+
+.empty__icon {
+  font-size: 32px;
+  opacity: 0.5;
+  margin-bottom: 9px;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}

@@ -1,0 +1,73 @@
+/* ---------------------------------------------------------------- dossier */
+
+.dossier__hero {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+}
+
+.dossier__flag {
+  flex: 0 0 auto;
+}
+
+.dossier__hero h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.dossier__official {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.dossier__history {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  /* Dossier: the sheet header already carries the flag, name and capital · population ·
+     currency, so the body opens with the official name, then the key facts, and the long
+     reading (hook, progress, borders, flag and outline notes) below them. The <h1> stays in the
+     document — visually hidden — so the page keeps its heading. */
+
+  .dossier__flag {
+    display: none;
+  }
+
+  .dossier__hero h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .dossier__official {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .dossier > .dossier__hero { order: 0; }
+
+  .dossier > .facts { order: 1; }
+
+  .dossier > .hook { order: 2; }
+
+  .dossier > .progress { order: 3; }
+
+  .dossier > .dossier__borders { order: 4; }
+
+  .dossier > .note { order: 5; }
+
+  .dossier > .dossier__history { order: 6; }
+}

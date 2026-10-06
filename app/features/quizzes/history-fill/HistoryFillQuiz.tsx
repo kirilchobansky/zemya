@@ -28,6 +28,12 @@ import {
 } from './fill-quiz';
 import { historyCountryFor } from '~/features/history';
 import { toggleSize } from './fill-quiz-config';
+import '~/features/quizzes/engine/quiz-run.css';
+import '~/features/quizzes/engine/quiz-list.css';
+import '~/features/quizzes/engine/quiz-list.phone.css';
+import './HistoryFillQuiz.css';
+import './HistoryFillQuiz.grid.css';
+import './HistoryFillQuiz.phone.css';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
 

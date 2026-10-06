@@ -14,6 +14,7 @@
  * (HistoryCard.tsx), which has the same 9 ids without the colour.
  */
 import type { EntryKind } from '~/features/history/timeline/scale';
+import './HistoryFilters.css';
 
 const KIND_CHIPS: readonly { id: EntryKind; label: string }[] = [
   { id: 'ruler', label: 'Rulers' },

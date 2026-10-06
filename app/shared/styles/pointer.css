@@ -1,0 +1,16 @@
+@media (pointer: coarse) {
+  .chip,
+  .tool,
+  .neighbour,
+  .action {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chip {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}

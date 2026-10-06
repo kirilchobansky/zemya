@@ -28,6 +28,7 @@ import { formatCardDate } from './HistoryCard';
 import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
 import { dateOfDecimalYear } from '~/features/history/timeline/scale';
 import type { TimelineEntry } from '~/features/history/timeline/renderer';
+import './HistoryOutline.css';
 
 export interface HistoryOutlineProps {
   entries: readonly TimelineEntry[];

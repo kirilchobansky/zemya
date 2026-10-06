@@ -1,0 +1,234 @@
+.fill-quiz__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fill-quiz__grid--columns {
+  /* --cols / --rows come from the inline style; items fill top to bottom, then next column */
+  grid-auto-flow: column;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 380px));
+  grid-template-rows: repeat(var(--rows, 1), auto);
+  justify-content: start;
+}
+
+.fill-cell {
+  display: flex;
+  align-items: stretch;
+  /* grows with a long name (no ellipsis anywhere); an empty cell keeps the one-line height */
+  min-height: 68px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--chart-2);
+  --fill-hue: var(--sea);
+}
+
+.fill-cell--government {
+  --fill-hue: var(--categorical-violet);
+}
+
+.fill-cell__dates {
+  /* a tinted strip down the left edge, so the years read first */
+  flex: 0 0 6rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--fill-hue) 16%, var(--chart-2));
+  border-right: 1px solid var(--rule);
+}
+
+.fill-cell__name {
+  flex: 1;
+  align-self: center;
+  min-width: 0;
+  padding: 8px 12px;
+  min-height: 1.3em;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--fill-hue);
+  overflow-wrap: anywhere;
+}
+
+.fill-cell__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink-3);
+}
+
+.fill-cell__note {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink-2);
+}
+
+.fill-quiz__grid--compact {
+  /* longest lists only (> 30 entries, e.g. the 44 prime ministers): thinner cells so the whole list fits one screen */
+  gap: 5px;
+}
+
+.fill-quiz__grid--compact .fill-cell {
+  min-height: 42px;
+}
+
+.fill-quiz__grid--compact .fill-cell__dates {
+  flex-basis: 5.1rem;
+  padding: 3px 4px;
+  font-size: 11px;
+}
+
+.fill-quiz__grid--compact .fill-cell__name {
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.fill-quiz__grid--compact .fill-cell__title {
+  display: inline;
+  margin-right: 4px;
+  font-size: 10px;
+}
+
+.fill-cell.is-filled {
+  background: var(--chart);
+  border-color: var(--fill-hue);
+  animation: fill-pop 0.45s ease-out;
+}
+
+.fill-cell.is-missed {
+  background: var(--chart);
+  border-color: var(--new);
+}
+
+.fill-cell.is-missed .fill-cell__name {
+  color: var(--new);
+}
+
+@keyframes fill-pop {
+  0% {
+    background: color-mix(in srgb, var(--fill-hue) 35%, var(--chart));
+    transform: scale(0.96);
+  }
+  100% {
+    background: var(--chart);
+    transform: scale(1);
+  }
+}
+
+@keyframes fill-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  .fill-quiz__grid {
+    /* two columns while a cell is at least 160px wide, one below that */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  /* Stacked cell: the years are a small tinted line on top, the name gets the whole cell width
+     (wraps to two lines, never an ellipsis). */
+
+  .fill-cell {
+    flex-direction: column;
+    min-height: 68px;
+  }
+
+  .fill-cell__dates {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding: 3px 10px;
+    text-align: left;
+    font-size: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .fill-cell__name {
+    flex: 1 1 auto;
+    align-self: stretch;
+    padding: 6px 10px 8px;
+    font-size: 15px;
+    text-align: left;
+  }
+
+  .fill-cell__title {
+    font-size: 11px;
+  }
+
+  .fill-cell__note {
+    font-size: 12px;
+  }
+
+  .fill-quiz__grid--compact .fill-cell {
+    min-height: 56px;
+  }
+
+  .fill-quiz__grid--compact .fill-cell__dates {
+    flex-basis: auto;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  .fill-quiz__grid--compact .fill-cell__name {
+    padding: 3px 8px 4px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .fill-quiz__grid--compact .fill-cell__title {
+    font-size: 10px;
+  }
+
+  /* one phone column ("Read down the columns", short list): the cell is wide, so the old side
+     strip fits again, narrower */
+
+  .fill-quiz__grid--one .fill-cell {
+    flex-direction: row;
+  }
+
+  .fill-quiz__grid--one .fill-cell__dates {
+    flex: 0 0 4.6rem;
+    justify-content: center;
+    padding: 6px 4px;
+    text-align: center;
+    border-right: 1px solid var(--rule);
+    border-bottom: 0;
+  }
+
+  .fill-quiz__grid--one .fill-cell__name {
+    align-self: center;
+    padding: 8px 12px;
+  }
+
+  .fill-quiz__grid--columns {
+    /* phone: one column (two for long lists) filling the width */
+    grid-template-columns: repeat(var(--cols-phone, 1), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--rows-phone, 1), auto);
+  }
+}

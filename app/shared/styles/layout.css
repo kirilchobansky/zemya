@@ -1,0 +1,192 @@
+/* ---------------------------------------------------------------- shell */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-width) 1fr var(--panel-width);
+  height: 100vh;
+  height: 100dvh;
+  position: relative;
+  /* Smooth, not instant, when a collapse toggles or a reset snaps to the default width —
+     suppressed (.shell.is-resizing) while a handle is actively being dragged, so the
+     sidebar tracks the pointer with no lag. */
+  transition: grid-template-columns 0.2s ease;
+}
+
+.shell.is-resizing {
+  transition: none;
+}
+
+/* ---------------------------------------------------------- sidebar resize / collapse
+   Shared by .rail (left) and .panel (right) — desktop layout only; both are unmounted-in-
+   place (display:none) rather than removed on phones, where .rail is already `display:none`
+   and .panel becomes the fixed bottom sheet (see the phone media query far below), so none
+   of this needs its own phone override beyond what's already there. */
+
+.sidebar-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+  background: transparent;
+}
+
+.sidebar-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--rule);
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.sidebar-handle:hover::before,
+.sidebar-handle.is-dragging::before {
+  opacity: 1;
+  background: var(--brass-dim);
+}
+
+.rail .sidebar-handle {
+  right: -5px;
+}
+
+.panel .sidebar-handle {
+  left: -5px;
+}
+
+.sidebar-collapse {
+  position: absolute;
+  top: 10px;
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--chart-2);
+  border: 1px solid var(--brass-dim);
+  color: var(--brass);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  padding-bottom: 3px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar-collapse:hover {
+  color: var(--ink);
+  background: var(--brass-dim);
+  border-color: var(--brass);
+}
+
+.rail .sidebar-collapse {
+  /* bottom of the sidebar, after the footer, not floating over the brand */
+  position: static;
+  align-self: flex-end;
+  flex: 0 0 auto;
+  margin: 8px 8px 10px 0;
+}
+
+.panel .sidebar-collapse {
+  /* bottom of the panel, below its content */
+  position: static;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  margin: 8px 0 10px 8px;
+}
+
+.sidebar-edge-tab {
+  /* a collapsed sidebar's way back: centred on the screen edge, large, solid brass */
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brass-fill);
+  border: 1px solid var(--brass);
+  color: var(--ink-on-brass);
+  cursor: pointer;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 35%);
+  transition: background 0.12s;
+  /* above every full-area screen in the stage (.fill-quiz, .quiz-flag-stage: z-index 6) */
+  z-index: 9;
+}
+
+.sidebar-edge-tab:hover,
+.sidebar-edge-tab:focus-visible {
+  background: var(--brass-fill-hover);
+}
+
+.rail .sidebar-edge-tab {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+}
+
+.panel .sidebar-edge-tab {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+  border-right: none;
+}
+
+@media (min-width: 820px) and ((min-height: 500px) or (not (pointer: coarse))) {
+  /* Buttons the desktop sidebar's Back replaces ("Back to quizzes"): hidden on the desktop layout
+   (the exact complement of the phone media query used throughout), kept on phone. */
+
+  .desk-hide {
+    display: none !important;
+  }
+}
+
+.rail--collapsed > .brand,
+.rail--collapsed > .rail__scroll,
+.rail--collapsed > .rail__foot,
+.rail--collapsed > .sidebar-handle,
+.rail--collapsed > .sidebar-collapse {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  /* ---- input affordances: by pointer ------------------------------------------------- */
+
+  .only-coarse {
+    display: inline;
+  }
+
+  .only-fine,
+  kbd {
+    display: none;
+  }
+}
+
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+  /* The shell is exactly one viewport: dvh, not vh — mobile browser toolbars change the
+     height and vh is wrong on every phone. The page body never scrolls; only sheet content. */
+
+  .shell {
+    display: block;
+    position: relative;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* Collapse/resize (app/routes/map/atlas.tsx) is desktop-only — the panel's own copies of
+     these would otherwise float over the phone's fixed-position bottom sheet. */
+
+  .panel .sidebar-handle,
+  .panel .sidebar-collapse,
+  .panel .sidebar-edge-tab {
+    display: none;
+  }
+}

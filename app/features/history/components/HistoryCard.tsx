@@ -27,6 +27,7 @@ import { contextAt } from '~/features/history/timeline/layout';
 import type { TimelineEntry } from '~/features/history/timeline/renderer';
 import { dateOfDecimalYear, formatDuration } from '~/features/history/timeline/scale';
 import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
+import './HistoryCard.css';
 
 const CARD_WIDTH = 280;
 const GAP_PX = 10;
