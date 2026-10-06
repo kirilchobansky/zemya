@@ -1,10 +1,10 @@
 /**
  * Where a quiz run's own chrome covers the map — shared by the geography run
- * (routes/quizzes.$subject.$quizId.tsx) and "Name all countries" (components/NameAllQuiz.tsx),
+ * (routes/quizzes/quizzes.$subject.$quizId.tsx) and "Name all countries" (features/quizzes/name-all/NameAllQuiz.tsx),
  * which both dock an input over the canvas and, on a phone, a HUD above it.
  */
-import { NO_INSETS, type Insets } from '~/lib/map/follow';
-import { isPhoneLandscape, isPhoneLayout } from '~/lib/viewport';
+import { NO_INSETS, type Insets } from '~/engines/map/follow';
+import { isPhoneLandscape, isPhoneLayout } from '~/shared/layout/viewport';
 
 /** What sits on top of the canvas during a run, so a target hidden under it counts as not
  *  visible. Desktop: the docked input, at the bottom. The right-hand panel is a grid column

@@ -1,17 +1,17 @@
 import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useLocation, useMatch } from 'react-router';
 
-import { useProgress } from '~/lib/core/ProgressProvider';
-import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/lib/geography/overlays';
-import type { MasteryTotals } from '~/lib/geography/mastery';
-import { setTheme, useTheme, type Theme } from '~/lib/theme';
+import { useProgress } from '~/features/progress';
+import { legendFor, MASTERY_COLOURS, OVERLAYS, type OverlayId } from '~/features/countries';
+import type { MasteryTotals } from '~/features/countries';
+import { setTheme, useTheme, type Theme } from '~/shared/lib/theme';
 
 interface RailProps {
   overlay: OverlayId;
   onOverlayChange(overlay: OverlayId): void;
   countryCount: number;
   totals: MasteryTotals;
-  /** Collapse/resize (desktop only — routes/atlas.tsx owns the width/collapsed state and
+  /** Collapse/resize (desktop only — routes/map/atlas.tsx owns the width/collapsed state and
    *  the drag logic; this component only renders the controls and forwards the events). */
   collapsed: boolean;
   onToggleCollapsed: () => void;

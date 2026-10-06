@@ -8,8 +8,8 @@ the control below the continent buttons switches it to the N most populous. The 
 
 Look-up material moved out of CLAUDE.md: the route shape, scopes, size ladder, personal
 bests, the engine/presenter split, quiz mode, camera-follow and typing capture. Read it
-when the task touches `app/lib/quiz/`, `routes/quiz*.tsx`, `components/quiz/` or
-`app/lib/geography/quizzes.ts`. Card model and scheduling internals:
+when the task touches `app/features/quizzes/engine/`, `routes/quizzes/quiz*.tsx`, `app/features/quizzes/geography/stages/` or
+`app/features/quizzes/geography/quizzes.ts`. Card model and scheduling internals:
 [architecture.md](architecture.md).
 
 ## Quizzes
@@ -18,34 +18,34 @@ The owner's own words on why this exists: "the reason i want this app is the qui
 actually. Not the detail not anything else." — treat this as the app's core loop, not a
 feature alongside the atlas and study mode.
 
-**Subjects.** A thin layer sits above the quiz catalogue: `/quizzes` (`routes/quizzes.tsx`)
-picks a subject (Geography, History), `/quizzes/:subject` (`routes/quizzes.$subject.tsx`)
+**Subjects.** A thin layer sits above the quiz catalogue: `/quizzes` (`routes/quizzes/quizzes.tsx`)
+picks a subject (Geography, History), `/quizzes/:subject` (`routes/quizzes/quizzes.$subject.tsx`)
 lists that subject's quizzes (History adds a country level, below), and a run is `/quizzes/:subject/:quizId/:scope/:size`
-(`routes/quizzes.$subject.$quizId.tsx`). `app/lib/quiz/subjects.ts` is the registry: `{ id,
+(`routes/quizzes/quizzes.$subject.$quizId.tsx`). `app/features/quizzes/engine/subjects.tsx` is the registry: `{ id,
 name, blurb, quizzes: QuizDefinition[] }`; geography's `quizzes` is the same
 `QUIZ_DEFINITIONS` array below, unchanged, and history's is empty (`fillQuizzes: true` instead —
 its quizzes are listed per country, see "History: fill the list"). This is UI scaffolding
 for the picker, **not** a start on history content — see CLAUDE.md's Do Not section on
 subjects, and its note on this specific deviation. The old flat `/quiz`, `/quiz/:quizId/:scope/:size`
 and `/quiz/:quizId/:size` paths (indexed on Google before this layer existed) are kept as
-permanent redirects to their `/quizzes/geography/...` equivalent (`routes/quiz.tsx`,
+permanent redirects to their `/quizzes/geography/...` equivalent (`routes/quizzes/quiz.tsx`,
 `quiz.$quizId.tsx`, `quiz.legacy.tsx` — now three thin redirect stubs, prerendered as static
 files since a host with no server can't redirect a URL that isn't a real page). Quiz ids
 (`countries`, `flags`, `capitals`) are unchanged — personal bests in IndexedDB are keyed by
 them, not by any route shape.
 
 **Route shape (within a subject).** `/quizzes/:subject` lists a subject's quizzes, built
-from `app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`/`QUIZ_SIZES` for geography. Every
+from `app/features/quizzes/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`/`QUIZ_SIZES` for geography. Every
 run, of any quiz, is served by one route: `/quizzes/:subject/:quizId/:scope/:size`
-(`routes/quizzes.$subject.$quizId.tsx`), which looks the id up within that subject
+(`routes/quizzes/quizzes.$subject.$quizId.tsx`), which looks the id up within that subject
 (`quizInSubject`) and renders that definition's `Stage` — a quiz id only resolves inside its
 own subject, so `/quizzes/history/countries/...` 404s rather than quietly serving geography's
 quiz. A second quiz ("Name the Capital" — since built) is one new `QuizDefinition` entry,
 never a new route tree or a rewrite of the list page — this is what let "Name the Flag"
-arrive as a ~50-line presenter (`components/quiz/FlagsStage.tsx`) plus a registry entry,
+arrive as a ~50-line presenter (`features/quizzes/geography/stages/FlagsStage.tsx`) plus a registry entry,
 reusing everything else. The list itself is compact — quiz names only — with one quiz's
 scope chips and size ladder expanded inline at a time, collapsed by default; same markup on
-desktop's right panel and the phone sheet. Sizes come from `app/lib/geography/scopes.ts`
+desktop's right panel and the phone sheet. Sizes come from `app/features/countries/scopes.ts`
 (see "Scopes" below), randomly selected from the chosen pool by default (`randomSubset`),
 or population-ranked when the order toggle is switched on (`populationSubset`); a quiz
 that shouldn't use either shared order would pass its own list into the shared engine instead.
@@ -57,12 +57,12 @@ asia | europe | north-america | south-america | oceania`; the pool is
 America is the subregion, North America is every other Americas country — 197 / 54 / 48 /
 46 / 23 / 12 / 14), and "top N" means a random N-country subset _within_ that pool by default;
 the control below the continent buttons switches it to the N most populous. The old,
-pre-subject `/quiz/:quizId/:size` (pre-scope too) still exists as `routes/quiz.legacy.tsx`,
+pre-subject `/quiz/:quizId/:size` (pre-scope too) still exists as `routes/quizzes/quiz.legacy.tsx`,
 now a redirect straight to `/quizzes/geography/:quizId/world/:size`, and is prerendered for
 the old sizes so bookmarks to a static host still resolve. A removed scope key
 (`LEGACY_SCOPES` in `scopes.ts` — today just `americas`, split in two) redirects to its
 replacement (world) and is prerendered for the sizes it once offered, under both the old
-`/quiz/:id/americas/:size` prefix (`routes/quiz.$quizId.tsx`, a redirect stub to the
+`/quiz/:id/americas/:size` prefix (`routes/quizzes/quiz.$quizId.tsx`, a redirect stub to the
 `/quizzes/geography/...` equivalent) and inside the real run route itself (which still
 carries the `americas` -> `world` check, for a URL someone types by hand under the new
 prefix); a size the pool can't offer (typed into the URL by hand) redirects to
@@ -73,7 +73,7 @@ stubs, same combinations) from `countries.json`, so adding a country changes bot
 offered sizes and the prerendered pages with no list to edit. The list page reads the same
 pool sizes from a build-time route loader. A new quiz is one id in that config's `QUIZ_IDS`
 plus its `QUIZ_DEFINITIONS` entry — subject membership is separate, in
-`app/lib/quiz/subjects.ts`.
+`app/features/quizzes/engine/subjects.tsx`.
 
 **The size ladder is computed, never listed.** `sizesForPool(N)` keeps a rung S of
 `[10, 20, 30, 50, 90, 120]` when `0.08 * N <= S <= 0.68 * N`, and always appends All. The
@@ -96,12 +96,12 @@ exists matches nothing and never throws: **personal bests recorded under `americ
 orphaned** — that scope was split, a run can't be attributed to either half, and the rows
 are left in the table (not deleted, not migrated).
 
-**The engine/presenter split.** `app/lib/quiz/engine.ts`'s `useQuizEngine()` hook owns a
+**The engine/presenter split.** `app/features/quizzes/engine/engine.ts`'s `useQuizEngine()` hook owns a
 run end-to-end — question order, the current target, attempt state, timer accumulation,
 pause/resume, abandon, per-answer outcome, completion, the results payload, the
 personal-best write and FSRS grading — and is deliberately ignorant of maps, flag images
 or anything else a Stage renders; it knows a list of countries and a callback per answer.
-A `QuizDefinition` (`app/lib/quiz/types.ts`) is `{ id, title, description, facet, Stage,
+A `QuizDefinition` (`app/features/quizzes/engine/types.ts`) is `{ id, title, description, facet, Stage,
 prepare?, match?, markCapital? }`: `facet` says which FSRS card an answer grades
 (`geo:<ISO3>:<facet>`), `Stage` is the component that renders what the player sees,
 `prepare(targets)` is an optional lookahead hook for preloading something heavier than a
@@ -113,7 +113,7 @@ this split; both turned out to be needed once the catalogue text and the flags q
 confusable pairs were actually built, so they're recorded here rather than only in a
 commit message.
 
-`routes/quizzes.$subject.$quizId.tsx` is the "atlas bridge": it owns the handful of things every quiz
+`routes/quizzes/quizzes.$subject.$quizId.tsx` is the "atlas bridge": it owns the handful of things every quiz
 needs from the atlas layout — hiding the search box/toolbar/tooltip for the run's whole
 lifetime, returning the camera to the world view on START and on finish, and mirroring
 the run's target/answered/showNeighbours/paused state into the map's own quiz-mode
@@ -128,8 +128,8 @@ today only the countries quiz uses it, for its neighbour-glow toggle, since no o
 has a notion of map neighbours. This `slot` prop is how a one-off control like that gets a
 home without `QuizStageProps` growing a bespoke field per future quiz.
 
-**Quiz mode is one flag, not four conditionals.** `routes/quizzes.$subject.$quizId.tsx` reaches the
-map through `useAtlasContext()` (exported from `routes/atlas.tsx`) and writes a `quiz:
+**Quiz mode is one flag, not four conditionals.** `routes/quizzes/quizzes.$subject.$quizId.tsx` reaches the
+map through `useAtlasContext()` (exported from `routes/map/atlas.tsx`) and writes a `quiz:
 QuizOverride | null` there for the whole lifetime of the route (set on mount, torn down on
 unmount), for every quiz alike — the subject/quiz list pages never touch it. Setting it
 non-null does these things, all gated on that one value: the renderer's `Style.quizMode`
@@ -307,11 +307,11 @@ Enter with nothing revealed does nothing; typing the answer by hand still works 
 pending fill. A phone's Go/Done key sends Enter. While revealed, a hint sits by the answer
 ("Press Enter to fill it in", phones: "Tap Go to fill it in"). The answer string comes from
 `QuizDefinition.answerOf` (default: the country's name), shared with the Stage's reveal chip.
-Tests: `test/unit/quiz-engine.test.ts` (a tiny hook runtime stands in for React — no DOM in
+Tests: `app/features/quizzes/engine/engine.test.ts` (a tiny hook runtime stands in for React — no DOM in
 the unit environment).
 
 **Feeding the spaced repetition.** Every answer grades that country's
-`geo:<ISO3>:<definition.facet>` card (`app/lib/geography/mastery.ts`'s `cardId`) through
+`geo:<ISO3>:<definition.facet>` card (`app/features/countries/mastery.ts`'s `cardId`) through
 the normal `review()` from `useProgress()` — the same path study mode uses. For the
 countries quiz that's `location`, graded here even though study mode still can't ask it
 (`ASKABLE_FACETS` excludes it) — that's intentional, the quiz _is_ the location question,
@@ -326,8 +326,8 @@ resolves to Hard regardless of elapsed time.
 
 **"Name the Flag" and confusable pairs.** Same engine, same six sizes, same top-N-by-
 population ladder, same keyboard rules, same matcher, same timer, same results and
-personal best — its `QuizDefinition` (`app/lib/geography/quizzes.ts`) is a `Stage`
-(`components/quiz/FlagsStage.tsx`, no map, the flag filling the stage area with the
+personal best — its `QuizDefinition` (`app/features/quizzes/geography/quizzes.ts`) is a `Stage`
+(`features/quizzes/geography/stages/FlagsStage.tsx`, no map, the flag filling the stage area with the
 input directly under it), `facet: 'flag'`, a `prepare()` that preloads the next three
 flags' SVGs, and a `match()`. True aspect ratios (see "Real flag images" in decisions.md) solve most
 lookalikes outright — Monaco vs Indonesia is a real shape difference now, not just a
@@ -372,7 +372,7 @@ names the country, and nothing names the city until a reveal.
 - Where the target's capital sits under a pin-drawn city-state (Vatican, Monaco, Singapore),
   the target pin's own ring is the marker and the quiz ring is skipped (same 6 px rule as
   `drawCapitals`).
-- `test/smoke.mjs` step 18 is the label-leak test: START on `/quizzes/geography/capitals/world/20`, read
+- `tests/e2e/smoke.mjs` step 18 is the label-leak test: START on `/quizzes/geography/capitals/world/20`, read
   the target from `window.__zemyaQuiz` (now with `targetCapital`), then scan **every text
   node and every `aria-label`/`title`/`alt`/`placeholder`/`value`** — whole-word,
   case- and diacritic-insensitive, `<script>`/`<style>` skipped — for the target's capital
@@ -382,7 +382,7 @@ names the country, and nothing names the city until a reveal.
   countries whose capital names include their own).
 
 **"Name the Currency / Language / Religion".** Three more `QuizDefinition`s (`quizzes.ts`) on the
-capitals quiz's screen (`components/quiz/FacetStages.tsx` -> `MapStage`): the target country is lit
+capitals quiz's screen (`features/quizzes/geography/stages/FacetStages.tsx` -> `MapStage`): the target country is lit
 in brass, no marker, and the player types the value; grades `geo:<ISO3>:currency|language|religion`.
 Scopes, ladder, keys and colours are shared. THE ANSWER IS NOT UNIQUE (twenty countries are "Euro"),
 which is fine for country -> value; there is no value -> country quiz, and no cross-country alias
@@ -409,7 +409,7 @@ collision check. Each `match` always returns an outcome, so typing the country n
   description now does too. The data has no "primary language", so none is shown.
 
 **Personal best.** Every finished run is appended (never overwritten) to a `quizRuns`
-table in the same Dexie database as `cards`/`reviews` (`app/lib/core/progress.ts`) —
+table in the same Dexie database as `cards`/`reviews` (`app/features/progress/progress.ts`) —
 `bestQuizTime()` reads the fastest for a given quiz+size, shown on the quiz list's size
 cards and on the results screen ("beat your best" / "personal best stays"). Deliberately
 left out of the JSON export/import format: a personal best is local flavour, not learning
@@ -427,7 +427,7 @@ as a dossier link — "the ones worth another look", the actual point of the scr
 A free-recall quiz: no prompt, no target — the player types country names in any order until all
 are named or they give up. Seven runs, one per scope (World + the six continents), at
 `/quizzes/geography/name-all/:scope/all` (the existing run route, dispatched in
-`routes/quizzes.$subject.$quizId.tsx` by `quizId === 'name-all'`; `size` is always `all`, which keeps
+`routes/quizzes/quizzes.$subject.$quizId.tsx` by `quizId === 'name-all'`; `size` is always `all`, which keeps
 the saved-run key shape and needs no new route). The count is "x / N" over the scope's ordinary pool
 (`poolForQuiz`, the same 197 / continent sets every geography quiz uses — the catalogue's own
 sovereignty line, `docs/decisions.md`).
@@ -451,7 +451,7 @@ sovereignty line, `docs/decisions.md`).
   so a growing flag list scrolls under them; with the panel collapsed the same timer shows on the stage's
   top-left (`StageClock`, geography runs and Name all). The History fill quiz's head is sticky likewise.
 - **Rejected spellings** (`REJECTED_SPELLINGS` in `names-bg.ts`, owner request): "Beliz", "Lao", "Tunis", "Surinam" are never accepted — not as the Latin typing of Белиз / Лаос / Тунис / Суринам, and not through the one-typo allowance (Surinam is one edit from Suriname). The accepted names are Belize, Laos, Tunisia, Suriname; the Cyrillic names still work. Removing an alias is not enough for a spelling like these: the matcher derives Latin-typed Cyrillic matches and typos on its own.
-- **Screen** (`components/NameAllQuiz.tsx`): the geography run's chrome. The map stays live, framed on
+- **Screen** (`features/quizzes/name-all/NameAllQuiz.tsx`): the geography run's chrome. The map stays live, framed on
   the scope (`SCOPE_VIEWS`, `setRegionView`), correct countries in the "mastered" colour via the
   quiz override's `answered` map; names stay hidden (quiz mode). Desktop: START (or Space/Enter) docks
   over the map, the input is always focused (a printable key aimed elsewhere refocuses it), the panel
@@ -459,7 +459,7 @@ sovereignty line, `docs/decisions.md`).
   the order named). Phone: immersive, the shared HUD and input bar ride the keyboard, Give up is a
   text button in the bar, results open the sheet at `full` — no half sheet. Esc pauses, Ctrl+Backspace
   abandons, "Restart" (active run only) is a fresh run with nothing saved. `measureInsets` moved to
-  `app/lib/quiz/insets.ts` for it.
+  `app/features/quizzes/engine/insets.ts` for it.
 - **Results.** On finish: time, "N / N named" and the personal best. On Give up: the score, the missed
   countries in red on the map and as a list (grouped by continent for World, `continentOf`) and the
   named list. Only a **completed** run is saved (`quizId: 'name-all'`, scope, size `all`,
@@ -471,9 +471,9 @@ sovereignty line, `docs/decisions.md`).
 ## History: "fill the list"
 
 The first History quiz type, and the first that is not a `QuizDefinition` — there is no queue,
-target or map, so it does not use the engine (`app/lib/quiz/engine.ts`). Logic:
-`app/lib/history/fill-quiz.ts` (pure, unit-tested in `test/unit/fill-quiz.test.ts`); screen:
-`components/HistoryFillQuiz.tsx`; run URL: `/quizzes/history/:slug/:quizId` (no scope, no size — a
+target or map, so it does not use the engine (`app/features/quizzes/engine/engine.ts`). Logic:
+`app/features/quizzes/history-fill/fill-quiz.ts` (pure, unit-tested in `app/features/quizzes/history-fill/fill-quiz.test.ts`); screen:
+`features/quizzes/history-fill/HistoryFillQuiz.tsx`; run URL: `/quizzes/history/:slug/:quizId` (no scope, no size — a
 second route id on the same file, `routes.ts`, which dispatches on the missing `:scope`).
 
 - **Navigation is subject -> country -> quiz.** `/quizzes/history` lists `HISTORY_COUNTRIES`
@@ -483,7 +483,7 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
   (`routes.ts`), dispatching on the params they lack. The breadcrumb in each panel header links
   one level up; the run's "Back to quizzes" goes to the country's list. The config is keyed by
   country slug (`FILL_QUIZ_CONFIG`), so another country adds its own rows.
-- **Quizzes are an explicit table.** `app/lib/history/fill-quiz-config.ts` has one row per quiz
+- **Quizzes are an explicit table.** `app/features/quizzes/history-fill/fill-quiz-config.ts` has one row per quiz
   (per country slug): `id`, English `title`, `kind` (ruler | government), a `role` regex tested
   against the entry's role, an optional start window (`from` inclusive, `before` exclusive) and an
   optional `toggle`. `fillQuizzesFromRaw(timeline, slug)` applies each row — every selected entry is
@@ -578,7 +578,7 @@ second route id on the same file, `routes.ts`, which dispatches on the missing `
 
 Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author needs to know:
 
-- A Stage renders `<QuizControls>` (`components/quiz/QuizControls.tsx`) for the input — never its
+- A Stage renders `<QuizControls>` (`features/quizzes/engine/QuizControls.tsx`) for the input — never its
   own `<input>` — inside a portalled dock (`createPortal(..., document.body)`), and renders it in
   EVERY phase (idle and done render it hidden) so START can focus it synchronously.
 - `QuizStageProps` carries `skip / reveal / canSkip / canReveal` for the phone's Skip and Reveal
@@ -603,12 +603,12 @@ Phone layout is documented in CLAUDE.md's "Mobile" section; what a Stage author 
 
 ## Name the Country from its Outline (`outlines`)
 
-Fourth quiz, grades `geo:<ISO3>:outline`. `components/quiz/OutlinesStage.tsx` is the flags
+Fourth quiz, grades `geo:<ISO3>:outline`. `features/quizzes/geography/stages/OutlinesStage.tsx` is the flags
 quiz's layout (same fixed 460x300 box, `hidesMap`) with a canvas inside, filling the target's
 existing `Path2D` (from the coarse payload, which keeps every polygon, islands included)
 in `--ink`; no labels, neighbours or sea. The Mercator unit-square path is drawn north-up in the
 unwrapped longitude frame (as `topology.ts`), so Russia/Fiji/Kiribati/USA are one shape; a unit
-test asserts no bbox spans over 180 degrees. Size: `app/lib/geography/outline.ts` —
+test asserts no bbox spans over 180 degrees. Size: `app/features/countries/outline.ts` —
 `box * (area / largestInPool) ^ 0.15`, clamped to 30..100% (`OUTLINE_SIZE_EXPONENT`,
 `OUTLINE_MIN_SHARE`); the pool is the run's whole scope pool (before Top-N), so Oceania is not
 all at the floor. To give the Stage the world and pool, `QuizStageProps` gained `world` and
@@ -617,7 +617,7 @@ all at the floor. To give the Stage the world and pool, `QuizStageProps` gained 
 
 ## Phone runs and the keyboard (page lock)
 
-- `useQuizPageLock` (`app/lib/keyboard.ts`) runs for a geography run (while it owns the screen) and for the whole fill quiz: `html.is-quiz-locked` (overflow hidden, `overscroll-behavior: none`, body `position: fixed`, `--chart` background) plus a non-passive `touchmove` guard that cancels any drag outside `.fill-quiz` / `.panel__body` and inside the pause screens (iOS pans the visual viewport on a drag nothing scrolls). Removed on unmount. Phone layout only; desktop untouched.
+- `useQuizPageLock` (`app/shared/lib/keyboard.ts`) runs for a geography run (while it owns the screen) and for the whole fill quiz: `html.is-quiz-locked` (overflow hidden, `overscroll-behavior: none`, body `position: fixed`, `--chart` background) plus a non-passive `touchmove` guard that cancels any drag outside `.fill-quiz` / `.panel__body` and inside the pause screens (iOS pans the visual viewport on a drag nothing scrolls). Removed on unmount. Phone layout only; desktop untouched.
 - `--kb` / `--vv-top` are read once per animation frame and written only when the rounded value changed; React (camera re-frame, canvas redraw) hears about the keyboard 120ms after it stops moving.
 - Behind the keyboard only the bar's colour shows: `.quiz-controls` is opaque with a screen-tall `::after` in the same colour (landscape: the same on the bottom HUD); `.fill-quiz` extends under the keyboard and pads its content by `--kb`. No `backdrop-filter` on the run's HUD, bar or pause screens.
 - Pause screens (`.quiz-pause`, `.fill-quiz__pause`) are `position: fixed` over exactly what the keyboard leaves, `touch-action: none`, `overscroll-behavior: contain`; buttons still tap.

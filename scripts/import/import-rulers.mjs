@@ -5,7 +5,7 @@
  * source, and throws on any id collision) but not idempotent against a bg.yaml that
  * has since been hand-edited around the inserted sections.
  *
- *   node scripts/import-rulers.mjs
+ *   node scripts/import/import-rulers.mjs
  *
  * Tables imported, each parsed straight out of the HTML (regex, not transcribed by
  * hand) with per-item tier/precision/skip decisions layered on top as data (OVERRIDES,
@@ -33,7 +33,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const htmlPath = join(root, 'content', 'history', 'source-bg.html');
 const yamlPath = join(root, 'content', 'history', 'bg.yaml');
 
@@ -42,7 +42,7 @@ let yamlText = readFileSync(yamlPath, 'utf8');
 
 const existingIds = new Set([...yamlText.matchAll(/^  - id: (\S+)/gm)].map(m => m[1]));
 
-// -- generic helpers, same conventions as scripts/import-events.mjs --------------------
+// -- generic helpers, same conventions as scripts/import/import-events.mjs --------------------
 
 const TRANSLIT = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y',

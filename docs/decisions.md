@@ -50,7 +50,7 @@ population }`) in both geometry payloads, drawn as a hollow ring (never the fill
 - Real flag images (`public/flags/`, from svg-country-flags, offline, emoji fallback on
   error) at their own true aspect ratio. `flag-icons`, which normalised everything to
   4:3, is gone. Every one of these SVGs' root element carries only a `viewBox`, no
-  width/height — `scripts/build-content.mjs` injects both onto the file itself (from the
+  width/height — `scripts/build/build-content.mjs` injects both onto the file itself (from the
   viewBox) before it's written to `public/flags/`, and separately emits the same ratio as
   `flagRatio` on the country record. **Both matter, for different reasons**: the injected
   width/height give the `<img>` a real intrinsic size, which is what CSS auto-sizing
@@ -83,7 +83,7 @@ population }`) in both geometry payloads, drawn as a hollow ring (never the fill
   on purpose — see Git conventions).
 - Country name matching (`aliases` on every country record, built at build time from
   world-countries' altSpellings/common/official name; matched in
-  `app/lib/geography/names.ts`) and the "Name the Country" quiz, including its results
+  `app/features/countries/names.ts`) and the "Name the Country" quiz, including its results
   screen, a `quizRuns` personal-best history and feeding the FSRS `location` card on
   every answer — see quizzes.md.
 - Run history on the quiz catalogue: clicking a size's best time opens its past runs
@@ -92,9 +92,9 @@ population }`) in both geometry payloads, drawn as a hollow ring (never the fill
   `exportAll`/`importAll` and `saveQuizRun`'s impossible-run guard now all cover
   `quizRuns` too — see "Progress and scheduling" in architecture.md.
 - The quiz run screen (queue, timer, pause/resume, abandon, grading, results, personal
-  best) is a shared, subject-agnostic engine (`app/lib/quiz/engine.ts`) behind one route
-  (`routes/quiz.$quizId.tsx`, `/quiz/:quizId/:scope/:size`) — a second quiz is one
-  `QuizDefinition` entry in `app/lib/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`, not a new
+  best) is a shared, subject-agnostic engine (`app/features/quizzes/engine/engine.ts`) behind one route
+  (`routes/quizzes/quiz.$quizId.tsx`, `/quiz/:quizId/:scope/:size`) — a second quiz is one
+  `QuizDefinition` entry in `app/features/quizzes/geography/quizzes.ts`'s `QUIZ_DEFINITIONS`, not a new
   route tree. "Name the Flag" is that second quiz: a flag fills the whole stage area (no
   map), typing the country grades `geo:<ISO3>:flag`, and a small curated list
   (`content/geography/confusable-flags.yaml`) accepts a few flags that are still
@@ -114,7 +114,7 @@ population }`) in both geometry payloads, drawn as a hollow ring (never the fill
   keyboard rules, results and personal best; grades the existing `geo:<ISO3>:capital`
   card; accepts `capitalAliases` and never the country's own name. One `QuizDefinition`
   plus a 20-line Stage over the map Stage the countries quiz now shares
-  (`components/quiz/MapStage.tsx`) — see "Name the Capital" in quizzes.md.
+  (`features/quizzes/geography/stages/MapStage.tsx`) — see "Name the Capital" in quizzes.md.
 - The quiz camera and keyboard follow the player (and resuming from pause no longer resets the
   camera to the world view — `home()` is START only): each new question pans (at the player's
   zoom) or zooms out the minimum only when the target isn't already visible, typing is
@@ -135,48 +135,49 @@ see CLAUDE.md's "Do not" for the bounded list of files/pages this covers.
 (8 periods incl. the overlapping Възраждане, 34 `kind: ruler` entries — the 26 First Empire
 rulers 681–1018 plus the 8 heads of state since 1989 — 26 `kind: government` cabinets (prime
 ministers) since 1989, 19 tier-1 dates; grown to 680 by a bulk `kind: event` import, see
-below), validated and built by `scripts/build-history.mjs`
+below), validated and built by `scripts/build/build-history.mjs`
 (`scripts/lib/history.mjs` has the date parser and validator) into
 `public/data/history/bg.json`. **Heads of state are `kind: ruler`, not `kind: government`** —
 the ruler wire is one unbroken chain across every era (хан, цар, княз, президент);
 `government` is cabinets only, and only exists from 1878 on. TODOs left in the YAML for
 Second Empire rulers, monarchs 1878–1946 and communist-era leaders.
-`app/lib/history/scale.ts` — decimal-year time representation, viewport projection, the zoom
-ladder (millennium…day) and tier-based visibility; pure logic, mirroring `app/lib/map/`'s
-projection/camera split, so the eventual canvas renderer and `app/lib/map/` can share a shape
+`app/features/history/timeline/scale.ts` — decimal-year time representation, viewport projection, the zoom
+ladder (millennium…day) and tier-based visibility; pure logic, mirroring `app/engines/map/`'s
+projection/camera split, so the eventual canvas renderer and `app/engines/map/` can share a shape
 without either importing the other. Placed under `app/lib/` to match `core/`, `map/`,
-`geography/` — a prompt asking for `app/history/` gets the `app/lib/` sibling instead. It
+`geography/` — a prompt asking for `app/history/` gets the `app/lib/` sibling instead
+(**reversed** by "Structure: feature folders" below; it now lives in `app/features/history/`). It
 imports `parseHistoryDate`/`dateKey` straight from `scripts/lib/history.mjs` (typed via a
 `.d.mts` sibling, same pattern as `site.mjs`/`site.d.mts`) rather than duplicating the
 parser — safe because that module has zero Node dependencies and Vite bundles it like any
-other pure module; confirmed by `test/unit/scale.test.ts` importing and running it through
-the same Vite pipeline the real app build uses. `app/lib/history/layout.ts` — built on
+other pure module; confirmed by `app/features/history/timeline/scale.test.ts` importing and running it through
+the same Vite pipeline the real app build uses. `app/features/history/timeline/layout.ts` — built on
 `scale.ts`: context stack (`contextAt`, what period/ruler/government contains a moment —
 gaps are `null`; the ruler and government wires are independent, so a head of state and a
 cabinet at the same moment each resolve in their own slot, not each other's), bar-vs-pinned
 span classification, per-kind row packing computed from the whole dataset (so a row never
 changes while panning), density buckets for the "zoom in, there's more here" cue, and
-label-collision resolution. `test/unit/history-mjs-guard.test.ts` asserts
+label-collision resolution. `scripts/lib/history.guard.test.ts` asserts
 `scripts/lib/history.mjs` imports nothing at all, guarding the assumption `scale.ts`'s import
 of it depends on.
 
 **First render.** `/history/bulgaria` — canvas only, no dossier, no hover, no selection, no
 quiz; at the time, not linked from anywhere, noindex, prerendered but left out of `indexable`
 (the sitemap list) in `react-router.config.ts` (superseded below — it's a real nav section
-now). `app/lib/history/renderer.ts` (the cylinder band, tick marks via `ticks()` — with
+now). `app/features/history/timeline/renderer.ts` (the cylinder band, tick marks via `ticks()` — with
 `placeLabels()` resolving label crowding at borderline zooms, a real defect caught by an
 actual render, not by typecheck — the screen-fixed centre marker, and period/ruler bars via
-`assignRows()`/`classifySpan()`) and `app/lib/history/timeline.ts` (the `HistoryTimeline`
+`assignRows()`/`classifySpan()`) and `app/features/history/timeline/timeline.ts` (the `HistoryTimeline`
 controller: render-request queue, DPR/resize, drag-to-pan, wheel/pinch-to-zoom). Every draw
 function takes `axis: 'horizontal' | 'vertical'` and goes through one `project()` helper —
-only horizontal is wired up. `Atlas` (`app/lib/map/atlas.ts`) could not be reused directly
+only horizontal is wired up. `Atlas` (`app/engines/map/atlas.ts`) could not be reused directly
 (typed throughout against the 2D geography camera/World/Feature); `HistoryTimeline` copies
 its *pattern* — render-request queue, `ResizeObserver`-driven resize, "hold the point under
 the cursor/pinch fixed" — one dimension smaller, against `scale.ts`'s `Viewport` instead of
-`camera.ts`'s `CameraState`. `app/lib/history/catalog.server.ts` reads
+`camera.ts`'s `CameraState`. `app/features/history/data/catalog.server.ts` reads
 `public/data/history/bg.json` and converts each entry's date string to a decimal year
 server-side (`scale.ts`'s `decimalYearOf`, safe to run there — pure logic, not
-Node-specific), mirroring `app/lib/geography/catalog.server.ts`.
+Node-specific), mirroring `app/features/countries/catalog.server.ts`.
 
 **Legibility pass.** Bar/pin labels are `name.bg`, not English — this is a Bulgarian
 timeline, and both canvas fonts (`--font-ui`/`--font-mono`, i.e. Archivo/IBM Plex Mono)
@@ -295,7 +296,7 @@ brief without losing that cue.
 
 **Bulk import from events-bg.json.** `content/history/events-bg.json` — 613 auto-generated,
 bg-only events with flat `era`/`category` keys (10 eras, 9 categories, each carrying a
-`color`) — was imported by `scripts/import-events.mjs`, a one-off migration script (not
+`color`) — was imported by `scripts/import/import-events.mjs`, a one-off migration script (not
 idempotent; re-running it throws on the id collisions it created the first time), taking
 `bg.yaml` from 87 to 680 entries. Decisions made along the way, not specified by the
 import brief itself:
@@ -325,7 +326,7 @@ import brief itself:
   fixed Cyrillic→Latin table in the script), falling back to appending the year on a
   collision.
 
-**Ruler/government tables from source-bg.html.** `scripts/import-rulers.mjs` — another
+**Ruler/government tables from source-bg.html.** `scripts/import/import-rulers.mjs` — another
 one-off, not idempotent — parsed the remaining hand-authored tables in
 `content/history/source-bg.html` straight out of the HTML (regex, not transcribed by hand)
 and appended them to `bg.yaml`, taking it from 680 to 765 entries: Second Empire rulers
@@ -366,15 +367,15 @@ Judgement calls the import brief left to the script, not derivable from the sour
   surrounding 9.1/9.2 narrative in `source-bg.html` rather than a bare "role, years"
   placeholder.
 
-**Dossier link.** The country dossier (`app/routes/country.tsx`) now shows a "History
+**Dossier link.** The country dossier (`app/routes/map/country.tsx`) now shows a "History
 timeline" button — owner-approved, widening the exception list in CLAUDE.md's "Do not"
 (previously "no dossier ... without asking again"). Rendered below the Flag/Outline notes,
 inside `.panel__body.dossier` so it inherits the panel's flex-column spacing; the condition
-is `HISTORY_COUNTRIES.some(c => c.slug === country.slug)` — the same array `routes/history.tsx`
+is `HISTORY_COUNTRIES.some(c => c.slug === country.slug)` — the same array `routes/history/history.tsx`
 maps over, so a second `HISTORY_COUNTRIES` entry (still gated by the owner-approval rule
 above) would need no further wiring here. Links to `/history/${country.slug}`, the same path
 shape the picker itself uses. Styled with the existing `.action.action--primary` button
-class plus a `.dossier__history` rule (`app/styles/app.css`) that centres it as a full-width
+class plus a `.dossier__history` rule (`app/shared/styles/app.css`) that centres it as a full-width
 block; mobile's per-child `order` list for `.dossier`'s direct children (same file, the
 `@media` block reordering the sheet's sections) got a matching `order: 6` entry so it stays
 last on phones too.
@@ -465,7 +466,7 @@ for the event kind entirely and always measures pin height from the wire's own f
 **Calm overview, toggle removed.** The "Пълен изглед" button and everything behind it are
 gone: `app/routes/history.bulgaria.tsx`'s button, `AtlasContext`'s `revealMode`/
 `setRevealMode` fields and the effect syncing them into `HistoryTimeline`
-(`app/routes/atlas.tsx`), `HistoryTimeline.setRevealMode`/its private field, and
+(`app/routes/map/atlas.tsx`), `HistoryTimeline.setRevealMode`/its private field, and
 `scale.ts`'s `RevealMode` type. `maxTierFor`/`visibleEntries` lost their now-pointless
 `mode` parameter but kept their exact prior ('eased') behaviour as their only behaviour —
 both are still exercised by their own unit tests and by `layout.ts`'s `densityBuckets`
@@ -537,7 +538,7 @@ already had nowhere to read it from until now even though `bg.json` always carri
 "See more" open) is now a header (name, "681 – today", entry count), "Whole history"/"Today"
 buttons, "Close all cards", then `HistoryOutline.tsx`'s vertical list of periods. This
 replaced `history.bulgaria.tsx`'s old `HISTORY_COUNTRIES` subject-card list, which was
-vestigial — `/history` (`routes/history.tsx`) already owns that picker; the Bulgaria route
+vestigial — `/history` (`routes/history/history.tsx`) already owns that picker; the Bulgaria route
 never needed a second copy of it. Nesting (Възраждане under Османско владичество) isn't an
 authored relationship (`bg.yaml` sets no `parent` on either) — `HistoryOutline.tsx`'s
 `containingPeriod()` derives it generically: a period fully date-contained by another with a
@@ -559,7 +560,7 @@ converged" pattern `updateCylinderAnimation` already uses; the pulse reuses the 
 by nothing except its own 1.5s timer — a drag/wheel/pinch cancels the FLIGHT (`flyAnim`)
 immediately, not an already-started pulse.
 
-**Search, filters and connector lines.** Owner-requested, three pieces. `app/lib/history/
+**Search, filters and connector lines.** Owner-requested, three pieces. `app/features/history/
 search.ts`'s `search(entries, query, limit)` is pure: ranks a name-starts-with match above
 a name-contains match above an alias match above a tag/role match (ties by earlier
 `start`), each tier checked in order so a coarser-tier hit can never lose to a finer one
@@ -622,7 +623,7 @@ inside a 24px edge margin (`RENDER_CONFIG.edgeMarginPx`) and fade over it as the
 rulers/governments were left alone; the brief named pins/dots/labels specifically, and the
 cylinder itself still runs edge to edge.
 
-**Sidebar collapse/resize.** The left rail and right panel (`Rail.tsx`, `routes/atlas.tsx`)
+**Sidebar collapse/resize.** The left rail and right panel (`Rail.tsx`, `routes/map/atlas.tsx`)
 each get a drag handle and a collapse button, desktop layout only — state (`railWidth`,
 `panelWidth`, `railCollapsed`, `panelCollapsed`) lives in `AtlasShell` and is written to
 `.shell`'s own inline style as the `--rail-width`/`--panel-width` custom properties, which
@@ -662,8 +663,8 @@ the inline style always winning the cascade over it, was removed as part of this
 now the CSS file `AtlasContext`/`useAtlasContext` also moved out of, see below, since it
 touched this same bug).
 
-**`AtlasContext`/`useAtlasContext` moved to `app/lib/atlas-context.ts`.** Living in
-`routes/atlas.tsx` meant the route module's exports were the context/hook/interface plus the
+**`AtlasContext`/`useAtlasContext` moved to `app/features/map/atlas-context.ts`.** Living in
+`routes/map/atlas.tsx` meant the route module's exports were the context/hook/interface plus the
 route's own default export — React Router's framework mode gives a route module's exports
 meaning (`loader`, `meta`, `action`, …), so a plain context pair sitting there too was never
 quite at home, and (found while chasing the hydration bug above) it's also a Vite Fast-Refresh
@@ -671,10 +672,10 @@ hazard: a module that exports both a component and other bindings doesn't get a 
 same-identity hot reload, which can leave an already-loaded child chunk holding a stale
 `AtlasContext` reference — `useAtlasContext must be used inside the atlas layout` thrown from
 a component that IS inside the layout, only after live-editing that file with the dev server
-running. `routes/atlas.tsx` now exports only `AtlasLayout` (its default export) and no route
+running. `routes/map/atlas.tsx` now exports only `AtlasLayout` (its default export) and no route
 API beyond that yet; the two consumers (`routes/history.bulgaria.tsx`,
-`routes/quizzes.$subject.$quizId.tsx`) import from `~/lib/atlas-context` instead. Placement:
-`app/lib/atlas-context.ts` rather than nested under `core/`/`map/`/`geography/`/`history/`
+`routes/quizzes/quizzes.$subject.$quizId.tsx`) import from `~/features/map/atlas-context` instead. Placement:
+`app/features/map/atlas-context.ts` rather than nested under `core/`/`map/`/`geography/`/`history/`
 (CLAUDE.md's usual four) — it's atlas-shell-specific state, not general-purpose, so none of
 those fit, and a flat file beat inventing a same-purpose subfolder for one file.
 
@@ -752,8 +753,8 @@ canvas colours are cached once and refreshed only on a theme change, check both 
 
 **No longer a single committed dark theme — the owner asked for light mode.** Three states:
 System (follows the OS, the default) / Light / Dark, switched from the Layers sheet on
-phones and the rail on desktop (`ThemeControls`, `app/components/Rail.tsx`), persisted in
-`localStorage` (`app/lib/theme.ts`) and applied before first paint by an inline script in
+phones and the rail on desktop (`ThemeControls`, `app/features/map/components/Rail.tsx`), persisted in
+`localStorage` (`app/shared/lib/theme.ts`) and applied before first paint by an inline script in
 `root.tsx` — the documented exception to "do not use `localStorage`": it is a per-browser
 display preference, not progress data, and must be read synchronously or the page flashes
 the wrong theme. Still a chart room in both, not a generic dashboard or a white void: light
@@ -761,12 +762,12 @@ is paper-and-ink (off-white page, white land, light blue-grey sea, darker border
 desaturated accents), not the dark palette's colours inverted. Do not drift toward the
 default "near-black + one neon accent" look, in either theme.
 
-Tokens live in `app/styles/tokens.css`, dark values in `:root`, light overrides under
+Tokens live in `app/shared/styles/tokens.css`, dark values in `:root`, light overrides under
 `[data-theme="light"]` (and mirrored under a bare `prefers-color-scheme: light` for System).
-**The canvas cannot read a CSS variable once per frame** — `app/lib/map/renderer.ts`'s
-`COLORS` and `app/lib/geography/overlays.ts`'s exported palette are resolved from these
+**The canvas cannot read a CSS variable once per frame** — `app/engines/map/renderer.ts`'s
+`COLORS` and `app/features/countries/overlays.ts`'s exported palette are resolved from these
 tokens with `getComputedStyle` exactly once (`refreshMapColours()` / `refreshOverlayColours()`),
-cached, and re-read only on a theme change (wired up in `app/routes/atlas.tsx`) — never
+cached, and re-read only on a theme change (wired up in `app/routes/map/atlas.tsx`) — never
 inside `render()`. This replaced a former exception where `--land` and the micro-state pin
 were hardcoded literals in `renderer.ts`; nothing needs hand-mirroring into a `.ts` file
 anymore, only the resolved colour cache needs a fallback default (kept equal to the token by
@@ -910,6 +911,47 @@ Moved from CLAUDE.md's Content conventions (the short rule stays there).
 - Religion values are deliberately specific (Eastern Orthodoxy, Sunni Islam, Theravada
   Buddhism), not coarse buckets. The faith↔language matching round depends on it.
 
+## Structure: feature folders (phase 1 of 3) — detail
+
+**Reverses** the old rule "new library code lives under `app/lib/` (`core/`, `map/`, `geography/`,
+`history/`), never a top-level sibling". Owner's decision, with the reason: `app/lib/` and
+`app/components/` had become catch-alls — a change to one product area (say the history timeline)
+touched `lib/history/`, `components/History*.tsx`, `lib/atlas-context.ts` and a route, and nothing
+said what was allowed to import what. The layout is now by feature (`app/features/<name>/`), with
+`engines/map/` (renderer, no React), `shared/` (generic, no feature code) and `routes/` (route
+modules only). The rules are in CLAUDE.md "Structure" and enforced by `scripts/check-structure.mjs`;
+the human guide is `docs/structure.md`. Phase 1 moved files only (`git mv`, no logic or behaviour
+change, URLs unchanged). Phase 2 splits `app.css`; phase 3 splits the files on the check's
+temporary 400-line allow-list.
+
+Where the owner's brief and its own boundary rules disagreed, the **rules won** and the file moved
+to the nearest place that satisfies them:
+
+- `Rail`, `MobileChrome`, `UpButton`, `up.ts` -> `features/map/` (not `shared/`): they read
+  mastery, overlays, `AtlasContext`; `shared/` may import no feature.
+- `SearchBox` -> `features/countries/components/` (not `shared/`): it searches country names.
+- `CountryProgress` -> `features/countries/components/` (not `features/progress/`): it reads
+  mastery and overlays, and `progress` may import nothing from `countries`.
+- `geography/questions.ts` (the session generator) -> `features/countries/questions.ts`
+  (not `quizzes/geography`): `names.ts` imports `religionChain` from it, and `quizzes` already
+  imports `countries`, so the other placement is a cycle. Generic `core/questions.ts` is
+  `features/progress/questions.ts`.
+- `QuizControls`, `StageClock`, `StartCaption` -> `quizzes/engine/` (not `geography/stages/`):
+  the name-all and history-fill screens use them too.
+- `fillQuizzes()` moved out of `history/data/catalog.server.ts` into
+  `quizzes/history-fill/fill-quizzes.server.ts` (`rawEntries` is now exported): the old place made
+  `history` import `quizzes`, which imports `history`. Routes import it from the new file.
+- `features/pages` and `features/questions` do not exist: nothing today belongs in them (the
+  quiz run/list pages and the Questions page are still route modules, split in phase 3).
+
+Mechanics worth knowing: `*.server.ts` files are the one allowed cross-feature deep import (a
+barrel re-export would pull them into the client bundle); `fill-quiz.ts` imports `history` by deep
+relative path because `react-router.config.ts` loads it at build time and that loader resolves
+neither `~` nor a barrel of components (the check lists it explicitly); unit tests are
+colocated and excluded from `tsc` (they never were typechecked and have stale fixtures);
+vitest also picks up `scripts/**/*.test.ts` (the tests of `scripts/lib/*.mjs`); and
+`world.pmtiles` changed by three bytes only because its metadata names the generator's new path.
+
 ## Next — full text of the open items
 
 - Indonesia's capital stays Jakarta until a presidential decree moves it (Nusantara
@@ -965,7 +1007,7 @@ test` is unavailable and falling back to the substitute checks below.
   added and removed again with `--no-save` — it is not a dependency) also turned out not
   to implement Path2D at all, so the quiz's "no labels leak the answer" requirement is
   instead verified with a mocked 2D context asserting `fillText`/`strokeText` are never
-  called under `quizMode` (`test/unit/renderer.test.ts`) — a stronger, deterministic check
+  called under `quizMode` (`(deleted) renderer.test.ts`) — a stronger, deterministic check
   where it applies, but still no substitute for a real layout engine.
 - Vatican City's 1:10m source geometry (world-atlas, one arc, 3 points, all at the same
   longitude) is degenerate — a zero-width line, not a polygon — so it stays a pin at any
@@ -989,7 +1031,7 @@ borders are dissolved (`topojson-client`'s `mergeArcs`, a devDependency — it w
 installed transitively), so Somalia and Cyprus are each one polygon with no line through
 them and are clicked as one. Merely appending the neighbour as a second polygon used to
 leave its border arcs in place and the stroke pass drew them. The full list, and the reason
-for each, lives in `scripts/build-content.mjs`'s `ABSORB` map — Somaliland into Somalia,
+for each, lives in `scripts/build/build-content.mjs`'s `ABSORB` map — Somaliland into Somalia,
 Baikonur into Kazakhstan, Northern Cyprus/the UN buffer zone/Akrotiri/Dhekelia into
 Cyprus, Guantanamo Bay into Cuba, the Siachen Glacier into India. If Somalia looks like
 it's missing its north-west again, or Kazakhstan has a hole in the middle again, look
@@ -1045,13 +1087,13 @@ capital anywhere in the text, and every alias and Bulgarian name (`names-bg.ts`)
 
 - **One origin.** `SITE_URL` lives in `.env.example` (committed default) and is overridden by a
   real env var or `.env`; `scripts/lib/site.mjs` resolves it, `vite.config.ts` injects it as
-  `__SITE_URL__`, `app/lib/site.ts` exposes `absoluteUrl()`. Nothing else contains a domain.
+  `__SITE_URL__`, `app/shared/lib/site.ts` exposes `absoluteUrl()`. Nothing else contains a domain.
   The default `https://zemya.example` is a reserved placeholder, not a real site — set the real
   one before deploying.
-- **Every route's `meta` goes through `pageMeta()`** (`app/lib/seo.ts`): title, description,
+- **Every route's `meta` goes through `pageMeta()`** (`app/shared/lib/seo.ts`): title, description,
   canonical, og:_, twitter:_. The prerenderer passes `/x/`; canonicals strip the slash to match
   `trailingSlash: false`. Legacy redirect pages are `noindex` and stay out of the sitemap.
-- **Quiz titles** come from `quizPageSeo()` (`app/lib/geography/quizSeo.ts`) plus `seoName` /
+- **Quiz titles** come from `quizPageSeo()` (`app/features/countries/quizSeo.ts`) plus `seoName` /
   `seoTask` on each `QuizDefinition`: "Africa Capitals Quiz — Top 30 Countries | Zemya". Numeric
   sizes say "Top N" because they are a random N-country subset (`randomSubset`); "All N" for the
   rest. Pool size comes from a build-time loader.
@@ -1066,7 +1108,7 @@ capital anywhere in the text, and every alias and Bulgarian name (`names-bg.ts`)
 - **Headings.** A page's h1 is its subject: the dossier's country name is the h1 and the rail's
   wordmark drops to a `div` on `/country/*`; it is the h1 elsewhere.
 - **og:image** is one committed 1200x630 card (`public/og-image.png`, from
-  `scripts/build-og-image.mjs`). Later idea, not built: per-country cards.
+  `scripts/build/build-og-image.mjs`). Later idea, not built: per-country cards.
 
 ### History: shared duration text, Umor's 40 days, lane size (+10%)
 
@@ -1084,7 +1126,7 @@ capital anywhere in the text, and every alias and Bulgarian name (`names-bg.ts`)
 ### History is data-driven per country
 
 `/history/:slug` and `/history/:slug/list` replace the Bulgaria-specific routes; an unknown
-slug is a 404. `HistoryCountry` (`app/lib/history/countries.ts`) carries `file`, `nameEn`,
+slug is a 404. `HistoryCountry` (`app/features/history/data/countries.ts`) carries `file`, `nameEn`,
 `adjectiveEn`, `startYear`, `pastLabel` and `futureLabel`; `catalog.server.ts` exposes
 `timelineFor(slug)` / `historyListFor(slug)` with a per-slug cache. The fade-zone labels
 travel `HistoryCountry` → `AtlasContext.setTimelineLabels` → `HistoryTimeline` options →
@@ -1097,13 +1139,13 @@ The owner asked for the first History quiz type (see CLAUDE.md's Do Not exceptio
 `docs/quizzes.md`). Choices the brief left open:
 
 - **Route.** `/quizzes/history/:quizId`, not `/quizzes/history/:quizId/:scope/:size`: a fill quiz
-  has neither a scope nor a size. `routes.ts` gives `routes/quizzes.$subject.$quizId.tsx` a second
+  has neither a scope nor a size. `routes.ts` gives `routes/quizzes/quizzes.$subject.$quizId.tsx` a second
   route id for it and the component dispatches on the missing `:scope` (hooks stay unconditional in
   the two components). Its loader hands the page the quiz's entries at build time.
 - **Off the given file list, touched anyway:** `react-router.config.ts` — every route loader runs at
   build time and a static host has no fallback, so each quiz URL has to be prerendered (and is
   in the sitemap); it derives them with the same `fillQuizzesFromRaw` the loader uses.
-  `app/lib/history/scale.ts` and `renderer.ts` untouched: English names aren't on `TimelineEntry`,
+  `app/features/history/timeline/scale.ts` and `renderer.ts` untouched: English names aren't on `TimelineEntry`,
   so quizzes are built from the raw JSON entries in `catalog.server.ts` instead.
 - **Registry.** `Subject.quizzes` (a `QuizDefinition[]`) stays empty for History; `Subject.fillQuizzes`
   flags that its list comes from loader data. The fill quiz is not a `QuizDefinition` — no
@@ -1122,7 +1164,7 @@ The owner asked for the first History quiz type (see CLAUDE.md's Do Not exceptio
 #### Revision: explicit quiz table instead of one quiz per period
 
 Auto-generating "Rulers/Governments: <period>" gave quizzes nobody chose (and split modern
-history awkwardly), so `app/lib/history/fill-quiz-config.ts` now lists every quiz: role regex + start
+history awkwardly), so `app/features/quizzes/history-fill/fill-quiz-config.ts` now lists every quiz: role regex + start
 window + optional toggle. Decisions the brief left open:
 
 - **Window semantics:** `from` inclusive, `before` exclusive, on the entry's START only (an end
@@ -1136,8 +1178,8 @@ window + optional toggle. Decisions the brief left open:
 - **Dates edited for the windows:** `period-principality-kingdom` ends 1946-09-15 (the republic
   referendum); `pm-georgi-dimitrov` starts 1946-11-22 (exact) — the previous PM (Kimon Georgiev,
   third) ran to that day, so the three PM windows tile with no gap or overlap.
-- **Off the given file list, touched anyway:** `app/styles/app.css` (toggle style) and the
-  meta description in `routes/quizzes.$subject.$quizId.tsx` (it split the old "Rulers: X" title).
+- **Off the given file list, touched anyway:** `app/shared/styles/app.css` (toggle style) and the
+  meta description in `routes/quizzes/quizzes.$subject.$quizId.tsx` (it split the old "Rulers: X" title).
 
 ### History country pickers are English
 
@@ -1152,7 +1194,7 @@ Owner request. This **reverses** the old locked line "custom canvas map engine (
 Leaflet/MapLibre)": the canvas renderer could not stay sharp and smooth on phones at every zoom (it
 traded resolution for speed while moving). Decided beyond the prompt:
 
-- **Where MapLibre sits:** `app/lib/map/gl-*.ts`; `maplibre-gl` is imported only by `gl-atlas.ts`,
+- **Where MapLibre sits:** `app/engines/map/gl-*.ts`; `maplibre-gl` is imported only by `gl-atlas.ts`,
   behind a dynamic import in `engine.ts`. The interface is `controller.ts`.
 - **Tiles:** one PMTiles file, z0-z7, built by geojson-vt/vt-pbf (devDependencies) and a ~100-line
   PMTiles writer in `scripts/lib/`, because no tile tool (tippecanoe) can be assumed on the build
@@ -1167,8 +1209,8 @@ traded resolution for speed while moving). Decided beyond the prompt:
   an (i) button); no canvas fallback without WebGL.
 - **Removed with the canvas renderer:** `atlas.ts`, `renderer.ts`, `Path2D` for context/lakes/halos,
   merged stroke paths, the fast-frame/LOD/snapshot machinery (history in `performance.md`),
-  `test/unit/renderer.test.ts` (its threshold tests live on in `visibility.test.ts`).
-- **Rewritten for WebGL** (the follow-up commit): `test/smoke.mjs` and `test/perf.mjs` use the MapLibre
+  `(deleted) renderer.test.ts` (its threshold tests live on in `visibility.test.ts`).
+- **Rewritten for WebGL** (the follow-up commit): `tests/e2e/smoke.mjs` and `tests/e2e/perf.mjs` use the MapLibre
   instance (`window.__zemyaGl`, enabled in production builds by an init-script flag `__ZEMYA_PROBE__`
   — a one-line addition to `gl-atlas.ts`, the only way a test of the production bundle can reach the
   map), rendered features and feature state, and frame timing; the test servers answer HTTP Range

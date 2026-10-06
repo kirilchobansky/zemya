@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parentPath } from '~/lib/up';
+import { parentPath } from './up';
 
 describe('parentPath (the Up hierarchy)', () => {
   it('has no Up on the map, country pages, Questions and each section root', () => {

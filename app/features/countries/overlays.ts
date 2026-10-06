@@ -5,7 +5,7 @@
  * separate from the brass accent — a country coloured "Islam" on the religion overlay must
  * not read as "selected".
  */
-import type { CountryRecord, Feature } from '~/lib/map/types';
+import type { CountryRecord, Feature } from '~/engines/map/types';
 import type { CountryMastery } from './mastery';
 
 export type OverlayId =
@@ -17,10 +17,10 @@ export type OverlayId =
   | 'region';
 
 /**
- * Every colour below is resolved from app/styles/tokens.css: the values here are the dark
+ * Every colour below is resolved from app/shared/styles/tokens.css: the values here are the dark
  * theme's defaults (kept in sync by hand, same convention as renderer.ts's COLORS), and
  * refreshOverlayColours() overwrites them from the live CSS custom properties once — at
- * app/routes/atlas.tsx's mount and on every theme change. A canvas fillStyle/strokeStyle
+ * app/routes/map/atlas.tsx's mount and on every theme change. A canvas fillStyle/strokeStyle
  * can't be `var(--x)`, which is what these feed via fillFor/strokeFor below.
  */
 export let LAND = '#31485A';
@@ -113,7 +113,7 @@ const REGION_TOKENS: Record<string, string> = {
 
 /**
  * Re-reads every colour above from tokens.css and caches it in place — called once from
- * app/routes/atlas.tsx before the first frame and again on every theme change. Same reason
+ * app/routes/map/atlas.tsx before the first frame and again on every theme change. Same reason
  * and convention as renderer.ts's refreshMapColours: a canvas frame can't call
  * getComputedStyle, so nothing here may run inside the render loop.
  */
@@ -279,7 +279,7 @@ export interface QuizOverride {
    *  QuizDefinition.markCapital). atlas.tsx resolves it to the renderer's Style.quizPlace. */
   showCapital: boolean;
   /** True while the run is paused (Esc). Doesn't change fill/stroke — the map is blurred
-   *  via a CSS class in app/routes/atlas.tsx instead — but travels with the rest of the
+   *  via a CSS class in app/routes/map/atlas.tsx instead — but travels with the rest of the
    *  quiz state since it's the same "what is this run doing right now" object. */
   paused: boolean;
 }

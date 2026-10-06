@@ -22,7 +22,7 @@
  */
 import { useEffect, useSyncExternalStore } from 'react';
 
-import { isPhoneLayout } from '~/lib/viewport';
+import { isPhoneLayout } from '~/shared/layout/viewport';
 
 export interface KeyboardState {
   /** px covered by the keyboard, 0 when closed. */

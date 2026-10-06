@@ -1,6 +1,6 @@
 /**
  * A country flag, rendered from the local SVGs in public/flags/ (generated from
- * svg-country-flags at build time — see scripts/build-content.mjs, which now also
+ * svg-country-flags at build time — see scripts/build/build-content.mjs, which now also
  * injects width/height onto the SVG's root element from its viewBox). Falls back to the
  * emoji flag on error: offline, or before the service worker exists to cache the SVG, a
  * broken-image icon must never be what a learner sees.
@@ -33,7 +33,7 @@ export type FlagSize = keyof typeof BOXES;
 interface FlagProps {
   iso2: string;
   emoji: string;
-  /** Width / height of this flag's own viewBox — see scripts/build-content.mjs. */
+  /** Width / height of this flag's own viewBox — see scripts/build/build-content.mjs. */
   flagRatio: number;
   size?: FlagSize;
   /** Decorative by default. Pass an explicit '' in quiz contexts too — see Flag.tsx notes

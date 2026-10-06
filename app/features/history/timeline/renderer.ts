@@ -1,6 +1,6 @@
 /**
  * Canvas renderer for the history timeline. Pure draw functions — no React, no DOM
- * beyond the CanvasRenderingContext2D they're handed. Mirrors app/lib/map/renderer.ts's
+ * beyond the CanvasRenderingContext2D they're handed. Mirrors app/engines/map/renderer.ts's
  * shape (one RenderContext, one entry-point `render()`, a literal COLORS object) but for
  * the 1D time axis instead of the 2D Mercator world.
  *
@@ -18,13 +18,13 @@
  * Every function takes `axis` and goes through `project()`/`rectFor()`/`drawHaloText()`
  * to turn an (along-axis, cross-axis) position into real canvas x/y — nothing below ever
  * writes `ctx.something(x, y)` with x or y read directly off a Viewport or a screen
- * event. Only "horizontal" is driven by a route today (app/routes/history.$slug.tsx);
+ * event. Only "horizontal" is driven by a route today (app/routes/history/history.$slug.tsx);
  * "vertical" exists so a later globe-timeline or sidebar layout costs a parameter, not a
  * rewrite.
  *
  * Colors are literals, not CSS custom properties — canvas can't read a custom property
- * cheaply every frame, same reasoning as app/lib/map/renderer.ts's COLORS. Keep these in
- * sync with app/styles/tokens.css by hand where they correspond (see that file's own
+ * cheaply every frame, same reasoning as app/engines/map/renderer.ts's COLORS. Keep these in
+ * sync with app/shared/styles/tokens.css by hand where they correspond (see that file's own
  * "change one, change both") — the per-kind colours (period/ruler/government/event) are
  * new, canvas-only variants with no token equivalent.
  *
@@ -33,7 +33,7 @@
  * (truncateToFit), so a crowded zoom drops or shortens text instead of overlapping it.
  * Text is in the country's own language (entry.label — see catalog.server.ts; Bulgarian is Cyrillic): both canvas fonts
  * are read from CSS custom properties that resolve to Archivo/IBM Plex Mono, which carry
- * Cyrillic; app/lib/history/timeline.ts additionally waits on `document.fonts.ready`
+ * Cyrillic; app/features/history/timeline/timeline.ts additionally waits on `document.fonts.ready`
  * before trusting the font read at mount, so a frame drawn before the webfont finishes
  * loading gets corrected rather than staying stuck on a Latin-only fallback.
  */
@@ -64,13 +64,13 @@ export interface TimelineEntry extends LayoutEntry {
   color: string | null;
   precision: 'exact' | 'year' | 'circa' | 'disputed';
   /** Free-text keywords authored alongside the entry (mostly events) — shown in the
-   *  pinned card's "See more" detail panel (routes/history.$slug.tsx), nowhere else. */
+   *  pinned card's "See more" detail panel (routes/history/history.$slug.tsx), nowhere else. */
   tags: readonly string[];
   /** Alternate spellings (Cyrillic and Latin), authored in content/history/bg.yaml —
-   *  read only by app/lib/history/search.ts, never displayed. */
+   *  read only by app/features/history/data/search.ts, never displayed. */
   aliases: readonly string[];
   /** "old" (Julian) before 1 April 1916, "new" (Gregorian) on/after — the detail view's
-   *  "Old style (Julian calendar)" note (app/components/HistoryDetail.tsx). Not used by
+   *  "Old style (Julian calendar)" note (app/features/history/components/HistoryDetail.tsx). Not used by
    *  rendering itself, only by that note. */
   style: 'old' | 'new';
 }
@@ -78,7 +78,7 @@ export interface TimelineEntry extends LayoutEntry {
 /** One hoverable region recorded by render(), in real canvas CSS-pixel coordinates
  *  (the same space as PointerEvent's offsetX/offsetY) — axis-agnostic, since project()/
  *  rectFor() have already resolved along/cross into real x/y/w/h by the time a region is
- *  recorded. Consumed by app/lib/history/timeline.ts's hit-testing; drawn by nothing
+ *  recorded. Consumed by app/features/history/timeline/timeline.ts's hit-testing; drawn by nothing
  *  itself. */
 export interface HitRegion {
   id: string;
@@ -363,7 +363,7 @@ function rectFor(axis: Axis, along0: number, along1: number, cross0: number, cro
 }
 
 /** Text at an (along, cross) position, with a dark halo stroke for legibility over
- *  whatever's underneath (same technique as app/lib/map/renderer.ts's drawLabels). Caller
+ *  whatever's underneath (same technique as app/engines/map/renderer.ts's drawLabels). Caller
  *  sets font/textAlign/textBaseline first; those are orientation-independent. On the
  *  vertical axis the text is rotated 90° so it still reads along the timeline rather than
  *  across it. */
@@ -939,7 +939,7 @@ function drawPeriodBands(
 
 /* ------------------------------------------------------------------------- connector lines */
 
-/** What a pinned card (app/components/HistoryCard.tsx's PinnedHistoryCard, tracked by
+/** What a pinned card (app/features/history/components/HistoryCard.tsx's PinnedHistoryCard, tracked by
  *  atlas.tsx) needs handed in for its connector line — its own entry's date span (to
  *  locate the target on the timeline) and its current on-screen DOM rect, in the same
  *  canvas CSS-pixel space as HitRegion. Resolved by timeline.ts from its own full,
@@ -1114,7 +1114,7 @@ export interface RenderContext {
  * whether an entry is there at all.
  *
  * Returns every hoverable region drawn this frame (capsules and pins, not the period
- * colour wash) — app/lib/history/timeline.ts keeps the latest array and hit-tests the
+ * colour wash) — app/features/history/timeline/timeline.ts keeps the latest array and hit-tests the
  * pointer against it, throttled to once per animation frame.
  */
 export function render(rc: RenderContext, entries: readonly TimelineEntry[]): HitRegion[] {

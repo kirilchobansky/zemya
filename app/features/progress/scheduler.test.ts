@@ -1,5 +1,5 @@
 /**
- * Unit tests for the scheduler wrapper (app/lib/core/scheduler.ts) in isolation from
+ * Unit tests for the scheduler wrapper (app/features/progress/scheduler.ts) in isolation from
  * persistence, React, and geography. These exercise ts-fsrs through our own grade() /
  * isLearned() surface — if this passes, the algorithm itself is doing what the app assumes
  * it does, independent of whether the store or the UI wire it up correctly.
@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { grade, isLearned, newCard, type ProgressCard } from '~/lib/core/scheduler';
+import { grade, isLearned, newCard, type ProgressCard } from './scheduler';
 
 /** Grade `rating` and advance the simulated clock to the card's own new due date, so each
  *  subsequent review happens exactly when FSRS scheduled it — the realistic case, and the

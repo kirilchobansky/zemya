@@ -1,11 +1,11 @@
 /**
- * /study is Questions' old name (routes/questions.tsx) — kept as a permanent redirect so
- * existing links and bookmarks still land somewhere real. Same pattern as routes/quiz.tsx's
+ * /study is Questions' old name (routes/questions/questions.tsx) — kept as a permanent redirect so
+ * existing links and bookmarks still land somewhere real. Same pattern as routes/quizzes/quiz.tsx's
  * redirect from the pre-subject-layer quiz catalogue.
  */
 import { Link, Navigate } from 'react-router';
 
-import { pageMeta } from '~/lib/seo';
+import { pageMeta } from '~/shared/lib/seo';
 
 /** A redirect page: canonical points at where it lands, and it stays out of the index. */
 export function meta() {

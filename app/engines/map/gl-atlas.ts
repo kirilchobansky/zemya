@@ -6,7 +6,7 @@
  * prerender never touches it.
  *
  * What lives where:
- *   - shapes: our own vector tiles (public/data/geography/world.pmtiles, scripts/build-tiles.mjs),
+ *   - shapes: our own vector tiles (public/data/geography/world.pmtiles, scripts/build/build-tiles.mjs),
  *     read through the `pmtiles` protocol — no tile server, nothing from outside;
  *   - colour, emphasis, pin/shape switching, halo strength: FEATURE STATE, written here from the
  *     app's Style callbacks (restyle) and from the camera (syncView) — geometry is never rebuilt;
@@ -200,7 +200,7 @@ export class GlAtlas implements MapController {
     // collapsed behind its (i) button: the credit is one tap away, and out of the way of the HUD
     container.querySelector('.maplibregl-ctrl-attrib')?.removeAttribute('open');
     container.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
-    // Test seam for test/smoke.mjs and test/perf.mjs: always in dev, in a production build only
+    // Test seam for tests/e2e/smoke.mjs and tests/e2e/perf.mjs: always in dev, in a production build only
     // for a page whose init script set `__ZEMYA_PROBE__` first (nothing a visitor ever does).
     const probe = window as unknown as { __zemyaGl?: GlMap; __ZEMYA_PROBE__?: boolean };
     if (import.meta.env.DEV || probe.__ZEMYA_PROBE__) probe.__zemyaGl = this.map;

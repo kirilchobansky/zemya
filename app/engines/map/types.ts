@@ -1,4 +1,4 @@
-/** Shapes emitted by scripts/build-content.mjs. Keep in sync with that file. */
+/** Shapes emitted by scripts/build/build-content.mjs. Keep in sync with that file. */
 
 export interface CountryRecord {
   /** ISO 3166-1 numeric, as a string. Joins a country to its polygon. */
@@ -31,7 +31,7 @@ export interface CountryRecord {
   hook: string;
   flagDescription: string;
   outlineDescription: string;
-  /** Width / height of the flag's own viewBox (see scripts/build-content.mjs) — most
+  /** Width / height of the flag's own viewBox (see scripts/build/build-content.mjs) — most
    *  flags ship as 4:3 in the source data, but the true ratio varies (Nepal is not even a
    *  rectangle; Switzerland and the Vatican are square). Flag.tsx sets this as an explicit
    *  CSS aspect-ratio rather than assuming 4:3. */
@@ -43,8 +43,8 @@ export interface CountryRecord {
    *  Undefined for every country not on the curated list. */
   confusableFlag?: { iso3: string; aliases: string[]; note: string };
   /** Every string a user could reasonably type to name this country in the "Name the
-   *  Country" quiz — see scripts/build-content.mjs's alias-building step and
-   *  app/lib/geography/names.ts's matcher. Deduped, two-letter ISO codes dropped, and
+   *  Country" quiz — see scripts/build/build-content.mjs's alias-building step and
+   *  app/features/countries/names.ts's matcher. Deduped, two-letter ISO codes dropped, and
    *  anything that would ambiguously match another country dropped from both. */
   aliases: string[];
   /** Every string that names this country's CAPITAL in the "Name the Capital" quiz: the
@@ -72,7 +72,7 @@ export interface CountryRecord {
 }
 
 /**
- * A named point on the map, as scripts/build-content.mjs emits it. `kind` exists so that
+ * A named point on the map, as scripts/build/build-content.mjs emits it. `kind` exists so that
  * "the top 3 cities per country" later is more rows plus a filter, not a rewrite; today
  * every row is a capital, one per country. `name` is the country's AUTHORED capital name
  * (what its dossier and the capital quiz say), not GeoNames' spelling of it.
@@ -87,7 +87,7 @@ export interface Place {
 }
 
 /**
- * The geometry half of a world payload — everything scripts/build-content.mjs emits at a
+ * The geometry half of a world payload — everything scripts/build/build-content.mjs emits at a
  * given simplification detail. Shared by both public/data/geography/world.json (detail 0,
  * full 1:10m) and world-coarse.json (detail 0.006, ~48,600 points) — see topology.ts's
  * attachFullDetail and CLAUDE.md's Performance section for why there are two.
@@ -101,7 +101,7 @@ export interface GeometryData {
   geometries: { id: string; multi: boolean; arcs: number[][] | number[][][] }[];
   /** Large inland water bodies missing from the country polygons themselves — world-atlas
    *  ships no lakes layer, so these are the holes already punched into its separate land
-   *  layer (see scripts/build-content.mjs), re-encoded into this file's own arc pool.
+   *  layer (see scripts/build/build-content.mjs), re-encoded into this file's own arc pool.
    *  Drawn as water, not clickable, not joined to any country. */
   lakes: { id: string; arcs: number[][] }[];
   /** Capital-city points. Carried by BOTH payloads (a few KB), not just the full one, so

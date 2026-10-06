@@ -1,5 +1,5 @@
 /**
- * Unit tests for the antimeridian fix in app/lib/map/topology.ts, checked against the
+ * Unit tests for the antimeridian fix in app/engines/map/topology.ts, checked against the
  * real, committed payload (public/data/geography/world.json) rather than a fixture — the
  * whole point of the bug was that it only showed up on real, disjoint-across-the-dateline
  * geometry (Russia's mainland, the Aleutians, Kiribati's three archipelagos), not
@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import type { WorldData } from '~/lib/map/types';
+import type { WorldData } from './types';
 
 beforeAll(() => {
   class StubPath2D {
@@ -29,7 +29,7 @@ beforeAll(() => {
 
 describe('unwrapRing', () => {
   it('a ring crossing +180 comes out strictly increasing, with no jump over 180°', async () => {
-    const { unwrapRing } = await import('~/lib/map/topology');
+    const { unwrapRing } = await import('./topology');
     // a synthetic ring walking steadily east through the antimeridian
     const ring: [number, number][] = [
       [170, 10], [175, 10], [179, 10], [-179, 10], [-175, 10], [-170, 10]
@@ -44,7 +44,7 @@ describe('unwrapRing', () => {
 });
 
 async function loadRealWorld() {
-  const { buildWorld } = await import('~/lib/map/topology');
+  const { buildWorld } = await import('./topology');
   const path = join(process.cwd(), 'public', 'data', 'geography', 'world.json');
   const data = JSON.parse(readFileSync(path, 'utf8')) as WorldData;
   return buildWorld(data);

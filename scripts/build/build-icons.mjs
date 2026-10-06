@@ -3,7 +3,7 @@
  *   icon-small.svg (thick strokes, reads at 16px) -> favicon.ico (16/32/48), favicon-48/96.png
  *   icon.svg       (detailed)                     -> apple-touch-icon (180), icon-192/512, icon-512-maskable
  *
- *   node scripts/build-icons.mjs
+ *   node scripts/build/build-icons.mjs
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import sharp from 'sharp';

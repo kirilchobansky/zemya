@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { CountryRecord } from '~/lib/map/types';
+import type { CountryRecord } from '~/engines/map/types';
 
 let cache: CountryRecord[] | null = null;
 

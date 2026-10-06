@@ -1,11 +1,11 @@
 /**
  * Plain proofreading table for content/history/<file>.yaml — no canvas, no atlas shell,
- * intentionally outside routes/atlas.tsx's layout (this is a content QA tool, not a nav
+ * intentionally outside routes/map/atlas.tsx's layout (this is a content QA tool, not a nav
  * destination). noindex: it exists so the owner can read the data, not for search.
  */
-import { historyListFor } from '~/lib/history/catalog.server';
-import { historyCountryFor } from '~/lib/history/countries';
-import { pageMeta } from '~/lib/seo';
+import { historyListFor } from '~/features/history/data/catalog.server';
+import { historyCountryFor } from '~/features/history';
+import { pageMeta } from '~/shared/lib/seo';
 import type { Route } from './+types/history.$slug.list';
 
 export function loader({ params }: Route.LoaderArgs) {

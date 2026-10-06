@@ -5,7 +5,7 @@
  * throw on the id collisions it creates the first time (see DUPLICATE_JSON_IDS below) —
  * this is intentionally not idempotent, it's a migration, not a sync.
  *
- *   node scripts/import-events.mjs
+ *   node scripts/import/import-events.mjs
  *
  * What it does, in order:
  *  1. Adds era colours to the 8 existing periods and inserts a new "pre" period
@@ -44,7 +44,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const jsonPath = join(root, 'content', 'history', 'events-bg.json');
 const yamlPath = join(root, 'content', 'history', 'bg.yaml');
 
@@ -230,7 +230,7 @@ const toImport = data.events.filter(e => !DUPLICATE_JSON_IDS.has(e.id));
 const blocks = toImport.map(renderEvent);
 
 yamlText = yamlText.replace(/\n$/, '');
-yamlText += '\n\n  # ---------------------------------------- imported events (scripts/import-events.mjs)\n';
+yamlText += '\n\n  # ---------------------------------------- imported events (scripts/import/import-events.mjs)\n';
 yamlText += blocks.join('\n\n');
 yamlText += '\n';
 

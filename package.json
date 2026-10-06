@@ -5,17 +5,18 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "npm run build:content && react-router build",
-    "build:content": "node scripts/build-content.mjs && node scripts/build-history.mjs && node scripts/build-tiles.mjs",
-    "build:tiles": "node scripts/build-tiles.mjs",
+    "build:content": "node scripts/build/build-content.mjs && node scripts/build/build-history.mjs && node scripts/build/build-tiles.mjs",
+    "build:tiles": "node scripts/build/build-tiles.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc --noEmit",
-    "test": "node test/smoke.mjs",
-    "audit": "node scripts/audit-freshness.mjs",
-    "audit:flags": "node scripts/audit-flags.mjs",
-    "check:history": "node scripts/check-history.mjs",
-    "check:seo": "node scripts/check-seo.mjs",
+    "test": "node scripts/check-structure.mjs && node tests/e2e/smoke.mjs",
+    "audit": "node scripts/audit/audit-freshness.mjs",
+    "audit:flags": "node scripts/audit/audit-flags.mjs",
+    "check:history": "node scripts/audit/check-history.mjs",
+    "check:seo": "node scripts/audit/check-seo.mjs",
     "test:unit": "vitest run",
-    "perf": "node test/perf.mjs"
+    "perf": "node tests/e2e/perf.mjs",
+    "check": "node scripts/check-structure.mjs"
   },
   "repository": {
     "type": "git",

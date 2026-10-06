@@ -5,7 +5,7 @@
  * `MapStageConfig` carries. CountriesStage.tsx and CapitalsStage.tsx are the two configs.
  *
  * Originally "Name the Country"'s Stage. The map itself stays fully visible and interactive — the
- * generic atlas bridge in routes/quiz.$quizId.tsx is what paints the target brass and
+ * generic atlas bridge in routes/quizzes/quiz.$quizId.tsx is what paints the target brass and
  * answered countries green/amber, moves the camera to the world view on START, and hides
  * the search box and hover tooltip for every quiz alike (see CLAUDE.md's Quizzes
  * section). This component only renders the floating START button / typed-answer input /
@@ -15,10 +15,10 @@
  */
 import { createPortal } from 'react-dom';
 
-import type { CountryRecord } from '~/lib/map/types';
-import type { QuizStageProps } from '~/lib/quiz/types';
-import { QuizControls } from './QuizControls';
-import { StartCaption } from './StartCaption';
+import type { CountryRecord } from '~/engines/map/types';
+import type { QuizStageProps } from '~/features/quizzes/engine/types';
+import { QuizControls } from '~/features/quizzes/engine/QuizControls';
+import { StartCaption } from '~/features/quizzes/engine/StartCaption';
 
 export interface MapStageConfig {
   /** Input placeholder while running. */

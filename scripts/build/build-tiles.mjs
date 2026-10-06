@@ -1,6 +1,6 @@
 /**
  * Vector tiles for the map: public/data/geography/world.pmtiles, a single PMTiles archive cut
- * from the full 1:10m payload (world.json) that scripts/build-content.mjs just wrote. Run as
+ * from the full 1:10m payload (world.json) that scripts/build/build-content.mjs just wrote. Run as
  * the second step of `npm run build:content`; the output is committed like the rest of
  * public/data. The browser reads it with HTTP range requests (the `pmtiles` protocol for
  * MapLibre), so a static host with range support is all it needs — no tile server.
@@ -17,7 +17,7 @@
  * zoom detailed from one source. Tiles stop at TILE_MAX_ZOOM; beyond it MapLibre overzooms,
  * which loses nothing because the source is quantised to ~1 km anyway.
  *
- *   node scripts/build-tiles.mjs
+ *   node scripts/build/build-tiles.mjs
  */
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,8 +25,8 @@ import { join } from 'node:path';
 import GeoJSONVT from 'geojson-vt';
 import vtpbf from 'vt-pbf';
 
-import { buildRing, decodeArcs, frameToReference, meanLon, nearestBranch, unwrapRing } from './lib/geom.mjs';
-import { writePmtiles } from './lib/pmtiles-writer.mjs';
+import { buildRing, decodeArcs, frameToReference, meanLon, nearestBranch, unwrapRing } from '../lib/geom.mjs';
+import { writePmtiles } from '../lib/pmtiles-writer.mjs';
 
 const dataDir = join('public', 'data', 'geography');
 const TILE_MAX_ZOOM = 7;
@@ -122,7 +122,7 @@ const archive = writePmtiles(tiles, {
     format: 'pbf',
     attribution: 'Natural Earth (public domain) · country data mledoze/countries (ODbL)',
     vector_layers: Object.keys(layers).map(id => ({ id, fields: id === 'countries' || id === 'halos' ? { iso3: 'String' } : {} })),
-    generator: 'scripts/build-tiles.mjs'
+    generator: 'scripts/build/build-tiles.mjs'
   },
   bounds: [-180, -85.0511, 180, 85.0511],
   minZoom: 0,

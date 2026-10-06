@@ -1,5 +1,5 @@
 /**
- * The "fill the list" History quiz (app/lib/history/fill-quiz.ts): matching typed names to
+ * The "fill the list" History quiz (app/features/quizzes/history-fill/fill-quiz.ts): matching typed names to
  * entries, and which quizzes a timeline yields. Pure logic, no browser.
  *
  *   npm run test:unit
@@ -11,8 +11,8 @@ import {
   dateRangeLabel, entriesFor, fillQuizzesFromRaw, formatFillDate, hasMixedTitles, isShownTitle, matchFill, splitNote, needsNumber, normaliseFill, prepareFill, titleOf,
   yearLabel,
   type FillEntry, type FillQuiz, type FillRawEntry
-} from '~/lib/history/fill-quiz';
-import type { FillQuizConfig } from '~/lib/history/fill-quiz-config';
+} from './fill-quiz';
+import type { FillQuizConfig } from './fill-quiz-config';
 
 function entry(id: string, name: string, nameAlt: string, start: number, aliases: string[] = []): FillEntry {
   return { id, kind: 'ruler', name, nameAlt, aliases, start, end: start + 10, startRaw: String(start), endRaw: String(start + 10), elected: true, title: '' };

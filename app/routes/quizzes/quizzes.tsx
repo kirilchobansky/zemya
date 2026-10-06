@@ -1,13 +1,13 @@
 /**
  * The subject picker — the new top of the quiz tree. /quizzes/:subject lists that subject's
- * quizzes (routes/quizzes.$subject.tsx); a run is /quizzes/:subject/:quizId/:scope/:size
- * (routes/quizzes.$subject.$quizId.tsx). See docs/quizzes.md's "Route shape".
+ * quizzes (routes/quizzes/quizzes.$subject.tsx); a run is /quizzes/:subject/:quizId/:scope/:size
+ * (routes/quizzes/quizzes.$subject.$quizId.tsx). See docs/quizzes.md's "Route shape".
  */
 import { Link } from 'react-router';
 
-import { pageMeta } from '~/lib/seo';
-import { quizCount, SUBJECTS } from '~/lib/quiz/subjects';
-import { HISTORY_COUNTRIES } from '~/lib/history/countries';
+import { pageMeta } from '~/shared/lib/seo';
+import { quizCount, SUBJECTS } from '~/features/quizzes';
+import { HISTORY_COUNTRIES } from '~/features/history';
 
 export function meta() {
   return pageMeta({

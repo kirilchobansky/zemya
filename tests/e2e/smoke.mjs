@@ -18,7 +18,7 @@
  *
  * The progress step (12) is the one exception: it needs `window.__zemya`, the grading test
  * seam, which is stripped from the production bundle by `import.meta.env.DEV` — by design,
- * see app/lib/core/ProgressProvider.tsx. So it spawns its own `react-router dev` server
+ * see app/features/progress/ProgressProvider.tsx. So it spawns its own `react-router dev` server
  * rather than using `base`, and tears that server down in a `finally` so a failed
  * assertion inside it can never leave `npm test` hanging on an orphaned process.
  *
@@ -212,7 +212,7 @@ for (const probe of ['Sofia', 'Eastern Orthodoxy', 'Euro', 'Romania', 'Cyrillic'
    stayed nonzero even in the exact regression this guards against (every flag rendering
    at zero size because width:auto/height:auto has nothing to resolve against when the
    source SVG has no intrinsic dimensions of its own; see Flag.tsx and
-   scripts/build-content.mjs). clientWidth/clientHeight is the actual on-screen box, which
+   scripts/build/build-content.mjs). clientWidth/clientHeight is the actual on-screen box, which
    is what was zero — that's the one this check needs to catch. */
 const flagBox = await page.evaluate(() => {
   const img = document.querySelector('.dossier__flag img.flag');

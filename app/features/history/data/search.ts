@@ -1,5 +1,5 @@
 /**
- * Pure search over the Bulgaria history timeline (app/components/HistorySearch.tsx) — no
+ * Pure search over the Bulgaria history timeline (app/features/history/components/HistorySearch.tsx) — no
  * React, no canvas. Case-insensitive substring match against name, aliases (Cyrillic and
  * Latin — see catalog.server.ts), role and tags; cheap enough over ~700 entries to run on
  * every keystroke with no debounce.
@@ -18,7 +18,7 @@
  * through unchanged (no Latin token matches, so every character falls back to itself),
  * which is why the plain substring checks below still run first rather than being replaced.
  */
-import type { TimelineEntry } from './renderer';
+import type { TimelineEntry } from '../timeline/renderer';
 
 const TIER_NAME_STARTS = 0;
 const TIER_NAME_CONTAINS = 1;

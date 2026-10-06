@@ -16,7 +16,7 @@
  */
 import type { ReactNode } from 'react';
 
-import type { QuizStageProps } from '~/lib/quiz/types';
+import type { QuizStageProps } from './types';
 
 /** Keeps focus where it is: a tap on a control must not move it off the input. */
 const keepFocus = (e: { preventDefault(): void }) => e.preventDefault();

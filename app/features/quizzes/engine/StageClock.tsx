@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 
-import { formatDuration } from '~/lib/format';
+import { formatDuration } from '~/shared/lib/format';
 
 /**
  * The run timer on the desktop stage, top-left, for the one moment the panel's own timer is out

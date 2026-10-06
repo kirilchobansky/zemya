@@ -3,7 +3,7 @@
  * coarse world geometry in public/data/geography, in the app's own palette. Not part of
  * `npm run build` (the PNG is committed, like the flags); rerun it if the identity changes:
  *
- *   node scripts/build-og-image.mjs        (CHROMIUM_PATH=... where Playwright's own is missing)
+ *   node scripts/build/build-og-image.mjs        (CHROMIUM_PATH=... where Playwright's own is missing)
  *
  * Per-country cards are a later idea (docs/decisions.md), not built.
  */

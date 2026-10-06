@@ -1,11 +1,11 @@
 /**
  * The subject layer above the quiz catalogue: geography's quizzes, history with
  * none yet. A subject is deliberately thin — id, name, blurb and its quizzes — because the
- * quiz engine, scoring and QuizDefinition shape (app/lib/quiz/types.ts) are unchanged by this;
- * a subject only decides which quizzes routes/quizzes.$subject.tsx lists. See CLAUDE.md's
+ * quiz engine, scoring and QuizDefinition shape (app/features/quizzes/engine/types.ts) are unchanged by this;
+ * a subject only decides which quizzes routes/quizzes/quizzes.$subject.tsx lists. See CLAUDE.md's
  * Quizzes section and docs/quizzes.md.
  */
-import { NAME_ALL_QUIZ, QUIZ_DEFINITIONS } from '~/lib/geography/quizzes';
+import { NAME_ALL_QUIZ, QUIZ_DEFINITIONS } from '~/features/quizzes/geography/quizzes';
 import type { QuizDefinition } from './types';
 
 export interface Subject {
@@ -18,9 +18,9 @@ export interface Subject {
   quizzes: QuizDefinition[];
   /** Listed after `quizzes` but not run by the engine (geography's "Name all countries"). */
   extraQuizzes?: readonly Pick<QuizDefinition, 'id' | 'title' | 'description'>[];
-  /** The subject's quizzes are "fill the list" quizzes (app/lib/history/fill-quiz.ts), not
+  /** The subject's quizzes are "fill the list" quizzes (app/features/quizzes/history-fill/fill-quiz.ts), not
    *  QuizDefinitions — listed per country from fill-quiz-config.ts by the list route's loader,
-   *  so `quizzes` stays empty and routes/quizzes.$subject.tsx shows a country list instead. */
+   *  so `quizzes` stays empty and routes/quizzes/quizzes.$subject.tsx shows a country list instead. */
   fillQuizzes?: boolean;
 }
 

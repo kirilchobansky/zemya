@@ -43,7 +43,7 @@ export interface Style {
    * over the answer: no country labels and no place (capital) labels or dots here (see
    * drawLabels and capitalsVisible below); the hover tooltip — country AND place — the
    * search box and the default neighbour-glow are suppressed at their call sites in
-   * app/routes/atlas.tsx and app/lib/map/atlas.ts, gated on this same flag. One name for
+   * app/routes/map/atlas.tsx and app/engines/map/atlas.ts, gated on this same flag. One name for
    * all of them, so a further surface that shows a name has one obvious place to check —
    * see CLAUDE.md's Quizzes section.
    */
@@ -51,7 +51,7 @@ export interface Style {
 }
 
 /**
- * Every colour the map paints, resolved from app/styles/tokens.css. A map style can't be
+ * Every colour the map paints, resolved from app/shared/styles/tokens.css. A map style can't be
  * `var(--x)`, so these start as the tokens' dark-theme defaults (kept in sync by hand — see
  * tokens.css's own header note) and are only ever overwritten by refreshMapColours() below,
  * never read per frame.
@@ -80,7 +80,7 @@ export const COLORS = {
 
 /**
  * Re-reads every entry in COLORS from tokens.css and caches it in place — called once from
- * app/routes/atlas.tsx before the first frame and again on every theme change, never from
+ * app/routes/map/atlas.tsx before the first frame and again on every theme change, never from
  * per frame. getComputedStyle is real work; a frame can't afford it 60 times a
  * second, which is the whole reason COLORS is a cache rather than a live lookup.
  */

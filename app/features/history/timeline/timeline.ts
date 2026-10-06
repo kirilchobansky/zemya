@@ -3,12 +3,12 @@
  * queue, devicePixelRatio + resize handling, drag-to-pan / wheel-and-pinch-to-zoom, and
  * the cylinder's own eased size animation.
  *
- * Mirrors app/lib/map/atlas.ts's shape (render-request queue, ResizeObserver-driven
+ * Mirrors app/engines/map/atlas.ts's shape (render-request queue, ResizeObserver-driven
  * resize, the pointer/wheel wiring, the "hold the point under the cursor/pinch fixed"
  * technique) rather than importing it — Atlas is typed throughout against the 2D
  * geography camera, World and Feature, so it can't be reused directly for a 1D time
  * axis. This class is the same pattern, one dimension smaller, driving
- * app/lib/history/scale.ts's Viewport instead of app/lib/map/camera.ts's CameraState.
+ * app/features/history/timeline/scale.ts's Viewport instead of app/engines/map/camera.ts's CameraState.
  *
  * Hover: hit-testing against the regions render() hands back each frame (see
  * HitRegion), throttled to one lookup per animation frame on pointermove, suppressed
@@ -31,7 +31,7 @@ function todayDecimalYear(): number {
   return decimalYearOfDate({ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() });
 }
 
-/** Fly-to framing per entry kind (routes/history.$slug.tsx's outline list —
+/** Fly-to framing per entry kind (routes/history/history.$slug.tsx's outline list —
  *  HistoryOutline.tsx — is the only caller): a period/ruler row fits its own span plus a 5%
  *  margin on each side (a ruler's span is floored to 5 years first, "minimum 5 years wide"
  *  — a judgement call on top of the brief's unspecified exact margin, applying the same 5%
@@ -463,7 +463,7 @@ export class HistoryTimeline {
     this.draw();
   }
 
-  /** "Whole history" button (routes/history.$slug.tsx) — flies to the same fit
+  /** "Whole history" button (routes/history/history.$slug.tsx) — flies to the same fit
    *  fitToWholeHistory() snaps to on first mount, animated instead of instant. */
   flyToWholeHistory(): void {
     const { from, to } = this.contentRange;
@@ -471,7 +471,7 @@ export class HistoryTimeline {
     this.flyTo((from + to) / 2, pxPerYear);
   }
 
-  /** "Today" button (routes/history.$slug.tsx) — centres on today at the app's own
+  /** "Today" button (routes/history/history.$slug.tsx) — centres on today at the app's own
    *  default zoom (DEFAULT_PX_PER_YEAR), clamped like any other flyTo target. */
   flyToToday(): void {
     this.flyTo(todayDecimalYear(), DEFAULT_PX_PER_YEAR);

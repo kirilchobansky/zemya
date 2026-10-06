@@ -1,5 +1,5 @@
 /**
- * Unit tests for question generation (app/lib/geography/questions.ts), checked against the
+ * Unit tests for question generation (app/features/countries/questions.ts), checked against the
  * real, shipped catalogue (public/data/geography/countries.json, via the same catalog
  * reader every route loader uses) rather than fixtures — so "every country produces a
  * sane question" is a fact about the real 197, not a hand-built case.
@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
+import { allCountries, countryBySlug } from './catalog.server';
 import {
   buildCatalogue,
   KINDS_FOR_FACET,
@@ -18,9 +18,9 @@ import {
   questionOfKind,
   religionsClash,
   type QuestionKind
-} from '~/lib/geography/questions';
-import { cardId } from '~/lib/geography/mastery';
-import { makeRng } from '~/lib/core/questions';
+} from './questions';
+import { cardId } from './mastery';
+import { makeRng } from '~/features/progress';
 
 const catalogue = buildCatalogue(allCountries());
 const ALL_KINDS = [...new Set(Object.values(KINDS_FOR_FACET).flat())] as QuestionKind[];

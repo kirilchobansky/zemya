@@ -2,9 +2,9 @@
  * Content QA for content/history/*.yaml, run against the BUILT output
  * (public/data/history/*.json — run `npm run build:content` first if bg.yaml changed).
  * Prints a report and changes NOTHING; a human decides every case, same spirit as
- * scripts/audit-freshness.mjs.
+ * scripts/audit/audit-freshness.mjs.
  *
- *   node scripts/check-history.mjs
+ *   node scripts/audit/check-history.mjs
  *
  * Five checks, each best-effort rather than a hard rule (a real history has legitimate
  * gaps and overlaps — this flags candidates for a human to look at, not violations):
@@ -18,9 +18,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseHistoryDate, dateKey } from './lib/history.mjs';
+import { parseHistoryDate, dateKey } from '../lib/history.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const dataDir = join(root, 'public', 'data', 'history');
 const files = readdirSync(dataDir).filter(f => f.endsWith('.json'));
 if (!files.length) throw new Error(`${dataDir}: no built history files — run npm run build:content first`);
@@ -36,7 +36,7 @@ for (const file of files) {
 
   const startKey = e => dateKey(parseHistoryDate(e.start, `${code}: "${e.id}".start`));
   // `end: null` means "ongoing" for a period/ruler/government (matches
-  // app/lib/history/catalog.server.ts's toTimelineEntry); for an event it's a single
+  // app/features/history/data/catalog.server.ts's toTimelineEntry); for an event it's a single
   // moment, so it collapses to its own start rather than reading as "ongoing forever".
   const endKey = e => {
     if (e.end != null) return dateKey(parseHistoryDate(e.end, `${code}: "${e.id}".end`));

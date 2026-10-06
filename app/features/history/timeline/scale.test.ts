@@ -1,5 +1,5 @@
 /**
- * The history timeline's time axis (app/lib/history/scale.ts): decimal-year conversion,
+ * The history timeline's time axis (app/features/history/timeline/scale.ts): decimal-year conversion,
  * viewport projection, the zoom ladder and tier-based visibility. Pure logic, so it is
  * checked directly here — no canvas, no React, no build.
  *
@@ -11,7 +11,7 @@ import {
   CONFIG, type EntryKind, type HistoryEntry, KIND_RANK, clampCenter, clampPxPerYear, dateOfDecimalYear, decimalYearOf,
   decimalYearOfDate, kindRank, levelFor, maxTierFor, pxToTime, ticks, timeToPx, visibleEntries, visibleRange,
   visibleRangeOverscan, type TimeRange, type Viewport, type ZoomLevel
-} from '~/lib/history/scale';
+} from './scale';
 
 const viewport = (overrides: Partial<Viewport> = {}): Viewport => ({
   center: 2000, pxPerYear: 10, sizePx: 1000, ...overrides

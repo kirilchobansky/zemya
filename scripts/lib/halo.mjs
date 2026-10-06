@@ -1,7 +1,7 @@
 /**
  * Territory halos for island nations: a rounded convex shape around all of a country's
  * islands, so a country too small to see at world zoom has an area to look at and tap.
- * Pure maths, no imports — scripts/build-content.mjs calls it, test/unit/halo.test.ts
+ * Pure maths, no imports — scripts/build/build-content.mjs calls it, scripts/lib/halo.test.ts
  * checks it.
  *
  * Qualifying countries are derived (`qualifiesForHalo`), never listed: no land borders
@@ -37,7 +37,7 @@ export function qualifiesForHalo(country) {
   return country.borders.length === 0 && country.area < HALO_MAX_AREA_KM2 && !HALO_EXCLUDED.has(country.iso3);
 }
 
-/* Longitude unwrapping — the SAME rules as app/lib/map/topology.ts (unwrapRing, then a
+/* Longitude unwrapping — the SAME rules as app/engines/map/topology.ts (unwrapRing, then a
    rigid per-polygon shift onto the branch nearest the country's own longitude), so the
    halo lands in exactly the frame the client puts the country's land in. Keep in sync. */
 

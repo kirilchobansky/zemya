@@ -484,7 +484,7 @@ a {
   cursor: crosshair;
 }
 
-/* The map host when the engine is MapLibre (app/lib/map/engine.ts): the library's own CSS arrives
+/* The map host when the engine is MapLibre (app/engines/map/engine.ts): the library's own CSS arrives
    with its lazy chunk and sets position: relative on .maplibregl-map — this wins by specificity. */
 .stage__canvas.maplibregl-map {
   position: absolute;
@@ -520,7 +520,7 @@ a {
 .stage .maplibregl-ctrl-attrib:not(:hover):not(:focus-within) .maplibregl-ctrl-attrib-inner {
   display: none;
 }
-/* Map vs. timeline (routes/atlas.tsx's showTimeline): both canvases stay mounted — the
+/* Map vs. timeline (routes/map/atlas.tsx's showTimeline): both canvases stay mounted — the
    hidden one keeps its Atlas/HistoryTimeline controller alive rather than paying to
    reconstruct it on every visit — display:none is enough since neither is animating while
    hidden (each render loop is request-driven, not a rAF loop that runs regardless). */
@@ -617,7 +617,7 @@ a {
   transform: translate(-50%, -150%);
 }
 
-/* The history timeline's hover card (components/HistoryCard.tsx) — positioned by JS
+/* The history timeline's hover card (features/history/components/HistoryCard.tsx) — positioned by JS
    (left/top, in canvas CSS-pixel space), styled the same "glass" tone as .tip/.toolbar.
    No transition: "appears instantly, no delay and no animation longer than 80ms". */
 .history-card {
@@ -674,7 +674,7 @@ a {
   font-size: 11px;
 }
 
-/* Pinned version of the same card (components/HistoryCard.tsx's PinnedHistoryCard) —
+/* Pinned version of the same card (features/history/components/HistoryCard.tsx's PinnedHistoryCard) —
    same tone and 280px width as .history-card, but interactive: draggable, a close button,
    pointer-events enabled. touch-action: none so pointer-capture dragging works on touch. */
 .pinned-card {
@@ -1689,7 +1689,7 @@ a {
   font-size: 11px;
 }
 
-/* --cols / --max-rows come from routes/quiz.tsx (the column count and the tallest grid
+/* --cols / --max-rows come from routes/quizzes/quiz.tsx (the column count and the tallest grid
    any scope can produce for this quiz); the card height is the one number here. min-height
    is rows x card height + the gaps between them, so a smaller scope leaves empty space
    below its cards instead of shoving the quiz under it up. */
@@ -2135,7 +2135,7 @@ kbd {
 
 /* "Name the Flag" has no map — this covers the whole stage area instead of docking a
    small control over it. Fixed, not nested layout, for the same reason as .quiz-dock:
-   it's rendered from a panel-route component (routes/quiz.$quizId.tsx's Outlet lives in
+   it's rendered from a panel-route component (routes/quizzes/quiz.$quizId.tsx's Outlet lives in
    .panel, not .stage), so it has to break out via position:fixed to sit over the canvas.
    left/right are the rail/panel widths directly, not the .quiz-dock midpoint calc, since
    this covers the full stage rather than centring one dock over it. */
@@ -2189,7 +2189,7 @@ a.quiz-list__row {
   color: var(--ink-3);
 }
 
-/* ---- History "fill the list" quiz (components/HistoryFillQuiz.tsx) ----------------------
+/* ---- History "fill the list" quiz (features/quizzes/history-fill/HistoryFillQuiz.tsx) ----------------------
    A centred panel filling the stage (portalled into <main class="stage">, so exactly the area
    between the rail and the right panel); on a phone it is fixed over the whole screen. Kind colours reuse the
    tokens (--sea for rulers, --categorical-violet for governments, --new for a missed name),
@@ -2506,7 +2506,7 @@ a.quiz-list__row {
   .fill-quiz {
     /* a phone run owns the whole screen, over the bottom sheet */
     position: fixed;
-    /* from the top of the visual viewport (--vv-top / --kb: app/lib/keyboard.ts) */
+    /* from the top of the visual viewport (--vv-top / --kb: app/shared/lib/keyboard.ts) */
     inset: var(--vv-top, 0px) 0 0 0;
     height: auto;
     /* the stage colour runs on under the keyboard (nothing but it is ever visible there, also
@@ -2693,7 +2693,7 @@ a.quiz-list__row {
 /* ================================================================ mobile
    Two rules, kept apart (CLAUDE.md "Mobile"):
      LAYOUT follows viewport WIDTH   — `max-width: 819px` is the phone layout (mirrors
-                                        PHONE_MAX_WIDTH in app/lib/viewport.ts).
+                                        PHONE_MAX_WIDTH in app/shared/layout/viewport.ts).
      INPUT follows the POINTER       — `(pointer: coarse)` decides touch-sized targets and
                                         hides hover/keyboard hints, at any width (an iPad in
                                         landscape is desktop layout with touch controls).
@@ -2790,7 +2790,7 @@ a.quiz-list__row {
   .rail {
     display: none;
   }
-  /* Collapse/resize (app/routes/atlas.tsx) is desktop-only — the panel's own copies of
+  /* Collapse/resize (app/routes/map/atlas.tsx) is desktop-only — the panel's own copies of
      these would otherwise float over the phone's fixed-position bottom sheet. */
   .panel .sidebar-handle,
   .panel .sidebar-collapse,
@@ -2891,7 +2891,7 @@ a.quiz-list__row {
 
   /* --- the bottom sheet: the right-hand panel, on phones ---
      90dvh tall and parked with a transform (never height) so snapping stays on the compositor.
-     Snap points are measured from the viewport's bottom edge and mirrored in app/lib/sheet.ts:
+     Snap points are measured from the viewport's bottom edge and mirrored in app/shared/layout/sheet.ts:
      peek = tab bar + 88px, half = 50%, full = 90%. */
   .panel {
     position: fixed;
@@ -3211,7 +3211,7 @@ a.quiz-list__row {
     overscroll-behavior: contain;
   }
 
-  /* --- a quiz run locks the page behind it (useQuizPageLock, app/lib/keyboard.ts): no scroll,
+  /* --- a quiz run locks the page behind it (useQuizPageLock, app/shared/lib/keyboard.ts): no scroll,
          no rubber-band, a quiz-coloured background wherever the page could show --- */
   html.is-quiz-locked,
   html.is-quiz-locked body {
@@ -3235,7 +3235,7 @@ a.quiz-list__row {
        top     thin HUD: timer · n / N · pause
        middle  the map (or the flag), in whatever the keyboard leaves
        bottom  the input + Skip + Reveal, directly ABOVE the keyboard
-     --kb / --vv-top / --layout-h / --kb-est come from app/lib/keyboard.ts (visualViewport). */
+     --kb / --vv-top / --layout-h / --kb-est come from app/shared/lib/keyboard.ts (visualViewport). */
   :root {
     --hud-h: calc(48px + env(safe-area-inset-top, 0px));
     /* the input bar: 8 + feedback slot 34 + 8 + input row 48 + 8 */
@@ -3438,7 +3438,7 @@ a.quiz-list__row {
     justify-content: center;
     position: fixed;
     /* above the keyboard when it is up, so Resume / Abandon are visible at once; the full
-       screen again when it closes (--vv-top / --kb: app/lib/keyboard.ts) */
+       screen again when it closes (--vv-top / --kb: app/shared/lib/keyboard.ts) */
     inset: var(--vv-top, 0px) 0 var(--kb, 0px) 0;
     z-index: 10;
     gap: 12px;
@@ -3487,7 +3487,7 @@ a.quiz-list__row {
 /* ================================================================ mobile, landscape
    A landscape phone gets the phone layout, arranged sideways: the tab bar is a slim vertical bar
    on the left, the sheet is a drawer on the right (collapsed tab / 40% / 70% of the width — the
-   same peek / half / full, mirrored in app/lib/sheet.ts), and a quiz run puts the HUD inline
+   same peek / half / full, mirrored in app/shared/layout/sheet.ts), and a quiz run puts the HUD inline
    with the input bar above the keyboard. Live: it is all media queries, no reload. */
 @media (max-width: 819px) and (orientation: landscape),
   (pointer: coarse) and (max-height: 499px) and (orientation: landscape) {
@@ -3659,7 +3659,7 @@ a.quiz-list__row {
   border-style: dashed;
 }
 
-/* ---- "Name all countries" (components/NameAllQuiz.tsx) ----
+/* ---- "Name all countries" (features/quizzes/name-all/NameAllQuiz.tsx) ----
    Reuses the geography run's dock, HUD and pause screens; only the list and a few details are new. */
 .name-all__list {
   display: grid;

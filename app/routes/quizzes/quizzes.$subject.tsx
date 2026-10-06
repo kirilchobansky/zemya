@@ -10,28 +10,14 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router";
 
-import {
-  bestQuizTime,
-  deleteQuizRun,
-  listQuizRuns,
-  type QuizRunEntry,
-} from "~/lib/core/progress";
-import { formatDuration } from "~/lib/format";
-import { pageMeta } from "~/lib/seo";
-import { quizCount, subjectById } from "~/lib/quiz/subjects";
-import { NAME_ALL_ID, type QuizSelectionMode } from "~/lib/geography/quizzes";
-import {
-  poolForQuiz,
-  QUIZ_SCOPES,
-  SCOPE_LABELS,
-  sizesForPool,
-  type QuizScope,
-  type QuizSize,
-} from "~/lib/geography/scopes";
-import { allCountries } from "~/lib/geography/catalog.server";
-import { fillQuizzes } from "~/lib/history/catalog.server";
-import { HISTORY_COUNTRIES, historyCountryFor } from "~/lib/history/countries";
-import { peekWorld } from "~/lib/geography/world";
+import { bestQuizTime, deleteQuizRun, listQuizRuns, type QuizRunEntry } from '~/features/progress';
+import { formatDuration } from "~/shared/lib/format";
+import { pageMeta } from "~/shared/lib/seo";
+import { quizCount, subjectById, NAME_ALL_ID, type QuizSelectionMode } from '~/features/quizzes';
+import { poolForQuiz, QUIZ_SCOPES, SCOPE_LABELS, sizesForPool, type QuizScope, type QuizSize, peekWorld } from '~/features/countries';
+import { allCountries } from "~/features/countries/catalog.server";
+import { fillQuizzes } from "~/features/quizzes/history-fill/fill-quizzes.server";
+import { HISTORY_COUNTRIES, historyCountryFor } from '~/features/history';
 import type { Route } from "./+types/quizzes.$subject";
 
 type ScopeCounts = Record<QuizScope, number>;

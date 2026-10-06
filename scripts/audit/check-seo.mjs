@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { siteUrl } from './lib/site.mjs';
+import { siteUrl } from '../lib/site.mjs';
 
 const ROOT = join('build', 'client');
 const origin = siteUrl();

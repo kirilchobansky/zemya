@@ -4,8 +4,8 @@
  * No marker is drawn (no `markCapital`), and nothing on screen says the country's name or the
  * answer until a reveal. See docs/quizzes.md.
  */
-import type { CountryRecord } from '~/lib/map/types';
-import type { QuizStageProps } from '~/lib/quiz/types';
+import type { CountryRecord } from '~/engines/map/types';
+import type { QuizStageProps } from '~/features/quizzes/engine/types';
 import { MapStage, type MapStageConfig } from './MapStage';
 
 export const currencyAnswer = (target: CountryRecord) =>

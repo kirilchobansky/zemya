@@ -3,7 +3,7 @@
  * they cannot drift apart. renderer.ts (pin vs shape, capital rings) and follow.ts (the quiz
  * camera's minimum target size) both read them; nothing here knows about either.
  *
- * Tune by looking, then check test/unit/renderer.test.ts and follow.test.ts still hold — they
+ * Tune by looking, then check (deleted) renderer.test.ts and follow.test.ts still hold — they
  * assert the relations between these, not their values.
  */
 

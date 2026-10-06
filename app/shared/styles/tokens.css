@@ -2,15 +2,15 @@
    Zemya design tokens — a chart room, not a dashboard.
 
    Two themes: dark (the :root defaults below) and light ([data-theme="light"], applied by
-   app/lib/theme.ts before first paint — see root.tsx's inline script). "System" leaves the
+   app/shared/lib/theme.ts before first paint — see root.tsx's inline script). "System" leaves the
    attribute off and follows prefers-color-scheme instead; an explicit "Dark" choice sets
    [data-theme="dark"] so it can still override an OS light preference. ANY colour change
    must be checked in both themes — see CLAUDE.md's Visual identity section.
 
-   The canvas can't read a CSS variable per frame: app/lib/map/renderer.ts's COLORS and
-   app/lib/geography/overlays.ts's exported colours are resolved from these tokens once
+   The canvas can't read a CSS variable per frame: app/engines/map/renderer.ts's COLORS and
+   app/features/countries/overlays.ts's exported colours are resolved from these tokens once
    (getComputedStyle), cached, and re-read only on a theme change (refreshMapColours /
-   refreshOverlayColours, called from app/routes/atlas.tsx) — never inside the render loop.
+   refreshOverlayColours, called from app/routes/map/atlas.tsx) — never inside the render loop.
    A `-rgb` companion token (space-separated "R G B", no alpha) exists wherever a colour is
    also needed at a JS-computed alpha (a pulse, a wash) or as `rgb(var(--x-rgb) / N%)` in
    CSS — one override point per theme instead of one per alpha variant.
@@ -61,7 +61,7 @@
   --master: #3dd68c;
   --master-rgb: 61 214 140;
 
-  /* map: land, water and the choropleth overlays (app/lib/geography/overlays.ts) */
+  /* map: land, water and the choropleth overlays (app/features/countries/overlays.ts) */
   --land: #31485a;
   --land-edge: #405a6d;
   --ocean: #080d13; /* == --abyss in dark on purpose (the map bleeds into the page); diverges in light */
@@ -118,7 +118,7 @@
 
   /* The atlas shell's own defaults, used for its very first render (server and client
      alike, before any JS has run) so hydration has nothing to disagree on — see
-     routes/atlas.tsx's own comment on why that first render can't read localStorage or
+     routes/map/atlas.tsx's own comment on why that first render can't read localStorage or
      window.innerWidth. AtlasShell then sets these two as an inline style straight on
      .shell once it has mounted (collapse/resize state, and — narrower than these — a
      viewport-width-aware default), which always wins the cascade over this :root rule for
@@ -132,7 +132,7 @@
 
 /* -------------------------------------------------------------------------- light theme
    One block of overrides, applied either by the OS preference (with no explicit choice
-   persisted) or by an explicit "Light" choice — see app/lib/theme.ts. */
+   persisted) or by an explicit "Light" choice — see app/shared/lib/theme.ts. */
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {

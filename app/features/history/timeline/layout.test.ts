@@ -1,5 +1,5 @@
 /**
- * Layout logic for the history timeline (app/lib/history/layout.ts): context stack,
+ * Layout logic for the history timeline (app/features/history/timeline/layout.ts): context stack,
  * bar/pinned classification, row packing, density buckets and label collision. Pure
  * logic, checked directly — no canvas, no React, no build.
  *
@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assignRows, classifySpan, contextAt, densityBuckets, type LabelCandidate, type LayoutEntry, placeLabels
-} from '~/lib/history/layout';
-import { timeToPx, type Viewport } from '~/lib/history/scale';
+} from './layout';
+import { timeToPx, type Viewport } from './scale';
 
 const entry = (over: Partial<LayoutEntry> & Pick<LayoutEntry, 'id' | 'kind' | 'start'>): LayoutEntry => ({
   tier: 1, end: null, parent: null, ...over

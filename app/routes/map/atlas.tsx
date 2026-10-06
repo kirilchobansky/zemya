@@ -10,30 +10,19 @@ import {
 } from 'react';
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router';
 
-import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName } from '~/components/MobileChrome';
-import { EdgeArrow, Rail } from '~/components/Rail';
-import { UpButton } from '~/components/UpButton';
-import { SearchBox } from '~/components/SearchBox';
-import { AtlasContext, type TimelineLabels } from '~/lib/atlas-context';
-import { ProgressProvider, useProgress } from '~/lib/core/ProgressProvider';
-import type { MapController } from '~/lib/map/controller';
-import { loadMapEngine } from '~/lib/map/engine';
-import { refreshMapColours, type MicroMode } from '~/lib/map/style';
-import HistoryCard, { PinnedHistoryCard } from '~/components/HistoryCard';
-import { HistoryTimeline, type HistoryHover } from '~/lib/history/timeline';
-import type { TimelineEntry } from '~/lib/history/renderer';
-import type { EntryKind } from '~/lib/history/scale';
-import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/lib/viewport';
-import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/lib/sheet';
-import { NO_INSETS, type Insets } from '~/lib/map/camera';
-import type { CountryRecord, Feature, PlaceMark, World } from '~/lib/map/types';
-import { loadWorld } from '~/lib/geography/world';
-import { countryMastery, masteryTotals } from '~/lib/geography/mastery';
-import { onThemeChange } from '~/lib/theme';
-import {
-  defaultStrokeFor, fillFor, quizFillFor, quizStrokeFor, refreshOverlayColours, strokeFor, type OverlayId,
-  type QuizOverride, type StyleInputs
-} from '~/lib/geography/overlays';
+import { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar, type OverlayName, EdgeArrow, Rail, UpButton, AtlasContext, type TimelineLabels } from '~/features/map';
+import { SearchBox, loadWorld, countryMastery, masteryTotals, defaultStrokeFor, fillFor, quizFillFor, quizStrokeFor, refreshOverlayColours, strokeFor, type OverlayId, type QuizOverride, type StyleInputs } from '~/features/countries';
+import { ProgressProvider, useProgress } from '~/features/progress';
+import type { MapController } from '~/engines/map/controller';
+import { loadMapEngine } from '~/engines/map/engine';
+import { refreshMapColours, type MicroMode } from '~/engines/map/style';
+import { HistoryCard, PinnedHistoryCard, HistoryTimeline, type HistoryHover } from '~/features/history';
+import type { TimelineEntry, EntryKind } from '~/features/history';
+import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/shared/layout/viewport';
+import { sheetVisible, stepSnap, useSheetDrag, type SheetSnap } from '~/shared/layout/sheet';
+import { NO_INSETS, type Insets } from '~/engines/map/camera';
+import type { CountryRecord, Feature, PlaceMark, World } from '~/engines/map/types';
+import { onThemeChange } from '~/shared/lib/theme';
 
 /** The Micro toggle's cycle, and what its button says. */
 const MICRO_CYCLE: readonly MicroMode[] = ['full', 'dots', 'off'];
@@ -139,7 +128,7 @@ function AtlasShell() {
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
   const [timelineLabels, setTimelineLabels] = useState<TimelineLabels>({ pastLabel: '', futureLabel: '' });
   const [historyHover, setHistoryHover] = useState<HistoryHover | null>(null);
-  /** Non-null only while a history route (routes/history.$slug.tsx) has handed its
+  /** Non-null only while a history route (routes/history/history.$slug.tsx) has handed its
    *  entries over — the canvas shows the map the rest of the time, including on the bare
    *  /history picker. */
   const showTimeline = timelineEntries !== null;
@@ -172,7 +161,7 @@ function AtlasShell() {
     });
   }, []);
   /** Pins an entry that isn't necessarily on screen (the detail view's "Pin card" button,
-   *  app/components/HistoryDetail.tsx — it has no canvas rect of its own to seed the card's
+   *  app/features/history/components/HistoryDetail.tsx — it has no canvas rect of its own to seed the card's
    *  position from) — same mechanism as handleEntryClick, centred on the canvas instead of
    *  at a click point. */
   const pinHistoryEntry = useCallback((entry: TimelineEntry) => {
@@ -370,7 +359,7 @@ function AtlasShell() {
     setPanelCollapsed(false);
   }, [location.pathname]);
   const togglePanelCollapsed = useCallback(() => setPanelCollapsed(v => !v), []);
-  /* A route's own level for the panel's Up button (lib/up.ts useUpStep): a run leaving to its start screen */
+  /* A route's own level for the panel's Up button (features/map/up.ts useUpStep): a run leaving to its start screen */
   const [upStep, setUpStepState] = useState<(() => void) | null>(null);
   const setUpStep = useCallback((step: (() => void) | null) => setUpStepState(() => step), []);
 

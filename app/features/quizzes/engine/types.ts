@@ -1,13 +1,13 @@
 /**
  * The shape a quiz presenter supplies to the shared engine (./engine.ts) and route
- * (routes/quiz.$quizId.tsx). Adding a new quiz — "Name the Capital", say — means adding
- * one QuizDefinition to app/lib/geography/quizzes.ts's registry, never a new route tree.
+ * (routes/quizzes/quiz.$quizId.tsx). Adding a new quiz — "Name the Capital", say — means adding
+ * one QuizDefinition to app/features/quizzes/geography/quizzes.ts's registry, never a new route tree.
  * See CLAUDE.md's Quizzes section.
  */
 import type { ChangeEvent, ComponentType, KeyboardEvent, RefObject } from 'react';
 
-import type { Facet } from '~/lib/geography/mastery';
-import type { CountryRecord, World } from '~/lib/map/types';
+import type { Facet } from '~/features/countries';
+import type { CountryRecord, World } from '~/engines/map/types';
 
 export type QuizPhase = 'idle' | 'running' | 'paused' | 'done';
 export type QuizOutcome = 'correct' | 'revealed';
@@ -60,7 +60,7 @@ export interface QuizDefinition {
   title: string;
   description: string;
   /** What the quiz is called in a search result: "<Scope> <seoName> Quiz" — "Map", "Flags",
-   *  "Capitals". See app/lib/geography/quizSeo.ts. */
+   *  "Capitals". See app/features/countries/quizSeo.ts. */
   seoName: string;
   /** What the player does, as one sentence for the page description. */
   seoTask: string;
@@ -73,7 +73,7 @@ export interface QuizDefinition {
    *  quiz preloading SVGs so a 200+ KB flag never hitches mid-run. */
   prepare?(targets: CountryRecord[]): void;
   /** The map marks the target country's capital with the quiz-target ring (the capitals
-   *  quiz). Read by routes/quiz.$quizId.tsx, which puts it on the QuizOverride the
+   *  quiz). Read by routes/quizzes/quiz.$quizId.tsx, which puts it on the QuizOverride the
    *  renderer reads — no other quiz has a capital to mark. */
   markCapital?: boolean;
   /** The Stage covers the map (the flags quiz). The route then leaves the camera and the

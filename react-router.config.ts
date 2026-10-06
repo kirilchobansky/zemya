@@ -3,9 +3,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { siteUrl } from './scripts/lib/site.mjs';
-import { LEGACY_SCOPES, poolForQuiz, QUIZ_SCOPES, sizesForPool } from './app/lib/geography/scopes';
-import { HISTORY_COUNTRIES } from './app/lib/history/countries';
-import { fillQuizzesFromRaw } from './app/lib/history/fill-quiz';
+import { LEGACY_SCOPES, poolForQuiz, QUIZ_SCOPES, sizesForPool } from './app/features/countries/scopes';
+import { HISTORY_COUNTRIES } from './app/features/history/data/countries';
+import { fillQuizzesFromRaw } from './app/features/quizzes/history-fill/fill-quiz';
 
 /**
  * Every country page is prerendered to static HTML at build time, so `/country/bulgaria`
@@ -21,11 +21,11 @@ const countries: Parameters<typeof poolForQuiz>[0] = JSON.parse(
   readFileSync('public/data/geography/countries.json', 'utf8')
 );
 
-/** Mirrors app/lib/quiz/subjects.ts's SUBJECTS' ids — a separate literal because that file
+/** Mirrors app/features/quizzes/engine/subjects.tsx's SUBJECTS' ids — a separate literal because that file
  *  imports React (JSX icons/blurbs) and this file is loaded outside the app's bundler. */
 const SUBJECT_IDS = ['geography', 'history'];
 
-/** Mirrors app/lib/geography/quizzes.ts's QUIZ_DEFINITIONS' ids — a separate literal
+/** Mirrors app/features/quizzes/geography/quizzes.ts's QUIZ_DEFINITIONS' ids — a separate literal
  *  because quizzes.ts imports React Stage components and this file is loaded outside the
  *  app's bundler. Scopes and the size ladder come from scopes.ts, which is dependency-free
  *  for exactly this reason, so the prerendered set is derived from the data. Geography is
@@ -33,7 +33,7 @@ const SUBJECT_IDS = ['geography', 'history'];
 const QUIZ_IDS = ['countries', 'flags', 'outlines', 'capitals', 'currency', 'language', 'religion'];
 
 /** History's "fill the list" quizzes — one page per quiz, derived from each country's built
- *  timeline by the same function the run route's loader uses (app/lib/history/fill-quiz.ts),
+ *  timeline by the same function the run route's loader uses (app/features/quizzes/history-fill/fill-quiz.ts),
  *  so a new period/ruler/government adds a page with no list to edit. */
 const historyQuizRuns = HISTORY_COUNTRIES.flatMap(c => {
   const file = join('public', 'data', 'history', `${c.file}.json`);
@@ -41,7 +41,7 @@ const historyQuizRuns = HISTORY_COUNTRIES.flatMap(c => {
   return fillQuizzesFromRaw(doc.entries, c.slug).map(q => `/quizzes/history/${c.slug}/${q.id}`);
 });
 
-/** "Name all countries" (app/lib/geography/quizzes.ts's NAME_ALL_ID) — not a QuizDefinition, one
+/** "Name all countries" (app/features/quizzes/geography/quizzes.ts's NAME_ALL_ID) — not a QuizDefinition, one
  *  page per scope with size "all": /quizzes/geography/name-all/<scope>/all. */
 const nameAllRuns = QUIZ_SCOPES.map(scope => `/quizzes/geography/name-all/${scope}/all`);
 

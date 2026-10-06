@@ -9,7 +9,7 @@ import {
   ScrollRestoration
 } from 'react-router';
 
-import './styles/app.css';
+import '~/shared/styles/app.css';
 
 export function links() {
   return [
@@ -32,7 +32,7 @@ export function links() {
 
 /**
  * Applies a stored theme choice before the stylesheet paints anything, so the page never
- * flashes dark then light (or vice versa) — see app/lib/theme.ts's own note on why this is
+ * flashes dark then light (or vice versa) — see app/shared/lib/theme.ts's own note on why this is
  * the one place localStorage is read synchronously. 'zemya:theme' and the light/dark check
  * must match that module's STORAGE_KEY and getTheme() exactly.
  */

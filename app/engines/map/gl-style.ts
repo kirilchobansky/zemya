@@ -3,7 +3,7 @@
  * map instance, no DOM — so the layer table can be read top to bottom as "what the map is".
  *
  * How the pieces map to the old canvas frame:
- *   countries / context / lakes / halos   vector tiles (scripts/build-tiles.mjs)
+ *   countries / context / lakes / halos   vector tiles (scripts/build/build-tiles.mjs)
  *   pins, country names                    GeoJSON points at each country's anchor
  *   capitals                               GeoJSON points; ring icon + name in ONE symbol layer, so
  *                                          a ring whose name found no room is not placed either

@@ -1,5 +1,5 @@
 /**
- * The history panel's outline list (routes/history.$slug.tsx, shown whenever
+ * The history panel's outline list (routes/history/history.$slug.tsx, shown whenever
  * no pinned card's "See more" has swapped the panel to a detail view) — a vertical list of
  * periods, one section each, in date order. Only one section is expanded at a time; the
  * section containing the timeline's own centre date ("you are here") auto-expands as the
@@ -9,7 +9,7 @@
  *
  * Nesting (Възраждане under Османско владичество) isn't authored in content/history/bg.yaml
  * (no `parent` id on either) — it falls out of the same date-containment + tier rule
- * app/lib/history/layout.ts's `contextAt` already uses to pick a primary among overlapping
+ * app/features/history/timeline/layout.ts's `contextAt` already uses to pick a primary among overlapping
  * periods: a period fully contained by another with a lower (more important) tier nests
  * under it. That also means `currentPeriodId` (timeline.ts's contextAt-driven
  * onPeriodChange) can never itself BE a nested period's id while the ranges overlap — the
@@ -25,9 +25,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { formatCardDate } from './HistoryCard';
-import { flyTargetFor, type HistoryTimeline } from '~/lib/history/timeline';
-import { dateOfDecimalYear } from '~/lib/history/scale';
-import type { TimelineEntry } from '~/lib/history/renderer';
+import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
+import { dateOfDecimalYear } from '~/features/history/timeline/scale';
+import type { TimelineEntry } from '~/features/history/timeline/renderer';
 
 export interface HistoryOutlineProps {
   entries: readonly TimelineEntry[];
@@ -49,7 +49,7 @@ function yearLabel(year: number): string {
 }
 
 /** "1185 – 1396", or "1989 – today" for an ongoing period (`end: null` — matches the
- *  header's own "681 – today" wording, routes/history.$slug.tsx). */
+ *  header's own "681 – today" wording, routes/history/history.$slug.tsx). */
 function rangeLabel(period: TimelineEntry): string {
   const start = yearLabel(dateOfDecimalYear(period.start).year);
   if (period.end == null) return `${start} – today`;

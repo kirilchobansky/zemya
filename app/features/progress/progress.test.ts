@@ -1,5 +1,5 @@
 /**
- * Unit tests for app/lib/core/progress.ts's quizRuns table: the reset gap that let a
+ * Unit tests for app/features/progress/progress.ts's quizRuns table: the reset gap that let a
  * timer-bug best time survive a "reset all progress", the impossible-run guard, and the
  * export/import merge behaviour.
  *
@@ -23,7 +23,7 @@ import {
   SCHEMA_VERSION,
   type ExportPayload,
   type QuizRunEntry
-} from '~/lib/core/progress';
+} from './progress';
 
 const QUIZ_ID = 'countries';
 const SCOPE = 'world';

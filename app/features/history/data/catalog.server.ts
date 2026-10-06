@@ -4,19 +4,18 @@
  *
  * Route loaders run at build time (every page is prerendered), so this reads straight
  * from disk. The `.server` suffix guarantees React Router strips it from the client
- * bundle — mirrors app/lib/geography/catalog.server.ts. Converts each authored date
- * string to a decimal year (via app/lib/history/scale.ts's decimalYearOf, which is safe
+ * bundle — mirrors app/features/countries/catalog.server.ts. Converts each authored date
+ * string to a decimal year (via app/features/history/timeline/scale.ts's decimalYearOf, which is safe
  * to run here since it's plain portable logic) so the client receives ready-to-render
  * TimelineEntry objects, not raw YAML-shaped strings it would have to reparse.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { decimalYearOf, KIND_RANK } from '~/lib/history/scale';
-import type { TimelineEntry } from '~/lib/history/renderer';
-import { HISTORY_COUNTRIES, historyCountryFor } from '~/lib/history/countries';
-import { fillQuizzesFromRaw, type FillQuiz } from '~/lib/history/fill-quiz';
+import { decimalYearOf, KIND_RANK } from '~/features/history/timeline/scale';
+import type { TimelineEntry } from '~/features/history/timeline/renderer';
+import { HISTORY_COUNTRIES, historyCountryFor } from './countries';
 
-interface RawHistoryEntry {
+export interface RawHistoryEntry {
   id: string;
   kind: TimelineEntry['kind'];
   name: { bg: string; en: string };
@@ -41,7 +40,7 @@ interface RawHistoryDoc {
   entries: RawHistoryEntry[];
 }
 
-/** One row for the proofreading list view (routes/history.$slug.list.tsx) — the
+/** One row for the proofreading list view (routes/history/history.$slug.list.tsx) — the
  *  authored fields as-is, no decimal-year conversion (that's TimelineEntry's job, for the
  *  canvas only). */
 export interface HistoryListRow {
@@ -62,11 +61,11 @@ const cache = new Map<string, TimelineEntry[]>();
 
 function fileFor(slug: string): string {
   const country = historyCountryFor(slug);
-  if (!country) throw new Error(`No history timeline for slug "${slug}" (see app/lib/history/countries.ts)`);
+  if (!country) throw new Error(`No history timeline for slug "${slug}" (see app/features/history/data/countries.ts)`);
   return country.file;
 }
 
-function rawEntries(slug: string): RawHistoryEntry[] {
+export function rawEntries(slug: string): RawHistoryEntry[] {
   let entries = rawCache.get(slug);
   if (!entries) {
     const path = join(process.cwd(), 'public', 'data', 'history', `${fileFor(slug)}.json`);
@@ -102,7 +101,7 @@ function toTimelineEntry(raw: RawHistoryEntry, file: string, lang: 'bg' | 'en'):
     // pipeline a kind-specific exception.
     end: raw.end == null ? (raw.kind === 'event' ? start : null) : decimalYearOf(raw.end, `${where}.end`),
     // The country's own language (countries.ts `lang`); the canvas font stack
-    // (app/lib/history/timeline.ts) covers Cyrillic and Latin.
+    // (app/features/history/timeline/timeline.ts) covers Cyrillic and Latin.
     label: inLang(raw.name, lang),
     blurb: inLang(raw.blurb, lang),
     category: raw.category,
@@ -144,11 +143,4 @@ export function historyListFor(slug: string): HistoryListRow[] {
       parent: raw.parent
     }))
     .sort((a, b) => parseInt(a.start, 10) - parseInt(b.start, 10) || KIND_RANK[a.kind] - KIND_RANK[b.kind]);
-}
-
-/** Every "fill the list" quiz (app/lib/history/fill-quiz.ts) of every history country —
- *  one per row of fill-quiz-config.ts, its entries selected from the timeline by that row's
- *  filters. Build-time only, like the rest of this file. */
-export function fillQuizzes(): FillQuiz[] {
-  return HISTORY_COUNTRIES.flatMap(c => fillQuizzesFromRaw(rawEntries(c.slug), c.slug));
 }

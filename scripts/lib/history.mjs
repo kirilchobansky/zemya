@@ -1,6 +1,6 @@
 /**
  * Date parsing and validation for content/history/*.yaml. Split out of
- * build-history.mjs so test/unit/history.test.ts can exercise it directly, without
+ * build-history.mjs so scripts/lib/history.test.ts can exercise it directly, without
  * running the full build.
  */
 

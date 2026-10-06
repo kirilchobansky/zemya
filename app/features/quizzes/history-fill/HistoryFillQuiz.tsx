@@ -1,9 +1,9 @@
 /**
  * "Fill the list" — the run screen of the first History quiz type (logic in
- * app/lib/history/fill-quiz.ts, rules in docs/quizzes.md). A panel in the middle of the
+ * app/features/quizzes/history-fill/fill-quiz.ts, rules in docs/quizzes.md). A panel in the middle of the
  * screen holds one empty rectangle per entry, in chronological order, showing only its
  * years; one always-focused input at the top fills them in any order. It doesn't use the
- * geography engine (app/lib/quiz/engine.ts): there is no queue, no target and no map — the
+ * geography engine (app/features/quizzes/engine/engine.ts): there is no queue, no target and no map — the
  * run is "a set of names still to find" — but it saves the same run rows, so personal bests
  * work identically (`quizId` = the quiz's id, scope and size both "all").
  *
@@ -18,17 +18,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router';
 
-import { keepFocus } from '~/components/quiz/QuizControls';
-import { useKeyboard, useQuizPageLock } from '~/lib/keyboard';
-import { useAtlasContext } from '~/lib/atlas-context';
-import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
-import { formatDuration } from '~/lib/format';
+import { keepFocus } from '~/features/quizzes/engine/QuizControls';
+import { useKeyboard, useQuizPageLock } from '~/shared/lib/keyboard';
+import { useAtlasContext, useUpStep } from '~/features/map';
+import { bestQuizTime, saveQuizRun } from '~/features/progress';
+import { formatDuration } from '~/shared/lib/format';
 import {
   dateRangeLabel, entriesFor, hasMixedTitles, isShownTitle, matchFill, needsNumber, prepareFill, splitNote, yearLabel, type FillQuiz
-} from '~/lib/history/fill-quiz';
-import { historyCountryFor } from '~/lib/history/countries';
-import { toggleSize } from '~/lib/history/fill-quiz-config';
-import { useUpStep } from '~/lib/up';
+} from './fill-quiz';
+import { historyCountryFor } from '~/features/history';
+import { toggleSize } from './fill-quiz-config';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
 

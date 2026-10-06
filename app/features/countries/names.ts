@@ -9,8 +9,8 @@
  * of knowing the country. Do not "improve" this into a distance metric later: that would
  * let "Frnace" pass as "France", which defeats the point of a spelling-and-recall quiz.
  */
-import type { CountryRecord } from '~/lib/map/types';
-import { latinToCyrillicRegExp } from '~/lib/history/search';
+import type { CountryRecord } from '~/engines/map/types';
+import { latinToCyrillicRegExp } from '~/features/history';
 import { BULGARIAN_NAMES, REJECTED_SPELLINGS } from './names-bg';
 import { religionChain } from './questions';
 

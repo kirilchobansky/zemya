@@ -6,7 +6,7 @@
  * shapes come from the PMTiles archive (gl-atlas.ts), and the only consumers of this payload
  * are the camera maths, the Outlines quiz silhouette and the size-comparison shape, none of
  * which can show the difference between 1:10m and the coarse simplification (0.006 deg,
- * ~600 m; every polygon is kept, see scripts/build-content.mjs). The full 1:10m world.json
+ * ~600 m; every polygon is kept, see scripts/build/build-content.mjs). The full 1:10m world.json
  * (~3.4 MB) is a build input for world.pmtiles and is NOT fetched by the app — see
  * docs/performance.md. If a feature ever needs it, fetch it on demand from that feature,
  * cached, never from loadWorld().
@@ -14,8 +14,8 @@
  * The fetch is cached on the module, so two components mounting in the same tick share one
  * request rather than doubling up.
  */
-import { buildWorld } from '~/lib/map/topology';
-import type { CountryRecord, GeometryData, World } from '~/lib/map/types';
+import { buildWorld } from '~/engines/map/topology';
+import type { CountryRecord, GeometryData, World } from '~/engines/map/types';
 
 const COARSE_URL = '/data/geography/world-coarse.json';
 const COUNTRIES_URL = '/data/geography/countries.json';

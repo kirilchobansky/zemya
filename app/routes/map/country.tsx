@@ -1,12 +1,11 @@
 import { Link } from 'react-router';
 
-import { CountryProgress } from '~/components/CountryProgress';
-import { Flag } from '~/components/Flag';
-import { formatCompact, formatNumber } from '~/lib/format';
-import { countryJsonLd, pageMeta } from '~/lib/seo';
-import { countryBySlug, neighbourLinks } from '~/lib/geography/catalog.server';
-import { peekWorld } from '~/lib/geography/world';
-import { HISTORY_COUNTRIES } from '~/lib/history/countries';
+import { CountryProgress, peekWorld } from '~/features/countries';
+import { Flag } from '~/shared/components/Flag';
+import { formatCompact, formatNumber } from '~/shared/lib/format';
+import { countryJsonLd, pageMeta } from '~/shared/lib/seo';
+import { countryBySlug, neighbourLinks } from '~/features/countries/catalog.server';
+import { HISTORY_COUNTRIES } from '~/features/history';
 import type { Route } from './+types/country';
 
 export function loader({ params }: Route.LoaderArgs) {

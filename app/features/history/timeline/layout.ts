@@ -1,5 +1,5 @@
 /**
- * Layout logic for the history timeline, built on app/lib/history/scale.ts's time axis.
+ * Layout logic for the history timeline, built on app/features/history/timeline/scale.ts's time axis.
  * Pure logic (no canvas, no React, no DOM) — same discipline as scale.ts itself.
  *
  * Everything here takes already-converted decimal-year entries (scale.ts's

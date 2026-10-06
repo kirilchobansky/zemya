@@ -6,11 +6,11 @@
  * Renders the "nothing yet" state during prerender and on the first client render, which
  * is exactly what an untouched browser should see anyway, so hydration matches.
  */
-import { useProgress } from '~/lib/core/ProgressProvider';
-import { countryMastery, facetProgress, type CountryMastery } from '~/lib/geography/mastery';
-import { MASTERY_COLOURS } from '~/lib/geography/overlays';
-import type { CountryRecord } from '~/lib/map/types';
-import { useTheme } from '~/lib/theme';
+import { useProgress } from '~/features/progress';
+import { countryMastery, facetProgress, type CountryMastery } from '~/features/countries/mastery';
+import { MASTERY_COLOURS } from '~/features/countries/overlays';
+import type { CountryRecord } from '~/engines/map/types';
+import { useTheme } from '~/shared/lib/theme';
 
 const PILL_LABELS: Record<CountryMastery, string> = {
   new: 'Not yet seen',

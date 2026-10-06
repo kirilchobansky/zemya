@@ -1,5 +1,5 @@
 /**
- * The quiz engine hook (app/lib/quiz/engine.ts): Enter after a reveal, and Restart. There is no
+ * The quiz engine hook (app/features/quizzes/engine/engine.ts): Enter after a reveal, and Restart. There is no
  * DOM in the unit environment, so `react` is replaced by a ~40-line hook runtime (state, refs,
  * memoised callbacks, effects run after each render) and `window`/`document` by bare event
  * targets — enough to drive the real engine code, not a copy of it.
@@ -53,15 +53,15 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock('react', () => h.react);
-vi.mock('~/lib/core/ProgressProvider', () => ({ useProgress: () => ({ review: h.review }) }));
-vi.mock('~/lib/core/progress', () => ({
+vi.mock('~/features/progress/ProgressProvider', () => ({ useProgress: () => ({ review: h.review }) }));
+vi.mock('~/features/progress/progress', () => ({
   bestQuizTime: () => Promise.resolve(null),
   saveQuizRun: vi.fn(),
 }));
 
-import { saveQuizRun } from '~/lib/core/progress';
-import { REVEAL_FILL_MS, useQuizEngine, type QuizEngine } from '~/lib/quiz/engine';
-import type { CountryRecord } from '~/lib/map/types';
+import { saveQuizRun } from '~/features/progress';
+import { REVEAL_FILL_MS, useQuizEngine, type QuizEngine } from './engine';
+import type { CountryRecord } from '~/engines/map/types';
 
 const country = (iso3: string, name: string, capital: string): CountryRecord =>
   ({

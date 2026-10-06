@@ -1,8 +1,8 @@
 /**
  * One route for every quiz — /quizzes/:subject/:quizId/:scope/:size — looked up by id
- * within its subject (app/lib/quiz/subjects.ts, backed by app/lib/geography/quizzes.ts's
+ * within its subject (app/features/quizzes/engine/subjects.tsx, backed by app/features/quizzes/geography/quizzes.ts's
  * QUIZ_DEFINITIONS for geography). All the run logic (queue, timer, pause/resume, abandon,
- * grading, results, personal best) lives in the shared engine (app/lib/quiz/engine.ts),
+ * grading, results, personal best) lives in the shared engine (app/features/quizzes/engine/engine.ts),
  * which knows nothing about the map. This file is the "atlas bridge": it owns the handful
  * of things every quiz needs from the atlas layout — hiding the search box/toolbar/tooltip
  * for the run's whole lifetime, returning the camera to the world view on START and on
@@ -22,46 +22,21 @@ import {
   useSearchParams,
 } from "react-router";
 
-import { useAtlasContext } from "~/lib/atlas-context";
-import { allCountries } from "~/lib/geography/catalog.server";
-import { fillQuizzes } from "~/lib/history/catalog.server";
-import type { FillQuiz } from "~/lib/history/fill-quiz";
-import { HistoryFillQuiz } from "~/components/HistoryFillQuiz";
-import { NameAllQuiz } from "~/components/NameAllQuiz";
-import { quizPageSeo } from "~/lib/geography/quizSeo";
-import { pageMeta } from "~/lib/seo";
+import { useAtlasContext, useUpStep } from '~/features/map';
+import { allCountries } from "~/features/countries/catalog.server";
+import { fillQuizzes } from "~/features/quizzes/history-fill/fill-quizzes.server";
+import type { FillQuiz } from '~/features/quizzes';
+import { HistoryFillQuiz, NameAllQuiz, useQuizEngine, subjectById, quizInSubject, NAME_ALL_ID, NAME_ALL_QUIZ, selectQuizCountries, type QuizSelectionMode, keepFocus, measureInsets, StageClock } from '~/features/quizzes';
+import { quizPageSeo, isQuizScope, isQuizSize, LEGACY_SCOPES, poolForQuiz, SCOPE_LABELS, SCOPE_VIEWS, sizesForPool, type QuizScope, type QuizSize, loadWorld, peekWorld } from '~/features/countries';
+import { pageMeta } from "~/shared/lib/seo";
 import type { Route } from "./+types/quizzes.$subject.$quizId";
-import { useQuizEngine } from "~/lib/quiz/engine";
-import { formatDuration } from "~/lib/format";
-import { subjectById, quizInSubject } from "~/lib/quiz/subjects";
-import {
-  NAME_ALL_ID,
-  NAME_ALL_QUIZ,
-  selectQuizCountries,
-  type QuizSelectionMode,
-} from "~/lib/geography/quizzes";
-import {
-  isQuizScope,
-  isQuizSize,
-  LEGACY_SCOPES,
-  poolForQuiz,
-  SCOPE_LABELS,
-  SCOPE_VIEWS,
-  sizesForPool,
-  type QuizScope,
-  type QuizSize,
-} from "~/lib/geography/scopes";
-import { loadWorld, peekWorld } from "~/lib/geography/world";
-import { keepFocus } from "~/components/quiz/QuizControls";
-import { useKeyboard, useQuizPageLock } from "~/lib/keyboard";
-import { NO_INSETS } from "~/lib/map/follow";
-import { measureInsets } from "~/lib/quiz/insets";
-import { useUpStep } from "~/lib/up";
-import { StageClock } from "~/components/quiz/StageClock";
-import { isCoarsePointer, isPhoneLayout } from "~/lib/viewport";
-import type { CountryRecord, World } from "~/lib/map/types";
+import { formatDuration } from "~/shared/lib/format";
+import { useKeyboard, useQuizPageLock } from "~/shared/lib/keyboard";
+import { NO_INSETS } from "~/engines/map/follow";
+import { isCoarsePointer, isPhoneLayout } from "~/shared/layout/viewport";
+import type { CountryRecord, World } from "~/engines/map/types";
 
-/** /quizzes/geography/name-all/:scope/all — the free-recall quiz (components/NameAllQuiz.tsx). */
+/** /quizzes/geography/name-all/:scope/all — the free-recall quiz (features/quizzes/name-all/NameAllQuiz.tsx). */
 function isNameAll(params: { subject?: string; quizId?: string; scope?: string; size?: string }): boolean {
   return (
     params.subject === "geography" &&
@@ -389,7 +364,7 @@ function QuizRun() {
   /* The canvas must not take focus during a run: dragging or pinching the map must never blur
      the input or close the keyboard. Only where there IS a keyboard to protect — a phone layout
      or a touch pointer. On desktop a canvas click still blurs the input, and the typing capture
-     in engine.ts (which test/smoke.mjs exercises) is what gets the next keystroke back into it. */
+     in engine.ts (which tests/e2e/smoke.mjs exercises) is what gets the next keystroke back into it. */
   useEffect(() => {
     if (!atlas) return;
     atlas.setKeepFocus(running && (isPhoneLayout() || isCoarsePointer()));
@@ -465,7 +440,7 @@ function QuizRun() {
     );
   }, [engine.answered, engine.showNeighbours, engine.phase, setQuiz]);
 
-  /** Live camera + target position for test/smoke.mjs — a function, not a snapshot, so it
+  /** Live camera + target position for tests/e2e/smoke.mjs — a function, not a snapshot, so it
    *  reads the camera as it is when called (after the fly-to has settled). DEV only. */
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -508,7 +483,7 @@ function QuizRun() {
   /**
    * Test seam, mirroring ProgressProvider's `window.__zemya` — a separate global so it
    * never clobbers that one. `import.meta.env.DEV` makes this dead code in a production
-   * build. test/smoke.mjs reads the current target's name from here rather than guessing
+   * build. tests/e2e/smoke.mjs reads the current target's name from here rather than guessing
    * it from pixels, then asserts the NEXT target's name appears nowhere in the page — the
    * regression test for a quiz leaking an answer. `targetCapital` is the same for the
    * capitals quiz, whose answer is a city.

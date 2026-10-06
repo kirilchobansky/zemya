@@ -5,22 +5,19 @@
  * and FSRS grading.
  *
  * Deliberately ignorant of maps, flag images or anything else a Stage renders — it knows
- * a list of countries and a callback per answer. routes/quiz.$quizId.tsx is what wires
+ * a list of countries and a callback per answer. routes/quizzes/quiz.$quizId.tsx is what wires
  * this to the atlas (camera, quiz-mode map painting); this file must never import from
- * ~/lib/map or ~/components. See CLAUDE.md's Quizzes section.
+ * ~/engines/map or any component. See CLAUDE.md's Quizzes section.
  */
 import {
   useCallback, useEffect, useRef, useState,
   type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type RefObject
 } from 'react';
 
-import { useProgress } from '~/lib/core/ProgressProvider';
-import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
-import { makeRng, shuffle } from '~/lib/core/questions';
-import type { ReviewRating } from '~/lib/core/scheduler';
-import { cardId } from '~/lib/geography/mastery';
-import { matchesCountry } from '~/lib/geography/names';
-import type { CountryRecord } from '~/lib/map/types';
+import { useProgress, bestQuizTime, saveQuizRun, makeRng, shuffle } from '~/features/progress';
+import type { ReviewRating } from '~/features/progress';
+import { cardId, matchesCountry } from '~/features/countries';
+import type { CountryRecord } from '~/engines/map/types';
 import type { MatchOutcome, QuizDefinition, QuizOutcome, QuizPhase, QuizRunResult } from './types';
 
 /** Grading thresholds mapped onto FSRS's four ratings — see CLAUDE.md's Quizzes section. */
@@ -412,7 +409,7 @@ export function useQuizEngine(
        - We focus during keydown and do NOT preventDefault: the browser delivers the
          character to whatever is focused when the default action runs, i.e. the input, so
          the first letter is not lost and React's onChange sees it as an ordinary keystroke
-         (verified by typing a whole name from an unfocused state — see test/smoke.mjs).
+         (verified by typing a whole name from an unfocused state — see tests/e2e/smoke.mjs).
        - Ctrl/Alt/Meta held: not typing, ignored — except Ctrl+Enter (reveal), below.
        - Tab (skip) and Ctrl+Enter (reveal) only reach the input's own onKeyDown when the
          input has focus; with focus elsewhere (a button just clicked) Tab would walk the

@@ -8,7 +8,7 @@
  */
 
 /** How each continent scope picks its countries, from the `region` / `subregion` fields on
- *  every record (scripts/build-content.mjs). North America is deliberately "every other
+ *  every record (scripts/build/build-content.mjs). North America is deliberately "every other
  *  Americas country" rather than a list of subregions: the Caribbean, Central America and
  *  Northern America all belong to it, and a subregion added upstream lands there too. */
 interface CountryGeo {

@@ -1,7 +1,7 @@
 /**
  * GeoJSON the GL renderer feeds MapLibre at runtime: the small point sets (country anchors,
  * capitals), the graticule and the size-comparison outline. Country, context, lake and halo
- * SHAPES are not here — they come from the vector tiles (scripts/build-tiles.mjs).
+ * SHAPES are not here — they come from the vector tiles (scripts/build/build-tiles.mjs).
  * Types only from maplibre-gl, so importing this never pulls the library in.
  */
 import type { Feature as GeoFeature, FeatureCollection, MultiPolygon } from 'geojson';

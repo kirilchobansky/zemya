@@ -6,13 +6,13 @@
  * fetches at runtime. The output is committed so a deploy can never break because an
  * upstream package published a new version.
  *
- *   node scripts/build-content.mjs [--detail=0.02]
+ *   node scripts/build/build-content.mjs [--detail=0.02]
  *
  * Emits TWO geometry payloads, always: world.json at DETAIL (below; default 0, full
  * 1:10m, unsimplified) and world-coarse.json at a hardcoded COARSE_DETAIL (0.006) the map
  * renders from at world zoom, where full detail is sub-pixel — see CLAUDE.md's Performance
  * section for the measured detail/frame-time table this is based on, and
- * app/lib/geography/world.ts / app/lib/map/topology.ts's attachFullDetail for how the two
+ * app/features/countries/world.ts / app/engines/map/topology.ts's attachFullDetail for how the two
  * are loaded and switched between at runtime. --detail only ever affects world.json,
  * which is what makes it useful for testing a specific "full" resolution (as the
  * Performance section's table did) without touching the coarse tier at all.
@@ -27,11 +27,11 @@ import { createRequire } from 'node:module';
 import { parse } from 'yaml';
 import { mergeArcs } from 'topojson-client';
 import * as simplify from 'topojson-simplify';
-import { slugFor, slugify } from './lib/slug.mjs';
-import { buildHalo, haloLonSpan, HALO_MAX_LON_SPAN, HALO_MAX_NEIGHBOUR_SHARE, neighbourLandShare, qualifiesForHalo, unwrappedVertices } from './lib/halo.mjs';
+import { slugFor, slugify } from '../lib/slug.mjs';
+import { buildHalo, haloLonSpan, HALO_MAX_LON_SPAN, HALO_MAX_NEIGHBOUR_SHARE, neighbourLandShare, qualifiesForHalo, unwrappedVertices } from '../lib/halo.mjs';
 
 const require = createRequire(import.meta.url);
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const DETAIL = Number(
   (process.argv.find(a => a.startsWith('--detail=')) || '').split('=')[1] || 0
@@ -160,7 +160,7 @@ function applyOverride(record, a, where) {
   return record;
 }
 
-/** Mirrors app/lib/geography/mastery.ts's FACETS. Kept as a separate literal because this
+/** Mirrors app/features/countries/mastery.ts's FACETS. Kept as a separate literal because this
  *  build script runs as plain Node and can't import a .ts module through the `~` alias —
  *  if you add a facet there, add it here too. */
 const FACETS = ['location', 'capital', 'flag', 'currency', 'language', 'religion', 'borders', 'outline'];
@@ -170,7 +170,7 @@ const FACETS = ['location', 'capital', 'flag', 'currency', 'language', 'religion
  * a source and asserting precision nobody has (see Nigeria's religion — CLAUDE.md's
  * Content conventions). Same validation shape as override: a non-empty reason is
  * mandatory, and the facet name must be real. The effect lives in
- * app/lib/geography/mastery.ts (applicableFacets excludes it) and questions.ts (never
+ * app/features/countries/mastery.ts (applicableFacets excludes it) and questions.ts (never
  * generates a question from it) — this function only records it onto the record.
  */
 const disputedFacets = [];
@@ -243,12 +243,12 @@ if (missing.length) throw new Error(`authored countries with no ISO record: ${mi
  * Timor-Leste, Holland/Netherlands, DRC, UAE, Ivory Coast/Côte d'Ivoire, Macedonia)
  * without hand-writing a list from memory. Two-letter ISO codes are dropped — they are
  * not names and they collide ("US", "GB", "CI") — non-Latin spellings are kept for free.
- * Matching itself (case, diacritics, punctuation) lives in app/lib/geography/names.ts;
+ * Matching itself (case, diacritics, punctuation) lives in app/features/countries/names.ts;
  * this only decides the candidate set and guards against ambiguity, since a normalised
  * alias that maps to two different countries must never resolve to whichever one was
  * parsed first.
  */
-/** Mirrors app/lib/geography/names.ts's normaliseName() — kept in sync deliberately, the
+/** Mirrors app/features/countries/names.ts's normaliseName() — kept in sync deliberately, the
  *  same way build-content.mjs's FACETS mirrors mastery.ts's, because this build script
  *  runs as plain Node and can't import a .ts module through the `~` alias. Unicode
  *  `\p{L}`/`\p{N}` matters here too: an ASCII a-z0-9 range would treat Armenian or
@@ -344,7 +344,7 @@ for (const country of countries) {
  * that file's own header comment and CLAUDE.md's Quizzes section for why this exists and
  * why it stays hand-curated rather than generated. Each side gets the OTHER country's
  * already-computed aliases embedded directly (denormalised), so
- * app/lib/geography/quizzes.ts's matcher can accept "that one was the twin" without a
+ * app/features/quizzes/geography/quizzes.ts's matcher can accept "that one was the twin" without a
  * second lookup into the full catalogue at match time.
  */
 const confusableFlagsPath = join(root, 'content', 'geography', 'confusable-flags.yaml');
@@ -461,7 +461,7 @@ for (const iso3 of Object.keys(GEONAMES_CAPITAL)) {
  * The authored capital, plus the curated alternates in content/geography/capital-aliases.yaml
  * (Kyiv/Kiev, Astana/Nur-Sultan, the three South African capitals, ...) — see that file's
  * header for why GeoNames' own `altName` field is not a source (empty for 196 of 197).
- * Matching (case, diacritics, apostrophes, punctuation) is app/lib/geography/names.ts's
+ * Matching (case, diacritics, apostrophes, punctuation) is app/features/countries/names.ts's
  * normaliseName, unchanged — this only decides the candidate set, then guards it.
  *
  * COLLISION CHECK, same rule as country aliases: one normalised name may belong to only ONE
@@ -542,7 +542,7 @@ const totalCapitalAliases = countries.reduce((sum, c) => sum + c.capitalAliases.
  * What a country accepts: currency = its name + its ISO code + the aliases of its name;
  * language = every entry of `languages` + their aliases (many countries have several official
  * languages); religion = the value, each " / "-separated component of it, + their aliases.
- * Broader religion terms are rejected at match time (app/lib/geography/names.ts), which owns
+ * Broader religion terms are rejected at match time (app/features/countries/names.ts), which owns
  * the BROADER taxonomy; a unit test asserts it over this very data.
  */
 function loadValueAliases(facet, knownValues) {
@@ -1035,7 +1035,7 @@ const json = JSON.stringify(payload);
 writeFileSync(join(outDir, 'world.json'), json, 'utf8');
 
 /**
- * The reduced-detail counterpart the map loads first (see app/lib/geography/world.ts) —
+ * The reduced-detail counterpart the map loads first (see app/features/countries/world.ts) —
  * geometry only. Country records, borders, names and everything else non-geometric stay
  * in world.json alone; this file is never a second source of truth for them. Lakes ARE
  * included here despite being their own top-level field rather than part of

@@ -6,9 +6,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { allCountries } from '~/lib/geography/catalog.server';
-import { matchCountryName, prepareCountryNames } from '~/lib/geography/names';
-import { continentOf, poolForQuiz, QUIZ_SCOPES } from '~/lib/geography/scopes';
+import { allCountries } from '~/features/countries/catalog.server';
+import { matchCountryName, prepareCountryNames, continentOf, poolForQuiz, QUIZ_SCOPES } from '~/features/countries';
 
 const countries = allCountries();
 const prepared = prepareCountryNames(countries);

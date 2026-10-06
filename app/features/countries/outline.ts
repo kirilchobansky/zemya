@@ -2,8 +2,8 @@
  * Geometry for "Name the Country from its Outline": how large the silhouette is drawn in the
  * stage's fixed box, and where it lands. Pure maths (no React, no canvas) so it is unit-tested.
  */
-import { latToY, lonToX } from '~/lib/map/projection';
-import type { CountryRecord } from '~/lib/map/types';
+import { latToY, lonToX } from '~/engines/map/projection';
+import type { CountryRecord } from '~/engines/map/types';
 
 /** Exponent of the size curve, displayed = box * (area / largestInPool) ^ OUTLINE_SIZE_EXPONENT.
  *  Deliberately tiny: a true-to-area scale would draw Malta as a dot and Russia as the box,

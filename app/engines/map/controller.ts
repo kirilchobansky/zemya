@@ -1,6 +1,6 @@
 /**
  * What the rest of the app may ask of the map. One interface, whichever renderer sits behind
- * it (the engine switch is app/lib/map/engine.ts): quizzes, the country pages and the atlas
+ * it (the engine switch is app/engines/map/engine.ts): quizzes, the country pages and the atlas
  * shell talk to a MapController and never to MapLibre or a canvas.
  */
 import type { Insets } from './camera';

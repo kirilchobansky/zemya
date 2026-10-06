@@ -5,8 +5,8 @@
  * moves it: naming a country in a question is not the user asking to see it.
  *
  * Formerly "Study" — renamed for a more advanced system later, but the engine, content
- * and FSRS review-store keys (~/lib/core) are unchanged, so no progress is lost or
- * reinterpreted by the rename. /study permanently redirects here (routes/study.tsx).
+ * and FSRS review-store keys (~/features/progress) are unchanged, so no progress is lost or
+ * reinterpreted by the rename. /study permanently redirects here (routes/questions/study.tsx).
  *
  * SSR guard: no indexedDB or fetch at module scope. Cards come from useProgress() (already
  * effect-gated) and the country catalogue loads in its own effect below — prerender yields
@@ -15,13 +15,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 
-import { Flag } from '~/components/Flag';
-import { useProgress } from '~/lib/core/ProgressProvider';
-import { makeRng, type Question } from '~/lib/core/questions';
-import { pageMeta } from '~/lib/seo';
-import { buildCatalogue, generateSession, type Catalogue } from '~/lib/geography/questions';
-import { parseCardId } from '~/lib/geography/mastery';
-import { loadWorld } from '~/lib/geography/world';
+import { Flag } from '~/shared/components/Flag';
+import { useProgress, makeRng, type Question } from '~/features/progress';
+import { pageMeta } from '~/shared/lib/seo';
+import { buildCatalogue, generateSession, type Catalogue, parseCardId, loadWorld } from '~/features/countries';
 
 const SESSION_SIZE = 12;
 /** Grading thresholds for a binary right/wrong quiz screen, mapped onto FSRS's four

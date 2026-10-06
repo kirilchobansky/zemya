@@ -1,7 +1,7 @@
 /**
- * The quiz camera's decisions (app/lib/map/follow.ts): leave alone / pan at the current
+ * The quiz camera's decisions (app/engines/map/follow.ts): leave alone / pan at the current
  * zoom / zoom out the minimum. Pure maths, so it is checked directly — the behaviour in a
- * real browser is test/smoke.mjs's job.
+ * real browser is tests/e2e/smoke.mjs's job.
  *
  *   npm run test:unit
  */
@@ -9,14 +9,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { homeZoom } from '~/lib/map/camera';
+import { homeZoom } from './camera';
 import {
   cameraForTarget, mainlandBox, NO_INSETS, NO_SHAPE_ZOOM_FACTOR, QUIZ_COMFORT_MARGIN, QUIZ_FRAME_PADDING,
   QUIZ_MIN_TARGET_PX, quizMinTargetPx, type FollowTarget
-} from '~/lib/map/follow';
-import { latToY, lonToX } from '~/lib/map/projection';
-import { CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_DIAMETER, PIN_MAX_WIDTH } from '~/lib/map/thresholds';
-import type { WorldData } from '~/lib/map/types';
+} from './follow';
+import { latToY, lonToX } from './projection';
+import { CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_DIAMETER, PIN_MAX_WIDTH } from './thresholds';
+import type { WorldData } from './types';
 
 const viewport = { width: 1000, height: 800 };
 const HOME = homeZoom(viewport);
@@ -165,10 +165,10 @@ describe('the thresholds are related, not independent', () => {
 });
 
 describe('mainlandBox', () => {
-  let world: Awaited<ReturnType<typeof import('~/lib/map/topology').buildWorld>>;
+  let world: Awaited<ReturnType<typeof import('./topology').buildWorld>>;
   beforeAll(async () => {
     (globalThis as { Path2D?: unknown }).Path2D ??= class { moveTo() {} lineTo() {} closePath() {} };
-    const { buildWorld } = await import('~/lib/map/topology');
+    const { buildWorld } = await import('./topology');
     const data = JSON.parse(readFileSync(join(process.cwd(), 'public/data/geography/world.json'), 'utf8')) as WorldData;
     world = buildWorld(data);
   });

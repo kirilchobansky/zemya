@@ -1,9 +1,9 @@
 /**
- * Pure helpers for the history detail view (app/components/HistoryDetail.tsx) — no React,
+ * Pure helpers for the history detail view (app/features/history/components/HistoryDetail.tsx) — no React,
  * no canvas. Everything here works on already-converted decimal-year TimelineEntry objects,
  * same discipline as layout.ts.
  */
-import type { TimelineEntry } from './renderer';
+import type { TimelineEntry } from '~/features/history/timeline/renderer';
 
 function endOf(e: Pick<TimelineEntry, 'end' | 'start'>): number {
   return e.end ?? Infinity;

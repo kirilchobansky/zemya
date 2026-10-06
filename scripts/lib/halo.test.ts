@@ -8,9 +8,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import type { WorldData } from '~/lib/map/types';
+import type { WorldData } from '../../app/engines/map/types';
 // @ts-expect-error plain .mjs build helper, no declarations
-import { buildHalo, HALO_MAX_LON_SPAN, HALO_MAX_NEIGHBOUR_SHARE, HALO_MAX_POINTS, haloLonSpan, neighbourLandShare, qualifiesForHalo } from '../../scripts/lib/halo.mjs';
+import { buildHalo, HALO_MAX_LON_SPAN, HALO_MAX_NEIGHBOUR_SHARE, HALO_MAX_POINTS, haloLonSpan, neighbourLandShare, qualifiesForHalo } from './halo.mjs';
 
 beforeAll(() => {
   class StubPath2D {
@@ -66,7 +66,7 @@ describe('halo payload', () => {
   });
 
   it('a halo contains its own country\'s land', async () => {
-    const { buildWorld } = await import('~/lib/map/topology');
+    const { buildWorld } = await import('../../app/engines/map/topology');
     const world = buildWorld(data);
     for (const feature of world.features) {
       if (!feature.halo) continue;
@@ -98,7 +98,7 @@ describe('buildHalo', () => {
 
 describe('haloStrength / pick', () => {
   it('fades from 1 to 0 as the land becomes readable', async () => {
-    const { haloStrength, HALO_FADE_START_PX, HALO_FADE_END_PX } = await import('~/lib/map/thresholds');
+    const { haloStrength, HALO_FADE_START_PX, HALO_FADE_END_PX } = await import('../../app/engines/map/thresholds');
     expect(haloStrength(0)).toBe(1);
     expect(haloStrength(HALO_FADE_START_PX)).toBe(1);
     expect(haloStrength(HALO_FADE_END_PX)).toBe(0);
@@ -108,8 +108,8 @@ describe('haloStrength / pick', () => {
   });
 
   it('island nations never draw as pins; land micro-states still do', async () => {
-    const { buildWorld } = await import('~/lib/map/topology');
-    const { drawsAsPin } = await import('~/lib/map/visibility');
+    const { buildWorld } = await import('../../app/engines/map/topology');
+    const { drawsAsPin } = await import('../../app/engines/map/visibility');
     const world = buildWorld(data);
     const camera = { x: 0.5, y: 0.5, zoom: 1000 };
     expect(drawsAsPin(world.byIso3.get('NRU')!, camera)).toBe(false);
@@ -117,8 +117,8 @@ describe('haloStrength / pick', () => {
   });
 
   it('a halo shows only while the land is too small to read', async () => {
-    const { buildWorld } = await import('~/lib/map/topology');
-    const { haloAlpha } = await import('~/lib/map/visibility');
+    const { buildWorld } = await import('../../app/engines/map/topology');
+    const { haloAlpha } = await import('../../app/engines/map/visibility');
     const world = buildWorld(data);
     const nauru = world.byIso3.get('NRU')!;
     const at = (zoom: number) => haloAlpha(nauru, { x: nauru.ux, y: nauru.uy, zoom });

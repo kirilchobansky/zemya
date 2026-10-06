@@ -1,9 +1,9 @@
 import { Link } from 'react-router';
 
-import { allCountries } from '~/lib/geography/catalog.server';
-import { pageMeta, websiteJsonLd } from '~/lib/seo';
-import { peekWorld } from '~/lib/geography/world';
-import type { CountryRecord } from '~/lib/map/types';
+import { allCountries } from '~/features/countries/catalog.server';
+import { pageMeta, websiteJsonLd } from '~/shared/lib/seo';
+import { peekWorld } from '~/features/countries';
+import type { CountryRecord } from '~/engines/map/types';
 import type { Route } from './+types/atlas.index';
 
 const DESCRIPTION =

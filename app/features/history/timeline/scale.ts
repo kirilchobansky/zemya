@@ -1,7 +1,7 @@
 /**
  * The history timeline's time axis: decimal-year time representation, viewport
  * projection, the zoom ladder and tier-based visibility. Pure logic, mirroring
- * app/lib/map/projection.ts + camera.ts for the geography side (no React, no canvas, no
+ * app/engines/map/projection.ts + camera.ts for the geography side (no React, no canvas, no
  * DOM) — CLAUDE.md already anticipated this module when it said the map's projection and
  * the history timeline would share a renderer-agnostic shape.
  *
@@ -15,7 +15,7 @@
  * reused here rather than duplicated — it has zero Node dependencies, so it bundles into
  * the client exactly as any other pure-logic module would.
  */
-import { dateKey, parseHistoryDate, type ParsedHistoryDate } from '../../../scripts/lib/history.mjs';
+import { dateKey, parseHistoryDate, type ParsedHistoryDate } from '../../../../scripts/lib/history.mjs';
 
 export type ZoomLevel = 'millennium' | 'century' | 'decade' | 'year' | 'month' | 'day';
 export type EntryKind = 'period' | 'ruler' | 'government' | 'event';
@@ -58,11 +58,11 @@ export const CONFIG = {
   /**
    * Highest entry.tier visible per (zoom level, entry kind). 0 means "never at this
    * level, regardless of tier". Only the `event` column is consulted by the actual render
-   * path (app/lib/history/renderer.ts's eventTierReveal) — period/ruler/government are
+   * path (app/features/history/timeline/renderer.ts's eventTierReveal) — period/ruler/government are
    * always drawn there regardless of zoom or tier ("the calm overview" — periods are
    * always the hero, rulers/governments always draw as bars, thin strips with no text at
    * far zoom). The other three columns remain meaningful only to
-   * app/lib/history/layout.ts's densityBuckets (not currently wired into the UI) and its
+   * app/features/history/timeline/layout.ts's densityBuckets (not currently wired into the UI) and its
    * own tests — kept as they were rather than repurposed, so that unrelated code doesn't
    * shift underfoot. Event ladder: tier 1 always, tier 2 from decade zoom, tier 3 from
    * year zoom, everything from month zoom on — renderer.ts fades each tier in smoothly

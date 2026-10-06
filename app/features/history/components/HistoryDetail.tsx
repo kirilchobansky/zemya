@@ -1,5 +1,5 @@
 /**
- * The full detail view for a history timeline entry (routes/history.$slug.tsx, shown
+ * The full detail view for a history timeline entry (routes/history/history.$slug.tsx, shown
  * whenever a pinned card's "See more" — or a row inside this same view — has set
  * `selectedHistoryEntryId`). Replaces the plain detail block that shipped first; unlike
  * that block, this one shows context (what else was true at the same moment), related
@@ -12,11 +12,11 @@
 import { useMemo, useState } from 'react';
 
 import { CATEGORY_LABELS, formatCardDate } from './HistoryCard';
-import { entriesInSpan, neighbours, relatedByTags } from '~/lib/history/related';
-import { contextAt } from '~/lib/history/layout';
-import type { TimelineEntry } from '~/lib/history/renderer';
-import { formatDuration } from '~/lib/history/scale';
-import { flyTargetFor, type HistoryTimeline } from '~/lib/history/timeline';
+import { entriesInSpan, neighbours, relatedByTags } from '~/features/history/data/related';
+import { contextAt } from '~/features/history/timeline/layout';
+import type { TimelineEntry } from '~/features/history/timeline/renderer';
+import { formatDuration } from '~/features/history/timeline/scale';
+import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
 
 const KIND_LABELS: Readonly<Record<TimelineEntry['kind'], string>> = {
   event: 'Event',

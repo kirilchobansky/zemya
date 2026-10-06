@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
 
 // scripts/lib/history.mjs is plain Node ESM (the build runs outside Vite/TS), imported
 // here by relative path rather than through the `~` alias vitest.config.ts sets up for
-// app/ — that alias only covers app/lib.
-import { dateKey, parseHistoryDate, validateHistory } from '../../scripts/lib/history.mjs';
+// app/ — that alias only covers app/.
+import { dateKey, parseHistoryDate, validateHistory } from './history.mjs';
 
 const base = {
   kind: 'event',

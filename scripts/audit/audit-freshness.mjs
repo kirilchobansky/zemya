@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const { countries: second } = require('countries-list');
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const shipped = JSON.parse(readFileSync(root + 'public/data/geography/countries.json', 'utf8'));
 
 const norm = s =>

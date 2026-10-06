@@ -1,5 +1,5 @@
 /**
- * scripts/lib/history.mjs is no longer build-time-only: app/lib/history/scale.ts imports
+ * scripts/lib/history.mjs is no longer build-time-only: app/features/history/timeline/scale.ts imports
  * it straight into the client bundle (see scale.ts's own header comment and CLAUDE.md's
  * "Where this is" for why that's safe today). This guards the invariant that makes it
  * safe — a Node builtin creeping in here would break silently in the browser, not at

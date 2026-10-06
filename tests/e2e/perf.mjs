@@ -2,7 +2,7 @@
  * Frame-time measurement for the map renderer (MapLibre GL over our PMTiles), against the
  * production build.
  *
- * Serves build/client statically (same as test/smoke.mjs), opens a real browser at 1500x900 and
+ * Serves build/client statically (same as tests/e2e/smoke.mjs), opens a real browser at 1500x900 and
  * waits until the MapLibre instance (window.__zemyaGl, exposed because this script sets
  * __ZEMYA_PROBE__ in an init script — see gl-atlas.ts) reports its style and tiles loaded; that
  * moment is the time-to-rendered-map. Then two phases, each sampled by a requestAnimationFrame

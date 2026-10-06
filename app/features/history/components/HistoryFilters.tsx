@@ -1,8 +1,8 @@
 /**
- * Filter chips for the history panel (routes/history.$slug.tsx, below
+ * Filter chips for the history panel (routes/history/history.$slug.tsx, below
  * HistorySearch) — kind toggles (periods excluded: always shown, per CLAUDE.md/the
  * filters brief) and event category toggles, all on by default. State lives in
- * AtlasContext (routes/atlas.tsx) and is only ever read there — same convention as
+ * AtlasContext (routes/map/atlas.tsx) and is only ever read there — same convention as
  * HistoryOutline/HistoryDetail, which take their own slice of it as plain props rather
  * than calling useAtlasContext themselves — so it survives a "See more" swap to the
  * detail view and resets only when the history route itself is left.
@@ -13,7 +13,7 @@
  * its 9 authored values, transcribed once) — kept in sync with CATEGORY_LABELS
  * (HistoryCard.tsx), which has the same 9 ids without the colour.
  */
-import type { EntryKind } from '~/lib/history/scale';
+import type { EntryKind } from '~/features/history/timeline/scale';
 
 const KIND_CHIPS: readonly { id: EntryKind; label: string }[] = [
   { id: 'ruler', label: 'Rulers' },

@@ -7,7 +7,7 @@ the sheet, tabs, touch map, insets, quiz-on-a-keyboard rules, landscape, gesture
 Two switches, deliberately independent:
 
 - **LAYOUT follows viewport WIDTH.** `max-width: 819px` (`PHONE_MAX_WIDTH` in
-  `app/lib/viewport.ts`, mirrored in `app.css` — change both) is the phone layout. An iPad in
+  `app/shared/layout/viewport.ts`, mirrored in `app.css` — change both) is the phone layout. An iPad in
   landscape is the desktop layout. Between 820 and 1000px the rail/panel columns are tighter.
 - **INPUT AFFORDANCES follow the POINTER.** `@media (pointer: coarse)` / `isCoarsePointer()`:
   44px touch targets, no hover tooltip, no +/- zoom buttons (pinch exists), no `<kbd>` hints,
@@ -23,9 +23,9 @@ insets), always read at event/effect time.
 content (`overscroll-behavior: contain`). The canvas fills the screen behind everything.
 Every bottom-pinned thing pads with `env(safe-area-inset-bottom)` (`--tabbar-h` carries it).
 
-**The sheet** is the ordinary `.panel` (`<aside>` in `routes/atlas.tsx`), restyled: 90dvh tall,
+**The sheet** is the ordinary `.panel` (`<aside>` in `routes/map/atlas.tsx`), restyled: 90dvh tall,
 parked with `transform: translateY(...)` — snapping animates transform only, never height.
-Snaps (`app/lib/sheet.ts`, mirrored in CSS `.panel[data-snap]`), measured from the viewport
+Snaps (`app/shared/layout/sheet.ts`, mirrored in CSS `.panel[data-snap]`), measured from the viewport
 bottom: **peek** = tab bar + 88px (handle + the route's `.peek` line), **half** 50%, **full**
 90%. The header/handle drag the sheet; inside the scrolling body a drag moves the sheet only when
 the body is scrolled to the top (down always, up only below full), otherwise it scrolls. Tap the
@@ -51,7 +51,7 @@ it replaces the desktop toolbar, which is `display: none` on phones. ⌂ is a sm
 under it; the scale bar is hidden on phones. Icons are inline SVG (glyph characters fall back to
 tofu on some fonts).
 
-**Touch map** (MapLibre's handlers in `app/lib/map/gl-atlas.ts`; the notes that follow describe the removed canvas controller — the 24 px touch hit radius and the focus-keeping capture listeners were carried over, the DPR cap of 2 is the map's `pixelRatio`): `touch-action: none` on the canvas; one finger pans, two
+**Touch map** (MapLibre's handlers in `app/engines/map/gl-atlas.ts`; the notes that follow describe the removed canvas controller — the 24 px touch hit radius and the focus-keeping capture listeners were carried over, the DPR cap of 2 is the map's `pixelRatio`): `touch-action: none` on the canvas; one finger pans, two
 fingers pinch about their midpoint (the world point that started under the fingers stays under
 them, so a two-finger drag also pans). No hover for `pointerType === 'touch'` (no tooltip, no
 hover highlight); a tap selects. Hit areas on touch are 24 px radius for capital rings and
@@ -78,7 +78,7 @@ screen: a thin HUD on top (timer · n / N · pause; `‹ Quizzes` before START),
 flag) in the middle, the input bar at the bottom pinned directly ABOVE the keyboard
 (`.quiz-controls`, `bottom: var(--kb)`). Pause opens a screen with Resume and Abandon. The rules:
 
-- **Keyboard position** comes from `visualViewport` (`app/lib/keyboard.ts`: resize + scroll) and is
+- **Keyboard position** comes from `visualViewport` (`app/shared/lib/keyboard.ts`: resize + scroll) and is
   published as `--kb` / `--vv-top` / `--layout-h` / `--kb-est` on `<html>`. The viewport meta also
   says `interactive-widget=resizes-content` (Chrome on Android resizes the layout viewport
   itself) but nothing may rely on it: iOS Safari ignores it, and `visualViewport` is what works.
@@ -88,7 +88,7 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
 - **START focuses the input SYNCHRONOUSLY inside its tap handler** (`startRun`; also "Run it
   again"). iOS opens the keyboard only for focus inside the gesture; an effect or timeout leaves
   it closed. That is why the input is mounted in every phase — `QuizControls` renders it hidden
-  (`--idle`, a 1px opacity-0 container) in idle and done — and why `test/smoke.mjs` checks the
+  (`--idle`, a 1px opacity-0 container) in idle and done — and why `tests/e2e/smoke.mjs` checks the
   *call stack* of the first `focus()`, not just `activeElement` (Chromium focuses from the effect
   too, so "is it focused" proves nothing).
 - **The input's attributes** stop iOS "correcting" answers ("Chad" -> "Chat"): `autocomplete=off
@@ -97,7 +97,7 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
 - **The keyboard stays open for the whole run.** The input is never blurred between questions; the
   canvas never takes focus (`Atlas#setKeepFocus` cancels pointerdown, mousedown and touchstart on
   it — only on a phone layout or coarse pointer; on desktop a canvas click still blurs and the
-  typing capture in `engine.ts` recovers, which `test/smoke.mjs` relies on); the Skip / Reveal /
+  typing capture in `engine.ts` recovers, which `tests/e2e/smoke.mjs` relies on); the Skip / Reveal /
   Pause / Resume / Abandon buttons cancel pointerdown so a tap on them doesn't move focus either.
   The results screen blurs it (the keyboard would cover them).
 - **Shortcuts don't exist on a phone**, so real buttons do: Skip and Reveal beside the input
@@ -134,7 +134,7 @@ answers from the in-memory world (`peekWorld()`; falls back to the server loader
 atlas derives the selection from the *pending* navigation location (`useNavigation`), so the
 highlight lands on the tap itself.
 
-**Polish** (phone layout, no screen scrolls sideways at 360/390/430 — `test/smoke.mjs` checks the
+**Polish** (phone layout, no screen scrolls sideways at 360/390/430 — `tests/e2e/smoke.mjs` checks the
 document, the sheet content and the overlays): the catalogue's region chips are ONE horizontally
 scrolling row (the size cards stay three per row, the whole card is the link, the grid keeps its
 fixed height — the no-reflow rule); study answers are full-width and >=48px, their 1-4 key badges

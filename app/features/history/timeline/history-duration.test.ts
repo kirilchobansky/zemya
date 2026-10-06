@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decimalYearOf as d, formatDuration } from "~/lib/history/scale";
+import { decimalYearOf as d, formatDuration } from "./scale";
 
 const f = (a: string, b: string) => formatDuration(d(a), d(b));
 

@@ -1,8 +1,8 @@
 /**
  * "Name all countries" — the run screen of the free-recall geography quiz (rules in
- * docs/quizzes.md, matching in app/lib/geography/names.ts's `matchCountryName`). No prompt: the
+ * docs/quizzes.md, matching in app/features/countries/names.ts's `matchCountryName`). No prompt: the
  * player types country names in any order and each correct one joins a list, in the order named,
- * and is coloured on the map. It doesn't use the geography engine (app/lib/quiz/engine.ts) —
+ * and is coloured on the map. It doesn't use the geography engine (app/features/quizzes/engine/engine.ts) —
  * there is no queue and no target — but it saves the same run rows as every quiz, under the
  * quiz id "name-all", scope = the continent, size "all", so personal bests work identically.
  *
@@ -19,22 +19,19 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router';
 
-import { keepFocus } from '~/components/quiz/QuizControls';
-import { StartCaption } from '~/components/quiz/StartCaption';
-import { useAtlasContext } from '~/lib/atlas-context';
-import { bestQuizTime, saveQuizRun } from '~/lib/core/progress';
-import { formatDuration } from '~/lib/format';
-import { matchCountryName, normaliseName, prepareCountryNames } from '~/lib/geography/names';
-import { NAME_ALL_ID, NAME_ALL_QUIZ } from '~/lib/geography/quizzes';
-import { continentOf, poolForQuiz, QUIZ_SCOPES, SCOPE_LABELS, SCOPE_VIEWS, type QuizScope } from '~/lib/geography/scopes';
-import { loadWorld } from '~/lib/geography/world';
-import { useKeyboard, useQuizPageLock } from '~/lib/keyboard';
-import { NO_INSETS } from '~/lib/map/follow';
-import { measureInsets } from '~/lib/quiz/insets';
-import { useUpStep } from '~/lib/up';
-import { StageClock } from '~/components/quiz/StageClock';
-import type { CountryRecord, World } from '~/lib/map/types';
-import { isCoarsePointer, isPhoneLayout } from '~/lib/viewport';
+import { keepFocus } from '~/features/quizzes/engine/QuizControls';
+import { StartCaption } from '~/features/quizzes/engine/StartCaption';
+import { useAtlasContext, useUpStep } from '~/features/map';
+import { bestQuizTime, saveQuizRun } from '~/features/progress';
+import { formatDuration } from '~/shared/lib/format';
+import { matchCountryName, normaliseName, prepareCountryNames, continentOf, poolForQuiz, QUIZ_SCOPES, SCOPE_LABELS, SCOPE_VIEWS, type QuizScope, loadWorld } from '~/features/countries';
+import { NAME_ALL_ID, NAME_ALL_QUIZ } from '~/features/quizzes/geography/quizzes';
+import { useKeyboard, useQuizPageLock } from '~/shared/lib/keyboard';
+import { NO_INSETS } from '~/engines/map/follow';
+import { measureInsets } from '~/features/quizzes/engine/insets';
+import { StageClock } from '~/features/quizzes/engine/StageClock';
+import type { CountryRecord, World } from '~/engines/map/types';
+import { isCoarsePointer, isPhoneLayout } from '~/shared/layout/viewport';
 
 type Phase = 'idle' | 'running' | 'done' | 'gaveup';
 

@@ -7,12 +7,11 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router';
 
-import { DataSection, LayerControls, ProgressSection, ThemeControls } from '~/components/Rail';
-import type { MasteryTotals } from '~/lib/geography/mastery';
-import type { OverlayId } from '~/lib/geography/overlays';
-import type { MicroMode } from '~/lib/map/style';
-import type { SheetSnap } from '~/lib/sheet';
-import { isPhoneLandscape } from '~/lib/viewport';
+import { DataSection, LayerControls, ProgressSection, ThemeControls } from './Rail';
+import type { MasteryTotals, OverlayId } from '~/features/countries';
+import type { MicroMode } from '~/engines/map/style';
+import type { SheetSnap } from '~/shared/layout/sheet';
+import { isPhoneLandscape } from '~/shared/layout/viewport';
 
 /** Stroke icons drawn inline: glyph characters (⏱, ◍) fall back to tofu on fonts without them,
  *  and a tab bar can't have one icon missing on one phone. */

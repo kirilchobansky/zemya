@@ -34,7 +34,7 @@ calls them, not what they do.
 ## Map renderer (MapLibre GL)
 
 One renderer: MapLibre GL JS, Web Mercator, our own data only (no basemap, no outside tiles, no
-glyph server). `app/lib/map/`:
+glyph server). `app/engines/map/`:
 
 | file | role |
 | --- | --- |
@@ -48,7 +48,7 @@ glyph server). `app/lib/map/`:
 | `camera.ts`, `follow.ts`, `projection.ts` | unit-square camera maths, unchanged. `zoom` = world width in px = `512 * 2^mapZoom` |
 | `topology.ts` | `World`/`Feature` records (bbox, anchor, polygons, neighbours, halos); `Path2D` only for the Outlines quiz silhouettes |
 
-**Tiles.** `scripts/build-tiles.mjs` (second half of `build:content`) cuts `world.json` into
+**Tiles.** `scripts/build/build-tiles.mjs` (second half of `build:content`) cuts `world.json` into
 `public/data/geography/world.pmtiles` with geojson-vt: layers `countries` (`iso3`, the feature id
 via `promoteId`), `context` (Greenland etc.), `lakes`, `halos`; z0-z7, extent 4096, tolerance 2.5
 units (about a third of a pixel at every zoom), **no simplification at z7** (full 1:10m); beyond z7
@@ -92,15 +92,15 @@ simplified at 0.006 deg ~ 600 m) plus `countries.json`, and nothing else for geo
 `geography/world.ts`'s `loadWorld()` builds the `World` from those. It feeds the camera maths
 (bbox, anchors), the Outlines silhouette and the compare shape, none of which can show the difference
 from 1:10m. The full `world.json` (3.4 MB) is a build input only (`build-tiles.mjs` reads it); no
-client code requests it, and `test/smoke.mjs` fails if anything does. Needing it again means
+client code requests it, and `tests/e2e/smoke.mjs` fails if anything does. Needing it again means
 fetching it on demand from the feature that needs it, cached, never from `loadWorld()`.
 `attachFullDetail` in `topology.ts` is now unused by the app (kept, with its unit coverage, until
 someone decides to delete it). Without WebGL the map shows the "failed to load" message (there is no
 canvas fallback any more).
 
 **Test seam.** `gl-atlas.ts` exposes the MapLibre instance as `window.__zemyaGl` in dev, and in a
-production build only for a page whose init script set `window.__ZEMYA_PROBE__` first; `test/smoke.mjs`
-and `test/perf.mjs` do, nothing a visitor does can. Tests ask it `queryRenderedFeatures`,
+production build only for a page whose init script set `window.__ZEMYA_PROBE__` first; `tests/e2e/smoke.mjs`
+and `tests/e2e/perf.mjs` do, nothing a visitor does can. Tests ask it `queryRenderedFeatures`,
 `getFeatureState`, `isStyleLoaded()/areTilesLoaded()` and never read pixels.
 
 ## Framework mode
@@ -212,12 +212,12 @@ currency — so the unit of scheduling is a **(country, facet) pair**, one FSRS 
 Facets: `location`, `capital`, `flag`, `currency`, `language`, `religion`, `borders`,
 `outline`. A facet only applies when the country has the data for it (no `borders` card
 for an island, no `currency` card where the field is null); the applicable set is the
-denominator for mastery, computed per country in `app/lib/geography/mastery.ts`.
+denominator for mastery, computed per country in `app/features/countries/mastery.ts`.
 
 Card ids are `subject:entity:facet` strings — `geo:BGR:capital` — prefixed so history can
 later write `hist:treaty-of-berlin:date` into the same tables without collision. The
-prefix is a geography-layer convention, not a core concept: `app/lib/core/` stores and
-grades opaque id strings and must never import from `app/lib/geography/`.
+prefix is a geography-layer convention, not a core concept: `app/features/progress/` stores and
+grades opaque id strings and must never import from `app/features/countries/`.
 
 Cards are created **lazily**. No row exists until a facet is first reviewed — "new" is the
 absence of a row, not a row in a new state. 197 countries never means 1,576 rows up front.
@@ -229,13 +229,13 @@ Country mastery is **derived, never stored**, from whatever cards exist for it:
 
 "Graduated to Review" is FSRS's own definition of learned; do not invent a threshold.
 
-**Writes are never awaited by the UI.** `app/lib/core/progress.ts` updates in-memory state
+**Writes are never awaited by the UI.** `app/features/progress/progress.ts` updates in-memory state
 synchronously and renders immediately — `saveCard` and `logReview` are fire-and-forget,
 log a failure and move on. Only the explicit export / import / reset operations are async,
 because the user asked for them and is watching.
 
 **SSR guard.** Route loaders run at build time, where `indexedDB` does not exist. Nothing
-in `app/lib/core/` touches `indexedDB` at module scope — the Dexie instance is constructed
+in `app/features/progress/` touches `indexedDB` at module scope — the Dexie instance is constructed
 lazily behind a browser check, so importing the store from a route module is inert during
 prerender. If `npm run build` starts failing inside prerender, look here first.
 
@@ -244,7 +244,7 @@ shipped covered by neither: `resetAll()` only cleared `cards`/`reviews`, so a ti
 bogus 1-second personal best survived a full progress reset, and `exportAll`/`importAll`
 didn't touch it either, so it couldn't even travel with a backup. A table only one of the
 three knows about is how data goes stale (reset) or orphaned (export/import) — when a new
-table is added to `app/lib/core/progress.ts`, add it to all three in the same commit, not
+table is added to `app/features/progress/progress.ts`, add it to all three in the same commit, not
 "when it comes up."
 
 ## Prerendering and tests
@@ -256,9 +256,9 @@ subject layer, indexed on Google before it existed) kept as permanent redirect s
 their `/quizzes/geography/...` equivalent, and the removed-scope (`americas`) redirects,
 prerendered for the two quizzes that predate scopes only. See docs/quizzes.md's "Subjects".
 
-`npm run test:unit` needs no build — it exercises `app/lib/core/` and
-`app/lib/geography/mastery.ts` directly, importing real content through the same
-`catalog.server.ts` reader every route loader uses. `test/unit/progress.test.ts` is the
+`npm run test:unit` needs no build — it exercises `app/features/progress/` and
+`app/features/countries/mastery.ts` directly, importing real content through the same
+`catalog.server.ts` reader every route loader uses. `app/features/progress/progress.test.ts` is the
 one exception that needs a real IndexedDB to exercise `progress.ts`'s actual Dexie code
 (rather than the `available() === false` no-op path) — it pulls in `fake-indexeddb`
 (devDependency only, `fake-indexeddb/auto` imported at the top of that file) rather than
@@ -313,29 +313,50 @@ Moved from CLAUDE.md's Structure section (the rules that follow from it stay the
 ```
 content/geography/      hand-authored YAML, one file per country. THE MOAT.
 content/flags/          flag overrides: <iso2>.svg + mandatory <iso2>.note.md. Empty unless upstream is wrong.
-scripts/                content/ + upstream datasets -> public/data/
-app/root.tsx            the HTML document itself + the top-level App
-app/routes.ts           the route table
-app/entry.client.tsx    hydrates the prerendered document
-app/entry.server.tsx    renders each route to HTML at build time
-app/lib/core/           scheduler + Dexie store. subject-agnostic; no geography imports.
-app/lib/map/            projection, topology, camera, follow, MapLibre renderer (gl-*.ts). no React.
-app/lib/geography/      overlays, client payload loader, *.server.ts catalog readers,
-                        mastery derivation
-app/lib/history/        time-axis + layout logic (scale.ts, layout.ts), the canvas renderer
-                        (renderer.ts) and its controller (timeline.ts), and the *.server.ts
-                        catalog reader. One route uses it (routes/history.bulgaria.tsx) — see
-                        CLAUDE.md's "Do not" before adding a second
-app/lib/format.ts       shared formatting and normalisation
-app/components/         Rail, SearchBox, and future panels
-app/routes/             atlas.tsx (layout, owns the map canvas) + panel routes;
-                        history.bulgaria.tsx owns its own canvas outside that layout
-app/styles/             tokens.css then app.css
-content/history/        hand-authored YAML, one file per language/country code (bg.yaml)
+content/history/        hand-authored YAML, one file per history country (bg.yaml, us.yaml)
 public/data/geography/  generated, committed on purpose
 public/data/history/    generated, committed on purpose
 public/flags/           generated from flag-icons, committed on purpose
-test/smoke.mjs          end-to-end browser test against the production build
+
+scripts/build/          content/ + upstream datasets -> public/data/ (build-content, build-history, build-tiles, icons, og image)
+scripts/import/         one-off history importers (import-events, import-rulers)
+scripts/audit/          read-only reports and QA (audit-freshness, audit-flags, check-history, check-seo)
+scripts/lib/            Node helpers shared by the above and, for a few pure ones, by app/ (geom, history, halo, site, ...)
+scripts/check-structure.mjs   400-line limit + import boundaries (npm run check)
+tests/e2e/              smoke.mjs and perf.mjs: drive a real browser against the production build
+
+app/root.tsx, routes.ts, entry.client.tsx, entry.server.tsx   document, route table, hydrate, prerender
+app/routes/             route modules only, grouped by section (URLs come from routes.ts, not folders)
+  map/                  atlas.tsx (layout, owns the map canvas), atlas.index.tsx, country.tsx
+  quizzes/              quizzes.tsx, quizzes.$subject.tsx, quizzes.$subject.$quizId.tsx, legacy /quiz redirects
+  history/              history.tsx, history.$slug.tsx, history.$slug.list.tsx
+  questions/            questions.tsx, study.tsx (redirect)
+
+app/features/           one folder per product area; index.ts exposes what other features use
+  map/                  atlas-context.ts, up.ts, components/ (Rail, MobileChrome, UpButton): the atlas shell
+  countries/            catalog.server, names(-bg), scopes, overlays, outline, world, mastery,
+                        questions (session generator), quizSeo, components/ (SearchBox, CountryProgress)
+  quizzes/
+    engine/             useQuizEngine, types, insets, subjects registry, QuizControls/StageClock/StartCaption
+    geography/          quiz definitions (quizzes.ts) and stages/ (Map, Flags, Outlines, ... Stage)
+    name-all/           "Name all countries" (NameAllQuiz)
+    history-fill/       "fill the list": fill-quiz, fill-quiz-config, fill-quizzes.server, HistoryFillQuiz
+  history/
+    timeline/           renderer, timeline, scale, layout: the canvas timeline
+    data/               countries, catalog.server, related, search
+    components/         HistoryCard, HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch
+  progress/             ProgressProvider, progress (Dexie store), scheduler (ts-fsrs), questions (generic Question + RNG).
+                        Subject-agnostic: imports nothing from features/countries.
+
+app/engines/map/        projection, topology, camera, follow, MapLibre renderer (gl-*.ts). No React, no features.
+
+app/shared/             imports nothing from features/engines/routes
+  components/           Flag
+  layout/               sheet (bottom-sheet state), viewport
+  lib/                  format, keyboard, seo, site, theme
+  styles/               tokens.css then app.css
+
+app/**/*.test.ts        unit tests, next to the code they test (vitest; npm run test:unit)
 ```
 
 Framework mode replaces `index.html`/`main.tsx`/`App.tsx` with `root.tsx`,
@@ -344,4 +365,4 @@ Framework mode replaces `index.html`/`main.tsx`/`App.tsx` with `root.tsx`,
 
 **Hover tooltip.** The `.tip` is anchored to the hovered country's label point (its anchor, or the hovered capital ring), never the pointer, and shown only when MapLibre has not placed that country's name (`labelShown` in `onHover`). `GlAtlas` reports a hover only when the country/ring changes, and again on camera moves while one is hovered (the point moves); moving inside one country does nothing. Hover and selection change feature state only.
 
-**Sidebar Up and collapse.** Both desktop sidebars have their collapse button at the **bottom**. A collapsed sidebar leaves a large solid-brass expand tab centred vertically on the screen edge (`.sidebar-edge-tab`, 40px gap `--rail-gap` / `--panel-gap`). The left rail has no other buttons. **Up lives on the right panel only** (`components/UpButton.tsx`, arrow + "Back", set like the header eyebrow on its first line; desktop only, phone unchanged). It is a fixed hierarchy, never browser history (`app/lib/up.ts`): Quizzes `/quizzes` (no button) > subject / History country list / a country's quizzes > a quiz's start screen > an active run or its results (a route registers that in-route level with `useUpStep`; Up resets to the start screen, nothing saved, there is no abandon confirmation); History `/history` (no button) > `/history/:slug` > an opened entry (state; closes first). Everywhere else — map, country pages, Questions (one screen, no levels), each section root — there is no button. Alt+Left is not bound. On desktop the old "Quizzes" / "Back to quizzes" buttons are hidden (`.desk-hide`, the exact complement of the phone query) and kept on phone; the History fill quiz shows Pause only while a run is active.
+**Sidebar Up and collapse.** Both desktop sidebars have their collapse button at the **bottom**. A collapsed sidebar leaves a large solid-brass expand tab centred vertically on the screen edge (`.sidebar-edge-tab`, 40px gap `--rail-gap` / `--panel-gap`). The left rail has no other buttons. **Up lives on the right panel only** (`features/map/components/UpButton.tsx`, arrow + "Back", set like the header eyebrow on its first line; desktop only, phone unchanged). It is a fixed hierarchy, never browser history (`app/features/map/up.ts`): Quizzes `/quizzes` (no button) > subject / History country list / a country's quizzes > a quiz's start screen > an active run or its results (a route registers that in-route level with `useUpStep`; Up resets to the start screen, nothing saved, there is no abandon confirmation); History `/history` (no button) > `/history/:slug` > an opened entry (state; closes first). Everywhere else — map, country pages, Questions (one screen, no levels), each section root — there is no button. Alt+Left is not bound. On desktop the old "Quizzes" / "Back to quizzes" buttons are hidden (`.desk-hide`, the exact complement of the phone query) and kept on phone; the History fill quiz shows Pause only while a run is active.

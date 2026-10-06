@@ -1,13 +1,13 @@
 /**
  * What "knowing a country" means, and how a country's progress is derived from its cards.
  *
- * This is the geography half of the progress layer: `app/lib/core/` deals in opaque card
+ * This is the geography half of the progress layer: `app/features/progress/` deals in opaque card
  * ids and must never learn what a country is. Everything that knows a country has a
  * capital, or that an island has no land borders, lives here.
  */
-import type { CardMap } from '~/lib/core/ProgressProvider';
-import { isLearned } from '~/lib/core/scheduler';
-import type { CountryRecord } from '~/lib/map/types';
+import type { CardMap } from '~/features/progress';
+import { isLearned } from '~/features/progress';
+import type { CountryRecord } from '~/engines/map/types';
 
 /**
  * A country is not one thing you know. You can know Bulgaria's capital and not its
@@ -65,7 +65,7 @@ export function parseCardId(id: string): { iso3: string; facet: Facet } | null {
  * and mastering it should not require answering questions that have no answer.
  *
  * A facet the content marks `disputed` (see content/geography/countries/*.yaml and
- * scripts/build-content.mjs) is excluded here too, not just from the question rotation:
+ * scripts/build/build-content.mjs) is excluded here too, not just from the question rotation:
  * quizzing a fact nobody can verify would make mastery require guessing right on
  * something contested, and a country whose only disputed field is, say, religion should
  * still be able to reach 100%.

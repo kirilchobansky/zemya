@@ -9,7 +9,7 @@
  */
 import { useEffect, type RefObject } from 'react';
 
-import { isPhoneLandscape } from '~/lib/viewport';
+import { isPhoneLandscape } from './viewport';
 
 export type SheetSnap = 'peek' | 'half' | 'full';
 

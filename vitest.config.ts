@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 /**
  * Deliberately its own config rather than reusing vite.config.ts's `reactRouter()` plugin:
  * these are unit tests for plain TypeScript logic (the scheduler, the mastery derivation),
- * not the app. They need the same `~` alias so app/lib/core and app/lib/geography import
+ * not the app. They need the same `~` alias so app/features/progress and app/features/countries import
  * exactly as they do in the real app, and nothing else.
  */
 export default defineConfig({
@@ -15,6 +15,6 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['test/unit/**/*.test.ts']
+    include: ['app/**/*.test.ts', 'scripts/**/*.test.ts']
   }
 });

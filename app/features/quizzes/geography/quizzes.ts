@@ -1,11 +1,11 @@
 /**
- * The quiz catalogue: the registry of QuizDefinitions the shared engine/route (app/lib/quiz/engine.ts,
- * routes/quiz.$quizId.tsx) run. A second quiz is one entry in QUIZ_DEFINITIONS, never a
+ * The quiz catalogue: the registry of QuizDefinitions the shared engine/route (app/features/quizzes/engine/engine.ts,
+ * routes/quizzes/quiz.$quizId.tsx) run. A second quiz is one entry in QUIZ_DEFINITIONS, never a
  * new route tree — see CLAUDE.md's Quizzes section.
  */
-import { CapitalsStage, capitalAnswer } from "~/components/quiz/CapitalsStage";
-import { CountriesStage } from "~/components/quiz/CountriesStage";
-import { FlagsStage } from "~/components/quiz/FlagsStage";
+import { CapitalsStage, capitalAnswer } from "~/features/quizzes/geography/stages/CapitalsStage";
+import { CountriesStage } from "~/features/quizzes/geography/stages/CountriesStage";
+import { FlagsStage } from "~/features/quizzes/geography/stages/FlagsStage";
 import {
   CurrencyStage,
   currencyAnswer,
@@ -13,18 +13,12 @@ import {
   languageAnswer,
   ReligionStage,
   religionAnswer,
-} from "~/components/quiz/FacetStages";
-import { OutlinesStage } from "~/components/quiz/OutlinesStage";
-import {
-  matchesCapital,
-  matchesCurrency,
-  matchesLanguage,
-  matchesReligion,
-  normaliseName,
-} from "~/lib/geography/names";
-import type { QuizSize } from "~/lib/geography/scopes";
-import type { MatchOutcome, QuizDefinition } from "~/lib/quiz/types";
-import type { CountryRecord } from "~/lib/map/types";
+} from "~/features/quizzes/geography/stages/FacetStages";
+import { OutlinesStage } from "~/features/quizzes/geography/stages/OutlinesStage";
+import { matchesCapital, matchesCurrency, matchesLanguage, matchesReligion, normaliseName } from '~/features/countries';
+import type { QuizSize } from '~/features/countries';
+import type { MatchOutcome, QuizDefinition } from "~/features/quizzes/engine/types";
+import type { CountryRecord } from "~/engines/map/types";
 
 export type QuizSelectionMode = "random" | "population";
 
@@ -156,7 +150,7 @@ export const QUIZ_DEFINITIONS: QuizDefinition[] = [
  * "Name all countries" — a free-recall list quiz, not a QuizDefinition: there is no prompt, no
  * target and no queue, so it has no Stage and is not in QUIZ_DEFINITIONS (the engine, the size
  * ladder and the mastery cards are for quizzes that ask one country at a time). It is listed
- * after them, and runs at /quizzes/geography/name-all/:scope/all (components/NameAllQuiz.tsx);
+ * after them, and runs at /quizzes/geography/name-all/:scope/all (features/quizzes/name-all/NameAllQuiz.tsx);
  * its runs are saved under this id with size "all". See docs/quizzes.md.
  */
 export const NAME_ALL_ID = "name-all";

@@ -2,7 +2,7 @@
  * The site's origin, read from one place. Precedence: the SITE_URL environment variable
  * (Vercel project settings), then a local `.env`, then `.env.example`, whose committed
  * value is the default. Node-only: vite.config.ts and react-router.config.ts import it
- * and hand the result to the app as a build-time constant (see app/lib/site.ts).
+ * and hand the result to the app as a build-time constant (see app/shared/lib/site.ts).
  */
 import { existsSync, readFileSync } from 'node:fs';
 

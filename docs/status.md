@@ -21,7 +21,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   One camera path for every new question (skip = answer): centres a target that isn't
   comfortably inside, zooms in until it is legible (12 px wide; micro-states go far),
   continent as home. Brass = question, red = revealed, green = correct. A capital ring never
-  shows before its country's outline (thresholds are derived in `app/lib/map/thresholds.ts`).
+  shows before its country's outline (thresholds are derived in `app/engines/map/thresholds.ts`).
 - A capital alias may not be the country's own name (build throws; Monaco-style capital == name
   is the exception). `npm run audit` (stale data) and `npm run audit:flags` (flag vs description)
   exist; Bulgaria ships EUR (an override); Syria's flag is a `content/flags/` override.
@@ -49,20 +49,20 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   rectangles; Latin letters, Roman/Arabic numerals, titles and one typo are accepted; best
   times saved like geography's. Details: `docs/quizzes.md`.
 - `content/history/bg.yaml` grew from a 106-entry hand-authored first pass to 680 entries:
-  `scripts/import-events.mjs` bulk-imported `content/history/events-bg.json` (613
+  `scripts/import/import-events.mjs` bulk-imported `content/history/events-bg.json` (613
   auto-generated events), adding a `period-pre` period and two new optional per-entry
   fields, `category` and `tags`, plus `color` (period band / event dot colour, adopted
   from the JSON's era/category colours) — all three now validated and passed through by
   `scripts/lib/history.mjs`. `category`/`color` read by the hover card; `tags` now read
   by the pinned card's detail view (below).
-- Hover on the history timeline: `app/lib/history/renderer.ts`'s `render()` records a
+- Hover on the history timeline: `app/features/history/timeline/renderer.ts`'s `render()` records a
   hoverable region per drawn period/ruler/government capsule and event pin (not the
-  period colour wash) and returns them; `app/lib/history/timeline.ts` hit-tests the
+  period colour wash) and returns them; `app/features/history/timeline/timeline.ts` hit-tests the
   pointer against last frame's regions on pointermove (throttled to one check per
   animation frame, suppressed while dragging or pinch-zooming), brightens the hovered
   capsule/pin on canvas, and reports it up through a `HistoryTimeline` `onHover`
-  callback. `app/routes/atlas.tsx` floats `app/components/HistoryCard.tsx` (name, dates,
-  role/category/summary per kind — see `app/lib/history/renderer.ts`'s `TimelineEntry`
+  callback. `app/routes/map/atlas.tsx` floats `app/features/history/components/HistoryCard.tsx` (name, dates,
+  role/category/summary per kind — see `app/features/history/timeline/renderer.ts`'s `TimelineEntry`
   for the fields it reads) beside the hovered entry, flipping left/up to stay on screen.
   Suppressed for an entry that already has a pinned card (below).
 - Click (or tap) an entry to pin its card on top of the hover card: same content and
@@ -74,7 +74,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   pinnedIds`). A card's "See more" switches the sidebar (`history.bulgaria.tsx`) to
   `HistoryDetail.tsx`'s full detail view — see `docs/decisions.md`'s "Pinned cards" for
   the click-vs-drag and stacking mechanics.
-- `scripts/import-rulers.mjs` filled the rest of `content/history/source-bg.html`'s
+- `scripts/import/import-rulers.mjs` filled the rest of `content/history/source-bg.html`'s
   ruler/government tables into `bg.yaml` (Second Empire rulers 4.3, Third Kingdom
   monarchs 8.5, governments 7.4/8.6, the three parallel 1946–1989 power tracks from
   9.3) — 765 entries total now. Tier/precision/skip judgement calls not in the source
@@ -95,7 +95,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   (year/range, kind, role, name.bg, tier, precision, category, parent), sorted by start
   year then kind — for proofreading the content, not a nav destination. Prerendered (a
   real file for the static host) but `noindex` and left out of the sitemap, and
-  deliberately outside `routes/atlas.tsx`'s layout (no canvas, no `AtlasContext`).
+  deliberately outside `routes/map/atlas.tsx`'s layout (no canvas, no `AtlasContext`).
   `npm run check:history` reports (read-only, like `npm run audit`) parent/period
   mismatches, >3 same-kind overlaps, future end dates and >5y ruler/government gaps.
 - A pinned card's "See more" (or a row inside this same view) opens `HistoryDetail.tsx`'s
@@ -104,7 +104,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   tags as chips, "Show on timeline"/"Pin card" buttons, a context section that varies by
   kind (event: "When this happened" — the period/ruler(s)/government at that date, via
   `layout.ts`'s `contextAt`; ruler/government: "Neighbours" — previous/next of the same
-  kind+role via `app/lib/history/related.ts`'s `neighbours`, excluding an overlapping
+  kind+role via `app/features/history/data/related.ts`'s `neighbours`, excluding an overlapping
   co-ruler, plus "During this reign" — tier 1-2 events in the span; period: "Rulers" and
   tier-1 "Key events" in the span), each list capped at 10 with "Show all (N)", and a
   "Related" list of up to 6 entries sharing a tag (`relatedByTags`). Top-of-view
@@ -113,7 +113,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   from this view (no on-canvas click to seed a card position from) uses `AtlasContext`'s
   `pinHistoryEntry`, which centres the new card on the canvas.
 - The Bulgaria panel now opens with `HistorySearch.tsx` (name/alias/role/tag search over
-  `app/lib/history/search.ts`, ranked and flying to + opening a result's detail view; "/"
+  `app/features/history/data/search.ts`, ranked and flying to + opening a result's detail view; "/"
   focuses it from anywhere on the page) and `HistoryFilters.tsx` below it (kind chips —
   Rulers/Governments/Events, periods always shown — and the 9 event category chips from
   `content/history/events-bg.json`, each on by default with a "Reset" once anything's off).

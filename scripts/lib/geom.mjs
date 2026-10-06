@@ -1,6 +1,6 @@
 /**
- * Geometry decoding shared by the in-browser world builder (app/lib/map/topology.ts) and the
- * build-time tile builder (scripts/build-tiles.mjs). Pure maths, no imports. One copy on
+ * Geometry decoding shared by the in-browser world builder (app/engines/map/topology.ts) and the
+ * build-time tile builder (scripts/build/build-tiles.mjs). Pure maths, no imports. One copy on
  * purpose: the vector tiles and the Feature records (bbox, anchor, hit-test pieces) must put
  * every polygon in the SAME longitude frame, and two implementations would drift.
  *

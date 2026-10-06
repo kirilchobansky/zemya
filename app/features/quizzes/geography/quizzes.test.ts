@@ -1,40 +1,21 @@
 /**
- * Unit tests for the quiz catalogue's pure logic (app/lib/geography/quizzes.ts) and the
- * quiz-mode fill/stroke functions (app/lib/geography/overlays.ts), checked against the
+ * Unit tests for the quiz catalogue's pure logic (app/features/quizzes/geography/quizzes.ts) and the
+ * quiz-mode fill/stroke functions (app/features/countries/overlays.ts), checked against the
  * real, shipped catalogue.
  *
  *   npm run test:unit
  */
 import { describe, expect, it } from "vitest";
 
-import { allCountries, countryBySlug } from "~/lib/geography/catalog.server";
-import { matchesReligion, normaliseName } from "~/lib/geography/names";
-import { BROADER } from "~/lib/geography/questions";
+import { allCountries, countryBySlug } from "~/features/countries/catalog.server";
+import { matchesReligion, normaliseName, BROADER, isQuizScope, isQuizSize, LEGACY_SCOPES, poolForQuiz, poolForScope, QUIZ_SCOPES, QUIZ_SIZES, sizesForPool, quizFillFor, quizStrokeFor, MASTERY_COLOURS, SELECTED, NEIGHBOUR, LAND } from '~/features/countries';
 import {
   populationSubset,
   quizDefinition,
   randomSubset,
   selectQuizCountries,
-} from "~/lib/geography/quizzes";
-import {
-  isQuizScope,
-  isQuizSize,
-  LEGACY_SCOPES,
-  poolForQuiz,
-  poolForScope,
-  QUIZ_SCOPES,
-  QUIZ_SIZES,
-  sizesForPool,
-} from "~/lib/geography/scopes";
-import {
-  quizFillFor,
-  quizStrokeFor,
-  MASTERY_COLOURS,
-  SELECTED,
-  NEIGHBOUR,
-  LAND,
-} from "~/lib/geography/overlays";
-import type { Feature } from "~/lib/map/types";
+} from "./quizzes";
+import type { Feature } from "~/engines/map/types";
 
 describe("isQuizSize", () => {
   it("accepts every literal in QUIZ_SIZES", () => {
@@ -381,7 +362,7 @@ describe("the outlines quiz", () => {
 
   it("scales by area ^ 0.15 against the pool's largest, floored at 30%", async () => {
     const { outlineShare, OUTLINE_MIN_SHARE } = await import(
-      "~/lib/geography/outline"
+      "~/features/countries/outline"
     );
     const world = allCountries();
     const by = (iso3: string) => world.find((c) => c.iso3 === iso3)!;
@@ -403,7 +384,7 @@ describe("the outlines quiz", () => {
     (globalThis as { Path2D?: unknown }).Path2D ??= StubPath2D;
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const { buildWorld } = await import("~/lib/map/topology");
+    const { buildWorld } = await import("~/engines/map/topology");
     const data = JSON.parse(
       readFileSync(
         join(process.cwd(), "public", "data", "geography", "world.json"),

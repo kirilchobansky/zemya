@@ -1,6 +1,6 @@
 /**
  * A minimal PMTiles v3 writer (https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md):
- * everything scripts/build-tiles.mjs needs and nothing more — vector (MVT) tiles, gzip
+ * everything scripts/build/build-tiles.mjs needs and nothing more — vector (MVT) tiles, gzip
  * internal and tile compression, no deduplication, no run-length merging. The `pmtiles`
  * package on npm only reads; this is the other half, about a hundred lines.
  *

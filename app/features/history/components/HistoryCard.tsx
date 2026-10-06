@@ -1,9 +1,9 @@
 /**
- * Floating cards for the history timeline: the hover card (app/lib/history/timeline.ts's
+ * Floating cards for the history timeline: the hover card (app/features/history/timeline/timeline.ts's
  * onHover) and the pinned card it clicks into (onEntryClick) — both DOM elements
  * positioned beside whatever entry the canvas has under the pointer, since canvas itself
  * can't render crisp, selectable, wrapping text. The hover card mirrors the map's `.tip`
- * (routes/atlas.tsx) in spirit — floated over the canvas, pointer-events: none, no
+ * (routes/map/atlas.tsx) in spirit — floated over the canvas, pointer-events: none, no
  * animation; the pinned card is the same shell (HistoryCardBody) made interactive:
  * pointer-events: auto, a close button, draggable, stays until closed.
  *
@@ -23,10 +23,10 @@ import {
   type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent
 } from 'react';
 
-import { contextAt } from '~/lib/history/layout';
-import type { TimelineEntry } from '~/lib/history/renderer';
-import { dateOfDecimalYear, formatDuration } from '~/lib/history/scale';
-import { flyTargetFor, type HistoryTimeline } from '~/lib/history/timeline';
+import { contextAt } from '~/features/history/timeline/layout';
+import type { TimelineEntry } from '~/features/history/timeline/renderer';
+import { dateOfDecimalYear, formatDuration } from '~/features/history/timeline/scale';
+import { flyTargetFor, type HistoryTimeline } from '~/features/history/timeline/timeline';
 
 const CARD_WIDTH = 280;
 const GAP_PX = 10;
@@ -111,7 +111,7 @@ export default function HistoryCard({ entry, rect, entries, bounds }: HistoryCar
 }
 
 /** The card's content, by entry kind — shared between the hover card above and the
- *  pinned card below (routes/atlas.tsx), which show identical content, just inside a
+ *  pinned card below (routes/map/atlas.tsx), which show identical content, just inside a
  *  different (draggable, closable) shell. */
 export function HistoryCardBody({ entry, entries }: { entry: TimelineEntry; entries: readonly TimelineEntry[] }) {
   return (
@@ -153,7 +153,7 @@ export interface PinnedHistoryCardProps {
 
 /**
  * A pinned, draggable, closable version of the hover card — click-to-pin's on-canvas
- * result (see app/lib/history/timeline.ts's onEntryClick and CLAUDE.md's "pinned cards"
+ * result (see app/features/history/timeline/timeline.ts's onEntryClick and CLAUDE.md's "pinned cards"
  * brief). Positioned the same way HistoryCard is on first render (measured height, flipped
  * off the canvas edges), then freely draggable by its header or body, clamped inside the
  * canvas at every step. Bringing to front, closing and "See more" are all owned by the

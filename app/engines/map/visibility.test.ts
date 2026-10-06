@@ -1,5 +1,5 @@
 /**
- * The per-camera decisions every renderer shares (app/lib/map/visibility.ts): capital rings and
+ * The per-camera decisions every renderer shares (app/engines/map/visibility.ts): capital rings and
  * their names, micro modes. Pure predicates over the real committed payload — no browser, no
  * canvas — so the thresholds' relations hold whichever renderer draws them.
  *
@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import type { WorldData } from '~/lib/map/types';
+import type { WorldData } from './types';
 
 beforeAll(() => {
   class StubPath2D { moveTo() {} lineTo() {} closePath() {} }
@@ -17,7 +17,7 @@ beforeAll(() => {
 });
 
 async function loadRealWorld() {
-  const { buildWorld } = await import('~/lib/map/topology');
+  const { buildWorld } = await import('./topology');
   const path = join(process.cwd(), 'public', 'data', 'geography', 'world.json');
   return buildWorld(JSON.parse(readFileSync(path, 'utf8')) as WorldData);
 }
@@ -26,8 +26,8 @@ const viewport = { width: 1000, height: 800 };
 
 /** Does this capital's ring (and so its name) show, centred on it at `factor` x homeZoom? */
 async function ringShows(world: Awaited<ReturnType<typeof loadRealWorld>>, iso3: string, factor: number, style = { showCapitals: true } as { showCapitals: boolean; quizMode?: boolean }) {
-  const { homeZoom } = await import('~/lib/map/camera');
-  const { capitalShapeShowing, capitalsVisible } = await import('~/lib/map/visibility');
+  const { homeZoom } = await import('./camera');
+  const { capitalShapeShowing, capitalsVisible } = await import('./visibility');
   const mark = world.places.find(m => m.place.iso3 === iso3)!;
   const camera = { x: mark.ux, y: mark.uy, zoom: homeZoom(viewport) * factor };
   return capitalsVisible(style, camera, viewport) && capitalShapeShowing(mark, camera, viewport);
@@ -89,9 +89,9 @@ describe('capitals layer', () => {
   });
 
   it('a capital ring never shows before its country is wide enough to carry it — swept over every zoom', async () => {
-    const { homeZoom } = await import('~/lib/map/camera');
-    const { lonToX } = await import('~/lib/map/projection');
-    const { CAPITAL_MIN_SHAPE_WIDTH } = await import('~/lib/map/thresholds');
+    const { homeZoom } = await import('./camera');
+    const { lonToX } = await import('./projection');
+    const { CAPITAL_MIN_SHAPE_WIDTH } = await import('./thresholds');
     const world = await loadRealWorld();
     for (const iso3 of ['MCO', 'SMR', 'LIE', 'MLT', 'LUX', 'AND', 'SGP', 'BHR', 'MDV', 'KNA']) {
       const mark = world.places.find(m => m.place.iso3 === iso3)!;
@@ -107,7 +107,7 @@ describe('capitals layer', () => {
 
 describe('microMode', () => {
   it('falls back to showPins and lets `micro` win', async () => {
-    const { microMode } = await import('~/lib/map/style');
+    const { microMode } = await import('./style');
     expect(microMode({ showPins: true })).toBe('full');
     expect(microMode({ showPins: false })).toBe('off');
     expect(microMode({ showPins: false, micro: 'dots' })).toBe('dots');
@@ -118,8 +118,8 @@ describe('small countries: one rule, never a dot and an area for the same countr
   const MODES = ['full', 'dots', 'off'] as const;
 
   it('no country is a dot and a halo (area) in the same frame, in any mode, at any zoom', async () => {
-    const { homeZoom } = await import('~/lib/map/camera');
-    const { haloAlpha, showsAsDot } = await import('~/lib/map/visibility');
+    const { homeZoom } = await import('./camera');
+    const { haloAlpha, showsAsDot } = await import('./visibility');
     const world = await loadRealWorld();
     for (const feature of world.features) {
       for (const micro of MODES) {
@@ -130,7 +130,7 @@ describe('small countries: one rule, never a dot and an area for the same countr
           const area = micro === 'full' && !dot && haloAlpha(feature, camera) > 0;
           expect(dot && area, `${feature.country.iso3} ${micro} x${factor.toFixed(1)}`).toBe(false);
           if (dot) {
-            const { landHidden } = await import('~/lib/map/visibility');
+            const { landHidden } = await import('./visibility');
             expect(landHidden(feature, camera, micro), `${feature.country.iso3} land under its dot`).toBe(true);
           }
         }
@@ -139,8 +139,8 @@ describe('small countries: one rule, never a dot and an area for the same countr
   });
 
   it('classifies at world zoom: area-only archipelagos and atolls, dot-only for the rest', async () => {
-    const { homeZoom } = await import('~/lib/map/camera');
-    const { showsAsDot } = await import('~/lib/map/visibility');
+    const { homeZoom } = await import('./camera');
+    const { showsAsDot } = await import('./visibility');
     const world = await loadRealWorld();
     const camera = (iso3: string) => ({ x: world.byIso3.get(iso3)!.ux, y: world.byIso3.get(iso3)!.uy, zoom: homeZoom(viewport) });
     // area only (a territory halo, no dot): Maldives, Nauru, Marshall Islands, Tuvalu...

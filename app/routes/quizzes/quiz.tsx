@@ -2,11 +2,11 @@
  * /quiz predates the subject layer (docs/quizzes.md); it was the geography quiz catalogue
  * and geography is still the only subject with quizzes, so old links and bookmarks land on
  * its equivalent, /quizzes/geography. Kept as a permanent redirect rather than removed — see
- * routes/quizzes.$subject.tsx for the real page.
+ * routes/quizzes/quizzes.$subject.tsx for the real page.
  */
 import { Link, Navigate } from 'react-router';
 
-import { pageMeta } from '~/lib/seo';
+import { pageMeta } from '~/shared/lib/seo';
 
 /** A redirect page: canonical points at where it lands, and it stays out of the index. */
 export function meta() {

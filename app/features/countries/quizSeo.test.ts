@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { quizPageSeo } from "~/lib/geography/quizSeo";
-import { QUIZ_SCOPES, sizesForPool } from "~/lib/geography/scopes";
+import { quizPageSeo } from "./quizSeo";
+import { QUIZ_SCOPES, sizesForPool } from "./scopes";
 
 const capitals = {
   seoName: "Capitals",

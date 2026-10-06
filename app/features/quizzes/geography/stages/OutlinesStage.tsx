@@ -9,10 +9,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { outlineShare, outlineTransform } from '~/lib/geography/outline';
-import type { QuizStageProps } from '~/lib/quiz/types';
-import { QuizControls } from './QuizControls';
-import { StartCaption } from './StartCaption';
+import { outlineShare, outlineTransform } from '~/features/countries';
+import type { QuizStageProps } from '~/features/quizzes/engine/types';
+import { QuizControls } from '~/features/quizzes/engine/QuizControls';
+import { StartCaption } from '~/features/quizzes/engine/StartCaption';
 
 export function OutlinesStage(props: QuizStageProps) {
   const { slot, phase, target, revealed, onStart, world, pool } = props;

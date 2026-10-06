@@ -5,8 +5,8 @@
  * nothing on screen names the country or the city until a reveal. No neighbour-glow toggle:
  * the country is already lit. See CLAUDE.md's Quizzes section.
  */
-import type { CountryRecord } from '~/lib/map/types';
-import type { QuizStageProps } from '~/lib/quiz/types';
+import type { CountryRecord } from '~/engines/map/types';
+import type { QuizStageProps } from '~/features/quizzes/engine/types';
 import { MapStage, type MapStageConfig } from './MapStage';
 
 export const capitalAnswer = (target: CountryRecord) => target.capital ?? target.name;

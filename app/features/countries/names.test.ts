@@ -1,5 +1,5 @@
 /**
- * Unit tests for country name matching (app/lib/geography/names.ts), checked against the
+ * Unit tests for country name matching (app/features/countries/names.ts), checked against the
  * real, shipped catalogue (public/data/geography/countries.json, via the same catalog
  * reader every route loader uses) — matching has to work on the real 197 countries' real
  * aliases, not a hand-built fixture.
@@ -8,8 +8,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { allCountries, countryBySlug } from '~/lib/geography/catalog.server';
-import { matchesCapital, matchesCountry, normaliseName } from '~/lib/geography/names';
+import { allCountries, countryBySlug } from './catalog.server';
+import { matchesCapital, matchesCountry, normaliseName } from './names';
 
 describe('matchesCountry', () => {
   it('matches every spelling of Côte d\'Ivoire / Ivory Coast', () => {

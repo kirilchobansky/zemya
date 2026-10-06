@@ -1,18 +1,18 @@
 /**
- * Unit tests for the geography mastery derivation (app/lib/geography/mastery.ts).
+ * Unit tests for the geography mastery derivation (app/features/countries/mastery.ts).
  *
  *   npm run test:unit
  */
 import { describe, expect, it } from 'vitest';
 
-import { countryBySlug } from '~/lib/geography/catalog.server';
-import { applicableFacets, cardId, countryMastery, FACETS } from '~/lib/geography/mastery';
-import type { ProgressCard } from '~/lib/core/scheduler';
+import { countryBySlug } from './catalog.server';
+import { applicableFacets, cardId, countryMastery, FACETS } from './mastery';
+import type { ProgressCard } from '~/features/progress';
 
 /** A fixture card that has graduated to Review — the only state isLearned() reads as true.
  *  countryMastery() is tested here as a pure function of the card map, independent of
  *  whether a card actually reached Review through FSRS — that path is covered separately
- *  in test/unit/scheduler.test.ts. */
+ *  in app/features/progress/scheduler.test.ts. */
 function reviewCard(id: string): ProgressCard {
   return {
     id,

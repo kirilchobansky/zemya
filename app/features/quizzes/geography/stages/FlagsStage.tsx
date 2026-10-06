@@ -9,10 +9,10 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Flag } from '~/components/Flag';
-import type { QuizStageProps } from '~/lib/quiz/types';
-import { QuizControls } from './QuizControls';
-import { StartCaption } from './StartCaption';
+import { Flag } from '~/shared/components/Flag';
+import type { QuizStageProps } from '~/features/quizzes/engine/types';
+import { QuizControls } from '~/features/quizzes/engine/QuizControls';
+import { StartCaption } from '~/features/quizzes/engine/StartCaption';
 
 export function FlagsStage(props: QuizStageProps) {
   const { slot, phase, target, revealed, onStart } = props;

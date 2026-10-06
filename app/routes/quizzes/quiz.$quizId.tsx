@@ -2,12 +2,12 @@
  * /quiz/:quizId/:scope/:size predates the subject layer (docs/quizzes.md); every quiz that
  * ever lived here belongs to geography, the only subject with quizzes today, so old links and
  * bookmarks land on their equivalent under /quizzes/geography. Kept as a permanent redirect
- * rather than removed — see routes/quizzes.$subject.$quizId.tsx for the real run route
+ * rather than removed — see routes/quizzes/quizzes.$subject.$quizId.tsx for the real run route
  * (which still resolves a legacy scope key like "americas" on top of this).
  */
 import { Link, Navigate, useParams } from 'react-router';
 
-import { pageMeta } from '~/lib/seo';
+import { pageMeta } from '~/shared/lib/seo';
 import type { Route } from './+types/quiz.$quizId';
 
 /** A redirect page: canonical points at where it lands, and it stays out of the index. */

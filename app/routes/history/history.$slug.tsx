@@ -1,6 +1,6 @@
 /**
  * A country's history timeline (/history/:slug). Renders into the atlas layout's right-hand panel like every
- * other child route; the canvas itself lives in routes/atlas.tsx (AtlasShell), which swaps
+ * other child route; the canvas itself lives in routes/map/atlas.tsx (AtlasShell), which swaps
  * to the timeline the moment this route hands it entries over the shared context — the
  * same "child route drives the layout through AtlasContext" pattern the quiz run routes use
  * for setQuiz. No dossier, no hover, no selection, no quiz yet — canvas drawing only, same
@@ -8,14 +8,10 @@
  */
 import { useEffect } from 'react';
 
-import HistoryDetail from '~/components/HistoryDetail';
-import HistoryFilters from '~/components/HistoryFilters';
-import HistoryOutline from '~/components/HistoryOutline';
-import HistorySearch from '~/components/HistorySearch';
-import { timelineFor } from '~/lib/history/catalog.server';
-import { historyCountryFor } from '~/lib/history/countries';
-import { pageMeta } from '~/lib/seo';
-import { useAtlasContext } from '~/lib/atlas-context';
+import { HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch, historyCountryFor } from '~/features/history';
+import { timelineFor } from '~/features/history/data/catalog.server';
+import { pageMeta } from '~/shared/lib/seo';
+import { useAtlasContext } from '~/features/map';
 import type { Route } from './+types/history.$slug';
 
 export function loader({ params }: Route.LoaderArgs) {

@@ -1,14 +1,14 @@
 /**
  * The phone's "visible map area": what the bottom sheet and tab bar cover is subtracted from the
  * viewport wherever the camera frames something (camera.ts's frame / homeCamera), and the bottom
- * sheet's snap geometry (sheet.ts). Pure maths — the gesture itself is test/smoke.mjs's job.
+ * sheet's snap geometry (sheet.ts). Pure maths — the gesture itself is tests/e2e/smoke.mjs's job.
  *
  *   npm run test:unit
  */
 import { describe, expect, it } from 'vitest';
 
-import { frame, homeCamera, NO_INSETS, worldToScreen } from '~/lib/map/camera';
-import { nearestSnap, PEEK_PX, sheetVisible, stepSnap } from '~/lib/sheet';
+import { frame, homeCamera, NO_INSETS, worldToScreen } from '~/engines/map/camera';
+import { nearestSnap, PEEK_PX, sheetVisible, stepSnap } from '~/shared/layout/sheet';
 
 const phone = { width: 390, height: 664 };
 const box = { x0: 0.5, x1: 0.52, y0: 0.4, y1: 0.42 };

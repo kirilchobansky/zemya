@@ -1,5 +1,5 @@
 /**
- * "Up" for the right panel's header button (components/UpButton.tsx): a fixed hierarchy, one
+ * "Up" for the right panel's header button (features/map/components/UpButton.tsx): a fixed hierarchy, one
  * level up per press. It is never browser history — no history.back, no navigate(-1) — so the
  * parent is the same whichever page was visited before.
  *
@@ -17,7 +17,7 @@
  */
 import { useContext, useEffect, useRef } from 'react';
 
-import { AtlasContext } from '~/lib/atlas-context';
+import { AtlasContext } from './atlas-context';
 
 /** The URL one level up, or null where Up does not exist. Pure, so it is unit-tested. */
 export function parentPath(pathname: string): string | null {

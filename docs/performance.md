@@ -3,13 +3,13 @@
 > **Superseded for the map.** Everything below measured the Canvas 2D renderer (LOD switch, fast
 > frames, merged strokes, DPR cap), now removed in favour of MapLibre GL (WebGL) over vector tiles —
 > see `docs/architecture.md` "Map renderer". The GPU redraws every frame at full device resolution,
-> simplification is per tile zoom (`scripts/build-tiles.mjs`), and nothing is ever rendered at a
+> simplification is per tile zoom (`scripts/build/build-tiles.mjs`), and nothing is ever rendered at a
 > lowered resolution while moving. `npm run perf` was ported to WebGL (see "The measuring tool"); the tables are history.
 > Target unchanged: 16.7 ms median frame at world zoom.
 
 Measured numbers and the LOD design, moved out of CLAUDE.md. The rule and the target stay
 there ("## Performance" in CLAUDE.md): 16.7 ms median frame time, full 1:10m detail preserved, and any
-change touching `app/lib/map/` runs `npm run perf` and reports the number in the commit.
+change touching `app/engines/map/` runs `npm run perf` and reports the number in the commit.
 
 The owner's own measurements, on their machine, drawing all 197 countries filled and
 stroked over the full unsimplified coastline every frame before any of this existed:
@@ -46,7 +46,7 @@ the effect of a specific payload rather than the real content, build with
 
 ## The measuring tool
 
-`npm run perf` (`test/perf.mjs`) checks this. It serves `build/client` (with HTTP Range support, as
+`npm run perf` (`tests/e2e/perf.mjs`) checks this. It serves `build/client` (with HTTP Range support, as
 PMTiles needs), opens a real browser at 1500x900 (or `PERF_DEVICE`/`PERF_CPU`, below), waits until the
 MapLibre instance (`window.__zemyaGl`, exposed by an init-script flag, see `docs/architecture.md`
 "Test seam") reports style and tiles loaded, and prints:
@@ -60,7 +60,7 @@ MapLibre instance (`window.__zemyaGl`, exposed by an init-script flag, see `docs
 each as median / p95 / worst `requestAnimationFrame` delta, and the GL renderer string. Headless
 Chromium without a GPU renders WebGL in software (SwiftShader), so the verdict line is a
 regression guard on that machine, not a claim about the owner's GPU; it is printed, not asserted.
-**Any change touching `app/lib/map/` runs `npm run perf` and reports the number in the commit
+**Any change touching `app/engines/map/` runs `npm run perf` and reports the number in the commit
 message** — "it feels smoother" is not evidence. The previous pixel-sampling version measured the
 canvas renderer and is gone.
 
@@ -93,7 +93,7 @@ release (the "commit 3" scoped above). An owner decision, and worth checking on 
 On Vercel, `/data/*` and `/flags/*` keep the same filename every build, so they can only be
 served `must-revalidate` (an immutable cache would serve stale content after a content
 update). That costs a conditional round trip per asset on every visit. The real fix:
-`scripts/build-content.mjs` emits a build hash, the client fetches `world-coarse.json?v=<hash>`
+`scripts/build/build-content.mjs` emits a build hash, the client fetches `world-coarse.json?v=<hash>`
 (and the flags likewise), and those responses can then be `immutable` like `/assets/*`.
 Not built yet. Revalidation on a warm cache is a 304 with no body, so the cost is latency,
 not bandwidth; do it when repeat-visit load time is measured to matter.

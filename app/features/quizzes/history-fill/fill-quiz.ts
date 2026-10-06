@@ -23,9 +23,11 @@
  * whole form. A single typo (one edit) is forgiven for names of 6+ letters — see `matchFill`
  * for the two conditions under which it is not.
  */
-import { latinToCyrillicRegExp } from './search';
-import { decimalYearOf } from './scale';
-import { historyCountryFor } from './countries';
+// Deep relative imports on purpose: react-router.config.ts loads this file at build time, and
+// its config loader resolves neither the `~` alias nor a barrel full of components.
+import { historyCountryFor } from '../../history/data/countries';
+import { latinToCyrillicRegExp } from '../../history/data/search';
+import { decimalYearOf } from '../../history/timeline/scale';
 import { FILL_QUIZ_CONFIG, NUMBER_OPTIONAL_ALIASES, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
 
 export type FillKind = 'ruler' | 'government';

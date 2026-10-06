@@ -1,12 +1,12 @@
 /**
  * /quiz/:quizId/:size predates both continent scopes and the subject layer; it now means the
  * world scope of a geography quiz. Kept as a redirect so existing links and bookmarks don't
- * break — see routes/quizzes.$subject.$quizId.tsx for the real route
+ * break — see routes/quizzes/quizzes.$subject.$quizId.tsx for the real route
  * (/quizzes/:subject/:quizId/:scope/:size).
  */
 import { Link, Navigate, useParams } from 'react-router';
 
-import { pageMeta } from '~/lib/seo';
+import { pageMeta } from '~/shared/lib/seo';
 import type { Route } from './+types/quiz.legacy';
 
 /** A redirect page: canonical points at where it lands, and it stays out of the index. */

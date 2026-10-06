@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Flag } from '~/components/Flag';
-import { normalise } from '~/lib/format';
-import { normaliseName } from '~/lib/geography/names';
-import { BULGARIAN_NAMES } from '~/lib/geography/names-bg';
-import { isCoarsePointer } from '~/lib/viewport';
-import type { Feature, World } from '~/lib/map/types';
+import { Flag } from '~/shared/components/Flag';
+import { normalise } from '~/shared/lib/format';
+import { normaliseName } from '~/features/countries/names';
+import { BULGARIAN_NAMES } from '~/features/countries/names-bg';
+import { isCoarsePointer } from '~/shared/layout/viewport';
+import type { Feature, World } from '~/engines/map/types';
 
 const MAX_RESULTS = 8;
 

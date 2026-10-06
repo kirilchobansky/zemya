@@ -7,8 +7,8 @@ import {
   SCOPE_LABELS,
   type QuizScope,
   type QuizSize,
-} from "~/lib/geography/scopes";
-import type { QuizSelectionMode } from "~/lib/geography/quizzes";
+} from "./scopes";
+import type { QuizSelectionMode } from '~/features/quizzes';
 
 interface QuizNaming {
   seoName: string;

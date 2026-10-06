@@ -3,7 +3,7 @@
  * card. A route's `meta` calls this with its own title and description and gets the rest
  * for free, so a page can't ship half a set. Absolute URLs come from SITE_URL (site.ts).
  */
-import { absoluteUrl } from '~/lib/site';
+import { absoluteUrl } from './site';
 
 export const OG_IMAGE = '/og-image.png';
 

@@ -6,7 +6,7 @@
 export interface Question {
   id: string;
   cardId: string;
-  /** A subject-specific string (geography's nine kinds live in ~/lib/geography/questions). */
+  /** A subject-specific string (geography's nine kinds live in ~/features/countries/questions). */
   kind: string;
   prompt: string;
   /** Set only by a flag-image kind: an iso2 code, rendered instead of describing the flag. */

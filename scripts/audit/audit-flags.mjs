@@ -2,7 +2,7 @@
  * Flag audit: cross-checks every country's authored `flag` description against its shipped
  * SVG, rasterised in Chromium. Prints a report and changes nothing; a human decides every case.
  *
- *   node scripts/audit-flags.mjs        (needs Chromium — see docs/decisions.md if it won't launch)
+ *   node scripts/audit/audit-flags.mjs        (needs Chromium — see docs/decisions.md if it won't launch)
  *
  * Three checks: (1) a described colour that is absent from the picture, (2) band order and
  * direction, but ONLY for descriptions that are a plain colour list followed by "bands", and
@@ -19,9 +19,9 @@
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-const require = createRequire(new URL('../package.json', import.meta.url));
+const require = createRequire(new URL('../../package.json', import.meta.url));
 const { chromium } = require('playwright');
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const countries = JSON.parse(readFileSync(root + 'public/data/geography/countries.json', 'utf8'));
 
 // ---- colour vocabulary
