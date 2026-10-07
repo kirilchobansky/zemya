@@ -5,6 +5,7 @@
  */
 import type { Insets } from './camera';
 import type { Style } from './style';
+import type { LoadFailure } from './load-error';
 import type { Feature, PlaceMark } from './types';
 
 export interface AtlasCallbacks {
@@ -16,6 +17,9 @@ export interface AtlasCallbacks {
   onSelect(feature: Feature | null): void;
   onCameraChange?(scale: { km: number; px: number }): void;
   onCompareMove?(feature: Feature, over: Feature | null): void;
+  /** The GPU context was lost (`restoring`) or is back and drawn again (`ready`), or the map
+   *  failed for good after it had loaded (`failed`). */
+  onStatus?(status: { kind: 'restoring' } | { kind: 'ready' } | { kind: 'failed'; failure: LoadFailure }): void;
 }
 
 export interface MapController {

@@ -4,15 +4,16 @@
  * set of countries (and a Restart's newly drawn set).
  */
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 
 import { isQuizScope, isQuizSize, loadWorld, poolForQuiz, sizesForPool, type QuizSize } from '~/features/countries';
 import type { CountryRecord, World } from "~/engines/map/types";
+import { useGo } from "~/shared/lib/navigation";
 import { quizInSubject, subjectById } from '../engine/subjects';
 import { selectQuizCountries, type QuizSelectionMode } from '../geography/quizzes';
 
 export function useQuizRunData() {
-  const navigate = useNavigate();
+  const go = useGo();
   const [searchParams] = useSearchParams();
   const params = useParams<{
     subject: string;
@@ -76,7 +77,7 @@ export function useQuizRunData() {
     redraw && redraw.from === drawnCountries ? redraw.list : drawnCountries;
 
   return {
-    navigate, params, subject, definition, scope, requestedSize, mode, backTo,
+    go, params, subject, definition, scope, requestedSize, mode, backTo,
     stageHost, world, pool, size, drawnCountries, countries, setRedraw
   };
 }

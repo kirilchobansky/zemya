@@ -20,11 +20,11 @@ import '~/features/quizzes/engine/quiz-run.css';
 
 export function QuizRun() {
   const {
-    navigate, params, subject, definition, scope, requestedSize, backTo, mode,
+    go, params, subject, definition, scope, requestedSize, backTo, mode,
     stageHost, world, pool, size, drawnCountries, countries, setRedraw
   } = useQuizRunData();
 
-  const abandon = () => navigate(backTo, { state: { sheet: "full" } });
+  const abandon = () => go(backTo, { state: { sheet: "full" }, replace: true });
   const engine = useQuizEngine(
     definition ?? { id: "unknown", facet: "location" },
     drawnCountries,
@@ -78,7 +78,7 @@ export function QuizRun() {
               )}
             </p>
           </div>
-          <Link to={subject ? backTo : "/quizzes"} className="action">
+          <Link to={subject ? backTo : "/quizzes"} replace className="action">
             Back to quizzes
           </Link>
         </div>

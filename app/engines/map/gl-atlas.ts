@@ -28,17 +28,16 @@ import { GlCompare } from './gl-compare';
 import { anchorPoints } from './gl-geo';
 import { GlHover } from './gl-hover';
 import type { GlHost } from './gl-host';
-import { createGlMap } from './gl-setup';
+import { createGlMap, prepareTiles } from './gl-setup';
 import { pxToZoom, SOURCE } from './gl-style';
+import { constructionError, isGpuFailure, logMapError, whenMapLoaded, type MapErrorEvent } from './gl-load';
+import { toFailure } from './load-error';
+import { GlPulse } from './gl-pulse';
 import { GlStyling } from './gl-styling';
 import { GlViewSync } from './gl-view-sync';
 import { xToLon, yToLat } from './projection';
 import type { Style } from './style';
 import type { Feature, PlaceMark, World } from './types';
-
-const PULSE_MS = 1000;
-const PULSE_START_RADIUS = 8;
-const PULSE_GROWTH = 90;
 
 export class GlAtlas implements MapController, GlHost {
   readonly map: GlMap;
@@ -50,7 +49,7 @@ export class GlAtlas implements MapController, GlHost {
   private ready = false;
   private focus = new Set<Feature>();
 
-  private pulseHandle = 0;
+  private pulser: GlPulse;
   private resizeObserver: ResizeObserver;
 
   private styling: GlStyling;
@@ -73,6 +72,7 @@ export class GlAtlas implements MapController, GlHost {
 
     this.styling = new GlStyling(this);
     this.map = createGlMap({ container, world, palette: this.styling.palette(), home, viewport: () => this.viewport });
+    this.pulser = new GlPulse(this);
     this.viewSync = new GlViewSync(this, this.styling);
     this.compare = new GlCompare(this);
     this.cam = new GlCamera(this, home, {
@@ -93,7 +93,10 @@ export class GlAtlas implements MapController, GlHost {
     this.map.on('moveend', this.cam.onMoveEnd);
     this.map.on('mousemove', this.hover.onMouseMove);
     this.map.on('click', this.hover.onClick);
-    this.map.on('error', e => console.warn('[map]', e.error?.message ?? e));
+    this.map.on('error', e => this.onMapError(e));
+    // MapLibre prevents the lost context's default and rebuilds its style; our feature state is redone at idle
+    this.map.on('webglcontextlost', () => callbacks.onStatus?.({ kind: 'restoring' }));
+    this.map.on('webglcontextrestored', () => this.map.once('idle', () => this.afterContextRestored()));
     container.addEventListener('mouseleave', this.hover.onMouseLeave);
     container.addEventListener('pointerleave', this.hover.onMouseLeave);
     container.addEventListener('pointerup', this.hover.onPointerUp);
@@ -111,13 +114,23 @@ export class GlAtlas implements MapController, GlHost {
     return this.cam.camera;
   }
 
-  /** Builds the map and resolves once its style is in, with every country's state written. */
+  /** Builds the map and resolves once its style is in and its tile source has answered, with
+   *  every country's state written. Rejects with a LoadError, only for a fatal cause (gl-load.ts);
+   *  the half-built map is destroyed first. */
   static async create(container: HTMLElement, world: World, callbacks: AtlasCallbacks, style: Style): Promise<GlAtlas> {
-    const atlas = new GlAtlas(container, world, callbacks, style);
-    await new Promise<void>((resolve, reject) => {
-      atlas.map.once('style.load', () => resolve());
-      atlas.map.once('error', e => reject(e.error ?? new Error('map failed to load')));
-    });
+    await prepareTiles();
+    let atlas: GlAtlas;
+    try {
+      atlas = new GlAtlas(container, world, callbacks, style);
+    } catch (error) {
+      throw constructionError(error);
+    }
+    try {
+      await whenMapLoaded(atlas.map);
+    } catch (error) {
+      atlas.destroy();
+      throw error;
+    }
     atlas.ready = true;
     atlas.styling.installRingImage();
     atlas.styling.applyGraticuleRanges();
@@ -126,10 +139,25 @@ export class GlAtlas implements MapController, GlHost {
     return atlas;
   }
 
+  /** Logged (gl-load.ts); create() decides what is fatal. A GPU failure once up goes to the app. */
+  private onMapError(e: MapErrorEvent): void {
+    logMapError(e);
+    if (this.ready && !this.destroyed && isGpuFailure(e.error)) {
+      this.callbacks.onStatus?.({ kind: 'failed', failure: toFailure('webgl', constructionError(e.error)) });
+    }
+  }
+
+  private afterContextRestored(): void {
+    if (this.destroyed) return;
+    this.redraw();
+    this.styling.applyGraticuleRanges();
+    this.callbacks.onStatus?.({ kind: 'ready' });
+  }
+
   destroy(): void {
     this.destroyed = true;
     this.resizeObserver.disconnect();
-    cancelAnimationFrame(this.pulseHandle);
+    this.pulser.cancel();
     this.container.removeEventListener('mouseleave', this.hover.onMouseLeave);
     this.container.removeEventListener('pointerleave', this.hover.onMouseLeave);
     this.container.removeEventListener('pointerup', this.hover.onPointerUp);
@@ -202,26 +230,7 @@ export class GlAtlas implements MapController, GlHost {
   }
 
   pulse(ux: number, uy: number): void {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    cancelAnimationFrame(this.pulseHandle);
-    (this.map.getSource(SOURCE.pulse) as GeoJSONSource).setData({
-      type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [xToLon(ux), yToLat(uy)] }
-    });
-    const start = performance.now();
-    const tick = () => {
-      if (this.destroyed) return;
-      const t = (performance.now() - start) / PULSE_MS;
-      const eased = 1 - Math.pow(1 - t, 3);
-      if (t >= 1) {
-        this.map.setPaintProperty('pulse', 'circle-stroke-opacity', 0);
-        return;
-      }
-      this.map.setPaintProperty('pulse', 'circle-radius', PULSE_START_RADIUS + PULSE_GROWTH * eased);
-      this.map.setPaintProperty('pulse', 'circle-stroke-width', 3.5 - 2 * t);
-      this.map.setPaintProperty('pulse', 'circle-stroke-opacity', 0.9 * (1 - t));
-      this.pulseHandle = requestAnimationFrame(tick);
-    };
-    tick();
+    this.pulser.play(xToLon(ux), yToLat(uy));
   }
 
   get view(): { x: number; y: number; zoom: number; home: number } {

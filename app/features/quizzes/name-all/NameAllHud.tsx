@@ -27,7 +27,7 @@ export function NameAllHud({ phase, paused, finished, backTo, total, namedCount,
         <div className="quiz-hud" data-phase={phase}>
           {phase === 'idle' ? (
             <>
-              <Link to={backTo} state={{ sheet: 'full' }} className="quiz-hud__back">‹ Quizzes</Link>
+              <Link to={backTo} state={{ sheet: 'full' }} replace className="quiz-hud__back">‹ Quizzes</Link>
               <span className="quiz-hud__count numeric">{total} countries</span>
             </>
           ) : (

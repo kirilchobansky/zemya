@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import {
@@ -8,6 +9,8 @@ import {
   Scripts,
   ScrollRestoration
 } from 'react-router';
+
+import { installStaleDeployGuard } from '~/shared/lib/stale-deploy';
 
 import '~/shared/styles/tokens.css';
 import '~/shared/styles/base.css';
@@ -70,6 +73,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useEffect(installStaleDeployGuard, []);
   return <Outlet />;
 }
 
@@ -86,7 +90,15 @@ export function ErrorBoundary({ error }: { error: unknown }) {
           ? 'That country is not in the atlas.'
           : 'The atlas failed to load. Reloading usually fixes it.'}
       </p>
-      <p style={{ marginTop: 18 }}>
+      {!is404 && error instanceof Error && error.message && (
+        <p><code style={{ fontSize: 12 }}>{error.message}</code></p>
+      )}
+      <p style={{ marginTop: 18, display: 'flex', gap: 10, justifyContent: 'center' }}>
+        {!is404 && (
+          <button type="button" className="action" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        )}
         <a className="action action--primary" href="/">
           Back to the map
         </a>

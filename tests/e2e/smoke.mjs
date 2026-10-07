@@ -28,9 +28,13 @@ import * as quizInput from './areas/quiz-input.mjs';
 import * as quizCamera from './areas/quiz-camera.mjs';
 import * as history from './areas/history.mjs';
 import * as phone from './areas/phone.mjs';
+import * as historyStack from './areas/history-stack.mjs';
+import * as loadFailures from './areas/load-failures.mjs';
 
 const AREAS = [
   { name: 'map', run: map.run },
+  { name: 'load-failures', run: loadFailures.run },
+  { name: 'history-stack', run: historyStack.run },
   { name: 'questions', run: questions.run },
   { name: 'quiz-list', run: quizList.run },
   { name: 'history', run: history.run },

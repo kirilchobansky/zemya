@@ -13,7 +13,7 @@ export function QuizNotFound({ what, eyebrow, back, backLabel }: { what: string;
           <div className="empty__icon">?</div>
           <p>{what}</p>
         </div>
-        <Link to={back} className="action">
+        <Link to={back} replace className="action">
           {backLabel}
         </Link>
       </div>

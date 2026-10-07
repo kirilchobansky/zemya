@@ -17,7 +17,7 @@
  */
 import { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router';
+import { useGo } from '~/shared/lib/navigation';
 
 import { type QuizScope } from '~/features/countries';
 import { StageClock } from '~/features/quizzes/engine/StageClock';
@@ -34,10 +34,10 @@ import './NameAllQuiz.css';
 
 export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: string }) {
   const keyboard = useKeyboard(); // publishes --kb / --vv-top, which size the phone screen to what the keyboard leaves
-  const navigate = useNavigate();
+  const go = useGo();
   const { stageHost, mounted, pool, prepared, byIso3, total, ready } = useNameAllWorld(scope);
 
-  const leave = () => navigate(backTo, { state: { sheet: 'full' } });
+  const leave = () => go(backTo, { state: { sheet: 'full' }, replace: true });
   const run = useNameAllRun({ scope, ready, total, prepared, byIso3, leave });
   const {
     phase, paused, named, input, hint, shaking, setShaking, elapsedMs, outcome, running, finished,

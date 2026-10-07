@@ -35,6 +35,14 @@ export function parentPath(pathname: string): string | null {
   return null;
 }
 
+/** A quiz run (or a run's start screen): /quizzes/:subject/:quizId/:scope/:size, or a history
+ *  fill run /quizzes/history/:slug/:quizId. Leaving one replaces its history entry (docs/structure.md). */
+export function isQuizRunPath(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments[0] !== 'quizzes') return false;
+  return segments[1] === 'history' ? segments.length === 4 : segments.length === 5;
+}
+
 /**
  * Registers `step` as what Up does on this screen while `active` (an in-route level to leave
  * first: a run in progress, an opened detail). Cleared when `active` turns false or the route

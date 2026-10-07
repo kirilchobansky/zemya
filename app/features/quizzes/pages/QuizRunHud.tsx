@@ -21,6 +21,7 @@ export function QuizRunHud({ engine, total, backTo, onRestart }: {
           <>
             <Link
               to={backTo}
+              replace
               state={{ sheet: "full" }}
               className="quiz-hud__back"
             >

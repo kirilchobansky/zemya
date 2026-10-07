@@ -10,15 +10,15 @@ import latin400 from '@fontsource/archivo/files/archivo-latin-400-normal.woff2?u
 import latin500 from '@fontsource/archivo/files/archivo-latin-500-normal.woff2?url';
 import latinExt400 from '@fontsource/archivo/files/archivo-latin-ext-400-normal.woff2?url';
 import latinExt500 from '@fontsource/archivo/files/archivo-latin-ext-500-normal.woff2?url';
-import { Protocol } from 'pmtiles';
+import { PMTiles, Protocol } from 'pmtiles';
 
 import { clampY, clampZoom, homeZoom, type CameraState, type Viewport } from './camera';
 import { anchorPoints, capitalPoints, graticule } from './gl-geo';
 import { buildStyle, pxToZoom, zoomToPx, type GlPalette } from './gl-style';
 import { latToY, xToLon, yToLat } from './projection';
+import { fetchArchive, MemorySource, TILES_URL } from './pmtiles-archive';
 import type { World } from './types';
 
-const TILES_URL = '/data/geography/world.pmtiles';
 const ATTRIBUTION =
   'Shapes: <a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain) · ' +
   'country data: <a href="https://github.com/mledoze/countries">mledoze/countries</a> (ODbL-1.0)';
@@ -29,17 +29,32 @@ const LATIN_EXT = 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U
 const split = (ranges: string) => ranges.split(',');
 
 let initialised = false;
+let protocol: Protocol | null = null;
 /** One-time global setup: where MapLibre's worker lives once bundled, and our two protocols. */
 function initOnce(): void {
   if (initialised) return;
   initialised = true;
   setWorkerUrl(workerUrl);
-  const protocol = new Protocol();
+  protocol = new Protocol();
   addProtocol('pmtiles', protocol.tile);
   // The style spec wants a glyphs URL once any layer has text. Every glyph comes from the
   // self-hosted font files (`font-faces`), so this only has to answer "nothing here" — and
   // keeps a request for an uncovered character off the network.
   addProtocol('zemya-glyphs', async () => ({ data: new ArrayBuffer(0) }));
+}
+
+const tilesKey = () => new URL(TILES_URL, window.location.origin).href;
+let tilesPending: Promise<void> | null = null;
+
+/** Downloads world.pmtiles once (validated, pmtiles-archive.ts) and hands it to the `pmtiles`
+ *  protocol from memory. Must resolve before a map is built; a failure is retried by the caller. */
+export function prepareTiles(): Promise<void> {
+  initOnce();
+  tilesPending ??= fetchArchive().then(
+    bytes => { protocol?.add(new PMTiles(new MemorySource(tilesKey(), bytes))); },
+    error => { tilesPending = null; throw error; }
+  );
+  return tilesPending;
 }
 
 type StateValue = string | number | boolean;
@@ -78,7 +93,7 @@ export function createGlMap({ container, world, palette, home, viewport }: GlMap
     container,
     style: buildStyle({
       palette,
-      tilesUrl: `pmtiles://${new URL(TILES_URL, window.location.origin).href}`,
+      tilesUrl: `pmtiles://${tilesKey()}`,
       attribution: ATTRIBUTION,
       fonts: {
         Archivo: [{ url: latin400, unicodeRange: LATIN }, { url: latinExt400, unicodeRange: LATIN_EXT }],

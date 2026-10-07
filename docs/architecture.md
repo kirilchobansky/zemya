@@ -39,7 +39,10 @@ glyph server). `app/engines/map/`:
 | file | role |
 | --- | --- |
 | `controller.ts` | `MapController` + `AtlasCallbacks`: everything the app may ask of the map (`setStyle`, `setFocus`, `home`, `flyTo`, `followTarget`, `pulse`, `fit`, `startCompare`, `view`, `screenPosition`, ...) |
-| `engine.ts` | lazy loader — the only way `gl-atlas.ts` (and so MapLibre) is reached |
+| `engine.ts` | lazy loader — the only way `gl-atlas.ts` (and so MapLibre) is reached; both the chunk import and whole-map creation go through `withRetry` |
+| `retry.ts`, `load-error.ts` | `withRetry` (3 attempts, 400 ms then 1200 ms), `fetchStrict`/`fetchJsonStrict` (a retry uses `cache: 'no-cache'`), `LoadError` with its `step` (`data`, `chunk`, `tiles`, `map`, `webgl`), the per-attempt `console.error` |
+| `pmtiles-archive.ts` | `world.pmtiles` downloaded whole, validated, served to the `pmtiles` protocol from memory (`MemorySource`) |
+| `gl-load.ts` | `whenMapLoaded` and which map errors are fatal; `gl-pulse.ts` the quiz pulse ring |
 | `gl-atlas.ts` | the controller facade (`GlAtlas`): create/destroy, the public `MapController` API, resize, pulse; delegates to the modules below |
 | `gl-setup.ts` | the one place the MapLibre `Map` is constructed (worker, protocols, options, momentum off, attribution, test seam) |
 | `gl-camera.ts` | camera moves, fly-to, fit, the quiz follow decision, move events |
@@ -59,11 +62,36 @@ glyph server). `app/engines/map/`:
 `public/data/geography/world.pmtiles` with geojson-vt: layers `countries` (`iso3`, the feature id
 via `promoteId`), `context` (Greenland etc.), `lakes`, `halos`; z0-z7, extent 4096, tolerance 2.5
 units (about a third of a pixel at every zoom), **no simplification at z7** (full 1:10m); beyond z7
-MapLibre overzooms. Written by `scripts/lib/pmtiles-writer.mjs` (PMTiles v3, gzip). Read in the
-browser through the `pmtiles` protocol with range requests, so static hosting is enough. The
+MapLibre overzooms. Written by `scripts/lib/pmtiles-writer.mjs` (PMTiles v3, gzip). The browser
+fetches the **whole file once** (~3.3 MB, one plain GET) and the `pmtiles` protocol reads it from memory
+through a custom `Source` (`pmtiles-archive.ts`): no Range, ETag partial or content-encoding behaviour of
+the CDN is involved. `build-tiles.mjs` also writes `world.pmtiles.json` (`bytes`, `sha256`); the download
+is checked against it and the PMTiles header (`"PMTiles"`, version 3). A copy that fails is refetched once
+with `cache: 'reload'`; failing again is a `tiles` `LoadError`. The
 longitude frame (antimeridian unwrap, `frameToReference`) is `scripts/lib/geom.mjs`, shared with
 `topology.ts`, so tiles and Features always agree. Attribution (Natural Earth, ODbL country data)
 rides in the source and shows in MapLibre's attribution control; the rail footer says ODbL too.
+
+**Loading and failure** (a map that does not load must say why, and recover without a reload):
+- *Steps.* `data` (`countries.json`, `world-coarse.json`, each retried alone by `loadWorld`), `chunk`
+  (dynamic import of the renderer), `tiles` (the archive, or the tile source's metadata), `map` (style /
+  setup), `webgl` (no context; never retried). Each failed attempt is one
+  `console.error('[map-load] step=… attempt=n/3 url=… status=… — message')`.
+- *Fatal vs not.* `GlAtlas.create` rejects only for no WebGL or style / tile-source metadata failing
+  (`gl-load.ts`); the listeners it adds are removed once it settles. A failed tile or glyph request is
+  logged and left to MapLibre. `engine.create` retries the whole map: the failed one is destroyed, a
+  fresh one built (the downloaded archive is kept).
+- *UI.* `useMapController` exposes `error` (step + real message + URL/status), `retrying` (shown as
+  "Retrying…" in `MapNotices`), `restoring` and `retry()`, which bumps a key that re-runs the data load and
+  the map creation (no page reload). The root `ErrorBoundary` keeps its message, adds the error text and a
+  Retry (a page reload: there is nothing finer to re-run there).
+- *Stale deploys.* `shared/lib/stale-deploy.ts`: `vite:preloadError`, or the `chunk` step still failing
+  after its retries, reloads the page once; a `sessionStorage` stamp allows one reload a minute, and
+  without storage nothing reloads. (A browser may remember a failed dynamic import for the page's life, so
+  the chunk retries can be moot; the reload is what recovers.)
+- *WebGL context loss.* MapLibre prevents the default and rebuilds its style; `GlAtlas` reports
+  `onStatus('restoring')` and, once the restored map is idle, redoes ring image, graticule, anchors and feature
+  state (`redraw`), then `onStatus('ready')`.
 
 **Feature state, not geometry.** Keys: `c` land colour, `pc` pin/halo colour, `sc`/`sw` emphasised
 border (selected, neighbour, hover, quiz target; two line layers so the heavy one is on top), `fo`

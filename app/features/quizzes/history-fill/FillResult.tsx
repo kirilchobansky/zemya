@@ -43,7 +43,7 @@ export function FillResultButtons({ backTo, onRestart }: { backTo: string; onRes
   return (
     <div className="actions">
       <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
-      <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
+      <Link to={backTo} state={{ sheet: 'full' }} replace className="action desk-hide">Back to quizzes</Link>
     </div>
   );
 }

@@ -77,7 +77,7 @@ export function NameAllResult({ scope, backTo, phase, elapsedMs, named, namedCou
       )}
       <div className="actions">
         <button type="button" className="action action--primary" onClick={onRestart}>Run it again</button>
-        <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
+        <Link to={backTo} state={{ sheet: 'full' }} replace className="action desk-hide">Back to quizzes</Link>
       </div>
     </>
   );

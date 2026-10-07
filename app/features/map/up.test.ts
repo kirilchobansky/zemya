@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parentPath } from './up';
+import { isQuizRunPath, parentPath } from './up';
 
 describe('parentPath (the Up hierarchy)', () => {
   it('has no Up on the map, country pages, Questions and each section root', () => {
@@ -17,5 +17,15 @@ describe('parentPath (the Up hierarchy)', () => {
   });
   it('History: a country timeline goes up to the list', () => {
     expect(parentPath('/history/bulgaria')).toBe('/history');
+  });
+});
+
+describe('isQuizRunPath', () => {
+  it('is true for a geography run and a history fill run, false for the lists around them', () => {
+    expect(isQuizRunPath('/quizzes/geography/countries/world/20')).toBe(true);
+    expect(isQuizRunPath('/quizzes/history/bulgaria/presidents')).toBe(true);
+    for (const p of ['/', '/quizzes', '/quizzes/geography', '/quizzes/history', '/quizzes/history/bulgaria', '/country/chile']) {
+      expect(isQuizRunPath(p)).toBe(false);
+    }
   });
 });

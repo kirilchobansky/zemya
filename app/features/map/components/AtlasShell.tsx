@@ -8,7 +8,7 @@
  * sidebars and the phone sheet. This component wires them to the layout.
  */
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
-import { useNavigate } from 'react-router';
+import { useGo } from '~/shared/lib/navigation';
 
 import type { OverlayId, QuizOverride } from '~/features/countries';
 import type { MicroMode } from '~/engines/map/style';
@@ -28,7 +28,7 @@ import { MapTopHud } from './MapTopHud';
 import { Rail } from './Rail';
 
 export function AtlasShell() {
-  const navigate = useNavigate();
+  const go = useGo();
   const history = useHistoryCanvas();
   const sidebars = useSidebars();
   const sheet = usePhoneSheet({ historyTimelineInstance: history.historyTimelineInstance, showTimeline: history.showTimeline });
@@ -120,7 +120,7 @@ export function AtlasShell() {
             <MapTopHud
               world={map.world}
               onPick={feature =>
-                navigate(`/country/${feature.country.slug}`, { state: { fly: true, sheet: isPhoneLandscape() ? 'half' : 'peek' } })
+                go(`/country/${feature.country.slug}`, { state: { fly: true, sheet: isPhoneLandscape() ? 'half' : 'peek' } })
               }
               overlaySheet={sheet.overlaySheet}
               onOverlaySheet={sheet.setOverlaySheet}
@@ -139,7 +139,7 @@ export function AtlasShell() {
           )}
 
           {!showTimeline && (
-            <MapBottomHud atlasRef={map.atlasRef} quiz={Boolean(quiz)} onHome={() => navigate('/')} scale={map.scale} />
+            <MapBottomHud atlasRef={map.atlasRef} quiz={Boolean(quiz)} onHome={() => go('/')} scale={map.scale} />
           )}
 
           <MapNotices
@@ -153,6 +153,9 @@ export function AtlasShell() {
             armingCompare={map.armingCompare}
             onCompare={map.toggleCompare}
             error={map.error}
+            retrying={map.retrying}
+            restoring={map.restoring}
+            onRetry={map.retry}
           />
         </main>
 

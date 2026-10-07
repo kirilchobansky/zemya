@@ -1,8 +1,9 @@
 import { useCallback, useContext } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation } from 'react-router';
 
 import { AtlasContext } from '~/features/map/atlas-context';
-import { parentPath } from '~/features/map/up';
+import { parentPath, isQuizRunPath } from '~/features/map/up';
+import { useGo } from '~/shared/lib/navigation';
 
 /**
  * The right panel's Up button, on the header's first line at its left (the eyebrow is indented
@@ -12,7 +13,7 @@ import { parentPath } from '~/features/map/up';
 export function UpButton() {
   const ctx = useContext(AtlasContext);
   const { pathname } = useLocation();
-  const navigate = useNavigate();
+  const go = useGo();
   const parent = parentPath(pathname);
   // an opened History entry first, then the route's own level (a run), then the parent URL
   const detailOpen = ctx?.selectedHistoryEntryId != null;
@@ -22,8 +23,8 @@ export function UpButton() {
   const goUp = useCallback(() => {
     if (detailOpen && setDetail) setDetail(null);
     else if (routeStep) routeStep();
-    else if (parent !== null) navigate(parent, { state: { sheet: 'full' } });
-  }, [detailOpen, setDetail, routeStep, parent, navigate]);
+    else if (parent !== null) go(parent, { state: { sheet: 'full' }, replace: isQuizRunPath(pathname) || undefined });
+  }, [detailOpen, setDetail, routeStep, parent, go, pathname]);
 
   if (!detailOpen && !routeStep && parent === null) return null;
   return (

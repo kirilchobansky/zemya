@@ -12,8 +12,9 @@
  * cached, never from loadWorld().
  *
  * The fetch is cached on the module, so two components mounting in the same tick share one
- * request rather than doubling up.
+ * request rather than doubling up. A failed fetch is retried (engines/map/retry.ts) before it rejects.
  */
+import { fetchJsonStrict, withRetry, type RetryInfo } from '~/engines/map/retry';
 import { buildWorld } from '~/engines/map/topology';
 import type { CountryRecord, GeometryData, World } from '~/engines/map/types';
 
@@ -24,15 +25,17 @@ let pending: Promise<World> | null = null;
 /** The built world once loadWorld() has resolved — null before. */
 let loaded: World | null = null;
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${url}: ${response.status}`);
-  return response.json() as Promise<T>;
-}
+/** Whoever asked last to hear about retries (several mounts share the one request). */
+let notifyRetry: ((info: RetryInfo) => void) | undefined;
 
-export function loadWorld(): Promise<World> {
+/** Each file is fetched on its own, up to three attempts (retry.ts), so one failing does not refetch the other. */
+const fetchData = <T>(url: string) =>
+  withRetry('data', attempt => fetchJsonStrict<T>('data', url, attempt), { onRetry: info => notifyRetry?.(info) });
+
+export function loadWorld(onRetry?: (info: RetryInfo) => void): Promise<World> {
+  if (onRetry) notifyRetry = onRetry;
   if (!pending) {
-    pending = Promise.all([fetchJson<GeometryData>(COARSE_URL), fetchJson<CountryRecord[]>(COUNTRIES_URL)])
+    pending = Promise.all([fetchData<GeometryData>(COARSE_URL), fetchData<CountryRecord[]>(COUNTRIES_URL)])
       .then(([coarse, countries]) => {
         const world = buildWorld({ ...coarse, countries });
         loaded = world;

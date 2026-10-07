@@ -2,8 +2,9 @@
  * Vector tiles for the map: public/data/geography/world.pmtiles, a single PMTiles archive cut
  * from the full 1:10m payload (world.json) that scripts/build/build-content.mjs just wrote. Run as
  * the second step of `npm run build:content`; the output is committed like the rest of
- * public/data. The browser reads it with HTTP range requests (the `pmtiles` protocol for
- * MapLibre), so a static host with range support is all it needs — no tile server.
+ * public/data. The browser downloads the whole file once and serves it to MapLibre's `pmtiles`
+ * protocol from memory (app/engines/map/pmtiles-archive.ts) — no tile server, no range requests.
+ * `world.pmtiles.json` beside it (byte length + SHA-256) is what that download is validated against.
  *
  * Layers (all in the SAME unwrapped longitude frame the Feature records use — see
  * scripts/lib/geom.mjs; geojson-vt wraps what runs past +-180 for itself):
@@ -19,6 +20,7 @@
  *
  *   node scripts/build/build-tiles.mjs
  */
+import { createHash } from 'node:crypto';
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -131,6 +133,8 @@ const archive = writePmtiles(tiles, {
 });
 const out = join(dataDir, 'world.pmtiles');
 writeFileSync(out, archive);
+const manifest = { bytes: archive.length, sha256: createHash('sha256').update(archive).digest('hex') };
+writeFileSync(`${out}.json`, JSON.stringify(manifest) + '\n');
 
 console.log(`tiles          ${tiles.length} (z0-${TILE_MAX_ZOOM}), tolerance ${TOLERANCE}/${EXTENT}`);
 console.log(`per zoom       ${perZoom.map((n, z) => `z${z}:${n}/${(bytesPerZoom[z] / 1024).toFixed(0)}KB`).join('  ')} (uncompressed)`);

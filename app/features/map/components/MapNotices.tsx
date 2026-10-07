@@ -1,8 +1,10 @@
+import { STEP_LABEL, type LoadFailure } from '~/engines/map/load-error';
+import type { RetryInfo } from '~/engines/map/retry';
 import type { Feature, PlaceMark } from '~/engines/map/types';
 
 /** Floating notices over the map: the hover tooltip, the compare-size explainer, and a
  *  data-load error. */
-export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, tip, comparing, armingCompare, onCompare, error }: {
+export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, tip, comparing, armingCompare, onCompare, error, retrying, restoring, onRetry }: {
   showTimeline: boolean;
   quiz: boolean;
   coarse: boolean;
@@ -12,7 +14,10 @@ export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, 
   comparing: { feature: Feature; over: Feature | null } | null;
   armingCompare: boolean;
   onCompare: () => void;
-  error: string | null;
+  error: LoadFailure | null;
+  retrying: RetryInfo | null;
+  restoring: boolean;
+  onRetry: () => void;
 }) {
   return (
     <>
@@ -53,9 +58,31 @@ export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, 
       </div>
     )}
 
+    {!showTimeline && !error && restoring && (
+      <div className="compare-hud glass" role="status">
+        <p>Restoring the map…</p>
+      </div>
+    )}
+
+    {!showTimeline && !error && retrying && (
+      <div className="compare-hud glass" role="status">
+        <p>
+          Retrying… {STEP_LABEL[retrying.step]} failed (attempt {retrying.attempt} of {retrying.attempts}):{' '}
+          {retrying.error.message}
+        </p>
+      </div>
+    )}
+
     {!showTimeline && error && (
-      <div className="compare-hud glass">
-        <p>The map data failed to load ({error}). Reloading usually fixes it.</p>
+      <div className="compare-hud glass" role="alert">
+        <p>
+          {error.step === 'webgl'
+            ? 'The map needs WebGL, and this browser could not start it. Check that hardware acceleration is on, or try another browser.'
+            : 'The map failed to load.'}
+          <br />
+          <small>Failed step: {STEP_LABEL[error.step]} — {error.message}</small>
+        </p>
+        <button type="button" className="action" onClick={onRetry}>Retry</button>
       </div>
     )}
     </>

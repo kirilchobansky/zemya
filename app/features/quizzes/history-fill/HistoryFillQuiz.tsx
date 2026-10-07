@@ -15,7 +15,7 @@
  * sight so "Try again" can focus it inside the tap.
  */
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 import { historyCountryFor } from '~/features/history';
 import { formatDuration } from '~/shared/lib/format';
@@ -26,6 +26,7 @@ import { FillResultButtons, FillResultCard } from './FillResult';
 import { FillToggle } from './FillToggle';
 import type { FillQuiz } from './fill-quiz';
 import { useFillRun } from './use-fill-run';
+import { useGo } from '~/shared/lib/navigation';
 import { keepFocus } from '~/features/quizzes/engine/QuizControls';
 import '~/features/quizzes/engine/quiz-run.css';
 import '~/features/quizzes/engine/quiz-list.css';
@@ -36,7 +37,7 @@ import './HistoryFillQuiz.phone.css';
 
 export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: string }) {
   const run = useFillRun(quiz);
-  const navigate = useNavigate();
+  const go = useGo();
   const {
     phase, phaseRef, paused, toggleOn, setToggleOn, byColumns, setByColumns, runToggle,
     entries, total, showTitles, filled, input, elapsedMs, shaking, setShaking, hint, outcome,
@@ -56,7 +57,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   );
 
   /* Phone: leave at any time, nothing saved (the run is only ever saved by finishing it). */
-  const leave = () => navigate(backTo, { state: { sheet: 'full' } });
+  const leave = () => go(backTo, { state: { sheet: 'full' }, replace: true });
 
   const screen = (
     <div className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
@@ -118,8 +119,8 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     <>
       <header className="panel__head">
         <span className="panel__eyebrow">
-          <Link to="/quizzes">Quizzes</Link> · <Link to="/quizzes/history">History</Link> ·{' '}
-          <Link to={backTo}>{historyCountryFor(quiz.slug)?.nameEn ?? quiz.slug}</Link>
+          <Link to="/quizzes" replace>Quizzes</Link> · <Link to="/quizzes/history" replace>History</Link> ·{' '}
+          <Link to={backTo} replace>{historyCountryFor(quiz.slug)?.nameEn ?? quiz.slug}</Link>
         </span>
         <h2>{quiz.title}</h2>
       </header>
@@ -149,7 +150,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
               <button type="button" className="action" onClick={togglePause}>
                 {paused ? 'Resume' : 'Pause'} <kbd>Esc</kbd>
               </button>
-              <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
+              <Link to={backTo} state={{ sheet: 'full' }} replace className="action desk-hide">Back to quizzes</Link>
             </div>
           )
         )}

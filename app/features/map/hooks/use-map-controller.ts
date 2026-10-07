@@ -5,7 +5,7 @@
  * and the size-comparison tool.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useNavigation } from 'react-router';
+import { useLocation, useNavigation } from 'react-router';
 
 import {
   countryMastery, defaultStrokeFor, fillFor, loadWorld, masteryTotals, quizFillFor, quizStrokeFor,
@@ -14,9 +14,13 @@ import {
 import { useProgress } from '~/features/progress';
 import type { MapController } from '~/engines/map/controller';
 import { loadMapEngine } from '~/engines/map/engine';
+import { toFailure, type LoadFailure } from '~/engines/map/load-error';
+import type { RetryInfo } from '~/engines/map/retry';
 import { refreshMapColours, type MicroMode } from '~/engines/map/style';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/engines/map/types';
 import { isPhoneLandscape, isPhoneLayout } from '~/shared/layout/viewport';
+import { useGo } from '~/shared/lib/navigation';
+import { reloadOnce } from '~/shared/lib/stale-deploy';
 import { onThemeChange } from '~/shared/lib/theme';
 
 const COUNTRY_PATH = /^\/country\/([^/]+)\/?$/;
@@ -33,13 +37,19 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
   /** The map's host element: MapLibre fills it with its own canvas. */
   const mapHostRef = useRef<HTMLDivElement>(null);
   const atlasRef = useRef<MapController | null>(null);
-  const navigate = useNavigate();
+  const go = useGo();
   const location = useLocation();
   const navigation = useNavigation();
   const { cards } = useProgress();
 
   const [world, setWorld] = useState<World | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LoadFailure | null>(null);
+  /** A step failed and is being tried again (cleared when the map is up or it gives up). */
+  const [retrying, setRetrying] = useState<RetryInfo | null>(null);
+  /** The GPU context was lost and MapLibre is rebuilding the map. */
+  const [restoring, setRestoring] = useState(false);
+  /** Bumped by Retry: re-runs the whole load without a page reload. */
+  const [reloadKey, setReloadKey] = useState(0);
   const [hovered, setHovered] = useState<Feature | null>(null);
   const [hoveredPlace, setHoveredPlace] = useState<PlaceMark | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
@@ -85,11 +95,18 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
 
   useEffect(() => {
     let cancelled = false;
-    loadWorld().then(
-      w => { if (!cancelled) setWorld(w); },
-      e => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); }
+    loadWorld(info => { if (!cancelled) setRetrying(info); }).then(
+      w => { if (!cancelled) { setRetrying(null); setWorld(w); } },
+      e => { if (!cancelled) { setRetrying(null); setError(toFailure('data', e)); } }
     );
     return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setRetrying(null);
+    setRestoring(false);
+    setReloadKey(k => k + 1);
   }, []);
 
   const handleSelect = useCallback(
@@ -106,9 +123,9 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
         return;
       }
       // `sheet: 'peek'` (phone layout only): the map stays visible behind a selection
-      navigate(feature ? `/country/${feature.country.slug}` : '/', { state: { sheet: isPhoneLandscape() ? 'half' : 'peek' } });
+      go(feature ? `/country/${feature.country.slug}` : '/', { state: { sheet: isPhoneLandscape() ? 'half' : 'peek' } });
     },
-    [armingCompare, navigate, quiz]
+    [armingCompare, go, quiz]
   );
 
   /* keep the latest callbacks reachable without rebuilding the controller */
@@ -128,7 +145,8 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
     // (CLAUDE.md's Visual identity note) — and must be fresh before the first frame is drawn.
     refreshOverlayColours();
     refreshMapColours();
-    loadMapEngine()
+    const hooks = { onRetry: (info: RetryInfo) => setRetrying(info), cancelled: () => cancelled };
+    loadMapEngine(hooks)
       .then(engine => {
         if (cancelled) return null;
         return engine.create(
@@ -142,7 +160,11 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
             },
             onSelect: f => handleSelectRef.current(f),
             onCameraChange: setScale,
-            onCompareMove: (feature, over) => setComparing({ feature, over })
+            onCompareMove: (feature, over) => setComparing({ feature, over }),
+            onStatus: status => {
+              if (status.kind === 'failed') setError(status.failure);
+              setRestoring(status.kind === 'restoring');
+            }
           },
           {
             fill: f => fillFor(f, styleRef.current),
@@ -151,7 +173,8 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
             showLabels: true,
             showPins: true,
             showCapitals: true
-          }
+          },
+          hooks
         );
       })
       .then(atlas => {
@@ -162,9 +185,17 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
         atlasRef.current = atlas;
         applyInsets(atlas);
         if (isPhoneLayout()) atlas.home(false); // reframe now that it knows what covers it
+        setRetrying(null);
         setAtlasInstance(atlas);
       })
-      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); });
+      .catch(e => {
+        if (cancelled) return;
+        const failure = toFailure('map', e);
+        setRetrying(null);
+        setError(failure);
+        // a chunk that will not load after retries is most likely a deploy newer than this page
+        if (failure.step === 'chunk') reloadOnce();
+      });
     return () => {
       cancelled = true;
       if (created) {
@@ -173,7 +204,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
         setAtlasInstance(null);
       }
     };
-  }, [world, applyInsets]);
+  }, [world, applyInsets, reloadKey]);
 
   /* a theme switch must repaint the canvas — its colours are a getComputedStyle cache
      (renderer.ts's COLORS, overlays.ts's exported palette), not a live CSS lookup */
@@ -260,7 +291,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
   };
 
   return {
-    world, error, mapHostRef, atlasRef, atlasInstance, hovered, hoveredPlace, tip, scale,
+    world, error, retrying, restoring, retry, mapHostRef, atlasRef, atlasInstance, hovered, hoveredPlace, tip, scale,
     comparing, armingCompare, selected, totals, toggleCompare
   };
 }

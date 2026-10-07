@@ -38,7 +38,7 @@ export function NameAllPanel({
     <>
       <header className="panel__head">
         <span className="panel__eyebrow">
-          <Link to="/quizzes">Quizzes</Link> · <Link to={backTo}>Geography</Link> · {SCOPE_LABELS[scope]}
+          <Link to="/quizzes" replace>Quizzes</Link> · <Link to={backTo} replace>Geography</Link> · {SCOPE_LABELS[scope]}
         </span>
         <h2>{NAME_ALL_QUIZ.title}</h2>
       </header>

@@ -81,7 +81,7 @@ export function QuizRunResult({ engine, total, backTo, onRunAgain }: {
         >
           Run it again
         </button>
-        <Link to={backTo} state={{ sheet: "full" }} className="action desk-hide">
+        <Link to={backTo} state={{ sheet: "full" }} replace className="action desk-hide">
           Back to quizzes
         </Link>
       </div>

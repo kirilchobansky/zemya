@@ -204,6 +204,8 @@ next area still runs. `node tests/e2e/smoke.mjs --only=map,phone` runs some area
 | Area (`areas/`) | Against | What it covers |
 | --- | --- | --- |
 | `map` | production build | the map paints, hover/click, search, dossier + flag, neighbours, overlays, compare, cold load, Russia, Malta |
+| `load-failures` | production build | one aborted request per data file / tile file is retried, a corrupt `world.pmtiles` is refetched once, a permanent failure shows the notice (step + file) and Retry recovers without a reload; own pages, no console watch |
+| `history-stack` | production build | the Back button: a country, a quiz run (Restart adds nothing, Abandon replaces), a History timeline; via React Router's `history.state.idx` |
 | `questions`, `quiz-list`, `history` | production build | Questions session, quiz list scopes and redirects, both timelines, a fill quiz mounting |
 | `progress`, `quiz-run`, `quiz-kinds`, `quiz-input`, `quiz-camera` | dev server | grading repaints the overlay; a whole run, pause, results, personal best; flags/outlines/capitals/currency and the label-leak test; typing survives touching the map; one camera path per question |
 | `phone` (+ `phone-quiz`, `phone-widths`, `phone-lists`) | dev server, iPhone 13 | sheet, tabs, a quiz by touch, no sideways scroll at 360/390/430, quiz list, Questions buttons |
@@ -252,3 +254,36 @@ Same method as 3A: split by purpose, exports other files use unchanged, no behav
   loader), `history/components/HistoryCard.tsx` (-> `history-card-format.ts`),
   `countries/overlays.ts` (-> `overlay-palettes.ts`, the in-place-refreshed palette objects),
   `history/timeline/layout.test.ts` (-> `layout-rows.test.ts`).
+
+## Browser history (Back button)
+
+Rule: **a new place pushes an entry; a change of state of the same place replaces it.** `<Link>`
+already replaces when it points at the current URL; `navigate()` never does, so programmatic
+navigation goes through `useGo()` (`app/shared/lib/navigation.ts`), which replaces when the target
+is the current URL (a second click on the same country, Home while at `/`) and otherwise pushes
+unless `replace` is given. State that is not a URL (a run's phase, Restart / "Run it again", the
+opened History entry, History filters and search, overlays and toggles, the phone sheet snap)
+never touches the stack. The sheet position rides in `state.sheet`; a replace still carries it.
+
+Every navigation call in `app/` (audited; `grep -rnE "navigate\(|useGo|<Link|<Navigate"`):
+
+| Where | Call | Choice | Why |
+| --- | --- | --- | --- |
+| `use-map-controller.ts` map click | `go('/country/:slug')` / `go('/')` | push (replace if same URL) | opens a country / closes it |
+| `AtlasShell.tsx` search pick | `go('/country/:slug')` | push (replace if same URL) | opens a country |
+| `AtlasShell.tsx` Home button | `go('/')` | push (replace at `/`) | the map home is a place |
+| `UpButton.tsx` | `go(parent)` | push; **replace when leaving a quiz run** | a run is left like Abandon |
+| `QuizRun.tsx` abandon / Esc-abandon | `go(backTo)` | **replace** | the run entry becomes its quiz list |
+| `NameAllQuiz.tsx`, `HistoryFillQuiz.tsx` leave | `go(backTo)` | **replace** | same |
+| `QuizRunResult`, `QuizRunHud`, `NameAllHud`, `NameAllResult`, `FillResult`, `HistoryFillQuiz` ("Back to quizzes", breadcrumbs), `NameAllPanel` breadcrumbs | `<Link replace>` | **replace** | leaving a finished / abandoned / idle run |
+| `QuizNotFound`, `QuizRun` not-found link | `<Link replace>` | replace | a dead page should not stay in the stack |
+| `QuizRun.tsx` legacy scope, `!size`; `quiz.tsx`, `quiz.$quizId.tsx`, `quiz.legacy.tsx`, `study.tsx` | `<Navigate replace>` | **replace** | redirects |
+| `Rail.tsx` sections, `MobileChrome.tsx` tabs, `history.tsx` country cards, `quizzes.tsx` subject cards, `HistoryCountries`, `HistoryCountryQuizzes`, `QuizListItem` (start screen / run), `QuizList` breadcrumbs | `<Link>` | push | section changes and opening a subject, quiz, History country |
+| `country.tsx` (neighbours, History link), `atlas.index.tsx` suggestions, `QuizRunResult` / `NameAllResult` / `QuestionsResult` country chips | `<Link>` | push | opening a country or its timeline |
+| `quizzes.$subject.$quizId.tsx` link to History | `<Link>` | push | opens a subject |
+
+There is no `setSearchParams` and no state kept in the URL besides the quiz order
+(`?order=population`, part of the run link): quiz size and scope are chosen on the quiz list and
+open a run URL (push), History filters and search live in `AtlasContext`, Restart and "Run it
+again" are in-component. Consequence of replacing on leave: the run's entry turns into a second
+copy of the quiz list, so one extra Back lands on the list again, never on a finished run.
