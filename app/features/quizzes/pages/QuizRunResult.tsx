@@ -20,40 +20,46 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
         <p className="quiz-result__time numeric">
           {formatDuration(result.timeMs)}
         </p>
-        <p style={{ marginBottom: 6 }}>
-          {result.beatBest ? (
-            result.previousBest !== null ? (
+        {engine.reviewing ? (
+          <p style={{ marginBottom: 6 }}>
+            Review run — not saved to the archive or your best.
+          </p>
+        ) : (
+          <p style={{ marginBottom: 6 }}>
+            {result.beatBest ? (
+              result.previousBest !== null ? (
+                <>
+                  New personal best — beat{" "}
+                  <b>{formatDuration(result.previousBest)}</b>.
+                </>
+              ) : (
+                <>
+                  First run at this size —{" "}
+                  <b>{formatDuration(result.timeMs)}</b> is now your
+                  personal best.
+                </>
+              )
+            ) : !result.perfect ? (
               <>
-                New personal best — beat{" "}
-                <b>{formatDuration(result.previousBest)}</b>.
+                Saved to the archive, not a best — a best needs every country on the first
+                try, with no skip or reveal.
+                {result.previousBest !== null && (
+                  <> Best stays <b>{formatDuration(result.previousBest)}</b>.</>
+                )}
               </>
             ) : (
               <>
-                First run at this size —{" "}
-                <b>{formatDuration(result.timeMs)}</b> is now your
-                personal best.
+                Personal best stays{" "}
+                <b>
+                  {formatDuration(
+                    result.previousBest ?? result.timeMs,
+                  )}
+                </b>
+                .
               </>
-            )
-          ) : !result.perfect ? (
-            <>
-              Saved to the archive, not a best — a best needs every country on the first
-              try, with no skip or reveal.
-              {result.previousBest !== null && (
-                <> Best stays <b>{formatDuration(result.previousBest)}</b>.</>
-              )}
-            </>
-          ) : (
-            <>
-              Personal best stays{" "}
-              <b>
-                {formatDuration(
-                  result.previousBest ?? result.timeMs,
-                )}
-              </b>
-              .
-            </>
-          )}
-        </p>
+            )}
+          </p>
+        )}
         <p>
           <b>{result.firstTryCount}</b> first-try,{" "}
           <b>{result.revealed.length}</b> revealed (of{" "}
@@ -88,6 +94,11 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
         >
           Try again
         </button>
+        {result.revealed.length > 0 && (
+          <button type="button" className="action" onClick={engine.reviewMistakes}>
+            Review mistakes ({result.revealed.length})
+          </button>
+        )}
       </div>
     </>
   );

@@ -36,8 +36,13 @@ export interface QuizEngine {
    *  as soon as the player starts typing the next answer. */
   lastNote: string | null;
   result: QuizRunResult | null;
+  /** True during a "Review mistakes" run (and its results): replays the previous run's revealed
+   *  countries, saves nothing but the FSRS grading. */
+  reviewing: boolean;
   priorBest: number | null;
   start(): void;
+  /** Replays the finished run's revealed countries — only meaningful with a result. */
+  reviewMistakes(): void;
   /** Starts a fresh run over an active one — nothing saved, no FSRS grading — on `next`, a newly
    *  drawn set (the route passes it; omitted = reshuffle the current set). */
   restart(next?: CountryRecord[]): void;

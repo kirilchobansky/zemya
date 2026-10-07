@@ -26,7 +26,7 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
           <span className="panel__eyebrow">
             {definition.title} · {SCOPE_LABELS[scope]}
           </span>
-          <h2>{countries.length} rounds</h2>
+          <h2>{engine.reviewing ? `Review · ${engine.totalCount}` : `${countries.length} rounds`}</h2>
         </header>
 
         <div className="panel__body">
@@ -108,7 +108,7 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
           )}
 
           {engine.phase === "done" && engine.result && (
-          <QuizRunResult engine={engine} total={countries.length} onRunAgain={onRunAgain} />
+          <QuizRunResult engine={engine} total={engine.totalCount} onRunAgain={onRunAgain} />
         )}
       </div>
     </>

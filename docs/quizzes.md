@@ -297,6 +297,8 @@ Before the start and on the results screen
 nothing changed. The History fill quiz has the same button in its input bar (running or
 paused), doing exactly "Try again".
 
+**Review mistakes (geography quizzes):** on the results, next to "Try again" and only when something was revealed, a neutral (non-primary) `.action` button, "Review mistakes (N)", starts a run at once on exactly the revealed countries (`engine.reviewMistakes`, `reviewing` flag). Skipped-then-answered countries do not count as mistakes. A review run is graded by FSRS like any run but saves nothing else (no `quizRuns` row, no personal best) and says so on its results; its header reads "Review · N"; if some are revealed again the button is offered again. "Try again" leaves review mode for a fresh draw.
+
 **Enter after a reveal.** Once the current target is revealed (Ctrl+Enter / Reveal button),
 plain Enter — in the input or, like Ctrl+Enter, with focus elsewhere (not on a button/link,
 which keep their own Enter) — puts the reveal's answer string in the input for 250 ms

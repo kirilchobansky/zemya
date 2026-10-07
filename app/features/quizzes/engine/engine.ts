@@ -44,6 +44,9 @@ export function useQuizEngine(
   const [answered, setAnswered] = useState<ReadonlyMap<string, QuizOutcome>>(new Map());
   const [showNeighbours, setShowNeighbours] = useState(false);
   const [lastNote, setLastNote] = useState<string | null>(null);
+  /** A "Review mistakes" run: the revealed countries of the run before, replayed. Graded by FSRS
+   *  like any run, but nothing else is saved — no archive row, no personal best. */
+  const [reviewing, setReviewing] = useState(false);
 
   const { elapsedRef, segmentStartRef, elapsedMs, stopSegment } = useQuizTimer(phase);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +88,7 @@ export function useQuizEngine(
     setRevealedSet(new Set());
     setAnswered(new Map());
     setLastNote(null);
+    setReviewing(false);
     elapsedRef.current = 0;
     setResult(null);
     segmentStartRef.current = null;
@@ -93,7 +97,7 @@ export function useQuizEngine(
   }, []);
   useEffect(toStart, [definition.id, scope, size, toStart]);
 
-  const begin = useCallback((list: CountryRecord[]) => {
+  const begin = useCallback((list: CountryRecord[], review = false) => {
     if (!list.length) return;
     cancelFill();
     const rng = makeRng(Date.now() ^ (Math.random() * 0xffffffff));
@@ -103,6 +107,7 @@ export function useQuizEngine(
     setRevealedSet(new Set());
     setAnswered(new Map());
     setLastNote(null);
+    setReviewing(review);
     elapsedRef.current = 0;
     setResult(null);
     shownAtRef.current = new Map();
@@ -120,6 +125,15 @@ export function useQuizEngine(
     },
     [begin, countries]
   );
+
+  /** Replays the countries the finished run revealed, straight away (the player just pressed
+   *  the button — no start screen). */
+  const reviewMistakes = useCallback(() => {
+    const missed = result?.revealed;
+    if (!missed?.length) return;
+    setRunList(missed);
+    begin(missed, true);
+  }, [result, begin]);
 
   /* mark when the current target became visible, for the "answered fast" grading in
      onInputChange below */
@@ -209,6 +223,7 @@ export function useQuizEngine(
       );
 
       setResult(scored);
+      if (reviewing) return;
       if (perfect) setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
       saveQuizRun({
         quizId: definition.id,
@@ -223,7 +238,7 @@ export function useQuizEngine(
         at: Date.now()
       });
     },
-    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode]
+    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode, reviewing]
   );
 
   const onInputChange = useCallback(
@@ -282,8 +297,10 @@ export function useQuizEngine(
     toggleShowNeighbours,
     lastNote,
     result,
+    reviewing,
     priorBest,
     start,
+    reviewMistakes,
     restart,
     skip,
     reveal,
