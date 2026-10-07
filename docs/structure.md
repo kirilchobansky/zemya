@@ -215,8 +215,8 @@ suite deterministic — read them before adding a check:
 - **Read the map, not pixels or probe points.** `lib/map.mjs`: `renderedAt`, `countryState`,
   `pagePointOf` (`map.project`), `firstLand`. Find land with `queryRenderedFeatures`, not by hovering
   guessed coordinates until a tooltip shows. The map container is `MAP`
-  (`div.stage__canvas[aria-label="World map"]`): not `.maplibregl-map`, which React can overwrite
-  (see decisions.md), and not `.stage__canvas` alone, which also matches the timeline canvas.
+  (`div.stage__map[aria-label="World map"]`, the element MapLibre owns; React's state classes sit on its
+  `.stage__canvas` wrapper — see decisions.md), not `.stage__canvas` alone, which also matches the timeline canvas.
 - **Theme-dependent colours are read from the page** (`selectedColour` = `--brass`), never hard-coded.
 - **Wheel zoom is MapLibre's:** `wheelZoom(page, ratio)` loops until the camera reaches the ratio.
 - **Quiz camera checks use `?order=population`** (the 30 most populous): the default "top N" is a

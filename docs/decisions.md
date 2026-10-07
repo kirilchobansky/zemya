@@ -1236,12 +1236,9 @@ traded resolution for speed while moving). Decided beyond the prompt:
   full, not half; the phone sheet slides away over 0.3 s before it is `visibility:hidden`; a camera "moved"
   check that only compared x/y missed a pure zoom-out. Flaky by construction (fixed): fixed sleeps
   everywhere, and the personal-best badge, which is read from IndexedDB after the list renders.
-- **One real bug found, not fixed (app code was out of scope):** React owns the map container's
-  `className` (`AtlasShell.tsx`'s `canvasClass`), MapLibre adds `maplibregl-map` to the same element, and
-  React overwrites the attribute when the value changes — pausing a quiz (`is-quiz-paused`) or arming
-  Compare (`is-picking`) leaves the container without `maplibregl-map` (and its `overflow:hidden`,
-  `position:relative`, font) until the next change. Fix idea: put React's classes on a wrapper, or toggle
-  them with `classList` in an effect. The suite avoids the class (`MAP` selector) so it does not depend on it.
+- **The map-container className bug, found here and since fixed** (see "Bug fixes: shapeless camera target,
+  map host className" below): React's classes now live on a `.stage__canvas` wrapper; MapLibre owns the inner
+  `.stage__map` host.
 - **Build warning noted:** prerendering the legacy `/quiz/*` redirect routes logs "`<Navigate>` must not be
   used on the initial render in a `<StaticRouter>`" — those pages redirect only once JS runs.
 - **Sandbox:** the Playwright browser here needs `libnspr4`/`libnss3`/`libasound`; without root, download the
@@ -1250,3 +1247,22 @@ traded resolution for speed while moving). Decided beyond the prompt:
   `recording` flag and kept running, so every zoom frame was recorded twice (a "median 0.0 ms, Infinity
   fps"). Each sample now owns its loop by id. Numbers on this machine are software GL (SwiftShader):
   pan ~117 ms, zoom ~67 ms median — the 16.7 ms target is printed, not asserted, and is not met here.
+
+## Bug fixes: shapeless camera target, map host className
+
+- **Vatican City / San Marino flew to the North Pole.** The coarse payload has no polygon for these two,
+  so `buildWorld` left their `Feature.ux/uy` at the init value 0 — (0, 0) is the north-west corner of Web
+  Mercator — and the quiz follow and fly-to centred on it. Fix: `buildWorld` seeds `ux/uy` from the country's
+  `latlng`; the target is built by one pure function, `quizFollowTarget` (`engines/map/follow.ts`), whose
+  focus is shape box centre, else capital mark, else `markerPoint` (mark, anchor, record lat/lng; never
+  non-finite or exactly (0, 0)). No usable point -> no target -> the camera does not move (`flyTo` likewise).
+  Dot-only states (no box, or one the zoom limits can't make 12 px wide) still get `NO_SHAPE_ZOOM_FACTOR`
+  (34x home): neighbourhood scale, not the zoom ceiling. `follow-all.test.ts` runs every country;
+  `quiz-camera.mjs` checks both in a real run.
+- **React vs MapLibre on one element's className.** `AtlasShell` renders `div.stage__canvas` (React's
+  `is-picking` / `is-quiz-paused` / `is-hidden`) around `div.stage__map` (the MapLibre host, `ref`, never
+  given a dynamic className). The e2e `MAP` selector is `div.stage__map[aria-label="World map"]`;
+  `quiz-run.mjs` and `map.mjs` assert the host keeps `maplibregl-map`, overflow and position after a pause.
+- **San Marino's dot sat outside San Marino.** Its record `latlng` (43.77, 12.42) is a country centre in
+  Italy's territory. A shapeless country (Vatican City, San Marino) now anchors its pin, label and camera
+  target on its capital's coordinates (`buildWorld`, `topology.ts`).

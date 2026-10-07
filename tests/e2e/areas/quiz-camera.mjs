@@ -4,7 +4,7 @@
  * a wrong attempt or a pause is not a new question and never moves the camera; a continent quiz
  * treats the continent as home.
  */
-import { MAP, settledCamera, view, wheelZoom } from '../lib/map.mjs';
+import { MAP, centreLatLon, settledCamera, view, wheelZoom } from '../lib/map.mjs';
 import { skip, startQuiz } from '../lib/quiz.mjs';
 import { frames, open, quiz, quizAnswered, quizPhase, quizStarted } from '../lib/waits.mjs';
 
@@ -115,7 +115,37 @@ async function continentQuiz({ page, devBase, check }) {
   );
 }
 
+/** Real coordinates [lat, lon] of the two countries with no shape at coarse detail. */
+const NO_SHAPE = { 'Vatican City': [41.9029, 12.4534], 'San Marino': [43.9424, 12.4578] };
+
+/** The camera must end near the country, not at the map's north-west corner (the "flies to the
+ *  North Pole" bug: a shapeless country's anchor was (0, 0)). Skips through the Europe quiz —
+ *  which visits every country once — until each of the two comes up. */
+async function noShapeTargets({ page, devBase, check }) {
+  let state = await startQuiz(page, `${devBase}quizzes/geography/countries/europe/all`);
+  const pending = new Set(Object.keys(NO_SHAPE));
+  for (let i = 0; i < 60 && pending.size && state?.target; i++) {
+    if (pending.has(state.target)) {
+      const want = NO_SHAPE[state.target];
+      await page.waitForFunction(
+        ([lat, lon]) => { const c = window.__zemyaGl.getCenter(); return Math.abs(c.lat - lat) < 2 && Math.abs(c.lng - lon) < 2; },
+        want, { timeout: 8000 }
+      ).catch(() => {});
+      await settledCamera(page);
+      const [lat, lon] = await centreLatLon(page);
+      check(Math.abs(lat - want[0]) < 1.5 && Math.abs(lon - want[1]) < 1.5,
+        `${state.target} as a quiz target: camera ended at (${lat.toFixed(2)}, ${lon.toFixed(2)}), expected near (${want})`);
+      const where = await targetOnScreen(page);
+      check(where.inView, `${state.target} as a quiz target: its marker is off screen`);
+      pending.delete(state.target);
+    }
+    state = await skip(page, state);
+  }
+  check(pending.size === 0, `the Europe quiz never reached: ${[...pending].join(', ')}`);
+}
+
 export async function run(ctx) {
+  await noShapeTargets(ctx);
   await worldQuiz(ctx);
   await continentQuiz(ctx);
 }

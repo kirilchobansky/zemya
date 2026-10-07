@@ -97,7 +97,11 @@ export function AtlasShell() {
         />
 
         <main className="stage">
-          <div ref={map.mapHostRef} className={canvasClass} role="img" aria-label="World map" />
+          {/* React owns the wrapper's className; MapLibre owns the inner host's (it adds
+              maplibregl-map), which React never rewrites */}
+          <div className={canvasClass}>
+            <div ref={map.mapHostRef} className="stage__map" role="img" aria-label="World map" />
+          </div>
           <HistoryLayer
             canvasRef={history.historyCanvasRef}
             showTimeline={showTimeline}

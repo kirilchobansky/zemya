@@ -58,8 +58,10 @@ export function buildWorld(data: WorldData): World {
       polygons: [],
       bbox: null,
       anchor: [country.latlng[1], country.latlng[0]],
-      ux: 0,
-      uy: 0,
+      // a country with no shape (Vatican City, San Marino at coarse detail) keeps this point:
+      // (0, 0) would be the north-west corner of the map, not a place
+      ux: wrapX(lonToX(country.latlng[1])),
+      uy: latToY(country.latlng[0]),
       tiny: true,
       path: null,
       fullPath: null,
@@ -126,6 +128,12 @@ export function buildWorld(data: WorldData): World {
   for (const place of data.places) {
     const feature = byIso3.get(place.iso3);
     if (!feature) continue;
+    // a shapeless country (San Marino's record point sits outside it) pins on its capital
+    if (!feature.polygons.length) {
+      feature.anchor = [place.lon, place.lat];
+      feature.ux = wrapX(lonToX(place.lon));
+      feature.uy = latToY(place.lat);
+    }
     places.push({ place, feature, ux: wrapX(lonToX(place.lon)), uy: latToY(place.lat) });
   }
 

@@ -16,9 +16,9 @@
  * on top of it (`Insets`: today the quiz's docked input) — not the raw canvas.
  */
 import { wrapX, latToY, lonToX } from './projection';
-import { NO_INSETS, type CameraState, type Insets, type Viewport } from './camera';
+import { clampZoom, NO_INSETS, type CameraState, type Insets, type Viewport } from './camera';
 import { CAPITAL_MIN_SHAPE_WIDTH } from './thresholds';
-import type { Feature, Ring } from './types';
+import type { Feature, PlaceMark, Ring } from './types';
 
 export { NO_INSETS, type Insets };
 
@@ -128,6 +128,46 @@ export function mainlandBox(feature: Feature): Box | null {
     boxCache.set(feature.polygons, box);
   }
   return box;
+}
+
+/** A usable map point: finite, and not the unit square's (0, 0) corner — the north-west edge
+ *  of Web Mercator, which is what an unset anchor looks like. */
+const usable = (x: number, y: number): boolean => Number.isFinite(x) && Number.isFinite(y) && !(x === 0 && y === 0);
+
+/**
+ * Where the camera should look for a country that has no usable shape box: its capital mark,
+ * else its own anchor, else the point its record's lat/lng names. Null when none exists —
+ * the caller then leaves the camera alone. A country whose shape never arrived (a dot-only
+ * micro-state, or before geometry loads) has ux/uy of 0, which must never become a target:
+ * y = 0 is the north edge of the map.
+ */
+export function markerPoint(feature: Feature, place: PlaceMark | null): { x: number; y: number } | null {
+  if (place && usable(place.ux, place.uy)) return { x: place.ux, y: place.uy };
+  if (feature.bbox && usable(feature.ux, feature.uy)) return { x: feature.ux, y: feature.uy };
+  const [lat, lon] = feature.country.latlng;
+  const x = wrapX(lonToX(lon)), y = latToY(lat);
+  return usable(x, y) ? { x, y } : null;
+}
+
+/**
+ * The quiz camera's target for a country (and, in the capitals quiz, its capital): the shape's
+ * mainland box when it has one the zoom limits can make legible, else the marker point at
+ * neighbourhood zoom (`box` null). Null when there is nowhere to go.
+ */
+export function quizFollowTarget(feature: Feature, place: PlaceMark | null, viewport: Viewport): FollowTarget | null {
+  const minWidthPx = quizMinTargetPx(Boolean(place));
+  const mainland = feature.halo
+    ? { x0: feature.halo.x0, x1: feature.halo.x1, y0: feature.halo.y0, y1: feature.halo.y1 }
+    : feature.bbox && (feature.path || feature.fullPath) ? mainlandBox(feature) : null;
+  const width = mainland ? mainland.x1 - mainland.x0 : 0;
+  const reachable = mainland && width > 0 && width * clampZoom(minWidthPx / width, viewport) >= minWidthPx * 0.999;
+  const box = reachable ? mainland : null;
+  const centre = box ? { x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 } : null;
+  const focus = (place && markerPoint(feature, place)) || centre || markerPoint(feature, null);
+  if (!focus || !usable(focus.x, focus.y)) return null;
+  if (place) return { box, focus, fit: false, marginPx: QUIZ_POINT_MARGIN_PX, minWidthPx };
+  if (box && centre) return { box, focus: centre, fit: true, marginPx: QUIZ_EDGE_MARGIN_PX, minWidthPx };
+  return { box: null, focus, fit: false, marginPx: QUIZ_PIN_MARGIN_PX, minWidthPx };
 }
 
 export interface FollowOptions {

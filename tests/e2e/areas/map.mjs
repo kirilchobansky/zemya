@@ -3,7 +3,7 @@
  * moving the camera, search, the dossier and its flag, neighbour links, overlays, the size
  * comparison tool, cold prerendered loads, Russia's antimeridian, Malta as a shape.
  */
-import { MAP, countryState, firstLand, flewToCountry, pagePointOf, renderedAt, sameColour, selectedColour } from '../lib/map.mjs';
+import { MAP, countryState, hostStyle, firstLand, flewToCountry, pagePointOf, renderedAt, sameColour, selectedColour } from '../lib/map.mjs';
 import { frames, mapIdle, open } from '../lib/waits.mjs';
 
 const scale = page => page.textContent('.scalebar').then(t => t.trim());
@@ -89,6 +89,11 @@ export async function run({ page, base, check }) {
   /* 7. size comparison lifts, drags and drops */
   await page.click('.toolbar button:has-text("Compare size")');
   await page.waitForSelector('.compare-hud', { state: 'visible', timeout: 5000 });
+  // regression: the host keeps MapLibre's `maplibregl-map` (and the overflow/position it brings) while
+  // React changes its own classes — they live on the wrapper now (the pause check is in quiz-run)
+  const armed = await hostStyle(page);
+  check(armed.hasClass && armed.overflow === 'hidden' && ['relative', 'absolute'].includes(armed.position),
+    `arming Compare dropped the map host's MapLibre class/layout: ${JSON.stringify(armed)}`);
   const box = await page.locator(MAP).boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

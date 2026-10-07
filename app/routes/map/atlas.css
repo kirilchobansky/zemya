@@ -40,10 +40,19 @@
   cursor: crosshair;
 }
 
-/* The map host when the engine is MapLibre (app/engines/map/engine.ts): the library's own CSS arrives
-   with its lazy chunk and sets position: relative on .maplibregl-map — this wins by specificity. */
+/* The map host, inside the .stage__canvas wrapper (AtlasShell): MapLibre owns this element's
+   className (it adds maplibregl-map, whose own CSS — lazy chunk — sets position: relative and
+   overflow: hidden), React's state classes live on the wrapper so they never rewrite it. */
 
-.stage__canvas.maplibregl-map {
+.stage__map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stage__map.maplibregl-map {
   position: absolute;
   font: inherit;
 }

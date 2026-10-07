@@ -7,7 +7,7 @@ import {
   centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, scaleBar, shortestX,
   type CameraState, type Insets
 } from './camera';
-import { cameraForTarget, mainlandBox, NO_SHAPE_ZOOM_FACTOR, QUIZ_EDGE_MARGIN_PX, QUIZ_PIN_MARGIN_PX, QUIZ_POINT_MARGIN_PX, quizMinTargetPx, QUIZ_WORLD_VIEW_FACTOR, type FollowTarget } from './follow';
+import { cameraForTarget, markerPoint, NO_SHAPE_ZOOM_FACTOR, quizFollowTarget, QUIZ_WORLD_VIEW_FACTOR } from './follow';
 import type { GlHost } from './gl-host';
 import { pxToZoom, zoomToPx } from './gl-style';
 import { latToY, lonToX, xToLon, yToLat } from './projection';
@@ -55,8 +55,10 @@ export class GlCamera {
 
   flyTo(feature: Feature, padding = 0.55): void {
     if (!feature.bbox) {
+      const point = markerPoint(feature, null);
+      if (!point) return;
       const zoom = homeZoom(this.host.viewport) * NO_SHAPE_ZOOM_FACTOR;
-      this.moveTo(clamp({ ...centreInVisible(feature.ux, feature.uy, zoom, this.host.insets), zoom }, this.host.viewport), true);
+      this.moveTo(clamp({ ...centreInVisible(point.x, point.y, zoom, this.host.insets), zoom }, this.host.viewport), true);
       return;
     }
     const [minLon, minLat, maxLon, maxLat] = feature.bbox;
@@ -75,18 +77,8 @@ export class GlCamera {
     const home = this.homeView();
     const zoomedIn = cam.zoom > home.zoom * QUIZ_WORLD_VIEW_FACTOR;
 
-    const minWidthPx = quizMinTargetPx(Boolean(place));
-    const mainland = feature.halo
-      ? { x0: feature.halo.x0, x1: feature.halo.x1, y0: feature.halo.y0, y1: feature.halo.y1 }
-      : feature.bbox && (feature.path || feature.fullPath) ? mainlandBox(feature) : null;
-    const reachable =
-      mainland && (mainland.x1 - mainland.x0) * clampZoom(minWidthPx / Math.max(mainland.x1 - mainland.x0, 1e-9), this.host.viewport) >= minWidthPx * 0.999;
-    const box = reachable ? mainland : null;
-    const target: FollowTarget = place
-      ? { box, focus: { x: place.ux, y: place.uy }, fit: false, marginPx: QUIZ_POINT_MARGIN_PX, minWidthPx }
-      : box
-        ? { box, focus: { x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 }, fit: true, marginPx: QUIZ_EDGE_MARGIN_PX, minWidthPx }
-        : { box: null, focus: { x: feature.ux, y: feature.uy }, fit: false, marginPx: QUIZ_PIN_MARGIN_PX, minWidthPx };
+    const target = quizFollowTarget(feature, place ?? null, this.host.viewport);
+    if (!target) return;
     const options = { noShapeZoom: homeZoom(this.host.viewport) * NO_SHAPE_ZOOM_FACTOR };
     let base = cam;
     let next = cameraForTarget(base, this.host.viewport, insets, target, options);

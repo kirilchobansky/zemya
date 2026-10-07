@@ -1,10 +1,22 @@
 /** Reading the map: the MapLibre instance's feature state and rendered features, never pixels. */
 import { frames, mapIdle } from './waits.mjs';
 
-/** The map container. Not `.maplibregl-map`: React owns this element's className and rewrites it
- *  (dropping the class MapLibre added) when a quiz is paused — see the report; and the history
- *  timeline's <canvas> shares the .stage__canvas class. */
-export const MAP = 'div.stage__canvas[aria-label="World map"]';
+/** The map host: the element MapLibre owns (it adds `maplibregl-map`; React's state classes live on
+ *  its `.stage__canvas` wrapper). Not `.stage__canvas` alone — the history timeline's <canvas>
+ *  shares that class. */
+export const MAP = 'div.stage__map[aria-label="World map"]';
+
+/** The map host's MapLibre-owned class and the layout it gives: all must survive React re-renders. */
+export const hostStyle = page =>
+  page.evaluate(sel => {
+    const el = document.querySelector(sel);
+    const css = getComputedStyle(el);
+    return { hasClass: el.classList.contains('maplibregl-map'), overflow: css.overflow, position: css.position };
+  }, MAP);
+
+/** The map's centre as [lat, lon]. */
+export const centreLatLon = page =>
+  page.evaluate(() => { const c = window.__zemyaGl.getCenter(); return [c.lat, c.lng]; });
 
 /** The feature state the renderer holds for one country: { c: fill colour, sc, sw, hide, ... }. */
 export function countryState(page, iso3) {

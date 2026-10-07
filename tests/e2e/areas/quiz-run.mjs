@@ -1,6 +1,7 @@
 /** Quiz run area (dev server): answering advances and never leaks the next name; pause/resume;
  *  the results screen and the personal best. */
 import { answer, startQuiz } from '../lib/quiz.mjs';
+import { hostStyle } from '../lib/map.mjs';
 import { frames, quiz, quizPhase } from '../lib/waits.mjs';
 
 export async function run({ page, devBase, check }) {
@@ -18,6 +19,11 @@ export async function run({ page, devBase, check }) {
   /* pausing freezes the timer; Esc (not just the button) resumes it */
   await page.keyboard.press('Escape');
   const paused = await quizPhase(page, 'paused');
+  // regression: the pause blur is a React class — it must not rewrite MapLibre's own class on the host
+  const pausedHost = await hostStyle(page);
+  check(pausedHost.hasClass && pausedHost.overflow === 'hidden' && ['relative', 'absolute'].includes(pausedHost.position),
+    `pausing dropped the map host's MapLibre class/layout: ${JSON.stringify(pausedHost)}`);
+  check(await page.locator('.stage__canvas.is-quiz-paused').count() === 1, 'pausing did not blur the map wrapper (is-quiz-paused)');
   await frames(page, 30); // half a second of frames while paused — elapsedMs must not move
   const stillPaused = await quiz(page);
   check(stillPaused.elapsedMs === paused.elapsedMs, `timer kept moving while paused — ${paused.elapsedMs} -> ${stillPaused.elapsedMs}`);
