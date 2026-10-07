@@ -8,8 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HistoryTimeline, type EntryKind, type HistoryHover, type TimelineEntry } from '~/features/history';
 import type { TimelineLabels } from '../atlas-context';
 
-/** `entryClicked` runs on every click of a timeline entry (the shell uses it to bring the phone sheet to half). */
-export function useHistoryCanvas(entryClicked: { current: () => void }) {
+export function useHistoryCanvas() {
   const historyCanvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HistoryTimeline | null>(null);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
@@ -39,7 +38,6 @@ export function useHistoryCanvas(entryClicked: { current: () => void }) {
   const MAX_PINNED_CARDS = 8;
 
   const handleEntryClick = useCallback((hit: HistoryHover) => {
-    entryClicked.current();
     setPinnedCards(prev => {
       const z = ++pinZRef.current;
       const existing = prev.find(p => p.id === hit.entry.id);

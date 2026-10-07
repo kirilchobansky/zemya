@@ -103,6 +103,26 @@
 .history-detail__rows {
   display: flex;
   flex-direction: column;
+  list-style: none;
+}
+
+/* the dot is drawn here, not by the browser's list marker: fixed beside the row's vertical
+   middle, so it never moves on hover, focus or click (same as the outline's rows) */
+.history-detail__rows > li {
+  position: relative;
+}
+
+.history-detail__rows > li::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  pointer-events: none;
 }
 
 .history-detail__row {

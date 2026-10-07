@@ -38,8 +38,8 @@ export interface HistoryOutlineProps {
   /** Null only for the brief window before the canvas controller mounts — every handler
    *  below no-ops until it's set. */
   timeline: HistoryTimeline | null;
-  /** Runs when a period or an entry row is clicked (the phone sheet comes to half). */
-  onPick?: () => void;
+  /** Runs on a click of a period row or an event row, with which one it was. */
+  onPick?: (kind: TimelineEntry['kind']) => void;
 }
 
 interface Section {
@@ -97,20 +97,33 @@ function buildSections(periods: readonly TimelineEntry[]): Section[] {
   return out;
 }
 
+/** The sub-periods nested directly or deeper under section `i` (they follow it in outline order). */
+function innerPeriods(sections: readonly Section[], i: number): TimelineEntry[] {
+  const out: TimelineEntry[] = [];
+  for (let j = i + 1; j < sections.length && sections[j].depth > sections[i].depth; j++) out.push(sections[j].period);
+  return out;
+}
+
 /** A period's own tier-1 events and tier-1 rulers, sorted by date — the expanded section's
- *  row list. Overlap, not strict containment (a ruler's reign can straddle a period edge). */
-function rowsFor(period: TimelineEntry, entries: readonly TimelineEntry[]): TimelineEntry[] {
+ *  row list. A reign (a span) that merely touches the period's edge (Zhivkov, ending the year
+ *  the Republic begins) is not in it; one that straddles an edge is. What lies inside a nested
+ *  sub-period (`inner`) is listed under that sub-period only. */
+function rowsFor(period: TimelineEntry, entries: readonly TimelineEntry[], inner: readonly TimelineEntry[]): TimelineEntry[] {
   const periodEnd = period.end ?? Infinity;
   return entries
     .filter(e => (e.kind === 'event' || e.kind === 'ruler') && e.tier === 1)
-    .filter(e => (e.end ?? e.start) >= period.start && e.start <= periodEnd)
+    .filter(e => {
+      const span = e.end != null && e.end > e.start;
+      return span ? e.end! > period.start && e.start < periodEnd : e.start >= period.start && e.start <= periodEnd;
+    })
+    .filter(e => !inner.some(c => e.start >= c.start && e.start < (c.end ?? Infinity)))
     .sort((a, b) => a.start - b.start || (a.id < b.id ? -1 : 1));
 }
 
 function SectionRows({
-  period, entries, onSelect
-}: { period: TimelineEntry; entries: readonly TimelineEntry[]; onSelect: (e: TimelineEntry) => void }) {
-  const rows = useMemo(() => rowsFor(period, entries), [period, entries]);
+  period, entries, inner, onSelect
+}: { period: TimelineEntry; entries: readonly TimelineEntry[]; inner: readonly TimelineEntry[]; onSelect: (e: TimelineEntry) => void }) {
+  const rows = useMemo(() => rowsFor(period, entries, inner), [period, entries, inner]);
   return (
     <ul className="history-outline__rows">
       {rows.map(row => (
@@ -161,16 +174,20 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline, onP
   }, [currentPeriodId, followTimeline]);
 
   function flyToEntry(entry: TimelineEntry) {
-    onPick?.();
+    onPick?.(entry.kind);
     if (!timeline) return;
     const { centre, pxPerYear } = flyTargetFor(entry, timeline.viewportSizePx);
     timeline.flyTo(centre, pxPerYear, entry.id);
   }
 
-  function handlePeriodClick(period: TimelineEntry) {
+  function handlePeriodClick(period: TimelineEntry, row: HTMLElement) {
     overrideRef.current = true;
-    setExpandedId(id => (id === period.id ? null : period.id));
+    const opening = expandedId !== period.id;
+    setExpandedId(opening ? period.id : null);
     flyToEntry(period);
+    // an opened period's name goes to the top of the panel, its events right below it
+    // (after the layout settles: the section that was open before it has just collapsed)
+    if (opening) requestAnimationFrame(() => row.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   }
 
   return (
@@ -184,14 +201,14 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline, onP
         Follow timeline
       </label>
 
-      {sections.map(({ period, depth }) => (
+      {sections.map(({ period, depth }, i) => (
         <div key={period.id} className="history-outline__section">
           <button
             type="button"
             className={`history-outline__period${depth ? ' history-outline__period--nested' : ''}${
               period.id === currentPeriodId ? ' is-here' : ''
             }`}
-            onClick={() => handlePeriodClick(period)}
+            onClick={e => handlePeriodClick(period, e.currentTarget)}
             aria-expanded={period.id === expandedId}
           >
             <span className="history-outline__swatch" style={{ background: period.color ?? 'var(--ink-3)' }} />
@@ -204,7 +221,7 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline, onP
             </span>
           </button>
 
-          {period.id === expandedId && <SectionRows period={period} entries={entries} onSelect={flyToEntry} />}
+          {period.id === expandedId && <SectionRows period={period} entries={entries} inner={innerPeriods(sections, i)} onSelect={flyToEntry} />}
         </div>
       ))}
     </div>

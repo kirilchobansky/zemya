@@ -45,11 +45,11 @@ import { drawBackground, drawOutOfRangeFade } from './draw-background';
 import { drawTopTicks } from './draw-ticks';
 import { layoutWires, totalWiresHeightPx } from './wire-layout';
 import { drawLaneTrack, drawWireCapsules } from './draw-wires';
-import { PIN_ACTIVE_RADIUS_PX, drawEventPins, drawPeriodBands } from './draw-pins';
+import { LABEL_POOL_OVERSCAN, drawEventPins, drawPeriodBands } from './draw-pins';
 import { drawConnectorLines } from './draw-connectors';
 import { drawCentreCylinderLine, drawCentreDate } from './draw-centre';
 import { assignRows, contextAt, laneSubRowCounts } from './layout';
-import { levelFor, timeToPx, type EntryKind } from './scale';
+import { levelFor, timeToPx, visibleRangeOverscan, type EntryKind } from './scale';
 
 export type { Axis, TimelineEntry, HitRegion, PinnedCardTarget, RenderContext } from './render-types';
 export { RENDER_CONFIG } from './render-colors';
@@ -131,6 +131,10 @@ function renderAt(rc: RenderContext, entries: readonly TimelineEntry[], levelPxP
   const visibleByKind: Record<EntryKind, TimelineEntry[]> = { period: [], ruler: [], government: [], event: [] };
   for (const e of visible) visibleByKind[e.kind].push(e);
 
+  // pins are fed from further out than the other kinds: a name outlives its line by a long way
+  const pool = visibleRangeOverscan(viewport, LABEL_POOL_OVERSCAN);
+  const eventPool = entries.filter(e => e.kind === 'event' && e.start >= pool.from && e.start <= pool.to);
+
   const allPeriods = entries.filter(e => e.kind === 'period').sort((a, b) => a.start - b.start);
   const periodIndexOf = new Map(allPeriods.map((e, i) => [e.id, i] as const));
   drawPeriodBands(ctx, axis, visibleByKind.period, periodIndexOf, viewport, contentTop, contentBottom);
@@ -143,12 +147,6 @@ function renderAt(rc: RenderContext, entries: readonly TimelineEntry[], levelPxP
   const focus = contextAt(entries, viewport.center);
   const activeIds = new Set<string>([...focus.period.all, ...focus.ruler.all, ...focus.government.all].map(e => e.id));
 
-  // Event pins get the same idle→active treatment (thicker line, bigger dot — never a
-  // label size change) when their exact date sits close to the centre marker, rather than
-  // by containment (an event has no range to contain anything).
-  for (const e of visibleByKind.event) {
-    if (Math.abs(timeToPx(e.start, viewport) - viewport.sizePx / 2) < PIN_ACTIVE_RADIUS_PX) activeIds.add(e.id);
-  }
   const activeAmounts = updateActiveAmounts(activeIds);
 
   const hits: HitRegion[] = [];
@@ -157,7 +155,7 @@ function renderAt(rc: RenderContext, entries: readonly TimelineEntry[], levelPxP
     const wire = wires[kind];
     drawLaneTrack(ctx, axis, viewport.sizePx, wire);
     if (kind === 'event') {
-      drawEventPins(ctx, axis, uiFont, monoFont, visibleByKind.event, viewport, wire, level, activeAmounts, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
+      drawEventPins(ctx, axis, uiFont, monoFont, eventPool, viewport, wire, level, activeAmounts, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);
       continue;
     }
     drawWireCapsules(ctx, axis, uiFont, kind, visibleByKind[kind], rows, viewport, wire, activeAmounts, hoveredId, pinnedIds, pulseId, pulseElapsedMs, hits);

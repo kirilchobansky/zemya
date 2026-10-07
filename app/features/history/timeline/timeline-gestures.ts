@@ -119,6 +119,7 @@ export class TimelineGestures {
       return;
     }
 
+    if (e.pointerType === 'touch') return; // a finger has no hover: it would stick on the last pin it touched
     this.host.hover.queueCheck(e.offsetX, e.offsetY);
   };
 

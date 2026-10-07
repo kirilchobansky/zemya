@@ -113,7 +113,7 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
           />
           </div>
         ) : (
-          <HistoryOutline entries={entries} currentPeriodId={historyCurrentPeriodId} timeline={historyTimeline} onPick={() => { if (isPhoneLayout()) setSheetSnap('half'); }} />
+          <HistoryOutline entries={entries} currentPeriodId={historyCurrentPeriodId} timeline={historyTimeline} onPick={kind => { if (isPhoneLayout()) setSheetSnap(kind === 'period' ? 'full' : 'half'); }} />
         )}
       </div>
     </>
