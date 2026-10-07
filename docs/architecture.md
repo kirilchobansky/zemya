@@ -325,12 +325,12 @@ public/data/geography/  generated, committed on purpose
 public/data/history/    generated, committed on purpose
 public/flags/           generated from flag-icons, committed on purpose
 
-scripts/build/          content/ + upstream datasets -> public/data/ (build-content, build-history, build-tiles, icons, og image)
-scripts/import/         one-off history importers (import-events, import-rulers)
+scripts/build/          content/ + upstream datasets -> public/data/ (build-content over build/content/, build-history, build-tiles, icons, og image)
+scripts/import/         one-off history importers (import-events, import-rulers over import/rulers/)
 scripts/audit/          read-only reports and QA (audit-freshness, audit-flags, check-history, check-seo)
 scripts/lib/            Node helpers shared by the above and, for a few pure ones, by app/ (geom, history, halo, site, ...)
-scripts/check-structure.mjs   400-line limit + import boundaries (npm run check)
-tests/e2e/              smoke.mjs and perf.mjs: drive a real browser against the production build
+scripts/check-structure.mjs   300-line limit (no allow-list) + import boundaries (npm run check)
+tests/e2e/              smoke.mjs (runner) + areas/ + lib/, and perf.mjs: drive a real browser (docs/structure.md "Browser tests")
 
 app/root.tsx, routes.ts, entry.client.tsx, entry.server.tsx   document, route table, hydrate, prerender
 app/routes/             route modules only, thin: loader, clientLoader, meta, mounting (URLs come from routes.ts, not folders)
@@ -343,9 +343,9 @@ app/routes/             route modules only, thin: loader, clientLoader, meta, mo
 app/features/           one folder per product area; index.ts exposes what other features use
   map/                  the atlas shell. atlas-context.ts, up.ts, sidebar-storage.ts, micro.ts,
                         components/ (AtlasShell, AtlasPanel, HistoryLayer, MapTopHud, MapBottomHud, MapNotices,
-                        Rail, MobileChrome, UpButton), hooks/ (use-map-controller, use-history-canvas,
+                        Rail (+ EdgeArrow, LayerControls, ProgressSection, DataSection, ThemeControls), MobileChrome, UpButton), hooks/ (use-map-controller, use-history-canvas,
                         use-sidebars, use-phone-sheet)
-  countries/            catalog.server, names(-bg), scopes, overlays, outline, world, mastery, quizSeo,
+  countries/            catalog.server, names(-bg), scopes, overlays (+ overlay-palettes), outline, world, mastery, quizSeo,
                         the Questions session generator (questions.ts barrel over question-kinds,
                         distractors, question-generators, session, religion), components/ (SearchBox, CountryProgress)
   questions/            the Questions page: QuestionsPanel, QuestionCard, QuestionsResult, use-question-session
@@ -355,16 +355,16 @@ app/features/           one folder per product area; index.ts exposes what other
     geography/          quiz definitions (quizzes.ts) and stages/ (Map, Flags, Outlines, ... Stage)
     name-all/           "Name all countries": NameAllQuiz container + use-name-all-world/run/atlas hooks,
                         NameAllPanel, NameAllResult, NameAllDock, NameAllHud, NameAllNamedList, NameAllFlag
-    history-fill/       "fill the list": fill-quiz, fill-quiz-config, fill-quizzes.server, HistoryFillQuiz
+    history-fill/       "fill the list": fill-quiz (+ fill-matching), fill-quiz-config, fill-quizzes.server, HistoryFillQuiz
                         container + use-fill-run, FillGrid, FillInputBar, FillResult, FillToggle, FillPhoneHud
     pages/              the list and run pages: QuizList(+Item, HistoryPanel), HistoryCountries,
                         HistoryCountryQuizzes, QuizRun(+Panel, Result, Hud) and their hooks
   history/
     timeline/           the canvas timeline: renderer.ts (render entry) over render-*/draw-*/wire-layout,
                         timeline.ts (HistoryTimeline) over timeline-config/-model/-framing/-fonts/-hover/-gestures,
-                        fly-animation, period-reporter, frame-scheduler; scale, layout
+                        fly-animation, period-reporter, frame-scheduler; scale (barrel over scale-config/-time/-viewport/-ticks/-visibility), layout
     data/               countries, catalog.server, related, search
-    components/         HistoryCard, HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch
+    components/         HistoryCard (+ history-card-format), HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch
   progress/             ProgressProvider, progress (Dexie store), scheduler (ts-fsrs), questions (generic Question + RNG).
                         Subject-agnostic: imports nothing from features/countries.
 

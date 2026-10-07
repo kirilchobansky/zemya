@@ -1,9 +1,8 @@
 /**
  * Structure check: `npm run check` (also the first step of `npm test`). Read-only. Fails on
  *
- *   1. a source file under app/ or scripts/ over 400 lines — 300 for a .css file — (the TEMPORARY
- *      allow-list below holds the files that are already over; each entry is removed when its file
- *      is split — phase 3), and
+ *   1. a source file under app/, scripts/ or tests/ over 300 lines (.css included). There is no
+ *      allow-list: a file that grows past the limit is split by purpose, and
  *   2. an import that breaks the dependency rules in docs/structure.md:
  *        - app/shared imports nothing from app/features, app/engines or app/routes
  *        - app/engines imports no React (react, react-dom, react-router) and nothing from
@@ -22,20 +21,14 @@ import { join, dirname, relative, posix, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const MAX_LINES = 400;
-const MAX_CSS_LINES = 300; // stylesheets are split by component/purpose, never mid-rule
-
-/** TEMPORARY: files over MAX_LINES today. Phase 3 splits them; delete each entry as it goes.
- *  A file not listed here that grows past the limit fails the check. */
-const LINE_LIMIT_ALLOW_LIST = new Map([
-  ['scripts/build/build-content.mjs', 'phase 3'],
-  ['scripts/import/import-rulers.mjs', 'phase 3']
-]);
+const MAX_LINES = 300; // every source file and every stylesheet; CSS is split by component/purpose, never mid-rule
 
 /** Deep cross-feature imports that cannot go through an index. Keep this list near-empty. */
 const DEEP_IMPORT_ALLOW_LIST = new Map([
   ['app/features/quizzes/history-fill/fill-quiz.ts',
-    'react-router.config.ts loads it at build time; that loader resolves neither `~` nor a barrel of components']
+    'react-router.config.ts loads it at build time; that loader resolves neither `~` nor a barrel of components'],
+  ['app/features/quizzes/history-fill/fill-matching.ts',
+    'the matching half of fill-quiz.ts, loaded by the same build-time config loader (same reason)']
 ]);
 
 const SOURCE = /\.(ts|tsx|mjs|mts|css)$/;
@@ -49,21 +42,14 @@ function walk(dir, out = []) {
 }
 const files = [...walk(join(root, 'app')), ...walk(join(root, 'scripts'))];
 const fileSet = new Set(files);
+const linted = [...files, ...walk(join(root, 'tests'))]; // tests/ is held to the line limit too
 const problems = [];
 
 // 1. line limit
-for (const f of files) {
+for (const f of linted) {
   const text = readFileSync(join(root, f), 'utf8');
   const lines = text.endsWith('\n') ? text.split('\n').length - 1 : text.split('\n').length;
-  const limit = f.endsWith('.css') ? MAX_CSS_LINES : MAX_LINES;
-  if (lines > limit && !LINE_LIMIT_ALLOW_LIST.has(f)) problems.push(`${f}: ${lines} lines (limit ${limit}) — split it`);
-}
-for (const f of LINE_LIMIT_ALLOW_LIST.keys()) {
-  if (!fileSet.has(f)) problems.push(`allow-list entry ${f} no longer exists — remove it from scripts/check-structure.mjs`);
-  else {
-    const n = readFileSync(join(root, f), 'utf8').split('\n').length;
-    if (n <= MAX_LINES) problems.push(`allow-list entry ${f} is now ${n} lines — remove it from scripts/check-structure.mjs`);
-  }
+  if (lines > MAX_LINES) problems.push(`${f}: ${lines} lines (limit ${MAX_LINES}) — split it`);
 }
 
 // 2. imports
@@ -114,4 +100,4 @@ if (problems.length) {
   console.error(`check-structure: ${problems.length} problem(s)\n` + problems.map(p => '  ' + p).join('\n'));
   process.exit(1);
 }
-console.log(`check-structure: ok (${files.length} files, ${LINE_LIMIT_ALLOW_LIST.size} on the temporary line-limit allow-list)`);
+console.log(`check-structure: ok (${linted.length} files, none over ${MAX_LINES} lines)`);

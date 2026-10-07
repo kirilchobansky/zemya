@@ -922,7 +922,7 @@ said what was allowed to import what. The layout is now by feature (`app/feature
 modules only). The rules are in CLAUDE.md "Structure" and enforced by `scripts/check-structure.mjs`;
 the human guide is `docs/structure.md`. Phase 1 moved files only (`git mv`, no logic or behaviour
 change, URLs unchanged). Phase 2 split `app.css` into per-component and shared CSS files (done); phase 3 split the files on the check's
-temporary 400-line allow-list.
+temporary 400-line allow-list (3A: `app/`; 3B: the two build/import scripts, `smoke.mjs`, `Rail.tsx`, `scale.ts`).
 
 Where the owner's brief and its own boundary rules disagreed, the **rules won** and the file moved
 to the nearest place that satisfies them:
@@ -1217,3 +1217,36 @@ traded resolution for speed while moving). Decided beyond the prompt:
   requests because PMTiles needs them. The client no longer downloads `world.json` at all: Outlines and
   the compare tool use `world-coarse.json` (all polygons, 0.006 deg simplification, invisible at
   silhouette size and at compare zoom levels); the camera bbox now comes from coarse geometry too.
+
+## Restructure phase 3B: scripts, tests, a trustworthy end-to-end suite
+
+- **One limit, no allow-list.** `check-structure.mjs` now fails any file under `app/`, `scripts/` or
+  `tests/` over 300 lines (CSS included); the allow-list mechanism was deleted, not just emptied. The
+  `DEEP_IMPORT_ALLOW_LIST` is a different thing (build-time-loaded files) and gained one entry,
+  `fill-matching.ts`, the half of `fill-quiz.ts` that holds its one deep import.
+- **Scripts split without changing output.** `build:content` was run before and after: every file in
+  `public/data` (pmtiles included) and the printed summary are byte-identical; `import-rulers` was run
+  old and new against copies of `content/history` and wrote an identical `bg.yaml`.
+- **The e2e suite was repaired by classifying each failure.** Stale test (fixed): `.stage__canvas` also
+  matches the timeline canvas; Vercel's `/_vercel/*` scripts 404 on a static test server; `--brass` differs
+  between themes (Malta's fill is `#a8641c` in the light theme); hover-probing fixed pixels for
+  Bulgaria/land (now `queryRenderedFeatures`); `world/30` is a random subset since "top N" became
+  random (`?order=population` is the old behaviour); wheel zoom is MapLibre's, not `0.0016`/px;
+  `/quizzes/...` no longer matches `/quiz/`; `/quizzes` is a two-stop route so its tab opens the sheet at
+  full, not half; the phone sheet slides away over 0.3 s before it is `visibility:hidden`; a camera "moved"
+  check that only compared x/y missed a pure zoom-out. Flaky by construction (fixed): fixed sleeps
+  everywhere, and the personal-best badge, which is read from IndexedDB after the list renders.
+- **One real bug found, not fixed (app code was out of scope):** React owns the map container's
+  `className` (`AtlasShell.tsx`'s `canvasClass`), MapLibre adds `maplibregl-map` to the same element, and
+  React overwrites the attribute when the value changes — pausing a quiz (`is-quiz-paused`) or arming
+  Compare (`is-picking`) leaves the container without `maplibregl-map` (and its `overflow:hidden`,
+  `position:relative`, font) until the next change. Fix idea: put React's classes on a wrapper, or toggle
+  them with `classList` in an effect. The suite avoids the class (`MAP` selector) so it does not depend on it.
+- **Build warning noted:** prerendering the legacy `/quiz/*` redirect routes logs "`<Navigate>` must not be
+  used on the initial render in a `<StaticRouter>`" — those pages redirect only once JS runs.
+- **Sandbox:** the Playwright browser here needs `libnspr4`/`libnss3`/`libasound`; without root, download the
+  `.deb`s with `apt-get download`, extract with `dpkg -x` and put them on `LD_LIBRARY_PATH`.
+- **`perf.mjs` recorder fixed:** the pan sample's last queued frame callback saw the zoom sample's
+  `recording` flag and kept running, so every zoom frame was recorded twice (a "median 0.0 ms, Infinity
+  fps"). Each sample now owns its loop by id. Numbers on this machine are software GL (SwiftShader):
+  pan ~117 ms, zoom ~67 ms median — the 16.7 ms target is printed, not asserted, and is not met here.

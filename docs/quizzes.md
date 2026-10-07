@@ -372,7 +372,7 @@ names the country, and nothing names the city until a reveal.
 - Where the target's capital sits under a pin-drawn city-state (Vatican, Monaco, Singapore),
   the target pin's own ring is the marker and the quiz ring is skipped (same 6 px rule as
   `drawCapitals`).
-- `tests/e2e/smoke.mjs` step 18 is the label-leak test: START on `/quizzes/geography/capitals/world/20`, read
+- `tests/e2e/areas/quiz-kinds.mjs` (capitals) is the label-leak test: START on `/quizzes/geography/capitals/world/20`, read
   the target from `window.__zemyaQuiz` (now with `targetCapital`), then scan **every text
   node and every `aria-label`/`title`/`alt`/`placeholder`/`value`** — whole-word,
   case- and diacritic-insensitive, `<script>`/`<style>` skipped — for the target's capital

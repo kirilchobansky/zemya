@@ -29,73 +29,14 @@
  *   PERF_DEVICE="iPhone 13" PERF_CPU=4 npm run perf
  */
 import { chromium, devices } from 'playwright';
-import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { join, extname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { requireBuild, startStaticServer } from './lib/static-server.mjs';
 
-const ROOT = resolve(process.cwd(), 'build', 'client');
 const PORT = Number(process.env.PORT || 4180);
 const PAN_STEPS = 90;
 const ZOOM_STEPS = 30;
 
-if (!existsSync(ROOT)) {
-  console.error('build/client not found — run `npx react-router build` first (NOT `npm run build`');
-  console.error('if you are measuring a hand-built payload — see CLAUDE.md\'s Performance section).');
-  process.exit(1);
-}
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.pmtiles': 'application/octet-stream',
-  '.pbf': 'application/x-protobuf',
-  '.woff2': 'font/woff2',
-  '.png': 'image/png',
-  '.webmanifest': 'application/manifest+json'
-};
-
-const server = createServer(async (req, res) => {
-  const url = decodeURIComponent((req.url || '/').split('?')[0]);
-  const candidates = [join(ROOT, url), join(ROOT, url, 'index.html')];
-  for (const candidate of candidates) {
-    if (!candidate.startsWith(ROOT)) break;
-    try {
-      const info = await stat(candidate);
-      if (!info.isFile()) continue;
-      const body = await readFile(candidate);
-      const type = MIME[extname(candidate)] || 'application/octet-stream';
-      // world.pmtiles is read with HTTP Range requests, as on Vercel
-      const range = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range || '');
-      if (range) {
-        const start = Number(range[1]);
-        const end = Math.min(range[2] ? Number(range[2]) : body.length - 1, body.length - 1);
-        res.writeHead(206, {
-          'content-type': type,
-          'content-range': `bytes ${start}-${end}/${body.length}`,
-          'content-length': end - start + 1,
-          'accept-ranges': 'bytes'
-        });
-        res.end(body.subarray(start, end + 1));
-        return;
-      }
-      res.writeHead(200, { 'content-type': type, 'content-length': body.length, 'accept-ranges': 'bytes' });
-      res.end(body);
-      return;
-    } catch {
-      /* try the next candidate */
-    }
-  }
-  res.writeHead(404, { 'content-type': 'text/plain' });
-  res.end('not found');
-});
-
-await new Promise(done => server.listen(PORT, done));
-const base = `http://127.0.0.1:${PORT}`;
+requireBuild("run `npx react-router build` first (NOT `npm run build`\nif you are measuring a hand-built payload — see CLAUDE.md's Performance section).");
+const { server, base } = await startStaticServer(PORT);
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
@@ -131,12 +72,17 @@ const settle = () =>
 /** Records rAF timestamps while `run` executes plus until the camera settles; returns frame deltas. */
 async function sample(run) {
   await page.evaluate(() => {
+    // one recorder per sample: a previous sample's loop that is still waiting on its last
+    // frame must not see the new run's flag and keep going (that doubled every frame — a
+    // 0.0 ms "median" in the zoom phase)
+    const id = (window.__perfRun = (window.__perfRun || 0) + 1);
     window.__perfFrames = [];
-    window.__perfRecording = true;
     const tick = t => {
+      if (window.__perfRun !== id) return;
       window.__perfFrames.push(t);
       if (window.__perfRecording) requestAnimationFrame(tick);
     };
+    window.__perfRecording = true;
     requestAnimationFrame(tick);
   });
   await run();

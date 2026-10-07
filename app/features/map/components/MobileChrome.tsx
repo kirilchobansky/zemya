@@ -7,7 +7,10 @@
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router';
 
-import { DataSection, LayerControls, ProgressSection, ThemeControls } from './Rail';
+import { DataSection } from './DataSection';
+import { LayerControls } from './LayerControls';
+import { ProgressSection } from './ProgressSection';
+import { ThemeControls } from './ThemeControls';
 import type { MasteryTotals, OverlayId } from '~/features/countries';
 import type { MicroMode } from '~/engines/map/style';
 import type { SheetSnap } from '~/shared/layout/sheet';

@@ -2,7 +2,7 @@ import type { PointerEvent, RefObject } from 'react';
 import { Outlet } from 'react-router';
 
 import { stepSnap, type SheetSnap } from '~/shared/layout/sheet';
-import { EdgeArrow } from './Rail';
+import { EdgeArrow } from './EdgeArrow';
 import { SheetGrip } from './MobileChrome';
 import { UpButton } from './UpButton';
 

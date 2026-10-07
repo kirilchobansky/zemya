@@ -11,7 +11,7 @@ Kiril (@kirilchobansky). Solo project. Bulgarian; "Zemya" = Земя, earth.
 
 ## Where this is
 
-The map is MapLibre GL over our own PMTiles (`docs/architecture.md`); the canvas renderer is gone. The client downloads only `world-coarse.json` (~500 KB) for geometry; the 3.4 MB `world.json` is a tile build input and is never fetched. `npm test` / `npm run perf` drive the MapLibre instance (feature state, rendered features, frame timing), not pixels.
+The map is MapLibre GL over our own PMTiles (`docs/architecture.md`); the canvas renderer is gone. The client downloads only `world-coarse.json` (~500 KB) for geometry; the 3.4 MB `world.json` is a tile build input and is never fetched. `npm test` / `npm run perf` drive the MapLibre instance (feature state, rendered features, frame timing), not pixels; `npm test` is a runner over ten area modules that wait on conditions, not timers, and report every failure in one run (`docs/structure.md` "Browser tests").
 Four top-level sections — Map, Quizzes, Questions, History — share one shell
 (`routes/map/atlas.tsx`): the atlas, Questions (FSRS session, formerly "Study"), seven quizzes on
 one engine (Countries, Flags, Outlines, Capitals, Currency, Language, Religion — the last three have non-unique answers, `docs/quizzes.md`) plus "Name all countries" (free recall, World + six continents, own screen `features/quizzes/name-all/NameAllQuiz.tsx`, English and Bulgarian names with one typo allowed, `docs/quizzes.md`), a Bulgaria and a United States (`united-states`, `content/history/us.yaml`: 12 periods + 47 presidencies + 50 vice presidents (kind government) + 298 events, eight fill quizzes) history timeline (`/history/:slug`, two countries today,
@@ -51,15 +51,17 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   what other features use — a `*.server.ts` file is the one deep import (it can't be re-exported
   without leaking into the client bundle). Prefer `~/features/...`, `~/shared/...`,
   `~/engines/...` over long relative paths; inside one folder use `./x`.
-- **File rules:** a source file under `app/` or `scripts/` stays under 400 lines (aim for 300);
-  the check fails above 400 except for the files on its temporary allow-list (today only two
-  build/import scripts; `app/` has none — never add to it). Split by purpose: state and effects
+- **File rules:** every source file under `app/`, `scripts/` or `tests/` — CSS included — stays
+  under **300 lines**; `npm run check` fails above that and there is **no allow-list** (never add
+  one). Split by purpose: state and effects
   into `use-xxx.ts` hooks, logic into plain modules, one component per file; route files stay
   thin (loader, meta, mounting). One component per file. Components are `PascalCase.tsx`
   named after the default/named export; other modules are `kebab-case.ts` (older camelCase
   names stay until touched); hooks `useThing`; route modules keep their React Router names.
   **Tests live next to the code they test**, same name plus `.test.ts` (`scale.ts` ->
-  `scale.test.ts`); only the browser tests (`smoke.mjs`, `perf.mjs`) live in `tests/e2e/`. Unit
+  `scale.test.ts`); only the browser tests live in `tests/e2e/` (`smoke.mjs` is a thin runner over
+  `areas/*.mjs`, helpers in `lib/`; `perf.mjs`; waits are by condition, never a fixed sleep — see
+  `docs/structure.md` "Browser tests"). Unit
   test files are not typechecked (`tsconfig.json` excludes them), as before.
 - **CSS: one file per component, next to it** (`HistoryCard.css` beside `HistoryCard.tsx`, imported
   by it). Page- or feature-level styles live in the feature folder (`quiz-run.css`) or beside the
@@ -106,7 +108,7 @@ npm run typecheck       # react-router typegen && tsc --noEmit
 npm test                # serves build/client and drives a real browser
 npm run test:unit       # vitest — pure-logic tests, no browser
 npm run check:seo       # audits build/client: sitemap, titles, canonical, JSON-LD
-npm run check           # structure check: 400-line limit, import boundaries (also runs first in npm test)
+npm run check           # structure check: 300-line limit (no allow-list), import boundaries (also runs first in npm test)
 npm run audit           # stale-data report. Read-only. RUN BEFORE ANY RELEASE
 npm run audit:flags     # rasterises every flag against its authored description
 npm run check:history    # history content QA report (parent bounds, overlaps, gaps). Read-only

@@ -57,12 +57,14 @@ stylesheets several features share — see "CSS" below).
 **`content/`** — the hand-written data (YAML). **`public/data/`** — what the build generates from
 it; committed.
 
-**`scripts/`** — Node scripts, never shipped. `build/` generates data and images, `import/` are
-one-off importers, `audit/` are read-only reports and QA checks, `lib/` is shared helpers.
-`check-structure.mjs` runs the structure check (`npm run check`).
+**`scripts/`** — Node scripts, never shipped. `build/` generates data and images (each long script
+is a thin entry point over a folder of modules: `build-content.mjs` over `build/content/`),
+`import/` are one-off importers (`import-rulers.mjs` over `import/rulers/`), `audit/` are read-only
+reports and QA checks, `lib/` is shared helpers. `check-structure.mjs` runs the structure check
+(`npm run check`).
 
-**`tests/e2e/`** — browser tests against the production build (`npm test`, `npm run perf`).
-Unit tests are **not** here: they sit next to the code (`scale.ts` has `scale.test.ts`).
+**`tests/e2e/`** — browser tests (`npm test`, `npm run perf`); see "Browser tests" below. Unit
+tests are **not** here: they sit next to the code (`scale.ts` has `scale.test.ts`).
 
 ## Where do I put X?
 
@@ -84,7 +86,7 @@ Unit tests are **not** here: they sit next to the code (`scale.ts` has `scale.te
 | styles for a page / a feature's screens | a named `.css` in the feature folder (or beside the route) |
 | styles several features use | a small `.css` in `app/shared/styles/` named by purpose, imported in `routes/map/atlas.tsx` (mind the order) |
 | a unit test | next to the file it tests, `name.test.ts` |
-| a browser test | `tests/e2e/` |
+| a browser test | an area module in `tests/e2e/areas/` (helpers in `tests/e2e/lib/`), registered in `smoke.mjs` |
 | a script that generates data | `scripts/build/` |
 | a Node helper used by scripts | `scripts/lib/` |
 | hand-written content | `content/` |
@@ -113,11 +115,12 @@ features/progress -> never features/countries
 
 ## File rules
 
-- A source file stays under **400 lines** (aim for 300). Split by purpose: state and effects into a
-  `use-xxx.ts` hook, logic into small plain modules, each piece of UI into its own component file,
-  constants and types into their own file. Keep the exports other files use unchanged, and put
-  anything another feature needs in the feature's `index.ts`. `npm run check` fails above that;
-  its short temporary allow-list names the files still to be split, and only ever shrinks.
+- A source file under `app/`, `scripts/` or `tests/` — CSS included — stays under **300 lines**.
+  Split by purpose: state and effects into a `use-xxx.ts` hook, logic into small plain modules,
+  each piece of UI into its own component file, constants and types into their own file. Keep the
+  exports other files use unchanged, and put anything another feature needs in the feature's
+  `index.ts`. `npm run check` fails above that. There is no allow-list any more (phase 3B emptied
+  it and removed the mechanism): split the file instead.
 - **One component per file**, named after it: `HistoryCard.tsx` holds `HistoryCard`. A
   component's tiny private helpers can stay in its file.
 - Names: components `PascalCase.tsx`; everything else `kebab-case.ts`; hooks start with `use`;
@@ -184,3 +187,62 @@ Every file that was on the line-limit allow-list under `app/` was split by purpo
 - routes/quizzes/quizzes.$subject.$quizId.tsx -> features/quizzes/pages/{QuizRun,QuizRunPanel,QuizRunResult,QuizRunHud,use-quiz-run-data,use-quiz-atlas-bridge,use-quiz-test-seams}; route keeps loader/clientLoader/meta + dispatch (155 lines)
 - geography/quizzes.test.ts -> quizzes.test.ts (selection/scopes), quiz-overlay.test.ts, quiz-definitions.test.ts; history-fill/fill-quiz.test.ts -> fill-quiz.test.ts (matching), fill-quiz-tables.test.ts (shipped timelines). 399 tests unchanged.
 - routes/questions/questions.tsx -> features/questions/{QuestionsPanel,QuestionCard,QuestionsResult,QuestionsMessage,use-question-session,questions.css,index.ts}; route = meta + <QuestionsPanel/> (new feature, one public export)
+
+## Browser tests (`tests/e2e/`)
+
+`npm test` = `npm run check`, then `smoke.mjs`. `smoke.mjs` is only a runner: it serves
+`build/client`, launches Chromium, runs each area module in order and prints every failure at once —
+a check that fails is recorded, an area that throws is recorded as "crashed" (with the line) and the
+next area still runs. `node tests/e2e/smoke.mjs --only=map,phone` runs some areas.
+
+| Area (`areas/`) | Against | What it covers |
+| --- | --- | --- |
+| `map` | production build | the map paints, hover/click, search, dossier + flag, neighbours, overlays, compare, cold load, Russia, Malta |
+| `questions`, `quiz-list`, `history` | production build | Questions session, quiz list scopes and redirects, both timelines, a fill quiz mounting |
+| `progress`, `quiz-run`, `quiz-kinds`, `quiz-input`, `quiz-camera` | dev server | grading repaints the overlay; a whole run, pause, results, personal best; flags/outlines/capitals/currency and the label-leak test; typing survives touching the map; one camera path per question |
+| `phone` (+ `phone-quiz`, `phone-widths`, `phone-lists`) | dev server, iPhone 13 | sheet, tabs, a quiz by touch, no sideways scroll at 360/390/430, quiz list, Questions buttons |
+
+Areas that need the DEV-only seams (`window.__zemya`, `__zemyaQuiz`, `__zemyaView`) run against a
+`react-router dev` server the runner starts on first use and always stops. Conventions that keep the
+suite deterministic — read them before adding a check:
+
+- **Wait for the condition, never a time.** `lib/waits.mjs`: `mapIdle` (style and tiles loaded, no
+  camera movement including our own easeTo, for four frames in a row), `open` (network idle + map
+  idle), `quizAnswered` / `quizMovedOn` / `quizPhase` (the quiz seam), `frames` (flush a few frames
+  before asserting that something did *not* happen). CSS transitions (the phone sheet) are awaited
+  through `document.getAnimations()`. Data that arrives after render (the personal-best badge reads
+  IndexedDB) gets a `waitForFunction`, not a pause.
+- **Read the map, not pixels or probe points.** `lib/map.mjs`: `renderedAt`, `countryState`,
+  `pagePointOf` (`map.project`), `firstLand`. Find land with `queryRenderedFeatures`, not by hovering
+  guessed coordinates until a tooltip shows. The map container is `MAP`
+  (`div.stage__canvas[aria-label="World map"]`): not `.maplibregl-map`, which React can overwrite
+  (see decisions.md), and not `.stage__canvas` alone, which also matches the timeline canvas.
+- **Theme-dependent colours are read from the page** (`selectedColour` = `--brass`), never hard-coded.
+- **Wheel zoom is MapLibre's:** `wheelZoom(page, ratio)` loops until the camera reaches the ratio.
+- **Quiz camera checks use `?order=population`** (the 30 most populous): the default "top N" is a
+  random subset that can draw a micro-state, whose camera legitimately zooms in.
+- The static server answers `/_vercel/*` with an empty script (Vercel serves its analytics itself;
+  elsewhere it would 404 and trip the console-error check).
+
+## What the big files became (phase 3B)
+
+Same method as 3A: split by purpose, exports other files use unchanged, no behaviour change.
+
+- `scripts/build/build-content.mjs` -> entry point over `scripts/build/content/`: `config` (constants,
+  ABSORB), `authored`, `countries` (+ `language-families`), `normalise`, `aliases`, `confusable`,
+  `places`, `capital-aliases`, `facet-aliases`, `geometry` (+ `lakes`), `halos`, `flags`, `emit`,
+  `report`. `public/data` and the printed summary are byte-identical to before.
+- `scripts/import/import-rulers.mjs` -> entry point over `scripts/import/rulers/`: `helpers`, `tables`,
+  `second-empire`, `governments` (+ monarchs), `communist`, `splice`. Output identical when run on the same
+  `bg.yaml`.
+- `tests/e2e/smoke.mjs` -> runner + `areas/` + `lib/` (above); `perf.mjs` shares `lib/static-server.mjs`.
+- `features/map/components/Rail.tsx` -> `Rail` plus `EdgeArrow`, `LayerControls`, `ProgressSection`,
+  `DataSection`, `ThemeControls` (one component per file; `Rail.css` stays Rail's).
+- `history/timeline/scale.ts` -> barrel over `scale-config` (types, `CONFIG`), `scale-time`,
+  `scale-viewport` (+ clamps), `scale-ticks`, `scale-visibility`; `scale.test.ts` split to match
+  (`scale-ticks.test.ts`).
+- Left over from 3A at 300-400 lines, split so the 300 limit could take effect: `quizzes/history-fill/fill-quiz.ts`
+  (-> `fill-matching.ts`, re-exported; deep-import allow-listed like fill-quiz.ts, same build-time
+  loader), `history/components/HistoryCard.tsx` (-> `history-card-format.ts`),
+  `countries/overlays.ts` (-> `overlay-palettes.ts`, the in-place-refreshed palette objects),
+  `history/timeline/layout.test.ts` (-> `layout-rows.test.ts`).

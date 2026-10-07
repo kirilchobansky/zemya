@@ -3,6 +3,7 @@
 Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list).
 
 **Working:**
+- Tests: `npm test` = structure check (300-line limit, no allow-list) + the end-to-end suite (a runner over ten area modules, deterministic, reports all failures in one run; `docs/structure.md` "Browser tests"). Passing as of phase 3B; `npm run perf` unchanged.
 - The atlas: MapLibre GL (WebGL) map over our own PMTiles, 1:10m coastline at the top tile level, search, neighbour highlight, true-size
   compare, 5 overlays plus mastery; only the ~500 KB coarse geometry is fetched, the 3.4 MB
   `world.json` never is (`docs/architecture.md`). Real flags at true aspect ratio, offline.
