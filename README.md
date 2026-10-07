@@ -22,7 +22,7 @@
 
 <br />
 
-<img src="docs/images/map.png" alt="Zemya: the world map with search, overlays and a dossier panel" width="100%" />
+<img src="docs/images/map.png" alt="Zemya: the map with Brazil selected, its land neighbours lit up and its dossier open" width="100%" />
 
 </div>
 
@@ -49,11 +49,15 @@ Zemya is an interactive atlas built for learning, not for looking things up. Eve
 <table>
   <tr>
     <td width="50%"><img src="docs/images/dossier.png" alt="A country dossier: Bulgaria with neighbours highlighted" /><br /><sub><b>Dossiers</b> — facts, memory hook, neighbours</sub></td>
-    <td width="50%"><img src="docs/images/quiz-countries.png" alt="A countries-quiz question mid-run" /><br /><sub><b>Name the Country</b> — find it on the map, type its name</sub></td>
+    <td width="50%"><img src="docs/images/quiz-countries.png" alt="A countries-quiz question mid-run in Europe, the target highlighted" /><br /><sub><b>Name the Country</b> — find it on the map, type its name</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/images/quiz-flags.png" alt="A flag quiz question" /><br /><sub><b>Name the Flag</b> — real flags at true aspect ratio</sub></td>
     <td width="50%"><img src="docs/images/quiz-catalogue.png" alt="The quiz catalogue with continent scopes and sizes" /><br /><sub><b>Quiz catalogue</b> — pick a continent and a size</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/name-all.png" alt="Name all countries, Europe, mid-run with named countries coloured green" /><br /><sub><b>Name all countries</b> — free recall, every name turns its country green</sub></td>
+    <td width="50%"><img src="docs/images/history.png" alt="The Bulgaria history timeline with periods, rulers and events" /><br /><sub><b>History timeline</b> — periods, rulers and events on one scrollable axis</sub></td>
   </tr>
 </table>
 
