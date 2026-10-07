@@ -36,6 +36,8 @@ export interface QuizRunEntry {
   /** Times of the "Review mistakes" passes that followed this run: [second try, third try, ...].
    *  `timeMs` stays the first try. Absent when no review was played. */
   reviewTimesMs?: number[];
+  /** Parallel to `reviewTimesMs`: how many countries were still revealed (missed) in that pass. */
+  reviewMissedCounts?: number[];
 }
 
 /** Fire-and-forget, like saveCard/logReview — the UI never waits on this write. Refuses
@@ -65,7 +67,7 @@ export function saveQuizRun(
 }
 
 /** Appends one review pass (second try, third try, ...) to a saved run. Fire-and-forget. */
-export function addReviewTime(id: number | undefined, timeMs: number): void {
+export function addReviewTime(id: number | undefined, timeMs: number, missedCount: number): void {
   const store = database();
   if (!store || id === undefined) return;
   store.quizRuns
@@ -73,6 +75,7 @@ export function addReviewTime(id: number | undefined, timeMs: number): void {
     .equals(id)
     .modify(row => {
       row.reviewTimesMs = [...(row.reviewTimesMs ?? []), timeMs];
+      row.reviewMissedCounts = [...(row.reviewMissedCounts ?? []), missedCount];
     })
     .catch(shrug('quiz run review write'));
 }

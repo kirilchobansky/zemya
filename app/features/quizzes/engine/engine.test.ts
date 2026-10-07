@@ -229,6 +229,6 @@ describe('Review mistakes', () => {
     expect(engine.phase).toBe('done');
     expect(saveQuizRun).toHaveBeenCalledOnce();
     await Promise.resolve();
-    expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number));
+    expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number), 0);
   });
 });

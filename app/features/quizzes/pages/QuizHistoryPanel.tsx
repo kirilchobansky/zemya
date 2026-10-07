@@ -5,9 +5,17 @@ import { NAME_ALL_ID } from '../geography/quizzes';
 import { formatRunDate } from './quiz-list-data';
 import './QuizHistoryPanel.css';
 
-/** "Second time", "Third time", then "4th time", "5th time", ... */
-function timeLabel(n: number): string {
-  return `${n === 2 ? 'Second' : n === 3 ? 'Third' : `${n}th`} time`;
+/** "first try", "second try", "third try", then "4th try", "5th try", ... */
+function tryLabel(n: number): string {
+  return `${['first', 'second', 'third'][n - 1] ?? `${n}th`} try`;
+}
+
+/** The tally of a run: countries known after its LAST finished attempt, out of the total — the
+ *  first run counts first-try answers, each review pass then clears whatever it got right. */
+function tally(run: QuizRunEntry): string {
+  const passes = run.reviewMissedCounts?.length ?? 0;
+  const known = passes ? run.totalCount - run.reviewMissedCounts![passes - 1] : run.firstTryCount;
+  return `${known}/${run.totalCount} ${tryLabel(passes + 1)}`;
 }
 
 /** The archive of one quiz/scope (and selection mode), every size together: date, size, time and
@@ -56,14 +64,13 @@ export function QuizHistoryPanel({ history, runs, onClose, onDelete }: {
               <span className="quiz-history__time numeric">
                 {formatDuration(run.timeMs)}
               </span>
-              {run.reviewTimesMs?.map((ms, i) => (
-                <span key={i} className="quiz-history__retry numeric">
-                  <span className="quiz-history__ordinal">{timeLabel(i + 2)}</span> {formatDuration(ms)}
-                </span>
-              ))}
-              <span className="quiz-history__tally">
-                {run.firstTryCount}/{run.totalCount}{" "}
-                {history.quizId === NAME_ALL_ID ? "named" : "first-try"}
+              <span
+                className="quiz-history__tally"
+                title={run.reviewTimesMs?.map((ms) => formatDuration(ms)).join(" · ")}
+              >
+                {history.quizId === NAME_ALL_ID
+                  ? `${run.firstTryCount}/${run.totalCount} named`
+                  : tally(run)}
               </span>
               <button
                 type="button"

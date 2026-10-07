@@ -34,6 +34,6 @@ export function archiveRun(
   entry: Omit<QuizRunEntry, 'id'> & { scope: string }
 ): Promise<number | undefined> {
   if (!reviewing) return saveQuizRun(entry);
-  previous.then(id => addReviewTime(id, entry.timeMs));
+  previous.then(id => addReviewTime(id, entry.timeMs, entry.revealedCount));
   return previous;
 }
