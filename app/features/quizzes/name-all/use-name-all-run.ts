@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 
 import { matchCountryName, normaliseName, type QuizScope, type prepareCountryNames } from '~/features/countries';
-import { useUpStep } from '~/features/map';
 import { bestQuizTime, saveQuizRun } from '~/features/progress';
 import { NAME_ALL_ID } from '~/features/quizzes/geography/quizzes';
 import type { CountryRecord } from '~/engines/map/types';
@@ -103,31 +102,13 @@ export function useNameAllRun({ scope, ready, total, prepared, byIso3, leave }: 
     setPhase('running');
   };
 
-  /* Restart (active run only): a fresh run, nothing saved. */
-  const restart = () => {
-    pausedRef.current = false;
-    setPaused(false);
-    namedRef.current = NO_NAMED;
-    namedSetRef.current = new Set();
-    setNamed(NO_NAMED);
-    setInput('');
-    setHint('');
-    setOutcome(null);
-    elapsedRef.current = 0;
-    setElapsedMs(0);
-    inputRef.current?.focus({ preventScroll: true });
-    startedAtRef.current = Date.now();
-    phaseRef.current = 'running';
-    setPhase('running');
-  };
-
   const giveUp = () => {
     if (phaseRef.current !== 'running') return;
     finish('gaveup', pausedRef.current ? elapsedRef.current : Date.now() - startedAtRef.current);
   };
 
-  /* The panel's Up from a run or its results: back to the start screen, nothing saved. */
-  const toStart = () => {
+  /* Restart: back to the start screen, nothing saved. */
+  const restart = () => {
     pausedRef.current = false;
     setPaused(false);
     namedRef.current = NO_NAMED;
@@ -141,7 +122,6 @@ export function useNameAllRun({ scope, ready, total, prepared, byIso3, leave }: 
     phaseRef.current = 'idle';
     setPhase('idle');
   };
-  useUpStep(phase !== 'idle', toStart);
 
   const togglePause = useCallback(() => {
     if (phaseRef.current !== 'running') return;

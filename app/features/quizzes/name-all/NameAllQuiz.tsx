@@ -15,6 +15,7 @@
  * Only a COMPLETED run is saved. A given-up run shows its score and the missed countries and
  * saves nothing: bestQuizTime is "fastest time", and a quick give-up must not become a best.
  */
+import { listReturnState } from '~/features/map';
 import { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useGo } from '~/shared/lib/navigation';
@@ -37,7 +38,7 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
   const go = useGo();
   const { stageHost, mounted, pool, prepared, byIso3, total, ready } = useNameAllWorld(scope);
 
-  const leave = () => go(backTo, { state: { sheet: 'full' }, replace: true });
+  const leave = () => go(backTo, { state: listReturnState(window.location.pathname), replace: true });
   const run = useNameAllRun({ scope, ready, total, prepared, byIso3, leave });
   const {
     phase, paused, named, input, hint, shaking, setShaking, elapsedMs, outcome, running, finished,

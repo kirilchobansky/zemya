@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef } from "react";
 
-import { useAtlasContext, useUpStep } from '~/features/map';
+import { useAtlasContext } from '~/features/map';
 import { SCOPE_VIEWS, type QuizScope, type QuizSize } from '~/features/countries';
 import { useKeyboard, useQuizPageLock } from "~/shared/lib/keyboard";
 import { NO_INSETS } from "~/engines/map/follow";
@@ -86,8 +86,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
   }, [runOwnsScreen, setImmersive]);
   useQuizPageLock(runOwnsScreen);
   const finished = validRun && engine.phase === "done";
-  // Up: a run or its results go back to this quiz's start screen; the start screen's Up is the list
-  useUpStep(validRun && engine.phase !== "idle", engine.toStart);
+  // Up leaves a run or its results like Abandon, to the list with this quiz open (UpButton)
   useEffect(() => {
     if (finished) setSheetSnap("full");
   }, [finished, setSheetSnap]);

@@ -6,7 +6,7 @@
  *   Quizzes:   /quizzes (root, no button)
  *              > /quizzes/:subject, /quizzes/history, /quizzes/history/:slug
  *              > a quiz's start screen (a run route before START)
- *              > an active run (or its results) — Up leaves it like Abandon and lands on the start screen
+ *              > an active run or its results — Up leaves it like Abandon, to the list with that quiz open
  *   History:   /history (root, no button) > /history/:slug > an opened entry (state, not a route)
  *
  * Everywhere else (map, country pages, Questions, each section's root) there is no button.
@@ -41,6 +41,13 @@ export function isQuizRunPath(pathname: string): boolean {
   const segments = pathname.split('/').filter(Boolean);
   if (segments[0] !== 'quizzes') return false;
   return segments[1] === 'history' ? segments.length === 4 : segments.length === 5;
+}
+
+/** Location state for going back to a subject's quiz list from a geography run: the sheet at full
+ *  height and the quiz (with its scope) the run was, left open. History fill runs have no such list. */
+export function listReturnState(pathname: string): { sheet: 'full'; openQuiz?: string; openScope?: string } {
+  const [, subject, quizId, scope] = pathname.split('/').filter(Boolean);
+  return isQuizRunPath(pathname) && subject !== 'history' ? { sheet: 'full', openQuiz: quizId, openScope: scope } : { sheet: 'full' };
 }
 
 /**

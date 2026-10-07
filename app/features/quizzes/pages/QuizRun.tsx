@@ -4,6 +4,7 @@
  * map), the atlas bridge and the views — the panel, the quiz's own Stage (map / flag /
  * outline), the desktop pause screen and the phone HUD.
  */
+import { listReturnState } from '~/features/map';
 import { createPortal } from "react-dom";
 import { Link, Navigate } from "react-router";
 
@@ -24,7 +25,7 @@ export function QuizRun() {
     stageHost, world, pool, size, drawnCountries, countries, setRedraw
   } = useQuizRunData();
 
-  const abandon = () => go(backTo, { state: { sheet: "full" }, replace: true });
+  const abandon = () => go(backTo, { state: listReturnState(window.location.pathname), replace: true });
   const engine = useQuizEngine(
     definition ?? { id: "unknown", facet: "location" },
     drawnCountries,
@@ -121,13 +122,12 @@ export function QuizRun() {
   };
 
   /* Restart (active run only): a NEW run on a NEWLY DRAWN set of the same size, scope and mode
-     (random draws differ; population / Top-N and "all" come back as the same set), started at
-     once. Nothing is saved or graded. Focus inside the tap, like startRun. */
+     (random draws differ; population / Top-N and "all" come back as the same set), waiting on
+     the start screen. Nothing is saved or graded. */
   const restartRun = () => {
-    engine.inputRef.current?.focus({ preventScroll: true });
     const next = selectQuizCountries(pool, size, mode);
     setRedraw({ from: drawnCountries, list: next });
-    engine.restart(next);
+    engine.toStart();
   };
 
   const stageProps = {
@@ -155,7 +155,7 @@ export function QuizRun() {
     <>
       <QuizRunPanel
         engine={engine} definition={definition} scope={scope} countries={countries} revealed={revealed}
-        backTo={backTo} panelStage={panelStage} onRestart={restartRun} onRunAgain={startRun}
+        backTo={backTo} panelStage={panelStage} onRestart={restartRun} onRunAgain={engine.toStart}
       />
 
       <Stage {...stageProps} slot="stage" />

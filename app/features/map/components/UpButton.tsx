@@ -2,7 +2,7 @@ import { useCallback, useContext } from 'react';
 import { useLocation } from 'react-router';
 
 import { AtlasContext } from '~/features/map/atlas-context';
-import { parentPath, isQuizRunPath } from '~/features/map/up';
+import { parentPath, isQuizRunPath, listReturnState } from '~/features/map/up';
 import { useGo } from '~/shared/lib/navigation';
 
 /**
@@ -23,7 +23,9 @@ export function UpButton() {
   const goUp = useCallback(() => {
     if (detailOpen && setDetail) setDetail(null);
     else if (routeStep) routeStep();
-    else if (parent !== null) go(parent, { state: { sheet: 'full' }, replace: isQuizRunPath(pathname) || undefined });
+    else if (parent !== null) {
+      go(parent, { state: listReturnState(pathname), replace: isQuizRunPath(pathname) || undefined });
+    }
   }, [detailOpen, setDetail, routeStep, parent, go, pathname]);
 
   if (!detailOpen && !routeStep && parent === null) return null;

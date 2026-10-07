@@ -4,6 +4,7 @@
  * run-history panel.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router';
 
 import { bestQuizTime, deleteQuizRun, listQuizRuns, type QuizRunEntry } from '~/features/progress';
 import { sizesForPool, type QuizScope, type QuizSize } from '~/features/countries';
@@ -13,9 +14,15 @@ import { bestKey, type PoolCounts } from './quiz-list-data';
 
 export function useQuizList(scopeCounts: PoolCounts, hasSubject: boolean) {
   /** Which quiz's options are expanded — one at a time, collapsed by default. */
-  const [openId, setOpenId] = useState<string | null>(null);
+  // Back from a quiz's start screen hands the quiz (and scope) it came from over in location state.
+  const left = useLocation().state as { openQuiz?: string; openScope?: QuizScope } | null;
+  const [openId, setOpenId] = useState<string | null>(
+    hasSubject && left?.openQuiz && scopeCounts[left.openQuiz] ? left.openQuiz : null,
+  );
   /** Chosen scope per quiz; every quiz keeps its own chip row across collapses. */
-  const [scopes, setScopes] = useState<Record<string, QuizScope>>({});
+  const [scopes, setScopes] = useState<Record<string, QuizScope>>(
+    left?.openQuiz && left.openScope && scopeCounts[left.openQuiz]?.[left.openScope] ? { [left.openQuiz]: left.openScope } : {},
+  );
   const scopeOf = (quizId: string): QuizScope => scopes[quizId] ?? "world";
   const [selectionModes, setSelectionModes] = useState<
     Record<string, QuizSelectionMode>
