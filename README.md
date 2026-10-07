@@ -4,7 +4,7 @@
 
 # Zemya
 
-**Typed geography quizzes for every country, flag and capital.**
+**An interactive atlas for learning geography and history: typed quizzes, a world map and timelines.**
 
 <a href="https://zemya.study" target="_blank" rel="noopener noreferrer">
   <img src="https://img.shields.io/badge/Live%20Site-zemya.study-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live site" />
@@ -30,16 +30,20 @@
 
 ## 📖 About
 
-Zemya is an interactive atlas built for learning, not for looking things up. Every subject has one natural spatial index, and you learn by navigating it: geography's is the map (history's will be the timeline). You type the answer, the clock runs, and the app schedules what to show you next.
+Zemya is an interactive atlas built for learning, not for looking things up. Every subject has one natural spatial index, and you learn by navigating it: geography's is the map history's is the timeline. You type the answer, the clock runs, and the app schedules what to show you next.
 
 ## ✨ Features
 
-- 🎯 **Three quizzes** — name the country on the map, name the flag, name the capital.
+- 🗺️ **A real map** — MapLibre GL over our own vector tiles, full 1:10m coastlines, search, neighbour highlight and overlays.
+- 🎯 **Seven quizzes** — Countries, Flags, Outlines, Capitals, Currency, Language and Religion, on one shared engine.
+- 🔤 **Name all countries** — free recall for the world or one continent, English or Bulgarian names, one typo allowed.
 - 🌍 **Every continent** — quiz the world or one continent, with sizes that adapt to the pool.
-- ⌨️ **Typed and timed** — no multiple choice; personal bests and run history.
-- 🧠 **Spaced repetition** — an FSRS card per country and fact decides what you see next.
+- 🕰️ **History timelines** — Bulgaria and the United States, with "fill the list" quizzes (rulers, presidents, prime ministers).
+- ⌨️ **Typed and timed** — no multiple choice; personal bests and a run archive.
+- 🧠 **Spaced repetition** — an FSRS card per country and fact decides what you see next (the Questions section).
 - 📐 **True-size comparison** — drag a country over another and Mercator's distortion becomes visible.
 - 📖 **197 country dossiers** — real flags, facts and a hand-written memory hook for each.
+- 📱 **Built for phones** — a bottom-sheet layout and quizzes designed around the on-screen keyboard; installable as a PWA.
 - 📴 **Offline-first, no account** — your progress lives in your browser; nothing is uploaded.
 
 <table>
@@ -58,7 +62,7 @@ Zemya is an interactive atlas built for learning, not for looking things up. Eve
 | Layer            | Technologies                                                  |
 | ---------------- | ------------------------------------------------------------- |
 | **Frontend**     | React 19 · TypeScript · React Router 8 (prerendered)          |
-| **Map**          | Custom canvas renderer (full 1:10m coastlines)                |
+| **Map**          | MapLibre GL JS over our own PMTiles (full 1:10m coastlines)   |
 | **Storage**      | Dexie (IndexedDB) · ts-fsrs (spaced repetition)               |
 | **Build & test** | Vite · Vitest · Playwright                                    |
 | **Hosting**      | Vercel (static files)                                         |
@@ -96,7 +100,7 @@ each package's own `package.json` / `LICENSE` in `node_modules`, not from memory
 | [Fraunces](https://fonts.google.com/specimen/Fraunces), [Archivo](https://fonts.google.com/specimen/Archivo), [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | Type, loaded from Google Fonts | SIL Open Font License 1.1 |
 
 Runtime and build dependencies, from their own `package.json`: dexie Apache-2.0 ·
-ts-fsrs MIT · react, react-dom, react-router MIT · isbot Unlicense · topojson-client,
+maplibre-gl and pmtiles BSD-3-Clause · ts-fsrs MIT · react, react-dom, react-router MIT · isbot Unlicense · topojson-client,
 topojson-simplify, yaml ISC · dev tooling (vite, vitest, TypeScript, Playwright,
 fake-indexeddb, @react-router/*) MIT or Apache-2.0.
 
