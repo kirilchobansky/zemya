@@ -12,6 +12,7 @@ import { useGo } from '~/shared/lib/navigation';
 
 import type { OverlayId, QuizOverride } from '~/features/countries';
 import type { MicroMode } from '~/engines/map/style';
+import { sheetVisible } from '~/shared/layout/sheet';
 import { isPhoneLandscape } from '~/shared/layout/viewport';
 import { AtlasContext } from '../atlas-context';
 import { useHistoryCanvas } from '../hooks/use-history-canvas';
@@ -58,6 +59,17 @@ export function AtlasShell() {
     quiz?.paused ? 'is-quiz-paused' : '',
     showTimeline ? 'is-hidden' : ''
   ].filter(Boolean).join(' ');
+  /* A pinned card's "See more" on a phone: the detail opens in the sheet at half, never over a
+     peek or a full sheet. Cards keep clear of whatever the sheet covers (as the timeline's cylinder does). */
+  const { setSelectedHistoryEntryId } = history;
+  const { phone: onPhone, landscape: onLandscape, snap: sheetSnap, setSnap: setSheetSnap } = sheet;
+  const openEntry = useCallback((id: string) => {
+    setSelectedHistoryEntryId(id);
+    if (onPhone) setSheetSnap('half');
+  }, [setSelectedHistoryEntryId, onPhone, setSheetSnap]);
+  const cardBottomInset = onPhone && !onLandscape && typeof document !== 'undefined'
+    ? Math.min(sheetVisible(sheetSnap, window.innerHeight, document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0), window.innerHeight * 0.5)
+    : 0;
   const comparingOrArming = Boolean(map.comparing) || map.armingCompare;
 
   return (
@@ -105,6 +117,7 @@ export function AtlasShell() {
           <HistoryLayer
             canvasRef={history.historyCanvasRef}
             showTimeline={showTimeline}
+            bottomInset={cardBottomInset}
             hover={history.historyHover}
             entries={history.timelineEntries}
             pinnedCards={history.pinnedCards}
@@ -112,7 +125,7 @@ export function AtlasShell() {
             timeline={history.historyTimelineInstance}
             onClose={history.handleCardClose}
             onFront={history.handleCardFront}
-            onSeeMore={history.setSelectedHistoryEntryId}
+            onSeeMore={openEntry}
             onRectChange={history.handleCardRectChange}
           />
 

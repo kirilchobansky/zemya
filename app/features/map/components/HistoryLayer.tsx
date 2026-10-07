@@ -8,10 +8,12 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** The history timeline's canvas and the cards over it: the hover card and the pinned cards. */
 export function HistoryLayer({
-  canvasRef, showTimeline, hover, entries, pinnedCards, pinnedIds, timeline, onClose, onFront, onSeeMore, onRectChange
+  canvasRef, showTimeline, bottomInset, hover, entries, pinnedCards, pinnedIds, timeline, onClose, onFront, onSeeMore, onRectChange
 }: {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   showTimeline: boolean;
+  /** Px of the canvas's bottom the phone sheet covers: cards are kept clear of it. */
+  bottomInset: number;
   hover: HistoryHover | null;
   entries: TimelineEntry[] | null;
   pinnedCards: { id: string; entry: TimelineEntry; rect: Rect; z: number }[];
@@ -30,6 +32,7 @@ export function HistoryLayer({
       aria-label="History timeline"
     />
 
+    <div className="history-layer">
     {showTimeline && hover && entries && !pinnedIds.includes(hover.entry.id) && (
       <HistoryCard
         entry={hover.entry}
@@ -37,7 +40,7 @@ export function HistoryLayer({
         entries={entries}
         bounds={{
           width: canvasRef.current?.clientWidth ?? 0,
-          height: canvasRef.current?.clientHeight ?? 0
+          height: Math.max(0, (canvasRef.current?.clientHeight ?? 0) - bottomInset)
         }}
       />
     )}
@@ -51,7 +54,7 @@ export function HistoryLayer({
           initialRect={card.rect}
           bounds={{
             width: canvasRef.current?.clientWidth ?? 0,
-            height: canvasRef.current?.clientHeight ?? 0
+            height: Math.max(0, (canvasRef.current?.clientHeight ?? 0) - bottomInset)
           }}
           zIndex={card.z}
           timeline={timeline}
@@ -61,6 +64,7 @@ export function HistoryLayer({
           onRectChange={onRectChange}
         />
       ))}
+    </div>
     </>
   );
 }

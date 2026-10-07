@@ -82,3 +82,13 @@ kbd {
   background: var(--chart-3);
   color: var(--ink-3);
 }
+
+/* iOS zooms the page when a field under 16px takes focus and does not zoom back; text fields on a
+   touch device are never smaller (!important because component rules set their own sizes). */
+@media (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='button'], [type='submit']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

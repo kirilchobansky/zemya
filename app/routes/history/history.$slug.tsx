@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 
 import { HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch, historyCountryFor } from '~/features/history';
 import { timelineFor } from '~/features/history/data/catalog.server';
+import { isPhoneLayout } from '~/shared/layout/viewport';
 import { pageMeta } from '~/shared/lib/seo';
 import { useAtlasContext } from '~/features/map';
 import type { Route } from './+types/history.$slug';
@@ -35,7 +36,7 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
   const { country, entries } = loaderData;
   const {
     setTimelineEntries, setTimelineLabels, historyPinnedIds, closeAllHistoryCards, selectedHistoryEntryId, setSelectedHistoryEntryId,
-    pinHistoryEntry, historyTimeline, historyCurrentPeriodId,
+    setSheetSnap, pinHistoryEntry, historyTimeline, historyCurrentPeriodId,
     historyHiddenKinds, toggleHistoryKind, historyHiddenCategories, toggleHistoryCategory, resetHistoryFilters
   } = useAtlasContext();
 
@@ -44,6 +45,12 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
     setTimelineEntries(entries);
     return () => setTimelineEntries(null);
   }, [entries, country, setTimelineEntries, setTimelineLabels]);
+
+  // a search pick on a phone brings the sheet back to half, so the result isn't hidden behind a full one
+  const openFromSearch = (id: string) => {
+    setSelectedHistoryEntryId(id);
+    if (isPhoneLayout()) setSheetSnap('half');
+  };
 
   const selectedEntry = selectedHistoryEntryId ? entries.find(e => e.id === selectedHistoryEntryId) ?? null : null;
 
@@ -60,7 +67,7 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
         </div>
       </header>
       <div className="panel__body">
-        <HistorySearch lang={country.lang} entries={entries} timeline={historyTimeline} onOpen={setSelectedHistoryEntryId} />
+        <HistorySearch lang={country.lang} entries={entries} timeline={historyTimeline} onOpen={openFromSearch} />
         <HistoryFilters
           hiddenKinds={historyHiddenKinds}
           onToggleKind={toggleHistoryKind}

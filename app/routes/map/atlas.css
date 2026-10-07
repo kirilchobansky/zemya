@@ -22,6 +22,16 @@
   overflow: hidden;
 }
 
+/* The history cards' own stacking context: pinned cards raise their z-index on every click, and
+   must never climb over the phone sheet (z-index 5). */
+.history-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  isolation: isolate;
+  pointer-events: none;
+}
+
 .stage__canvas {
   position: absolute;
   inset: 0;
