@@ -758,7 +758,7 @@ phones and the rail on desktop (`ThemeControls`, `app/features/map/components/Ra
 `root.tsx` — the documented exception to "do not use `localStorage`": it is a per-browser
 display preference, not progress data, and must be read synchronously or the page flashes
 the wrong theme. Still a chart room in both, not a generic dashboard or a white void: light
-is paper-and-ink (off-white page, white land, light blue-grey sea, darker borders, deepened/
+is paper-and-ink (warm cream page, cream-white land, pale sage sea, brown-tinted borders; the neighbour highlight is a soft dusty blue, 1.8:1 against the land, so it never competes with the brass selection; deepened/
 desaturated accents), not the dark palette's colours inverted. Do not drift toward the
 default "near-black + one neon accent" look, in either theme.
 
@@ -774,13 +774,13 @@ anymore, only the resolved colour cache needs a fallback default (kept equal to 
 hand, same convention both files now use for every entry, not just those two).
 
 ```
---abyss       #080D13 / #F4F1EA   ground, deep sea ink / off-white page
---chart       #0E1720 / #FFFFFF   panel surface
---chart-2     #14212C / #ECE7DD   raised surface
---rule        #243543 / #C9BEAC   hairline
---ink         #E6EEF3 / #201A12   primary text
---ink-2       #9FB3C0 / #5A5040   secondary text
---ink-3       #748D99 / #6D6252   tertiary / labels — AA-checked, not a straight deepen of --ink-2
+--abyss       #080D13 / #F7F0E3   ground, deep sea ink / warm cream page
+--chart       #0E1720 / #FFFCF5   panel surface
+--chart-2     #14212C / #F0E6D3   raised surface
+--rule        #243543 / #D3C1A2   hairline
+--ink         #E6EEF3 / #251A0E   primary text
+--ink-2       #9FB3C0 / #5C4B37   secondary text
+--ink-3       #748D99 / #6E5D48   tertiary / labels — AA-checked, not a straight deepen of --ink-2
 --brass       #E8A33D / #A8641C   accent, borders, TEXT — deepened for its own contrast on a pale surface
 --brass-fill  #E8A33D / #B3741E   a brass-FILLED control's background (chip, primary button) —
                                    diverges from --brass in light: that button's --ink-on-brass
@@ -790,8 +790,8 @@ hand, same convention both files now use for every entry, not just those two).
 --new         #E2544F / #B23A35   mastery: new
 --learn       #E8A33D / #A8641C   mastery: learning
 --master      #3DD68C / #16875A   mastery: mastered
---land        #31485A / #FFFFFF   default landmass fill
---ocean       #080D13 / #CFE0E6   canvas water — equals --abyss in dark on purpose, diverges in light
+--land        #31485A / #FFFCF5   default landmass fill
+--ocean       #080D13 / #D9DFD2   canvas water — equals --abyss in dark on purpose, diverges in light
 ```
 
 (dark / light — see `tokens.css` for the full palette, including `--brass-2`/`--brass-fill-hover`,

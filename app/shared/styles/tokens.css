@@ -136,19 +136,19 @@
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --abyss: #f4f1ea;
-    --abyss-rgb: 244 241 234;
-    --chart: #ffffff;
-    --chart-rgb: 255 255 255;
-    --chart-2: #ece7dd;
-    --chart-3: #ded6c7;
-    --rule: #c9beac;
-    --rule-soft: #ddd4c2;
+    --abyss: #f7f0e3;
+    --abyss-rgb: 247 240 227;
+    --chart: #fffcf5;
+    --chart-rgb: 255 252 245;
+    --chart-2: #f0e6d3;
+    --chart-3: #e3d5bb;
+    --rule: #d3c1a2;
+    --rule-soft: #e5d9c1;
 
-    --ink: #201a12;
-    --ink-rgb: 32 26 18;
-    --ink-2: #5a5040;
-    --ink-3: #6d6252;
+    --ink: #251a0e;
+    --ink-rgb: 37 26 14;
+    --ink-2: #5c4b37;
+    --ink-3: #6e5d48;
 
     --brass: #a8641c;
     --brass-rgb: 168 100 28;
@@ -158,7 +158,7 @@
     --brass-dim: #d9b689;
     --sea: #1f7691;
     --sea-rgb: 31 118 145;
-    --sea-dim: #bfe0ea;
+    --sea-dim: #cfe3e6;
 
     --new: #b23a35;
     --new-rgb: 178 58 53;
@@ -166,16 +166,16 @@
     --master: #16875a;
     --master-rgb: 22 135 90;
 
-    --land: #ffffff;
-    --land-edge: #b9c3ca;
-    --ocean: #cfe0e6;
-    --map-context: #e4dccb;
-    --micro-pin: #4c6572;
-    --neighbour: #2f7e9e;
-    --neighbour-stroke: #0f5772;
-    --hover-fill: #dcebf0;
-    --hover-stroke: #3a7f95;
-    --border-default: rgba(28, 38, 46, 0.5);
+    --land: #fffcf5;
+    --land-edge: #cdbd9f;
+    --ocean: #d9dfd2;
+    --map-context: #eadfc8;
+    --micro-pin: #7a6550;
+    --neighbour: #a9c4cc;
+    --neighbour-stroke: #5d8794;
+    --hover-fill: #f1e3c3;
+    --hover-stroke: #b08a4f;
+    --border-default: rgba(60, 40, 20, 0.5);
 
     --density-1: #cfe4ea;
     --density-2: #9dc7d3;
@@ -193,14 +193,14 @@
     --categorical-slate: #5c6f7a;
     --categorical-grey: #5a6f7a;
 
-    --flag-shadow-rim: rgba(20, 30, 38, 0.12);
-    --flag-shadow-lift: rgba(20, 30, 38, 0.24);
-    --flag-stage-bg: #e4dccb;
+    --flag-shadow-rim: rgba(60, 40, 20, 0.12);
+    --flag-shadow-lift: rgba(60, 40, 20, 0.24);
+    --flag-stage-bg: #eadfc8;
     --flag-stage-shadow: rgb(var(--shadow-rgb) / 22%);
 
-    --brand-mark-a: #dce6ea;
-    --brand-mark-b: #aebfc7;
-    --swatch-border-rgb: 20 30 38;
+    --brand-mark-a: #efe2c8;
+    --brand-mark-b: #d2bd96;
+    --swatch-border-rgb: 40 28 14;
 
     color-scheme: light;
   }
@@ -210,19 +210,19 @@
    duplicated rather than nested because plain CSS has no "match this OR that media" without
    repeating the declaration block (no custom-media / :media() support to lean on here) */
 :root[data-theme='light'] {
-  --abyss: #f4f1ea;
-  --abyss-rgb: 244 241 234;
-  --chart: #ffffff;
-  --chart-rgb: 255 255 255;
-  --chart-2: #ece7dd;
-  --chart-3: #ded6c7;
-  --rule: #c9beac;
-  --rule-soft: #ddd4c2;
+  --abyss: #f7f0e3;
+  --abyss-rgb: 247 240 227;
+  --chart: #fffcf5;
+  --chart-rgb: 255 252 245;
+  --chart-2: #f0e6d3;
+  --chart-3: #e3d5bb;
+  --rule: #d3c1a2;
+  --rule-soft: #e5d9c1;
 
-  --ink: #201a12;
-  --ink-rgb: 32 26 18;
-  --ink-2: #5a5040;
-  --ink-3: #6d6252;
+  --ink: #251a0e;
+  --ink-rgb: 37 26 14;
+  --ink-2: #5c4b37;
+  --ink-3: #6e5d48;
 
   --brass: #a8641c;
   --brass-rgb: 168 100 28;
@@ -232,7 +232,7 @@
   --brass-dim: #d9b689;
   --sea: #1f7691;
   --sea-rgb: 31 118 145;
-  --sea-dim: #bfe0ea;
+  --sea-dim: #cfe3e6;
 
   --new: #b23a35;
   --new-rgb: 178 58 53;
@@ -240,16 +240,16 @@
   --master: #16875a;
   --master-rgb: 22 135 90;
 
-  --land: #ffffff;
-  --land-edge: #b9c3ca;
-  --ocean: #cfe0e6;
-  --map-context: #e4dccb;
-  --micro-pin: #4c6572;
-  --neighbour: #2f7e9e;
-  --neighbour-stroke: #0f5772;
-  --hover-fill: #dcebf0;
-  --hover-stroke: #3a7f95;
-  --border-default: rgba(28, 38, 46, 0.5);
+  --land: #fffcf5;
+  --land-edge: #cdbd9f;
+  --ocean: #d9dfd2;
+  --map-context: #eadfc8;
+  --micro-pin: #7a6550;
+  --neighbour: #a9c4cc;
+  --neighbour-stroke: #5d8794;
+  --hover-fill: #f1e3c3;
+  --hover-stroke: #b08a4f;
+  --border-default: rgba(60, 40, 20, 0.5);
 
   --density-1: #cfe4ea;
   --density-2: #9dc7d3;
@@ -267,14 +267,14 @@
   --categorical-slate: #5c6f7a;
   --categorical-grey: #5a6f7a;
 
-  --flag-shadow-rim: rgba(20, 30, 38, 0.12);
-  --flag-shadow-lift: rgba(20, 30, 38, 0.24);
-  --flag-stage-bg: #e4dccb;
+  --flag-shadow-rim: rgba(60, 40, 20, 0.12);
+  --flag-shadow-lift: rgba(60, 40, 20, 0.24);
+  --flag-stage-bg: #eadfc8;
   --flag-stage-shadow: rgb(var(--shadow-rgb) / 22%);
 
-  --brand-mark-a: #dce6ea;
-  --brand-mark-b: #aebfc7;
-  --swatch-border-rgb: 20 30 38;
+  --brand-mark-a: #efe2c8;
+  --brand-mark-b: #d2bd96;
+  --swatch-border-rgb: 40 28 14;
 
   color-scheme: light;
 }
