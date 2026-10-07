@@ -86,7 +86,7 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
           className="action action--primary"
           onClick={onRunAgain}
         >
-          Run it again
+          Try again
         </button>
       </div>
     </>

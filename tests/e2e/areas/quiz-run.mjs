@@ -51,9 +51,9 @@ export async function run({ page, devBase, check }) {
   check(/first-try/.test(resultText), 'results screen missing the first-try/revealed tally');
   check(!(await page.isVisible('.quiz-dock')), 'the input dock is still visible after finishing');
 
-  await page.click('.action--primary:has-text("Run it again")');
+  await page.click('.action--primary:has-text("Try again")');
   const restarted = await quizPhase(page, 'running').catch(() => null);
-  check(restarted?.phase === 'running', '"Run it again" did not start a new run');
+  check(restarted?.phase === 'running', '"Try again" did not start a new run');
 
   /* the size grid (and so the best-time badge) only renders once the quiz row is expanded */
   await page.goto(`${devBase}quizzes/geography`, { waitUntil: 'networkidle' });

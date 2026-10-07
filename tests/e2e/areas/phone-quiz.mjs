@@ -95,12 +95,12 @@ export async function run({ check }, p) {
     await phone.waitForFunction(n => window.__zemyaQuiz.answeredCount > n, q.answeredCount, { timeout: 5000 }).catch(() => {});
   }
   check((await quizPhase(phone, 'done', 5000).catch(() => null))?.phase === 'done', 'phone: the run never reached the results');
-  await phone.waitForSelector('.panel .action--primary:has-text("Run it again")', { timeout: 5000 }).catch(() => {});
+  await phone.waitForSelector('.panel .action--primary:has-text("Try again")', { timeout: 5000 }).catch(() => {});
   await p.settled();
   check((await snapOf()) === 'full', `phone: the results should open as a full-height sheet (${await snapOf()})`);
-  check(await phone.isVisible('.panel .action--primary:has-text("Run it again")'), 'phone: no "Run it again" on the results sheet');
+  check(await phone.isVisible('.panel .action--primary:has-text("Try again")'), 'phone: no "Try again" on the results sheet');
   check(!(await inputFocused()), 'phone: the keyboard input is still focused over the results');
-  await phone.tap('.panel .action--primary:has-text("Run it again")');
+  await phone.tap('.panel .action--primary:has-text("Try again")');
   await quizPhase(phone, 'running', 5000).catch(() => {});
-  check(await inputFocused(), 'phone: "Run it again" did not focus the input inside the tap');
+  check(await inputFocused(), 'phone: "Try again" did not focus the input inside the tap');
 }

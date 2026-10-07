@@ -75,7 +75,7 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
         </section>
       )}
       <div className="actions">
-        <button type="button" className="action action--primary" onClick={onRestart}>Run it again</button>
+        <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
       </div>
     </>
   );

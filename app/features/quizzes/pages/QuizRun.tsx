@@ -28,7 +28,7 @@ export function QuizRun() {
   const abandon = () => go(backTo, { state: listReturnState(window.location.pathname), replace: true });
   const engine = useQuizEngine(
     definition ?? { id: "unknown", facet: "location" },
-    drawnCountries,
+    countries,
     scope ?? "world",
     requestedSize ?? "all",
     mode,
