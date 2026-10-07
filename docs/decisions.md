@@ -829,11 +829,11 @@ Island nations are specks at world zoom, so the quiz used to fly the camera to a
 Each country with **no land borders and under 25,000 km2** (derived in `scripts/lib/halo.mjs`'s
 `qualifiesForHalo`, 30 before the exclusions below) gets a `halo` ring instead.
 
-- **Exclusions** (`HALO_EXCLUDED`, owner request after seeing it): Bahamas, Jamaica, every Caribbean
-  island nation (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta, Cyprus and Bahrain keep pins — 17 qualify.
+- **Exclusions** (`HALO_EXCLUDED`, owner request after seeing it): Jamaica, every Caribbean
+  island nation (the Bahamas got its halo back — owner request, 18 qualify) (ATG, BRB, DMA, GRD, KNA, LCA, VCT, TTO), Malta, Cyprus and Bahrain keep pins.
 - **Neighbour rule**: a halo is a wash over open sea. One that would be more than 15% another country's land
   (`HALO_MAX_NEIGHBOUR_SHARE`, `neighbourLandShare`, sampled at build) is not built — only **Singapore** (36%;
-  every other halo is under 4%) — so **16 halos remain** and Singapore is a dot.
+  every other halo is under 4%) — so **17 halos remain** and Singapore is a dot.
 - **Build** (`build-content.mjs`, pure maths in `scripts/lib/halo.mjs`): every outer-ring vertex
   of the full geometry, unwrapped by the same rules as `topology.ts` (ring unwrap, then a rigid
   per-polygon shift to the branch nearest the country's own longitude — keep the two in sync), convex hull in a

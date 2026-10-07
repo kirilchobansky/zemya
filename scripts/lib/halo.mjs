@@ -27,10 +27,10 @@ const CORNER_STEPS = 24;
  *  country is a dot instead. Everyone else measures under 4%. */
 export const HALO_MAX_NEIGHBOUR_SHARE = 0.15;
 
-/** Owner's call: the Caribbean, Malta and Cyprus keep their dots (and their land shapes once
+/** Owner's call: Jamaica, the Caribbean, Malta and Cyprus keep their dots (and their land shapes once
  *  zoomed in) — a halo there read as clutter over a crowded or already-legible region. */
 export const HALO_EXCLUDED = new Set([
-  'BHS', 'JAM', 'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'TTO', 'MLT', 'CYP', 'BHR'
+  'JAM', 'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'TTO', 'MLT', 'CYP', 'BHR'
 ]);
 
 export function qualifiesForHalo(country) {

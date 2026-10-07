@@ -29,7 +29,7 @@ describe('halo payload', () => {
   const qualifying = data.countries.filter(qualifiesForHalo);
 
   it('every qualifying country has one but Singapore, whose halo would cover Malaysia and Indonesia', () => {
-    expect(qualifying.length).toBe(17);
+    expect(qualifying.length).toBe(18);
     const covered = ['SGP'];
     expect(data.halos.map(h => h.id).sort()).toEqual(
       qualifying.filter(c => !covered.includes(c.iso3)).map(c => c.id).sort()
@@ -48,7 +48,7 @@ describe('halo payload', () => {
 
   it('keeps land micro-states, the Caribbean, Malta, Cyprus and Bahrain on pins', () => {
     const ids = new Set(data.halos.map(h => h.id));
-    for (const iso3 of ['MCO', 'VAT', 'SMR', 'LIE', 'BHS', 'JAM', 'CYP', 'MLT', 'ATG', 'TTO', 'BHR']) {
+    for (const iso3 of ['MCO', 'VAT', 'SMR', 'LIE', 'JAM', 'CYP', 'MLT', 'ATG', 'TTO', 'BHR']) {
       expect(ids.has(data.countries.find(c => c.iso3 === iso3)!.id)).toBe(false);
     }
   });
@@ -78,7 +78,7 @@ describe('halo payload', () => {
       expect(Math.min(...lats), feature.country.iso3).toBeLessThanOrEqual(minLat);
       expect(Math.max(...lats), feature.country.iso3).toBeGreaterThanOrEqual(maxLat);
     }
-    expect(world.haloFeatures.length).toBe(16);
+    expect(world.haloFeatures.length).toBe(17);
     const areas = world.haloFeatures.map(f => f.halo!.area);
     expect(areas).toEqual([...areas].sort((a, b) => a - b));
   });

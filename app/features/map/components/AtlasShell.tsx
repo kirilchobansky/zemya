@@ -149,6 +149,7 @@ export function AtlasShell() {
             hovered={map.hovered}
             hoveredPlace={map.hoveredPlace}
             tip={map.tip}
+            tipRef={map.tipRef}
             comparing={map.comparing}
             armingCompare={map.armingCompare}
             onCompare={map.toggleCompare}

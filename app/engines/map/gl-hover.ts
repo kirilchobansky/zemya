@@ -5,7 +5,6 @@
 import type { MapMouseEvent, MapTouchEvent } from 'maplibre-gl';
 
 import type { GlHost } from './gl-host';
-import { LAYER } from './gl-style';
 import { pickAt, pickPlaceAt } from './gl-picking';
 import type { Feature, PlaceMark } from './types';
 
@@ -26,6 +25,8 @@ export class GlHover {
   private hoverFeature: Feature | null = null;
   private hoverMark: PlaceMark | null = null;
   private hoverKey = '';
+  /** Where the pointer last was over the map, in map pixels — the tooltip follows it. */
+  private pointer = { x: 0, y: 0 };
 
   constructor(private host: GlHost, private hooks: HoverHooks) {}
 
@@ -46,11 +47,15 @@ export class GlHover {
     if (GlHover.isTouch(e.originalEvent)) return;
     if (this.host.map.isMoving() && !this.hooks.easing()) return; // dragging the map
     const { x, y } = e.point;
+    this.pointer = { x, y };
     const mark = pickPlaceAt(this.host, x, y);
     const feature = mark?.feature ?? pickAt(this.host, x, y);
     if (!feature) { this.clearHover(); return; } // ocean: nothing is hovered
     // moving within one country (or one ring) is not a change: no work, no callback
-    if (feature === this.hoverFeature && mark === this.hoverMark) return;
+    if (feature === this.hoverFeature && mark === this.hoverMark) {
+      this.host.callbacks.onPointer?.(x, y); // same country: only the tooltip moves
+      return;
+    }
     this.hoverFeature = feature;
     this.hoverMark = mark;
     this.hoverKey = '';
@@ -74,29 +79,16 @@ export class GlHover {
     if (e.pointerType === 'touch') this.clearHover();
   };
 
-  /** Reports the hover with the position of the country's own label point (its anchor, the
-   *  point the Names layer uses) or the hovered ring — never the pointer. `labelShown` is
-   *  whether MapLibre has placed that name, in which case the app shows no tooltip. Called on a
-   *  change of country and, while one is hovered, when the camera moves the point; skipped when
-   *  nothing it reports changed. */
+  /** Reports the hover with the pointer position, so the tooltip follows the mouse. Called on a
+   *  change of country or ring and again when the camera moves under a hovered country. */
   emitHover(): void {
     const feature = this.hoverFeature;
     if (!feature) return;
-    const mark = this.hoverMark;
-    const at = mark ? this.host.map.project([mark.place.lon, mark.place.lat]) : this.host.map.project(feature.anchor as [number, number]);
-    const x = Math.round(at.x);
-    const y = Math.round(at.y);
-    let labelShown = false;
-    if (mark) labelShown = true; // a ring that can be hovered is drawn with its name
-    else {
-      labelShown = this.host.map.queryRenderedFeatures(
-        [[x - 90, y - 14], [x + 90, y + 14]], { layers: [LAYER.labelsCountry, LAYER.labelsMicro] }
-      ).some(hit => hit.properties?.iso3 === feature.country.iso3);
-    }
-    const key = `${x},${y},${labelShown}`;
+    const { x, y } = this.pointer;
+    const key = `${x},${y}`;
     if (key === this.hoverKey) return;
     this.hoverKey = key;
-    this.host.callbacks.onHover(feature, x, y, mark, labelShown);
+    this.host.callbacks.onHover(feature, x, y, this.hoverMark);
   }
 
   readonly onClick = (e: MapMouseEvent | MapTouchEvent): void => {

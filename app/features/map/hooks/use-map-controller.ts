@@ -52,6 +52,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
   const [reloadKey, setReloadKey] = useState(0);
   const [hovered, setHovered] = useState<Feature | null>(null);
   const [hoveredPlace, setHoveredPlace] = useState<PlaceMark | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const [scale, setScale] = useState({ km: 0, px: 0 });
   const [comparing, setComparing] = useState<{ feature: Feature; over: Feature | null } | null>(null);
@@ -153,10 +154,17 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
           host,
           world,
           {
-            onHover: (feature, x, y, place, labelShown) => {
+            onHover: (feature, x, y, place) => {
               setHovered(feature);
               setHoveredPlace(place ?? null);
-              setTip(feature && !labelShown ? { x, y } : null);
+              setTip(feature ? { x, y } : null);
+            },
+            // the tooltip follows the mouse inside one country: moved in the DOM, no re-render
+            onPointer: (x, y) => {
+              const el = tipRef.current;
+              if (!el) return;
+              el.style.left = `${x}px`;
+              el.style.top = `${y}px`;
             },
             onSelect: f => handleSelectRef.current(f),
             onCameraChange: setScale,
@@ -291,7 +299,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
   };
 
   return {
-    world, error, retrying, restoring, retry, mapHostRef, atlasRef, atlasInstance, hovered, hoveredPlace, tip, scale,
+    world, error, retrying, restoring, retry, mapHostRef, atlasRef, atlasInstance, hovered, hoveredPlace, tip, tipRef, scale,
     comparing, armingCompare, selected, totals, toggleCompare
   };
 }

@@ -1,16 +1,19 @@
+import type { RefObject } from 'react';
+
 import { STEP_LABEL, type LoadFailure } from '~/engines/map/load-error';
 import type { RetryInfo } from '~/engines/map/retry';
 import type { Feature, PlaceMark } from '~/engines/map/types';
 
 /** Floating notices over the map: the hover tooltip, the compare-size explainer, and a
  *  data-load error. */
-export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, tip, comparing, armingCompare, onCompare, error, retrying, restoring, onRetry }: {
+export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, tip, tipRef, comparing, armingCompare, onCompare, error, retrying, restoring, onRetry }: {
   showTimeline: boolean;
   quiz: boolean;
   coarse: boolean;
   hovered: Feature | null;
   hoveredPlace: PlaceMark | null;
   tip: { x: number; y: number } | null;
+  tipRef: RefObject<HTMLDivElement | null>;
   comparing: { feature: Feature; over: Feature | null } | null;
   armingCompare: boolean;
   onCompare: () => void;
@@ -22,7 +25,7 @@ export function MapNotices({ showTimeline, quiz, coarse, hovered, hoveredPlace, 
   return (
     <>
     {!quiz && !showTimeline && hovered && tip && !coarse && (
-      <div className="tip glass" style={{ left: tip.x, top: tip.y }}>
+      <div ref={tipRef} className="tip glass" style={{ left: tip.x, top: tip.y }}>
         <span>{hovered.country.emoji}</span>
         <span>{hoveredPlace ? hoveredPlace.place.name : hovered.country.name}</span>
       </div>

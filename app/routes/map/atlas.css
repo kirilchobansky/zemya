@@ -184,7 +184,7 @@
   align-items: center;
   gap: 7px;
   white-space: nowrap;
-  transform: translate(-50%, -150%);
+  transform: translate(14px, 18px); /* below-right of the pointer, which it follows */
 }
 
 .compare-hud {
