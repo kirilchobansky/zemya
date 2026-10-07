@@ -19,6 +19,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, relative, posix, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MAX_LINES = 300; // every source file and every stylesheet; CSS is split by component/purpose, never mid-rule
@@ -92,6 +93,22 @@ for (const f of files.filter(x => x.startsWith('app/') && !x.endsWith('.css'))) 
       const server = /\.server\.tsx?$/.test(target) || target.endsWith('.css'); // stylesheets are not exports
       // tests may mock or probe a module directly (vi.mock needs the real module path)
       if (!viaIndex && !server && !f.endsWith('.test.ts') && !DEEP_IMPORT_ALLOW_LIST.has(f)) bad(`reach into features/${to.name} only through ~/features/${to.name}`);
+    }
+  }
+}
+
+// 3. every source file is visible to git (a stray .gitignore pattern once hid scripts/build/content/ from the deploy)
+const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 }).split('\n').filter(Boolean);
+let tracked = null;
+try { tracked = new Set(git(['ls-files', '--', 'app', 'scripts', 'tests', 'content'])); } catch { /* no git here (e.g. a tarball): skip */ }
+if (tracked) {
+  const SRC_DIRS = ['app', 'scripts', 'tests', 'content'];
+  for (const f of git(['ls-files', '--others', '--ignored', '--exclude-standard', '--', ...SRC_DIRS]))
+    problems.push(`${f}: git-ignores this file — fix .gitignore (anchor patterns with a leading /)`);
+  for (const f of files) {
+    for (const spec of specs(readFileSync(join(root, f), 'utf8'))) {
+      const target = resolveSpec(f, spec);
+      if (target && !tracked.has(target)) problems.push(`${target}: imported by ${f} but not tracked or staged in git — git add it`);
     }
   }
 }

@@ -3,8 +3,8 @@ node_modules/
 .pnpm-store/
 
 # build output
-dist/
-build/
+/dist/
+/build/
 .vite/
 .react-router/
 *.tsbuildinfo

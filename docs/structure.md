@@ -130,6 +130,12 @@ features/progress -> never features/countries
 
 `npm run check` runs both the line limit and the import rules; `npm test` runs it first.
 
+It also checks that git can see every source file: it fails, naming the file, if anything under
+`app/`, `scripts/`, `tests/` or `content/` is git-ignored, or is imported by another file but is
+neither tracked nor staged. (A bare `build/` line in `.gitignore` once hid `scripts/build/content/`,
+so a new folder worked locally and broke the Vercel deploy.) Keep ignore patterns anchored
+(`/build/`, `/dist/`) so they only match the root output.
+
 ## CSS
 
 There is no big stylesheet. Every rule lives in a small file with the thing it styles, and the
