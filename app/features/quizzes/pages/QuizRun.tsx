@@ -4,13 +4,15 @@
  * map), the atlas bridge and the views — the panel, the quiz's own Stage (map / flag /
  * outline), the desktop pause screen and the phone HUD.
  */
-import { listReturnState } from '~/features/map';
+import { listReturnState, readRestoreToken } from '~/features/map';
 import { createPortal } from "react-dom";
-import { Link, Navigate } from "react-router";
+import { useEffect, useRef } from "react";
+import { Link, Navigate, useLocation } from "react-router";
 
 import { LEGACY_SCOPES, SCOPE_LABELS } from '~/features/countries';
 import { StageClock } from '../engine/StageClock';
 import { useQuizEngine } from '../engine/engine';
+import { savedFinishedRun } from '../engine/finished-runs';
 import { selectQuizCountries } from '../geography/quizzes';
 import { QuizRunHud } from './QuizRunHud';
 import { QuizRunPanel } from './QuizRunPanel';
@@ -37,6 +39,22 @@ export function QuizRun() {
 
   useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world });
   useQuizTestSeams({ engine, definition, world });
+
+  /* Back from a country dossier opened off the results: put the saved finished run back, once the
+     run's own data is ready. A reload, a direct visit or lost memory has no matching entry and
+     stays on the start screen. State only — nothing is saved again (finished-runs.ts). */
+  const { pathname, search, state } = useLocation();
+  const restoreToken = readRestoreToken(state);
+  const { restoreResult, phase } = engine;
+  const ready = Boolean(world && size);
+  const restoredRef = useRef<string | null>(null); // a later "Try again" returns to idle: don't restore twice
+  useEffect(() => {
+    if (!ready || phase !== "idle" || restoredRef.current === restoreToken) return;
+    const run = savedFinishedRun(pathname + search, restoreToken);
+    if (!run) return;
+    restoredRef.current = restoreToken;
+    restoreResult(run);
+  }, [ready, restoreToken, pathname, search, restoreResult, phase]);
 
   /* a scope key that has since been removed ("americas", split in two) lands on its
      replacement rather than a Not found page — old links and bookmarks keep working */

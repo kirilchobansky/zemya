@@ -1,6 +1,7 @@
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 import { CountryProgress, peekWorld } from '~/features/countries';
+import { QuizReturnBack, quizReturnState, readQuizReturn } from '~/features/map';
 import { Flag } from '~/shared/components/Flag';
 import { formatCompact, formatNumber } from '~/shared/lib/format';
 import { countryJsonLd, pageMeta } from '~/shared/lib/seo';
@@ -47,6 +48,8 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
 
 export default function CountryPanel({ loaderData }: Route.ComponentProps) {
   const { country, neighbours } = loaderData;
+  // opened from a finished quiz's results: Back returns there, and neighbour links keep it
+  const quizReturn = readQuizReturn(useLocation().state);
   const hasHistory = HISTORY_COUNTRIES.some(c => c.slug === country.slug);
 
   return (
@@ -69,6 +72,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
       </header>
 
       <div className="panel__body dossier">
+        <QuizReturnBack />
         <div className="dossier__hero">
           <div className="dossier__flag">
             <Flag iso2={country.iso2} emoji={country.emoji} flagRatio={country.flagRatio} size="md" />
@@ -150,7 +154,7 @@ export default function CountryPanel({ loaderData }: Route.ComponentProps) {
                   className="neighbour"
                   key={n.slug}
                   to={`/country/${n.slug}`}
-                  state={{ fly: true }}
+                  state={{ fly: true, ...(quizReturn && quizReturnState(quizReturn.to, quizReturn.token)) }}
                 >
                   {n.emoji} {n.name}
                 </Link>

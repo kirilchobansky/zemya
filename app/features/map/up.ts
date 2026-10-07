@@ -50,6 +50,30 @@ export function listReturnState(pathname: string): { sheet: 'full'; openQuiz?: s
   return isQuizRunPath(pathname) && subject !== 'history' ? { sheet: 'full', openQuiz: quizId, openScope: scope } : { sheet: 'full' };
 }
 
+/** Where a dossier opened from a finished quiz's results goes Back to: the run's URL
+ *  (path + search) and the token of the results saved for it (features/quizzes/engine/finished-runs.ts).
+ *  Like Up, a fixed return, never browser history: neighbour links inside the dossier carry it on. */
+export interface QuizReturn { to: string; token: string }
+
+export function quizReturnState(to: string, token: string): { quizReturn: QuizReturn } {
+  return { quizReturn: { to, token } };
+}
+
+export function readQuizReturn(state: unknown): QuizReturn | null {
+  const r = (state as { quizReturn?: Partial<QuizReturn> } | null)?.quizReturn;
+  return typeof r?.to === 'string' && typeof r.token === 'string' ? { to: r.to, token: r.token } : null;
+}
+
+/** State of the navigation Back makes: the run route restores the results saved under this token. */
+export function restoreRunState(token: string): { restoreRun: string } {
+  return { restoreRun: token };
+}
+
+export function readRestoreToken(state: unknown): string | null {
+  const t = (state as { restoreRun?: unknown } | null)?.restoreRun;
+  return typeof t === 'string' ? t : null;
+}
+
 /**
  * Registers `step` as what Up does on this screen while `active` (an in-route level to leave
  * first: a run in progress, an opened detail). Cleared when `active` turns false or the route

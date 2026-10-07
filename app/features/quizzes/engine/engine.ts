@@ -19,8 +19,9 @@ import { EASY_MS, PREPARE_LOOKAHEAD, resolveMatch, type QuizEngine } from './eng
 import { archiveRun, scoreRun } from './run-result';
 import { usePriorBest } from './use-prior-best';
 import { inputKeyDownHandler, useQuizKeyboard } from './use-quiz-keyboard';
+import { useQuizReview } from './use-quiz-review';
 import { useQuizTimer } from './use-quiz-timer';
-import type { QuizDefinition, QuizOutcome, QuizPhase, QuizRunResult } from './types';
+import type { QuizDefinition, QuizOutcome, QuizPhase } from './types';
 
 export type { QuizEngine };
 
@@ -44,10 +45,6 @@ export function useQuizEngine(
   const [answered, setAnswered] = useState<ReadonlyMap<string, QuizOutcome>>(new Map());
   const [showNeighbours, setShowNeighbours] = useState(false);
   const [lastNote, setLastNote] = useState<string | null>(null);
-  /** A "Review mistakes" run: the revealed countries of the run before, replayed. Graded by FSRS
-   *  like any run; its time joins the full run's archive row as the next try, and it is never
-   *  a personal best. */
-  const [reviewing, setReviewing] = useState(false);
 
   const { elapsedRef, segmentStartRef, elapsedMs, stopSegment } = useQuizTimer(phase);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,8 +54,6 @@ export function useQuizEngine(
    *  than state. */
   const shownAtRef = useRef<Map<string, number>>(new Map());
   const skippedRef = useRef<Set<string>>(new Set());
-  /** The full run's archive row; review passes append to it. */
-  const savedRunRef = useRef<Promise<number | undefined>>(Promise.resolve(undefined));
 
   /** Pending Enter-after-reveal fill: the answer is in the input and accepts itself shortly. */
   const fillTimerRef = useRef<number | null>(null);
@@ -76,7 +71,9 @@ export function useQuizEngine(
   useEffect(() => setRunList(null), [baseCountries]);
 
   const [priorBest, setPriorBest] = usePriorBest(definition.id, scope, size, mode);
-  const [result, setResult] = useState<QuizRunResult | null>(null);
+  const { reviewing, setReviewing, result, setResult, savedRunRef, snapshot, restoreResult } = useQuizReview({
+    countries, revealedSet, setRevealedSet, setRunList, setPhase
+  });
   const target = queue.length ? queue[0] : null;
 
   /* a different :scope, :size (or quiz) while this route stays mounted is a fresh run, not a
@@ -93,7 +90,7 @@ export function useQuizEngine(
     elapsedRef.current = 0;
     shownAtRef.current = new Map();
     skippedRef.current = new Set();
-  }, [cancelFill]);
+  }, [cancelFill, setReviewing, setResult]);
 
   const toStart = useCallback(() => {
     clearRun(false);
@@ -222,7 +219,7 @@ export function useQuizEngine(
         totalCount: countries.length, firstTryCount, revealedCount, perfect, at: Date.now()
       });
     },
-    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode, reviewing]
+    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode, reviewing, setResult, savedRunRef]
   );
 
   const onInputChange = useCallback(
@@ -285,6 +282,8 @@ export function useQuizEngine(
     priorBest,
     start,
     reviewMistakes,
+    snapshot,
+    restoreResult,
     restart,
     skip,
     reveal,

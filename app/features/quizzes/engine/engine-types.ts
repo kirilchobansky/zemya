@@ -7,6 +7,7 @@ import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, RefObject } from
 
 import { matchesCountry } from '~/features/countries';
 import type { CountryRecord } from '~/engines/map/types';
+import type { FinishedRun } from './finished-runs';
 import type { MatchOutcome, QuizDefinition, QuizOutcome, QuizPhase, QuizRunResult } from './types';
 
 /** Grading thresholds mapped onto FSRS's four ratings — see CLAUDE.md's Quizzes section. */
@@ -43,6 +44,11 @@ export interface QuizEngine {
   start(): void;
   /** Replays the finished run's revealed countries — only meaningful with a result. */
   reviewMistakes(): void;
+  /** The finished run's results, to keep while the route is left (a dossier visit); null before one. */
+  snapshot(): FinishedRun | null;
+  /** Puts a saved finished run back on screen — state only: nothing is archived, graded or
+   *  counted as a best a second time. */
+  restoreResult(run: FinishedRun): void;
   /** Starts a fresh run over an active one — nothing saved, no FSRS grading — on `next`, a newly
    *  drawn set (the route passes it; omitted = reshuffle the current set). */
   restart(next?: CountryRecord[]): void;

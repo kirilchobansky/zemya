@@ -1,8 +1,12 @@
-import { Link } from "react-router";
+import { useMemo } from "react";
+import { Link, useLocation } from "react-router";
+
+import { quizReturnState } from '~/features/map';
 
 import { formatDuration } from "~/shared/lib/format";
 import type { CountryRecord } from "~/engines/map/types";
 import type { QuizEngine } from '../engine/engine';
+import { newFinishedRunToken, saveFinishedRun } from '../engine/finished-runs';
 
 /** The results of a finished run: time, personal-best line, tally, the revealed countries and
  *  the buttons. */
@@ -12,6 +16,15 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
   onRunAgain: () => void;
 }) {
   const result = engine.result;
+  const { pathname, search } = useLocation();
+  const runUrl = pathname + search;
+  /* A missed country's dossier gets a Back to these results: the run is parked in memory when a
+     link is followed (finished-runs.ts), under a token the link's state carries. */
+  const token = useMemo(newFinishedRunToken, [result]);
+  const keepResults = () => {
+    const run = engine.snapshot();
+    if (run) saveFinishedRun(runUrl, token, run);
+  };
   if (!result) return null;
   return (
     <>
@@ -78,6 +91,8 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
                 className="neighbour"
                 key={country.iso3}
                 to={`/country/${country.slug}`}
+                state={quizReturnState(runUrl, token)}
+                onClick={keepResults}
               >
                 {country.emoji} {country.name}
               </Link>

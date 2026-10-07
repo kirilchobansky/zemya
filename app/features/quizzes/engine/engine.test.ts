@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => {
   const rt = {
     slots: [] as unknown[],
+    setters: {} as Record<number, unknown>,
     i: 0,
     effects: [] as { fn: () => void | (() => void); deps?: unknown[] }[],
     rerender: () => {},
@@ -23,10 +24,11 @@ const h = vi.hoisted(() => {
       useState<T>(init: T | (() => T)) {
         const k = rt.i++;
         if (!(k in rt.slots)) rt.slots[k] = typeof init === 'function' ? (init as () => T)() : init;
-        const set = (v: T | ((p: T) => T)) => {
+        // like React's, the setter is the same function on every render
+        const set = (rt.setters[k] ??= (v: T | ((p: T) => T)) => {
           const next = typeof v === 'function' ? (v as (p: T) => T)(rt.slots[k] as T) : v;
           if (!Object.is(next, rt.slots[k])) { rt.slots[k] = next; rt.rerender(); }
-        };
+        }) as (v: T | ((p: T) => T)) => void;
         return [rt.slots[k] as T, set] as const;
       },
       useRef<T>(init: T) {
@@ -63,6 +65,7 @@ vi.mock('~/features/progress/quiz-runs', () => ({
 import { addReviewTime, saveQuizRun } from '~/features/progress';
 import { REVEAL_FILL_MS, useQuizEngine, type QuizEngine } from './engine';
 import type { CountryRecord } from '~/engines/map/types';
+import { saveFinishedRun, savedFinishedRun } from './finished-runs';
 
 const country = (iso3: string, name: string, capital: string): CountryRecord =>
   ({
@@ -105,6 +108,7 @@ const press = (e: ReturnType<typeof keyEvent>) => (listeners.keydown ?? []).slic
 beforeEach(() => {
   vi.useFakeTimers();
   h.rt.slots = [];
+  h.rt.setters = {};
   h.review.mockClear();
   vi.mocked(saveQuizRun).mockClear();
   listeners = {};
@@ -228,6 +232,50 @@ describe('Review mistakes', () => {
     type(missed.capital!);
     expect(engine.phase).toBe('done');
     expect(saveQuizRun).toHaveBeenCalledOnce();
+    await Promise.resolve();
+    expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number), 0);
+  });
+});
+
+describe('Finished run kept across a dossier visit', () => {
+  it('restores the same results without saving anything again, and Review still replays the misses', async () => {
+    const [missed] = COUNTRIES;
+    for (let n = 0; n < COUNTRIES.length; n++) {
+      if (engine.target!.iso3 === missed.iso3) {
+        engine.reveal();
+        enterInInput();
+        vi.advanceTimersByTime(REVEAL_FILL_MS);
+      } else type(engine.target!.capital!);
+    }
+    const before = engine.result;
+    const run = engine.snapshot()!;
+    saveFinishedRun('/run', 't1', run);
+    expect(savedFinishedRun('/run', 'other')).toBeNull();
+    expect(savedFinishedRun('/run', null)).toBeNull();
+
+    // leave and come back: a fresh engine (the route remounted)
+    h.rt.slots = [];
+    h.rt.setters = {};
+    render({ id: 'capitals', facet: 'capital', match: (typed, t) => ({ accepted: typed === t.capital }), answerOf: t => t.capital ?? t.name });
+    expect(engine.phase).toBe('idle');
+    vi.mocked(saveQuizRun).mockClear();
+    h.review.mockClear();
+    vi.mocked(addReviewTime).mockClear();
+    engine.restoreResult(savedFinishedRun('/run', 't1')!);
+
+    expect(engine.phase).toBe('done');
+    expect(engine.result).toEqual(before);
+    expect(engine.totalCount).toBe(COUNTRIES.length);
+    expect(saveQuizRun).not.toHaveBeenCalled();
+    expect(addReviewTime).not.toHaveBeenCalled();
+    expect(h.review).not.toHaveBeenCalled();
+
+    engine.reviewMistakes();
+    expect(engine.totalCount).toBe(1);
+    expect(engine.target).toBe(missed);
+    type(missed.capital!);
+    expect(engine.phase).toBe('done');
+    expect(saveQuizRun).not.toHaveBeenCalled(); // a review pass appends to the restored row, never a new one
     await Promise.resolve();
     expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number), 0);
   });

@@ -1,0 +1,5 @@
+/* A neutral .action (not the orange primary) in the dossier's body; inline, so it works in the
+   phone bottom sheet with no fixed positioning. Colours come from .action, so both themes follow. */
+.quiz-return {
+  margin: 0 0 12px;
+}
