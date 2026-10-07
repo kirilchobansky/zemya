@@ -1,39 +1,46 @@
-/* Up, top of the right panel: on the header's first line, set exactly like the eyebrow (same
-   top padding, mono 9.5px caps, same line box) so it reads as part of that line; the eyebrow is
-   indented past it. Desktop only (atlas.tsx renders it when not phone). */
+/* Back (UpButton), top of the right panel. Desktop: a quiet bordered button on the header's first
+   line, with the eyebrow indented past it and the header's top padding a touch taller to make
+   room. Phone: a small chip on the sheet grip's row, left of the handle pill (the block in the
+   phone media query below), so no header or peek content moves. */
 
 .panel__up {
   position: absolute;
   z-index: 2;
-  top: 15px;
-  left: 18px;
+  top: 13px;
+  left: 16px;
   display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 0;
-  border: 0;
-  background: none;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 11px 0 9px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--chart-2);
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 9.5px;
-  line-height: 1.5;
+  line-height: 1;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ink-2);
-  transition: color 0.12s;
-}
-
-.panel__up svg {
-  align-self: center;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
 
 .panel__up:hover,
 .panel__up:focus-visible {
   color: var(--ink);
+  border-color: var(--sea-dim);
+  background: var(--chart-3);
 }
 
-.panel:has(> .panel__up) .panel__eyebrow {
-  padding-left: 62px;
+@media (min-width: 820px) {
+  .panel:has(> .panel__up) .panel__head {
+    padding-top: 20px;
+  }
+
+  .panel:has(> .panel__up) .panel__eyebrow {
+    padding-left: 76px;
+  }
 }
 
 .panel[data-collapsed='true'] > .panel__content,
@@ -152,6 +159,20 @@
     transition: transform 0.3s ease, visibility 0s 0.3s;
   }
 
+  .panel__up {
+    top: 3px;
+    left: 10px;
+    height: 24px;
+    padding: 0 10px 0 8px;
+    font-size: 10px;
+  }
+
+  .panel__up::before {
+    content: '';
+    position: absolute;
+    inset: -8px -6px;
+  }
+
   .panel__head {
     flex: 0 0 auto;
     min-height: 58px;
@@ -209,6 +230,10 @@
 
   .panel[data-hidden='true'] {
     transform: translateX(100%);
+  }
+
+  .panel__up {
+    display: none;
   }
 
   .panel__head {

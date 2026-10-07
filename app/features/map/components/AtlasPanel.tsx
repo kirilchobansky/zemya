@@ -42,7 +42,6 @@ export function AtlasPanel({
             onPointerDown={onStartDrag}
             onDoubleClick={onResetWidth}
           />
-          {!panelCollapsed && <UpButton />}
           {panelCollapsed && (
             <button
               type="button"
@@ -56,6 +55,7 @@ export function AtlasPanel({
           )}
         </>
       )}
+      {(phone || !panelCollapsed) && <UpButton />}
       <div className="panel__content">
         <SheetGrip snap={snap} twoStop={twoStop} onStep={() => onSnap(stepSnap(snap, twoStop))} />
         <Outlet />

@@ -169,3 +169,5 @@ phone; the smoke test covers everything that doesn't need one.
   through a canvas scale, hit regions and pinned-card rects converted at the boundary.
 
 - Overlay sheets (Layers, Progress/mastery) close by swiping down (sideways in landscape) from the header or a body scrolled to the top: 40px or a flick, `useSwipeToClose` in `MobileChrome.tsx`.
+
+**Back button (UpButton).** Desktop: bordered chip (`--chart-2`, `--rule`, 24px) on the header's first line; the header gets 20px top padding and the eyebrow 76px left indent only at >=820px. Phone: the same component, rendered in the sheet, sits on the grip row (top-left, left of the handle pill) so no header or peek content moves; it follows `parentPath` (geography quizzes -> Quizzes, history country -> History list). Hidden in the landscape drawer, which has no grip row. Quiz runs keep their own HUD back.

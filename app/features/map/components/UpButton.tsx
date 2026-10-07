@@ -6,9 +6,9 @@ import { parentPath, isQuizRunPath } from '~/features/map/up';
 import { useGo } from '~/shared/lib/navigation';
 
 /**
- * The right panel's Up button, on the header's first line at its left (the eyebrow is indented
+ * The panel's Back button: on desktop the header's first line at its left (the eyebrow is indented
  * to make room, panels.css `.panel__up`). One level up in the fixed hierarchy of app/features/map/up.ts;
- * renders nothing where there is no level above.
+ * renders nothing where there is no level above. On a phone it is a chip on the sheet grip's row (hidden in the landscape drawer).
  */
 export function UpButton() {
   const ctx = useContext(AtlasContext);
