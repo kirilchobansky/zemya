@@ -125,14 +125,16 @@ export function QuizListItem({
             })}
           </div>
 
-          <button
-            type="button"
-            className="quiz-archive"
-            aria-expanded={history?.quizId === quiz.id}
-            onClick={() => (history?.quizId === quiz.id ? onCloseHistory() : onOpenHistory())}
-          >
-            Archive
-          </button>
+          <div className="chips quiz-archive" role="group" aria-label={`${quiz.title} — archive`}>
+            <button
+              type="button"
+              className="chip"
+              aria-pressed={history?.quizId === quiz.id}
+              onClick={() => (history?.quizId === quiz.id ? onCloseHistory() : onOpenHistory())}
+            >
+              Archive
+            </button>
+          </div>
 
           {history?.quizId === quiz.id && history.scope === scope && (
             <QuizHistoryPanel history={history} runs={runs} onClose={onCloseHistory} onDelete={onDeleteRun} />
