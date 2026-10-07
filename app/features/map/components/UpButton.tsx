@@ -6,7 +6,7 @@ import { parentPath } from '~/features/map/up';
 
 /**
  * The right panel's Up button, on the header's first line at its left (the eyebrow is indented
- * to make room, app.css `.panel__up`). One level up in the fixed hierarchy of app/features/map/up.ts;
+ * to make room, panels.css `.panel__up`). One level up in the fixed hierarchy of app/features/map/up.ts;
  * renders nothing where there is no level above.
  */
 export function UpButton() {

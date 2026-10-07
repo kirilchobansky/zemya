@@ -9,13 +9,13 @@
  * Nearly all of it is CSS, so the prerendered markup is identical for every visitor and there
  * is nothing to mismatch on hydration. These helpers are for the few behaviours that live in
  * JS (sheet dragging, camera insets); every one reads the browser at event/effect time only.
- * PHONE_MAX_WIDTH / LANDSCAPE_PHONE_MAX_HEIGHT mirror the media queries in app.css — change both.
+ * PHONE_MAX_WIDTH / LANDSCAPE_PHONE_MAX_HEIGHT mirror the media queries in the shared stylesheets (phone.css, layout.css) and the component CSS files — change all.
  */
 import { useSyncExternalStore } from 'react';
 
 export const PHONE_MAX_WIDTH = 819;
 /** Landscape phones are short: a coarse pointer under LANDSCAPE_PHONE_MAX_HEIGHT gets the phone
- *  layout too, however wide. Mirrors the media query in app.css. */
+ *  layout too, however wide. Mirrors the media query in phone.css. */
 export const LANDSCAPE_PHONE_MAX_HEIGHT = 499;
 export const PHONE_QUERY = `(max-width: ${PHONE_MAX_WIDTH}px), (pointer: coarse) and (max-height: ${LANDSCAPE_PHONE_MAX_HEIGHT}px)`;
 /** Within the phone layout: wider than tall means the sheet is a right-hand drawer and the tab

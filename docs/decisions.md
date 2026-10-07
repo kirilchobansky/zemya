@@ -375,7 +375,7 @@ is `HISTORY_COUNTRIES.some(c => c.slug === country.slug)` — the same array `ro
 maps over, so a second `HISTORY_COUNTRIES` entry (still gated by the owner-approval rule
 above) would need no further wiring here. Links to `/history/${country.slug}`, the same path
 shape the picker itself uses. Styled with the existing `.action.action--primary` button
-class plus a `.dossier__history` rule (`app/shared/styles/app.css`) that centres it as a full-width
+class plus a `.dossier__history` rule (`app/shared/styles/dossier.css`) that centres it as a full-width
 block; mobile's per-child `order` list for `.dossier`'s direct children (same file, the
 `@media` block reordering the sheet's sections) got a matching `order: 6` entry so it stays
 last on phones too.
@@ -625,7 +625,7 @@ cylinder itself still runs edge to edge.
 
 **Sidebar collapse/resize.** The left rail and right panel (`Rail.tsx`, `routes/map/atlas.tsx`)
 each get a drag handle and a collapse button, desktop layout only — state (`railWidth`,
-`panelWidth`, `railCollapsed`, `panelCollapsed`) lives in `AtlasShell` and is written to
+`panelWidth`, `railCollapsed`, `panelCollapsed`) lives in `AtlasShell` (the `use-sidebars` hook) and is written to
 `.shell`'s own inline style as the `--rail-width`/`--panel-width` custom properties, which
 `grid-template-columns` already read — collapsing sets the property to `0px` rather than
 unmounting anything, so a collapsed panel's `<Outlet/>` (a quiz run, the history panel) keeps
@@ -767,7 +767,7 @@ Tokens live in `app/shared/styles/tokens.css`, dark values in `:root`, light ove
 **The canvas cannot read a CSS variable once per frame** — `app/engines/map/renderer.ts`'s
 `COLORS` and `app/features/countries/overlays.ts`'s exported palette are resolved from these
 tokens with `getComputedStyle` exactly once (`refreshMapColours()` / `refreshOverlayColours()`),
-cached, and re-read only on a theme change (wired up in `app/routes/map/atlas.tsx`) — never
+cached, and re-read only on a theme change (wired up in `app/features/map/hooks/use-map-controller.ts`) — never
 inside `render()`. This replaced a former exception where `--land` and the micro-state pin
 were hardcoded literals in `renderer.ts`; nothing needs hand-mirroring into a `.ts` file
 anymore, only the resolved colour cache needs a fallback default (kept equal to the token by
@@ -819,7 +819,7 @@ app — Rail's nav links, root.tsx's install link, quiz "Start"/"Next", the doss
 timeline"), setting `color: var(--brass-2)` where `--brass-fill-hover` was already the
 background — in the dark theme the two tokens are the identical hex, so the text became
 literally the same colour as its own hover background. Fixed by scoping the plain rule
-`:not(.action--primary)` (`app.css`) so the two hover treatments never compete on the same
+`:not(.action--primary)` (`buttons.css`) so the two hover treatments never compete on the same
 property; not a `--brass-2`/`--brass-fill-hover` token change, since that pairing not
 colliding was never guaranteed by the token system itself.
 
@@ -921,7 +921,7 @@ said what was allowed to import what. The layout is now by feature (`app/feature
 `engines/map/` (renderer, no React), `shared/` (generic, no feature code) and `routes/` (route
 modules only). The rules are in CLAUDE.md "Structure" and enforced by `scripts/check-structure.mjs`;
 the human guide is `docs/structure.md`. Phase 1 moved files only (`git mv`, no logic or behaviour
-change, URLs unchanged). Phase 2 splits `app.css`; phase 3 splits the files on the check's
+change, URLs unchanged). Phase 2 split `app.css` into per-component and shared CSS files (done); phase 3 split the files on the check's
 temporary 400-line allow-list.
 
 Where the owner's brief and its own boundary rules disagreed, the **rules won** and the file moved
@@ -1178,7 +1178,7 @@ window + optional toggle. Decisions the brief left open:
 - **Dates edited for the windows:** `period-principality-kingdom` ends 1946-09-15 (the republic
   referendum); `pm-georgi-dimitrov` starts 1946-11-22 (exact) — the previous PM (Kimon Georgiev,
   third) ran to that day, so the three PM windows tile with no gap or overlap.
-- **Off the given file list, touched anyway:** `app/shared/styles/app.css` (toggle style) and the
+- **Off the given file list, touched anyway:** `HistoryFillQuiz.css` (toggle style, formerly in `app.css`) and the
   meta description in `routes/quizzes/quizzes.$subject.$quizId.tsx` (it split the old "Rulers: X" title).
 
 ### History country pickers are English

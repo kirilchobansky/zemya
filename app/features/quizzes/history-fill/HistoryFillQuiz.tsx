@@ -14,20 +14,19 @@
  * no `document`. The input is never `disabled`; when a run ends it is just moved out of
  * sight so "Try again" can focus it inside the tap.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router';
 
-import { keepFocus } from '~/features/quizzes/engine/QuizControls';
-import { useKeyboard, useQuizPageLock } from '~/shared/lib/keyboard';
-import { useAtlasContext, useUpStep } from '~/features/map';
-import { bestQuizTime, saveQuizRun } from '~/features/progress';
-import { formatDuration } from '~/shared/lib/format';
-import {
-  dateRangeLabel, entriesFor, hasMixedTitles, isShownTitle, matchFill, needsNumber, prepareFill, splitNote, yearLabel, type FillQuiz
-} from './fill-quiz';
 import { historyCountryFor } from '~/features/history';
-import { toggleSize } from './fill-quiz-config';
+import { formatDuration } from '~/shared/lib/format';
+import { FillGrid } from './FillGrid';
+import { FillInputBar } from './FillInputBar';
+import { FillPhoneHud } from './FillPhoneHud';
+import { FillResultButtons, FillResultCard } from './FillResult';
+import { FillToggle } from './FillToggle';
+import type { FillQuiz } from './fill-quiz';
+import { useFillRun } from './use-fill-run';
+import { keepFocus } from '~/features/quizzes/engine/QuizControls';
 import '~/features/quizzes/engine/quiz-run.css';
 import '~/features/quizzes/engine/quiz-list.css';
 import '~/features/quizzes/engine/quiz-list.phone.css';
@@ -35,238 +34,25 @@ import './HistoryFillQuiz.css';
 import './HistoryFillQuiz.grid.css';
 import './HistoryFillQuiz.phone.css';
 
-type Phase = 'idle' | 'running' | 'done' | 'gaveup';
-
-interface Outcome {
-  timeMs: number;
-  beatBest: boolean;
-  previousBest: number | null;
-}
-
-const NO_FILLED: ReadonlySet<string> = new Set();
-
-/** Read-down layout: tall columns first. Up to 6 entries make one column, up to 12 two, and
- *  up to 30 three, and longer four (desktop); a phone takes one column up to 8 entries, else two. Items
- *  run top to bottom, then on to the next column. */
-function columnLayout(n: number): CSSProperties {
-  const cols = n <= 6 ? 1 : n <= 12 ? 2 : n <= 30 ? 3 : 4;
-  const phoneCols = n <= 8 ? 1 : 2;
-  return {
-    '--cols': cols,
-    '--rows': Math.ceil(n / cols),
-    '--cols-phone': phoneCols,
-    '--rows-phone': Math.ceil(n / phoneCols),
-  } as CSSProperties;
-}
-
 export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: string }) {
-  useQuizPageLock(true);
-  useKeyboard(); // publishes --kb / --vv-top, which size the phone screen to what the keyboard leaves
-  const { setQuiz, setImmersive } = useAtlasContext();
+  const run = useFillRun(quiz);
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<Phase>('idle');
-  /* The quiz's toggle, as currently chosen. The finished run keeps the setting it was played
-     with (`runToggle`) while the result screen lets the player pick the next one. */
-  const [toggleOn, setToggleOn] = useState(false);
-  const [byColumns, setByColumns] = useState(true);
-  const [runToggle, setRunToggle] = useState(false);
-  const shownToggle = phase === 'idle' || phase === 'running' ? toggleOn : runToggle;
-  const entries = useMemo(() => entriesFor(quiz, shownToggle), [quiz, shownToggle]);
-  const prepared = useMemo(() => prepareFill(entries), [entries]);
-  const total = entries.length;
-  const showTitles = useMemo(() => hasMixedTitles(entries), [entries]);
-  const size = toggleSize(quiz.toggle !== null && toggleOn);
+  const {
+    phase, phaseRef, paused, toggleOn, setToggleOn, byColumns, setByColumns, runToggle,
+    entries, total, showTitles, filled, input, elapsedMs, shaking, setShaking, hint, outcome,
+    mounted, host, inputRef, active, revealing, missed, finished,
+    togglePause, onChange, onKeyDown, giveUp, restart
+  } = run;
 
-  const [filled, setFilled] = useState<ReadonlySet<string>>(NO_FILLED);
-  const [input, setInput] = useState('');
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [shaking, setShaking] = useState(false);
-  const [hint, setHint] = useState(false);
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [priorBest, setPriorBest] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [host, setHost] = useState<Element | null>(null);
-
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  // refs so two events in one tick (a fast typist, an instant accept then Enter) never read stale state
-  const filledRef = useRef<ReadonlySet<string>>(NO_FILLED);
-  const [paused, setPaused] = useState(false);
-  const pausedRef = useRef(false);
-  const phaseRef = useRef<Phase>('idle');
-  const startedAtRef = useRef(0);
-  const elapsedRef = useRef(0);
-  phaseRef.current = phase;
-
-  useEffect(() => {
-    setHost(document.querySelector('main.stage'));
-    setMounted(true);
-  }, []);
-
-  /* The map behind the panel goes into quiz mode (search box, toolbar and tooltips hidden,
-     names off) exactly as for a geography run; a phone run owns the whole screen. */
-  useEffect(() => {
-    setQuiz({ target: null, answered: new Map(), showNeighbours: false, showCapital: false, paused: false });
-    setImmersive(true);
-    return () => {
-      setQuiz(null);
-      setImmersive(false);
-    };
-  }, [setQuiz, setImmersive]);
-
-  useEffect(() => {
-    let cancelled = false;
-    bestQuizTime(quiz.id, 'all', size).then(best => { if (!cancelled) setPriorBest(best); });
-    return () => { cancelled = true; };
-  }, [quiz.id, size]);
-
-  useEffect(() => {
-    if (phase !== 'running' || paused) return;
-    const tick = setInterval(() => setElapsedMs(Date.now() - startedAtRef.current), 100);
-    return () => clearInterval(tick);
-  }, [phase, paused]);
-
-  /* Esc pauses and resumes a started run. Window-level and the input is never disabled, so
-     the key always has somewhere to land (same reasoning as the geography engine). */
-  const togglePause = useCallback(() => {
-    if (phaseRef.current !== 'running') return;
-    if (pausedRef.current) startedAtRef.current = Date.now() - elapsedRef.current;
-    else elapsedRef.current = Date.now() - startedAtRef.current;
-    pausedRef.current = !pausedRef.current;
-    setPaused(pausedRef.current);
-    if (pausedRef.current) setElapsedMs(elapsedRef.current);
-  }, []);
-  useEffect(() => {
-    if (phase !== 'running') return;
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.preventDefault();
-      togglePause();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [phase, togglePause]);
-
-  const active = phase === 'idle' || phase === 'running';
-  useEffect(() => {
-    if (active) inputRef.current?.focus({ preventScroll: true });
-    else inputRef.current?.blur();
-  }, [active, mounted]);
-
-  const finish = useCallback((next: Phase, timeMs: number) => {
-    pausedRef.current = false;
-    setPaused(false);
-    setElapsedMs(timeMs);
-    setRunToggle(toggleOn);
-    setPhase(next);
-    if (next !== 'done') return;
-    const beatBest = priorBest === null || timeMs < priorBest;
-    setOutcome({ timeMs, beatBest, previousBest: priorBest });
-    setPriorBest(prev => (prev === null ? timeMs : Math.min(prev, timeMs)));
-    saveQuizRun({
-      quizId: quiz.id, scope: 'all', size, timeMs,
-      totalCount: total, firstTryCount: total, revealedCount: 0, at: Date.now()
-    });
-  }, [priorBest, quiz.id, size, toggleOn, total]);
-
-  const accept = useCallback((index: number) => {
-    const next = new Set(filledRef.current).add(prepared[index].id);
-    filledRef.current = next;
-    setFilled(next);
-    setInput('');
-    setHint(false);
-    if (next.size === total) finish('done', Date.now() - startedAtRef.current);
-  }, [prepared, total, finish]);
-
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!active || pausedRef.current) return;
-    const value = e.target.value;
-    setHint(false);
-    if (phaseRef.current === 'idle' && value.trim()) {
-      startedAtRef.current = Date.now();
-      phaseRef.current = 'running';
-      setPhase('running');
-    }
-    const match = matchFill(value, prepared, filledRef.current);
-    if (match && match.instant && !match.typo) accept(match.index);
-    else setInput(value);
-  };
-
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || !active || pausedRef.current) return;
-    e.preventDefault();
-    const match = matchFill(input, prepared, filledRef.current);
-    if (match) accept(match.index);
-    else if (input.trim()) { // nothing is cleared and nothing is penalised
-      setShaking(true);
-      setHint(needsNumber(input, prepared, filledRef.current));
-    }
-  };
-
-  const giveUp = () => {
-    if (!active) return;
-    finish('gaveup', phase === 'running' ? (pausedRef.current ? elapsedRef.current : Date.now() - startedAtRef.current) : 0);
-  };
-
-  /* Synchronous focus inside the tap — iOS opens the keyboard only for a focus() made inside
-     the gesture itself. */
-  const restart = () => {
-    pausedRef.current = false;
-    setPaused(false);
-    filledRef.current = NO_FILLED;
-    phaseRef.current = 'idle';
-    setFilled(NO_FILLED);
-    setInput('');
-    setHint(false);
-    setElapsedMs(0);
-    setOutcome(null);
-    setPhase('idle');
-    inputRef.current?.focus({ preventScroll: true });
-  };
-
-  // Up from a run or its results: back to the start screen (restart's reset), nothing saved
-  useUpStep(phase !== 'idle', restart);
-
-  const toggleBox = (hidden: boolean) => quiz.toggle && (
-    <label
-      className={`fill-quiz__toggle${hidden ? ' fill-quiz__toggle--off' : ''}`}
-      onMouseDown={keepFocus}
-      onPointerDown={keepFocus}
-    >
-      <input type="checkbox" checked={toggleOn} onChange={e => setToggleOn(e.target.checked)} />
-      {quiz.toggle.label}
-    </label>
+  const toggleBox = (hidden: boolean) => (
+    <FillToggle quiz={quiz} checked={toggleOn} onChange={setToggleOn} hidden={hidden} />
   );
-  const revealing = phase === 'gaveup';
-  const missed = total - filled.size;
-
-  const finished = phase === 'done' || phase === 'gaveup';
-  const buttons = (
-    <div className="actions">
-      <button type="button" className="action action--primary" onClick={restart}>Try again</button>
-      <Link to={backTo} state={{ sheet: 'full' }} className="action desk-hide">Back to quizzes</Link>
-    </div>
-  );
-
+  const buttons = <FillResultButtons backTo={backTo} onRestart={restart} />;
   const resultHook = (
-    <div className="hook">
-      <div className="hook__label">
-        {phase === 'done' ? 'Result' : 'Gave up'}
-        {quiz.toggle && runToggle && <> · {quiz.toggle.label.toLowerCase()}</>}
-      </div>
-      <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
-      <p style={{ marginBottom: 0 }}>
-        <b>{filled.size} / {total}</b> filled
-        {phase === 'gaveup' && <> — {missed} shown in red</>}.{' '}
-        {phase === 'done' && outcome && (
-          outcome.beatBest
-            ? outcome.previousBest !== null
-              ? <>New personal best — beat <b>{formatDuration(outcome.previousBest)}</b>.</>
-              : <>First run of this list — now your personal best.</>
-            : <>Personal best stays <b>{formatDuration(outcome.previousBest ?? outcome.timeMs)}</b>.</>
-        )}
-        {phase === 'gaveup' && <>A given-up run is not saved.</>}
-      </p>
-    </div>
+    <FillResultCard
+      quiz={quiz} phase={phase} runToggle={runToggle} elapsedMs={elapsedMs}
+      filledCount={filled.size} total={total} missed={missed} outcome={outcome}
+    />
   );
 
   /* Phone: leave at any time, nothing saved (the run is only ever saved by finishing it). */
@@ -291,51 +77,11 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           </div>
         )}
 
-        <div className={`fill-quiz__bar${active ? '' : ' fill-quiz__bar--off'}`}>
-          <input
-            ref={inputRef}
-            className={`fill-quiz__input${shaking ? ' is-shaking' : ''}`}
-            type="text"
-            value={input}
-            onChange={onChange}
-            onKeyDown={onKeyDown}
-            onAnimationEnd={() => setShaking(false)}
-            onBlur={e => {
-              // Stay focused unless focus went to another control (Tab to Give up still works).
-              if (phaseRef.current !== 'idle' && phaseRef.current !== 'running') return;
-              if (e.relatedTarget) return;
-              requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
-            }}
-            placeholder="Type a name to start"
-            aria-label="Type a name"
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="done"
-          />
-          <button
-            type="button"
-            className="action fill-quiz__giveup"
-            onPointerDown={keepFocus}
-            onMouseDown={keepFocus}
-            onClick={giveUp}
-          >
-            Give up
-          </button>
-          {/* only while a run is active (running or paused), and exactly "Try again" */}
-          {phase === 'running' && (
-            <button
-              type="button"
-              className="action fill-quiz__restart"
-              onPointerDown={keepFocus}
-              onMouseDown={keepFocus}
-              onClick={restart}
-            >
-              Restart
-            </button>
-          )}
-        </div>
+        <FillInputBar
+          active={active} phase={phase} phaseRef={phaseRef} inputRef={inputRef} input={input}
+          shaking={shaking} onShakeEnd={() => setShaking(false)} onChange={onChange} onKeyDown={onKeyDown}
+          onGiveUp={giveUp} onRestart={restart}
+        />
 
         <p className="fill-quiz__hint" role="status">{hint ? 'Add the number, for example II' : ''}</p>
 
@@ -347,41 +93,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
           Read down the columns
         </label>
 
-        <ol
-          className={
-            `fill-quiz__grid${byColumns ? ' fill-quiz__grid--columns' : ''}` +
-            (byColumns && entries.length <= 8 ? ' fill-quiz__grid--one' : '') +
-            (entries.length > 30 ? ' fill-quiz__grid--compact' : '')
-          }
-          style={byColumns ? columnLayout(entries.length) : undefined}
-        >
-          {entries.map(entry => {
-            const isFilled = filled.has(entry.id);
-            const isMissed = revealing && !isFilled;
-            const shown = isFilled || isMissed;
-            const title = showTitles && isShownTitle(entry.title) ? entry.title : '';
-            const label = title ? `${title} ${entry.name}` : entry.name;
-            const { main, note } = splitNote(entry.name);
-            return (
-              <li
-                key={entry.id}
-                className={
-                  `fill-cell fill-cell--${entry.kind}` +
-                  (isFilled ? ' is-filled' : '') + (isMissed ? ' is-missed' : '')
-                }
-                title={shown ? `${label} · ${dateRangeLabel(entry)}` : undefined}
-                aria-label={shown ? label : `Empty, ${yearLabel(entry)}`}
-              >
-                <span className="fill-cell__dates numeric">{yearLabel(entry)}</span>
-                <span className="fill-cell__name">
-                  {shown && title && <span className="fill-cell__title">{title}</span>}
-                  {shown ? main : ''}
-                  {shown && note && <span className="fill-cell__note">{note}</span>}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <FillGrid entries={entries} filled={filled} revealing={revealing} showTitles={showTitles} byColumns={byColumns} />
 
         {/* desktop shows the result in the sidebar; a phone run covers the sidebar, so the
             buttons stay here and CSS hides them above the phone breakpoint */}
@@ -446,56 +158,12 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
       {/* phone layout only (`display: none` above the breakpoint): the geography run's HUD and
           pause screen, reused. Portalled to <body> like that run's. */}
       {mounted && createPortal(
-        <>
-          <div className="quiz-hud" data-phase={`fill-${phase}`}>
-            <button type="button" className="quiz-hud__back" onClick={leave}>‹ Quizzes</button>
-            {phase === 'idle' && <span className="quiz-hud__count quiz-hud__count--end numeric">{total} entries</span>}
-            {phase === 'running' && (
-              <>
-                <span className="quiz-hud__timer numeric">{formatDuration(elapsedMs)}</span>
-                <span className="quiz-hud__count numeric">{filled.size} / {total}</span>
-                <button
-                  type="button"
-                  className="quiz-hud__pause"
-                  aria-label={paused ? 'Resume' : 'Pause'}
-                  onPointerDown={keepFocus}
-                  onMouseDown={keepFocus}
-                  onClick={togglePause}
-                >
-                  <PauseIcon />
-                </button>
-              </>
-            )}
-          </div>
-          {paused && (
-            <div className="quiz-pause" role="dialog" aria-label="Paused">
-              <p className="quiz-pause__title">Paused</p>
-              <p className="quiz-pause__sub">The timer is stopped.</p>
-              <button type="button" className="quiz-pause__btn quiz-pause__btn--primary" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={togglePause}>
-                Resume
-              </button>
-              <button type="button" className="quiz-pause__btn" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={restart}>
-                Restart
-              </button>
-              <button type="button" className="quiz-pause__btn" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={giveUp}>
-                Give up
-              </button>
-              <button type="button" className="quiz-pause__btn" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={leave}>
-                Abandon run
-              </button>
-            </div>
-          )}
-        </>,
+        <FillPhoneHud
+          phase={phase} paused={paused} total={total} filledCount={filled.size} elapsedMs={elapsedMs}
+          onLeave={leave} onTogglePause={togglePause} onRestart={restart} onGiveUp={giveUp}
+        />,
         document.body,
       )}
     </>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M8.5 6v12M15.5 6v12" />
-    </svg>
   );
 }

@@ -1,3 +1,4 @@
+export { AtlasShell } from './components/AtlasShell';
 export { AtlasContext, useAtlasContext } from './atlas-context';
 export type { TimelineLabels } from './atlas-context';
 export { LayersIcon, LayersSheet, ProgressSheet, SheetGrip, TabBar } from './components/MobileChrome';

@@ -9,27 +9,45 @@ everything you need is there.
 ## The folders
 
 **`app/routes/`** — route modules only: the files React Router turns into pages. They are thin
-glue: load data at build time, pick components from features, set the page title. Grouped by
+glue: load data at build time, pick components from features, set the page title (the quiz and
+questions routes are about 90–150 lines; their screens live in `features/quizzes/pages` and
+`features/questions`). `routes/map/atlas.tsx` also carries the shared CSS imports, whose order matters. Grouped by
 section (`map/`, `quizzes/`, `history/`, `questions/`). The folders are for tidiness; the actual
 URLs are written in `app/routes.ts`.
 
 **`app/features/`** — one folder per part of the product. Each has an `index.ts` listing what
 the *other* features may use; everything else in the folder is private to it.
-- `map/` — the atlas screen around the map: the side rail, the mobile chrome, the shared
-  `AtlasContext`, and the "Up" button logic.
+- `map/` — the atlas screen around the map. `components/AtlasShell.tsx` wires four hooks
+  (`use-map-controller`: the MapLibre controller, style, selection and camera; `use-history-canvas`:
+  the timeline, pinned cards and filters; `use-sidebars`: the desktop rail/panel widths;
+  `use-phone-sheet`: the bottom sheet) to small pieces (`AtlasPanel`, `HistoryLayer`, `MapTopHud`,
+  `MapBottomHud`, `MapNotices`, `Rail`, `MobileChrome`). Also the shared `AtlasContext` and the
+  "Up" button logic.
 - `countries/` — everything about countries as data: names and aliases, scopes (continents),
-  overlays and colours, mastery per country, the Questions session generator, the country
-  search box, the progress ring in the country panel.
-- `quizzes/` — all quiz types. `engine/` is the shared quiz machinery; `geography/` has the
-  geography quiz definitions and their stages; `name-all/` is "Name all countries";
-  `history-fill/` is the history "fill the list" quiz.
-- `history/` — the timeline: `timeline/` (canvas drawing and time maths), `data/` (history
-  countries, search, the build-time catalog), `components/` (hover card, detail, filters, outline, search).
+  overlays and colours, mastery per country, the Questions session generator (`questions.ts` is a
+  barrel over `question-kinds`, `distractors`, `question-generators`, `session`, `religion`), the
+  country search box, the progress ring in the country panel.
+- `questions/` — the Questions page (`QuestionsPanel`, `QuestionCard`, `QuestionsResult`,
+  `use-question-session`); `routes/questions/questions.tsx` only mounts it.
+- `quizzes/` — all quiz types. `engine/` is the shared quiz machinery (`engine.ts` over
+  `use-quiz-keyboard`, `use-quiz-timer`, `use-prior-best`, `run-result`); `geography/` has the
+  geography quiz definitions and their stages; `name-all/` is "Name all countries" (a container,
+  three hooks, and a panel / result / dock / HUD each); `history-fill/` is the history "fill the
+  list" quiz (a container, `use-fill-run`, grid, input bar, result, toggle, phone HUD); `pages/`
+  holds the quiz list pages and the run page (`QuizRun` with its panel, result and HUD).
+- `history/` — the timeline: `timeline/` (the canvas renderer split by job — `render-*` helpers,
+  `draw-*` layers, `wire-layout` — and `HistoryTimeline` split into config, model, framing, fonts,
+  hover, gestures, fly animation, period reporter and frame scheduler), `data/` (history
+  countries, search, the build-time catalog), `components/` (hover card, detail, filters,
+  outline, search).
 - `progress/` — the learning store: what you've answered, when a card is due. It knows nothing
   about countries; card ids are just strings to it.
 
 **`app/engines/map/`** — the map renderer (MapLibre) and the camera maths. Plain TypeScript, no
-React, no knowledge of the rest of the app; the app talks to it through `MapController`.
+React, no knowledge of the rest of the app; the app talks to it through `MapController`. `gl-atlas.ts`
+is the thin `GlAtlas` facade; map creation (`gl-setup`), camera (`gl-camera`), hover and picking
+(`gl-hover`, `gl-picking`), the comparison outline (`gl-compare`), feature state (`gl-styling`) and
+per-camera labels (`gl-view-sync`) are separate modules it composes.
 
 **`app/shared/`** — small things any part of the app can use and that know nothing about any
 feature: `components/` (the flag image), `layout/` (bottom-sheet and viewport helpers), `lib/`
@@ -51,6 +69,7 @@ Unit tests are **not** here: they sit next to the code (`scale.ts` has `scale.te
 | I'm adding… | It goes in |
 | --- | --- |
 | a new page / URL | a route module in `app/routes/<section>/`, plus a line in `app/routes.ts` |
+| a hook (state + effects for a screen) | `use-xxx.ts` next to the component that uses it; a screen over ~150 lines gets a container component plus a hook plus one file per piece of UI |
 | a component used by one feature | that feature's folder (`features/<name>/components/` or next to its siblings) |
 | a component used by several features and knowing nothing about any | `app/shared/components/` |
 | a new quiz | `features/quizzes/<kind>/` — a `QuizDefinition` plus its id in `QUIZ_IDS` (see [quizzes.md](quizzes.md)) |
@@ -94,7 +113,10 @@ features/progress -> never features/countries
 
 ## File rules
 
-- A source file stays under **400 lines** (aim for 300). `npm run check` fails above that;
+- A source file stays under **400 lines** (aim for 300). Split by purpose: state and effects into a
+  `use-xxx.ts` hook, logic into small plain modules, each piece of UI into its own component file,
+  constants and types into their own file. Keep the exports other files use unchanged, and put
+  anything another feature needs in the feature's `index.ts`. `npm run check` fails above that;
   its short temporary allow-list names the files still to be split, and only ever shrinks.
 - **One component per file**, named after it: `HistoryCard.tsx` holds `HistoryCard`. A
   component's tiny private helpers can stay in its file.
@@ -145,3 +167,20 @@ this:
 Phase 2 of the restructure moved the old `app.css` into these files with a throwaway script that
 checked the built CSS before and after (same rule set; same relative order of every pair of rules
 that can hit one element, on every page and every navigation order).
+
+## What the big files became (phase 3A)
+
+Every file that was on the line-limit allow-list under `app/` was split by purpose; the exports other files use are unchanged.
+
+- countries/questions.ts -> question-kinds.ts, religion.ts, distractors.ts, question-generators.ts, session.ts; questions.ts is now a re-export barrel (names.ts imports religion.ts)
+- quizzes/engine/engine.ts -> engine-types.ts (QuizEngine, constants, resolveMatch), use-quiz-timer.ts, use-quiz-keyboard.ts (+inputKeyDownHandler), use-prior-best.ts, run-result.ts; engine.ts keeps useQuizEngine + REVEAL_FILL_MS
+- history/timeline/timeline.ts -> timeline-config.ts, timeline-model.ts, timeline-framing.ts, timeline-fonts.ts, timeline-hover.ts, timeline-gestures.ts, fly-animation.ts, period-reporter.ts, frame-scheduler.ts; timeline.ts keeps HistoryTimeline (re-exports flyTargetFor/types)
+- history/timeline/renderer.ts -> render-types/colors/easing/geometry.ts, draw-background/ticks/wires/pins/connectors/centre.ts, wire-layout.ts (tool-split by declaration); renderer.ts = render()+renderAt() entry, re-exports public names
+- engines/map/gl-atlas.ts -> gl-setup.ts (map creation), gl-host.ts (collaborator view), gl-camera.ts, gl-hover.ts, gl-picking.ts, gl-compare.ts, gl-styling.ts (feature state/paint), gl-view-sync.ts (labels/capitals/pins per camera); gl-atlas.ts = GlAtlas facade (create/destroy/delegation/resize/pulse)
+- quizzes/history-fill/HistoryFillQuiz.tsx -> use-fill-run.ts (state/effects), fill-run-types.ts, FillGrid, FillInputBar, FillResult (card+buttons), FillToggle, FillPhoneHud; HistoryFillQuiz = container (CSS imports stay there)
+- quizzes/name-all/NameAllQuiz.tsx -> use-name-all-world/run/atlas.ts, name-all-types.ts, NameAllPanel, NameAllResult, NameAllNamedList, NameAllFlag, NameAllDock, NameAllHud (+ engine/PauseIcon.tsx shared with FillPhoneHud); NameAllQuiz = container
+- routes/map/atlas.tsx -> thin route (CSS imports + ProgressProvider + AtlasShell); features/map: components/AtlasShell, AtlasPanel, HistoryLayer, MapTopHud, MapBottomHud, MapNotices; hooks/use-map-controller, use-history-canvas, use-sidebars, use-phone-sheet; sidebar-storage.ts, micro.ts
+- routes/quizzes/quizzes.$subject.tsx -> features/quizzes/pages/{QuizList,QuizListItem,QuizHistoryPanel,HistoryCountries,HistoryCountryQuizzes,QuizNotFound,use-quiz-list,quiz-list-data}; route keeps loader/clientLoader/meta + dispatch (89 lines)
+- routes/quizzes/quizzes.$subject.$quizId.tsx -> features/quizzes/pages/{QuizRun,QuizRunPanel,QuizRunResult,QuizRunHud,use-quiz-run-data,use-quiz-atlas-bridge,use-quiz-test-seams}; route keeps loader/clientLoader/meta + dispatch (155 lines)
+- geography/quizzes.test.ts -> quizzes.test.ts (selection/scopes), quiz-overlay.test.ts, quiz-definitions.test.ts; history-fill/fill-quiz.test.ts -> fill-quiz.test.ts (matching), fill-quiz-tables.test.ts (shipped timelines). 399 tests unchanged.
+- routes/questions/questions.tsx -> features/questions/{QuestionsPanel,QuestionCard,QuestionsResult,QuestionsMessage,use-question-session,questions.css,index.ts}; route = meta + <QuestionsPanel/> (new feature, one public export)

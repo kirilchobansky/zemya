@@ -12,7 +12,7 @@
 import type { CountryRecord } from '~/engines/map/types';
 import { latinToCyrillicRegExp } from '~/features/history';
 import { BULGARIAN_NAMES, REJECTED_SPELLINGS } from './names-bg';
-import { religionChain } from './questions';
+import { religionChain } from './religion';
 
 /** lowercase · strip diacritics (NFD + remove combining marks) · strip apostrophes
  *  outright (so "d'Ivoire" becomes "divoire", not "d ivoire") · every other run of

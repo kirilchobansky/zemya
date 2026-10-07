@@ -28,18 +28,6 @@ const MAX_CSS_LINES = 300; // stylesheets are split by component/purpose, never 
 /** TEMPORARY: files over MAX_LINES today. Phase 3 splits them; delete each entry as it goes.
  *  A file not listed here that grows past the limit fails the check. */
 const LINE_LIMIT_ALLOW_LIST = new Map([
-  ['app/engines/map/gl-atlas.ts', 'phase 3'],
-  ['app/features/history/timeline/renderer.ts', 'phase 3'],
-  ['app/features/history/timeline/timeline.ts', 'phase 3'],
-  ['app/features/quizzes/engine/engine.ts', 'phase 3'],
-  ['app/features/quizzes/geography/quizzes.test.ts', 'phase 3'],
-  ['app/features/quizzes/history-fill/HistoryFillQuiz.tsx', 'phase 3'],
-  ['app/features/quizzes/history-fill/fill-quiz.test.ts', 'phase 3'],
-  ['app/features/quizzes/name-all/NameAllQuiz.tsx', 'phase 3'],
-  ['app/features/countries/questions.ts', 'phase 3'],
-  ['app/routes/map/atlas.tsx', 'phase 3'],
-  ['app/routes/quizzes/quizzes.$subject.$quizId.tsx', 'phase 3'],
-  ['app/routes/quizzes/quizzes.$subject.tsx', 'phase 3'],
   ['scripts/build/build-content.mjs', 'phase 3'],
   ['scripts/import/import-rulers.mjs', 'phase 3']
 ]);

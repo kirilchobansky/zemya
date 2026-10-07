@@ -113,7 +113,7 @@ this split; both turned out to be needed once the catalogue text and the flags q
 confusable pairs were actually built, so they're recorded here rather than only in a
 commit message.
 
-`routes/quizzes/quizzes.$subject.$quizId.tsx` is the "atlas bridge": it owns the handful of things every quiz
+`app/features/quizzes/pages/use-quiz-atlas-bridge.ts` (used by `QuizRun.tsx`; the route file `routes/quizzes/quizzes.$subject.$quizId.tsx` only loads data and dispatches) is the "atlas bridge": it owns the handful of things every quiz
 needs from the atlas layout — hiding the search box/toolbar/tooltip for the run's whole
 lifetime, returning the camera to the world view on START and on finish, and mirroring
 the run's target/answered/showNeighbours/paused state into the map's own quiz-mode
@@ -129,7 +129,7 @@ has a notion of map neighbours. This `slot` prop is how a one-off control like t
 home without `QuizStageProps` growing a bespoke field per future quiz.
 
 **Quiz mode is one flag, not four conditionals.** `routes/quizzes/quizzes.$subject.$quizId.tsx` reaches the
-map through `useAtlasContext()` (exported from `routes/map/atlas.tsx`) and writes a `quiz:
+map through `useAtlasContext()` (exported from `features/map`) and writes a `quiz:
 QuizOverride | null` there for the whole lifetime of the route (set on mount, torn down on
 unmount), for every quiz alike — the subject/quiz list pages never touch it. Setting it
 non-null does these things, all gated on that one value: the renderer's `Style.quizMode`

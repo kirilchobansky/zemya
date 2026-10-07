@@ -61,7 +61,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   pointer against last frame's regions on pointermove (throttled to one check per
   animation frame, suppressed while dragging or pinch-zooming), brightens the hovered
   capsule/pin on canvas, and reports it up through a `HistoryTimeline` `onHover`
-  callback. `app/routes/map/atlas.tsx` floats `app/features/history/components/HistoryCard.tsx` (name, dates,
+  callback. `app/features/map/components/HistoryLayer.tsx` (state in `use-history-canvas.ts`) floats `app/features/history/components/HistoryCard.tsx` (name, dates,
   role/category/summary per kind — see `app/features/history/timeline/renderer.ts`'s `TimelineEntry`
   for the fields it reads) beside the hovered entry, flipping left/up to stay on screen.
   Suppressed for an entry that already has a pinned card (below).
@@ -95,7 +95,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   (year/range, kind, role, name.bg, tier, precision, category, parent), sorted by start
   year then kind — for proofreading the content, not a nav destination. Prerendered (a
   real file for the static host) but `noindex` and left out of the sitemap, and
-  deliberately outside `routes/map/atlas.tsx`'s layout (no canvas, no `AtlasContext`).
+  deliberately outside the atlas layout route (`routes/map/atlas.tsx`) (no canvas, no `AtlasContext`).
   `npm run check:history` reports (read-only, like `npm run audit`) parent/period
   mismatches, >3 same-kind overlaps, future end dates and >5y ruler/government gaps.
 - A pinned card's "See more" (or a row inside this same view) opens `HistoryDetail.tsx`'s

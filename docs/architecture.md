@@ -40,7 +40,14 @@ glyph server). `app/engines/map/`:
 | --- | --- |
 | `controller.ts` | `MapController` + `AtlasCallbacks`: everything the app may ask of the map (`setStyle`, `setFocus`, `home`, `flyTo`, `followTarget`, `pulse`, `fit`, `startCompare`, `view`, `screenPosition`, ...) |
 | `engine.ts` | lazy loader — the only way `gl-atlas.ts` (and so MapLibre) is reached |
-| `gl-atlas.ts` | the controller: map creation, camera, feature state, filters, hit-testing, compare drag |
+| `gl-atlas.ts` | the controller facade (`GlAtlas`): create/destroy, the public `MapController` API, resize, pulse; delegates to the modules below |
+| `gl-setup.ts` | the one place the MapLibre `Map` is constructed (worker, protocols, options, momentum off, attribution, test seam) |
+| `gl-camera.ts` | camera moves, fly-to, fit, the quiz follow decision, move events |
+| `gl-styling.ts` | feature state and static-layer paint, capital ring image, graticule ranges |
+| `gl-view-sync.ts` | per-camera work: pins/dots/halos, name and capital filters, the quiz place ring |
+| `gl-hover.ts`, `gl-picking.ts` | hover reporting and click selection; which country or ring is under a point |
+| `gl-compare.ts` | the comparison outline drag and the capture-phase input rules |
+| `gl-host.ts` | the view of `GlAtlas` its collaborators may read |
 | `gl-style.ts` | sources, layer table, feature-state keys (read top to bottom = "what the map is") |
 | `gl-geo.ts` | runtime GeoJSON: country anchors, capitals, graticule, compare outline |
 | `visibility.ts` | the per-camera predicates (`drawsAsPin`, `showsAsDot`, `haloAlpha`, `capitalsVisible`, `capitalShapeShowing`) — pure, unit-tested; thresholds in `thresholds.ts` |
@@ -326,35 +333,50 @@ scripts/check-structure.mjs   400-line limit + import boundaries (npm run check)
 tests/e2e/              smoke.mjs and perf.mjs: drive a real browser against the production build
 
 app/root.tsx, routes.ts, entry.client.tsx, entry.server.tsx   document, route table, hydrate, prerender
-app/routes/             route modules only, grouped by section (URLs come from routes.ts, not folders)
-  map/                  atlas.tsx (layout, owns the map canvas), atlas.index.tsx, country.tsx
+app/routes/             route modules only, thin: loader, clientLoader, meta, mounting (URLs come from routes.ts, not folders)
+  map/                  atlas.tsx (layout: the shared CSS imports in their load order + ProgressProvider + AtlasShell),
+                        atlas.index.tsx, country.tsx, atlas.css / atlas.phone.css
   quizzes/              quizzes.tsx, quizzes.$subject.tsx, quizzes.$subject.$quizId.tsx, legacy /quiz redirects
   history/              history.tsx, history.$slug.tsx, history.$slug.list.tsx
-  questions/            questions.tsx, study.tsx (redirect)
+  questions/            questions.tsx (-> features/questions), study.tsx (redirect)
 
 app/features/           one folder per product area; index.ts exposes what other features use
-  map/                  atlas-context.ts, up.ts, components/ (Rail, MobileChrome, UpButton): the atlas shell
-  countries/            catalog.server, names(-bg), scopes, overlays, outline, world, mastery,
-                        questions (session generator), quizSeo, components/ (SearchBox, CountryProgress)
+  map/                  the atlas shell. atlas-context.ts, up.ts, sidebar-storage.ts, micro.ts,
+                        components/ (AtlasShell, AtlasPanel, HistoryLayer, MapTopHud, MapBottomHud, MapNotices,
+                        Rail, MobileChrome, UpButton), hooks/ (use-map-controller, use-history-canvas,
+                        use-sidebars, use-phone-sheet)
+  countries/            catalog.server, names(-bg), scopes, overlays, outline, world, mastery, quizSeo,
+                        the Questions session generator (questions.ts barrel over question-kinds,
+                        distractors, question-generators, session, religion), components/ (SearchBox, CountryProgress)
+  questions/            the Questions page: QuestionsPanel, QuestionCard, QuestionsResult, use-question-session
   quizzes/
-    engine/             useQuizEngine, types, insets, subjects registry, QuizControls/StageClock/StartCaption
+    engine/             useQuizEngine (engine.ts + engine-types, use-quiz-keyboard, use-quiz-timer, use-prior-best,
+                        run-result), types, insets, subjects registry, QuizControls/StageClock/StartCaption/PauseIcon
     geography/          quiz definitions (quizzes.ts) and stages/ (Map, Flags, Outlines, ... Stage)
-    name-all/           "Name all countries" (NameAllQuiz)
+    name-all/           "Name all countries": NameAllQuiz container + use-name-all-world/run/atlas hooks,
+                        NameAllPanel, NameAllResult, NameAllDock, NameAllHud, NameAllNamedList, NameAllFlag
     history-fill/       "fill the list": fill-quiz, fill-quiz-config, fill-quizzes.server, HistoryFillQuiz
+                        container + use-fill-run, FillGrid, FillInputBar, FillResult, FillToggle, FillPhoneHud
+    pages/              the list and run pages: QuizList(+Item, HistoryPanel), HistoryCountries,
+                        HistoryCountryQuizzes, QuizRun(+Panel, Result, Hud) and their hooks
   history/
-    timeline/           renderer, timeline, scale, layout: the canvas timeline
+    timeline/           the canvas timeline: renderer.ts (render entry) over render-*/draw-*/wire-layout,
+                        timeline.ts (HistoryTimeline) over timeline-config/-model/-framing/-fonts/-hover/-gestures,
+                        fly-animation, period-reporter, frame-scheduler; scale, layout
     data/               countries, catalog.server, related, search
     components/         HistoryCard, HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch
   progress/             ProgressProvider, progress (Dexie store), scheduler (ts-fsrs), questions (generic Question + RNG).
                         Subject-agnostic: imports nothing from features/countries.
 
-app/engines/map/        projection, topology, camera, follow, MapLibre renderer (gl-*.ts). No React, no features.
+app/engines/map/        projection, topology, camera, follow, and the MapLibre adapter: gl-atlas.ts (GlAtlas facade) over
+                        gl-setup, gl-camera, gl-hover, gl-picking, gl-compare, gl-styling, gl-view-sync (+ gl-host, gl-geo, gl-style).
+                        No React, no features.
 
 app/shared/             imports nothing from features/engines/routes
   components/           Flag
   layout/               sheet (bottom-sheet state), viewport
   lib/                  format, keyboard, seo, site, theme
-  styles/               tokens.css then app.css
+  styles/               tokens.css, base.css (global) + small shared stylesheets by purpose (layout, panels, sheet, buttons, content, ...), see structure.md "CSS"
 
 app/**/*.test.ts        unit tests, next to the code they test (vitest; npm run test:unit)
 ```

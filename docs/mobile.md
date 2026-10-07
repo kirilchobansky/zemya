@@ -7,7 +7,7 @@ the sheet, tabs, touch map, insets, quiz-on-a-keyboard rules, landscape, gesture
 Two switches, deliberately independent:
 
 - **LAYOUT follows viewport WIDTH.** `max-width: 819px` (`PHONE_MAX_WIDTH` in
-  `app/shared/layout/viewport.ts`, mirrored in `app.css` — change both) is the phone layout. An iPad in
+  `app/shared/layout/viewport.ts`, mirrored in `shared/styles/phone.css` and the component CSS — change all) is the phone layout. An iPad in
   landscape is the desktop layout. Between 820 and 1000px the rail/panel columns are tighter.
 - **INPUT AFFORDANCES follow the POINTER.** `@media (pointer: coarse)` / `isCoarsePointer()`:
   44px touch targets, no hover tooltip, no +/- zoom buttons (pinch exists), no `<kbd>` hints,
@@ -23,7 +23,7 @@ insets), always read at event/effect time.
 content (`overscroll-behavior: contain`). The canvas fills the screen behind everything.
 Every bottom-pinned thing pads with `env(safe-area-inset-bottom)` (`--tabbar-h` carries it).
 
-**The sheet** is the ordinary `.panel` (`<aside>` in `routes/map/atlas.tsx`), restyled: 90dvh tall,
+**The sheet** is the ordinary `.panel` (`<aside>` in `features/map/components/AtlasPanel.tsx`), restyled: 90dvh tall,
 parked with `transform: translateY(...)` — snapping animates transform only, never height.
 Snaps (`app/shared/layout/sheet.ts`, mirrored in CSS `.panel[data-snap]`), measured from the viewport
 bottom: **peek** = tab bar + 88px (handle + the route's `.peek` line), **half** 50%, **full**
@@ -51,7 +51,7 @@ it replaces the desktop toolbar, which is `display: none` on phones. ⌂ is a sm
 under it; the scale bar is hidden on phones. Icons are inline SVG (glyph characters fall back to
 tofu on some fonts).
 
-**Touch map** (MapLibre's handlers in `app/engines/map/gl-atlas.ts`; the notes that follow describe the removed canvas controller — the 24 px touch hit radius and the focus-keeping capture listeners were carried over, the DPR cap of 2 is the map's `pixelRatio`): `touch-action: none` on the canvas; one finger pans, two
+**Touch map** (MapLibre's handlers in `app/engines/map/gl-hover.ts` / `gl-compare.ts`; the notes that follow describe the removed canvas controller — the 24 px touch hit radius and the focus-keeping capture listeners were carried over, the DPR cap of 2 is the map's `pixelRatio`): `touch-action: none` on the canvas; one finger pans, two
 fingers pinch about their midpoint (the world point that started under the fingers stays under
 them, so a two-finger drag also pans). No hover for `pointerType === 'touch'` (no tooltip, no
 hover highlight); a tap selects. Hit areas on touch are 24 px radius for capital rings and

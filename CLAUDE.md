@@ -39,7 +39,7 @@ absorbed territories merge into a real country at build time via `ABSORB` in
 - **Layout is feature-based** (guide for humans: `docs/structure.md`, tree: `docs/architecture.md`).
   Under `app/`: `routes/` (route modules, grouped `map/`, `quizzes/`, `history/`, `questions/`;
   URLs are set in `routes.ts`, not by folders), `features/<name>/` (`countries`, `history`,
-  `map`, `progress`, `quizzes`), `engines/map/` (the MapLibre renderer and camera maths),
+  `map`, `progress`, `questions`, `quizzes`), `engines/map/` (the MapLibre renderer and camera maths),
   `shared/` (`components/`, `layout/`, `lib/`, `styles/`). New code goes in the feature it
   belongs to — never a new top-level folder, never back into a catch-all like `lib/` or
   `components/` (reversed old rule: `docs/decisions.md` "Structure: feature folders").
@@ -52,8 +52,10 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   without leaking into the client bundle). Prefer `~/features/...`, `~/shared/...`,
   `~/engines/...` over long relative paths; inside one folder use `./x`.
 - **File rules:** a source file under `app/` or `scripts/` stays under 400 lines (aim for 300);
-  the check fails above 400 except for the files on its temporary allow-list, which shrinks as
-  they are split (never add to it). One component per file. Components are `PascalCase.tsx`
+  the check fails above 400 except for the files on its temporary allow-list (today only two
+  build/import scripts; `app/` has none — never add to it). Split by purpose: state and effects
+  into `use-xxx.ts` hooks, logic into plain modules, one component per file; route files stay
+  thin (loader, meta, mounting). One component per file. Components are `PascalCase.tsx`
   named after the default/named export; other modules are `kebab-case.ts` (older camelCase
   names stay until touched); hooks `useThing`; route modules keep their React Router names.
   **Tests live next to the code they test**, same name plus `.test.ts` (`scale.ts` ->
@@ -81,8 +83,8 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   answer, Ctrl+Backspace abandon; "Restart" (active run only) = a fresh run, nothing saved.
 - **Map** (`docs/architecture.md` "Map renderer"): the rest of the app talks to `MapController`
   (`app/engines/map/controller.ts`), never to MapLibre. `maplibre-gl` is imported ONLY by
-  `app/engines/map/gl-atlas.ts`, reached only through `engine.ts`'s dynamic import (first load stays
-  small, prerender never evaluates it). Per-country colour and emphasis are **feature state**,
+  the `app/engines/map/gl-*.ts` adapter (`gl-setup.ts` is the one value import; the rest take types), reached
+  only through `engine.ts`'s dynamic import (first load stays small, prerender never evaluates it). Per-country colour and emphasis are **feature state**,
   never rebuilt geometry. Shapes come from `public/data/geography/world.pmtiles`
   (`scripts/build/build-tiles.mjs`, run by `build:content`, committed). Camera maths (`camera.ts`,
   `follow.ts`) is unchanged; MapLibre only draws and moves.

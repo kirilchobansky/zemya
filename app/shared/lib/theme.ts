@@ -4,7 +4,7 @@
  *
  * Persisted in localStorage — the one documented exception to CLAUDE.md's "no localStorage"
  * rule: it is a per-browser display preference, not progress data, and it must be read
- * synchronously (before React, before app.css's first paint) or the page flashes the wrong
+ * synchronously (before React, before the first paint of base.css) or the page flashes the wrong
  * theme. root.tsx's inline script duplicates STORAGE_KEY's value and this module's own
  * resolution logic for that reason — keep the two in sync if either changes.
  */

@@ -1,7 +1,7 @@
 /**
  * The phone shell's own furniture: the sheet's handle, the bottom tab bar and the two small
  * overlay sheets (Layers, Progress). All of it is in the DOM on every viewport and is
- * `display: none` above the phone width (app.css, `@media (max-width: 819px)`), so the desktop
+ * `display: none` above the phone width (MobileChrome.css and shared/styles/phone.css, `@media (max-width: 819px)`), so the desktop
  * layout and the prerendered HTML are the same for everyone.
  */
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';

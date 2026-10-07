@@ -5,7 +5,7 @@
  *
  * Snap heights are measured from the BOTTOM OF THE VIEWPORT. The sheet is 90dvh tall and sits
  * under the tab bar, so `peek` is the tab bar plus PEEK_PX of sheet, `half` is 50% of the
- * viewport and `full` is 90% — the same numbers the CSS uses (app.css, `.panel[data-snap]`).
+ * viewport and `full` is 90% — the same numbers the CSS uses (panels.css and sheet.css, `.panel[data-snap]`).
  */
 import { useEffect, type RefObject } from 'react';
 
