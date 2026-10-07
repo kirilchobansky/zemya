@@ -27,6 +27,7 @@ import type { CountryRecord } from '~/engines/map/types';
 import { NameAllDock } from './NameAllDock';
 import { NameAllHud } from './NameAllHud';
 import { NameAllPanel } from './NameAllPanel';
+import { useRestoreFinishedRun } from '~/features/quizzes/engine/use-results-return';
 import { useNameAllAtlas } from './use-name-all-atlas';
 import { useNameAllRun } from './use-name-all-run';
 import { useNameAllWorld } from './use-name-all-world';
@@ -42,8 +43,9 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
   const run = useNameAllRun({ scope, ready, total, prepared, byIso3, leave });
   const {
     phase, paused, named, input, hint, shaking, setShaking, elapsedMs, outcome, running, finished,
-    inputRef, listEndRef, namedSetRef, startRun, restart, giveUp, togglePause, onChange, onKeyDown
+    inputRef, listEndRef, namedSetRef, startRun, restart, giveUp, togglePause, onChange, onKeyDown, snapshot, restoreResult
   } = run;
+  useRestoreFinishedRun(ready, phase === 'idle', restoreResult); // Back from a dossier opened off the results
 
   useNameAllAtlas({
     scope, phase, paused, named, pool, ready,
@@ -67,7 +69,7 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
         scope={scope} backTo={backTo} ready={ready} phase={phase} paused={paused} total={total}
         hint={hint} elapsedMs={elapsedMs} named={named} namedCountries={namedCountries} missed={missed}
         outcome={outcome} listEndRef={listEndRef}
-        onTogglePause={togglePause} onRestart={restart} onGiveUp={giveUp} onLeave={leave}
+        onTogglePause={togglePause} onRestart={restart} onGiveUp={giveUp} onLeave={leave} snapshot={snapshot}
       />
 
       {running && <StageClock host={stageHost} ms={elapsedMs} />}

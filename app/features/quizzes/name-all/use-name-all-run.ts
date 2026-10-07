@@ -9,7 +9,7 @@ import { matchCountryName, normaliseName, type QuizScope, type prepareCountryNam
 import { bestQuizTime, saveQuizRun } from '~/features/progress';
 import { NAME_ALL_ID } from '~/features/quizzes/geography/quizzes';
 import type { CountryRecord } from '~/engines/map/types';
-import { AUTO_ACCEPT_MS, NO_NAMED, type Outcome, type Phase } from './name-all-types';
+import { AUTO_ACCEPT_MS, NO_NAMED, type FinishedNameAll, type Outcome, type Phase } from './name-all-types';
 
 export function useNameAllRun({ scope, ready, total, prepared, byIso3, leave }: {
   scope: QuizScope;
@@ -123,6 +123,21 @@ export function useNameAllRun({ scope, ready, total, prepared, byIso3, leave }: 
     setPhase('idle');
   };
 
+  /* Results kept across a dossier visit. Restoring sets state only — the run was saved once, when
+     it finished (a given-up run never is). */
+  const snapshot = useCallback((): FinishedNameAll | null => (
+    phase === 'done' || phase === 'gaveup' ? { phase, named, elapsedMs, outcome } : null
+  ), [phase, named, elapsedMs, outcome]);
+  const restoreResult = useCallback((run: FinishedNameAll) => {
+    namedRef.current = run.named;
+    namedSetRef.current = new Set(run.named);
+    setNamed(run.named);
+    setElapsedMs(run.elapsedMs);
+    setOutcome(run.outcome);
+    phaseRef.current = run.phase;
+    setPhase(run.phase);
+  }, []);
+
   const togglePause = useCallback(() => {
     if (phaseRef.current !== 'running') return;
     if (pausedRef.current) startedAtRef.current = Date.now() - elapsedRef.current;
@@ -226,6 +241,6 @@ export function useNameAllRun({ scope, ready, total, prepared, byIso3, leave }: 
   return {
     phase, paused, named, input, hint, shaking, setShaking, elapsedMs, outcome,
     running, finished, inputRef, listEndRef, namedSetRef,
-    startRun, restart, giveUp, togglePause, onChange, onKeyDown
+    startRun, restart, giveUp, togglePause, onChange, onKeyDown, snapshot, restoreResult
   };
 }

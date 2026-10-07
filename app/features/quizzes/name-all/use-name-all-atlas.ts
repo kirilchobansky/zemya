@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { SCOPE_VIEWS, type QuizScope } from '~/features/countries';
 import { useAtlasContext } from '~/features/map';
 import { NO_INSETS } from '~/engines/map/follow';
+import { quizCameraHeld } from '~/features/quizzes/engine/finished-runs';
 import { measureInsets } from '~/features/quizzes/engine/insets';
 import type { CountryRecord } from '~/engines/map/types';
 import { useQuizPageLock } from '~/shared/lib/keyboard';
@@ -59,7 +60,7 @@ export function useNameAllAtlas({ scope, phase, paused, named, pool, ready, keyb
     if (view) atlas.home();
     return () => {
       atlas.setRegionView(null);
-      if (view) atlas.home();
+      if (view && !quizCameraHeld()) atlas.home(); // not when leaving for a dossier off the results
     };
   }, [atlas, scope]);
   useEffect(() => {

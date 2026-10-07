@@ -4,13 +4,14 @@ import { Link } from 'react-router';
 import { continentOf, QUIZ_SCOPES, SCOPE_LABELS, type QuizScope } from '~/features/countries';
 import { formatDuration } from '~/shared/lib/format';
 import type { CountryRecord } from '~/engines/map/types';
+import { useResultsReturn } from '~/features/quizzes/engine/use-results-return';
 import { NameAllFlag } from './NameAllFlag';
 import { NameAllNamedList } from './NameAllNamedList';
 import type { Outcome, Phase } from './name-all-types';
 
 /** What the panel shows once a run is over: the result card, the missed countries (grouped by
  *  continent for the World quiz), the named list and the buttons. */
-export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, total, missed, outcome, listEndRef, onRestart }: {
+export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, total, missed, outcome, listEndRef, onRestart, snapshot }: {
   scope: QuizScope;
   phase: Phase;
   elapsedMs: number;
@@ -21,7 +22,10 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
   outcome: Outcome | null;
   listEndRef: Ref<HTMLLIElement>;
   onRestart: () => void;
+  /** The finished run, parked in memory when a missed country's dossier is opened. */
+  snapshot: () => unknown;
 }) {
+  const back = useResultsReturn(snapshot, phase);
   const resultHook = (
     <div className="hook">
       <div className="hook__label">{phase === 'done' ? 'Result' : 'Gave up'}</div>
@@ -59,7 +63,7 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
               {group.label && <h4 className="name-all__continent">{group.label} · {group.list.length}</h4>}
               <div className="neighbours">
                 {group.list.map(c => (
-                  <Link className="neighbour" key={c.iso3} to={`/country/${c.slug}`}>
+                  <Link className="neighbour" key={c.iso3} to={`/country/${c.slug}`} {...back}>
                     <NameAllFlag country={c} /> {c.name}
                   </Link>
                 ))}

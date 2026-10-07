@@ -12,7 +12,7 @@ import type { Outcome, Phase } from './name-all-types';
 /** The right-hand panel of a run: header, then the idle / running / result body. */
 export function NameAllPanel({
   scope, backTo, ready, phase, paused, total, hint, elapsedMs, named, namedCountries, missed, outcome,
-  listEndRef, onTogglePause, onRestart, onGiveUp, onLeave
+  listEndRef, onTogglePause, onRestart, onGiveUp, onLeave, snapshot
 }: {
   scope: QuizScope;
   backTo: string;
@@ -31,6 +31,7 @@ export function NameAllPanel({
   onRestart: () => void;
   onGiveUp: () => void;
   onLeave: () => void;
+  snapshot: () => unknown;
 }) {
   const running = phase === 'running';
   const finished = phase === 'done' || phase === 'gaveup';
@@ -96,7 +97,7 @@ export function NameAllPanel({
           <NameAllResult
             scope={scope} phase={phase} elapsedMs={elapsedMs} named={named}
             namedCountries={namedCountries} total={total} missed={missed} outcome={outcome}
-            listEndRef={listEndRef} onRestart={onRestart}
+            listEndRef={listEndRef} onRestart={onRestart} snapshot={snapshot}
           />
         )}
       </div>

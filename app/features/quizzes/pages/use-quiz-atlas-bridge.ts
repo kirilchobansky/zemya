@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import { useAtlasContext } from '~/features/map';
 import { SCOPE_VIEWS, type QuizScope, type QuizSize } from '~/features/countries';
 import { useKeyboard, useQuizPageLock } from "~/shared/lib/keyboard";
+import { quizCameraHeld } from '../engine/finished-runs';
 import { NO_INSETS } from "~/engines/map/follow";
 import { isCoarsePointer, isPhoneLayout } from "~/shared/layout/viewport";
 import type { World } from "~/engines/map/types";
@@ -68,7 +69,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
     if (view) atlas.home(); // show the continent behind the START dock, not the whole world
     return () => {
       atlas.setRegionView(null);
-      if (view) atlas.home();
+      if (view && !quizCameraHeld()) atlas.home(); // not when leaving for a dossier off the results
     };
   }, [atlas, scope]);
 
