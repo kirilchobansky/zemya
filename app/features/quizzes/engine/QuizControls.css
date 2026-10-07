@@ -182,8 +182,16 @@
     opacity: 0.35;
   }
 
+  /* the feedback line floats over the map above the bar, so the bar's fill stops just above the
+     input instead of reserving a row for it */
+
   .quiz-controls .quiz-feedback {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
     height: 34px;
+    pointer-events: none;
   }
 
   /* START: big, and centred in the visible map area (no sheet beside it any more) */
