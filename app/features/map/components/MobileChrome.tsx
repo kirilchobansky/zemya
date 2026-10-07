@@ -248,7 +248,7 @@ export function LayersSheet(props: LayersSheetProps) {
             Neighbour glow
           </button>
           <button type="button" className="chip" aria-pressed={props.micro !== 'off'} data-state={props.micro} onClick={props.onMicro}>
-            Micro: {props.micro === 'full' ? 'Full' : props.micro === 'dots' ? 'Dots' : 'Off'}
+            Micro: {props.micro === 'full' ? 'On' : 'Off'}
           </button>
           <button type="button" className="chip" aria-pressed={props.showCapitals} onClick={props.onCapitals}>
             Capitals

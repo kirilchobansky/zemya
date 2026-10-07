@@ -5,7 +5,7 @@
  */
 import type { PlaceMark, Feature } from './types';
 
-export type MicroMode = 'full' | 'dots' | 'off';
+export type MicroMode = 'full' | 'off';
 
 /** The effective micro mode of a style — one reading for drawing, labelling and hit-testing. */
 export function microMode(style: Pick<Style, 'showPins' | 'micro'>): MicroMode {
@@ -27,7 +27,7 @@ export interface Style {
   /** Legacy on/off for micro-states; `micro` wins when set. */
   showPins: boolean;
   /** How micro-states and island nations draw (the Micro toggle): `full` = pin or territory
-   *  halo, plus a name when `showLabels`; `dots` = a small dot each, no halo, no name; `off` =
+   *  halo, plus a name when `showLabels`; `off` =
    *  nothing, and nothing to hit. Default: `full` when showPins, else `off`. */
   micro?: MicroMode;
   /** The capitals layer: a ring per capital city once zoomed in past

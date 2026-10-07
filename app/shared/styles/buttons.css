@@ -101,9 +101,4 @@
   }
 }
 
-/* Micro toggle's middle state: pressed, but dashed — Full solid, Dots dashed, Off unpressed */
 
-.tool[data-state='dots'],
-.chip[data-state='dots'] {
-  border-style: dashed;
-}

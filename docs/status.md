@@ -143,4 +143,4 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
 
 
 - Phone sheet: Quizzes and Questions have only peek and full (no half); short drag/flick down closes. Map, dossier and History keep half. Layers/Progress overlay sheets swipe down to close.
-- Map toggles: Micro (Full / Dots / Off, cycles), Capitals, Names (country names). Geography runs have a top-left Quizzes button (phone HUD and desktop stage). Flags: no shadow, hairline only.
+- Map toggles: Micro (On / Off — Off removes the dots and halos), Capitals, Names (country names). Geography runs have a top-left Quizzes button (phone HUD and desktop stage). Flags: no shadow, hairline only.

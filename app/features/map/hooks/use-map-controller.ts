@@ -5,6 +5,7 @@
  * and the size-comparison tool.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useHoverTip } from './use-hover-tip';
 import { useLocation, useNavigation } from 'react-router';
 
 import {
@@ -52,8 +53,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
   const [reloadKey, setReloadKey] = useState(0);
   const [hovered, setHovered] = useState<Feature | null>(null);
   const [hoveredPlace, setHoveredPlace] = useState<PlaceMark | null>(null);
-  const tipRef = useRef<HTMLDivElement | null>(null);
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
+  const { tip, tipRef, setTip, movePointer } = useHoverTip();
   const [scale, setScale] = useState({ km: 0, px: 0 });
   const [comparing, setComparing] = useState<{ feature: Feature; over: Feature | null } | null>(null);
   const [armingCompare, setArmingCompare] = useState(false);
@@ -159,13 +159,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
               setHoveredPlace(place ?? null);
               setTip(feature ? { x, y } : null);
             },
-            // the tooltip follows the mouse inside one country: moved in the DOM, no re-render
-            onPointer: (x, y) => {
-              const el = tipRef.current;
-              if (!el) return;
-              el.style.left = `${x}px`;
-              el.style.top = `${y}px`;
-            },
+            onPointer: movePointer, // the tooltip follows the mouse
             onSelect: f => handleSelectRef.current(f),
             onCameraChange: setScale,
             onCompareMove: (feature, over) => setComparing({ feature, over }),

@@ -64,7 +64,7 @@ export function MapTopHud({
           className="tool"
           aria-pressed={micro !== 'off'}
           data-state={micro}
-          title="Micro-states and islands: full, dots, off"
+          title="Micro-states and islands: on or off"
           onClick={onMicro}
         >
           Micro: {MICRO_LABEL[micro]}

@@ -874,8 +874,8 @@ withheld (`landHidden`), and a halo is never drawn under a dot.
   Liechtenstein, Luxembourg, Monaco, Malta, Palestine, Qatar, Singapore, San Marino, East Timor,
   Trinidad and Tobago, Vatican City, Saint Vincent and the Grenadines. Singapore is a dot because its halo
   would paint Malaysia and Indonesia.
-- **Micro: Dots / Full** both show the area-only countries as areas (never as dots) and the dot-only
-  ones as dots; **Off** shows neither. A quiz forces Full.
+- **Micro: On / Off** (owner removed the middle "Dots" state): On shows halos and dots; **Off** removes both, and
+  nothing is hittable. A quiz forces On.
 - **Dot look** is the original: 4.2 px (6.5 hovered/focused, 9 as the quiz target), 1.2 px dark edge, 9 px pick radius, 24 px touch.
 
 ## What counts as a country — detail
