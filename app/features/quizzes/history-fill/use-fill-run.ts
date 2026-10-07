@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 
-import { useAtlasContext, useUpStep } from '~/features/map';
+import { useAtlasContext } from '~/features/map';
 import { bestQuizTime, saveQuizRun } from '~/features/progress';
 import { useKeyboard, useQuizPageLock } from '~/shared/lib/keyboard';
 import {
@@ -177,9 +177,8 @@ export function useFillRun(quiz: FillQuiz) {
     inputRef.current?.focus({ preventScroll: true });
   };
 
-  // Up mid-run: back to the start screen (restart's reset), nothing saved. Once the run is over
-  // (done or given up) no step is registered, so Up goes to the country's quiz list.
-  useUpStep(phase === 'running', restart);
+  // No Up step: the top Back leaves for the country's quiz list at any time, mid-run included
+  // (an abandon, nothing saved).
 
 
   const revealing = phase === 'gaveup';
