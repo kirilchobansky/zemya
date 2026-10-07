@@ -38,6 +38,8 @@ export interface HistoryOutlineProps {
   /** Null only for the brief window before the canvas controller mounts — every handler
    *  below no-ops until it's set. */
   timeline: HistoryTimeline | null;
+  /** Runs when a period or an entry row is clicked (the phone sheet comes to half). */
+  onPick?: () => void;
 }
 
 interface Section {
@@ -125,7 +127,7 @@ function SectionRows({
   );
 }
 
-export default function HistoryOutline({ entries, currentPeriodId, timeline }: HistoryOutlineProps) {
+export default function HistoryOutline({ entries, currentPeriodId, timeline, onPick }: HistoryOutlineProps) {
   const periods = useMemo(
     () => entries.filter(e => e.kind === 'period').sort((a, b) => a.start - b.start),
     [entries]
@@ -159,6 +161,7 @@ export default function HistoryOutline({ entries, currentPeriodId, timeline }: H
   }, [currentPeriodId, followTimeline]);
 
   function flyToEntry(entry: TimelineEntry) {
+    onPick?.();
     if (!timeline) return;
     const { centre, pxPerYear } = flyTargetFor(entry, timeline.viewportSizePx);
     timeline.flyTo(centre, pxPerYear, entry.id);

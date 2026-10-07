@@ -14,9 +14,11 @@
   transition: border-color 0.14s, color 0.14s, background 0.14s;
 }
 
-.chip:hover {
-  border-color: var(--sea-dim);
-  color: var(--ink);
+@media (hover: hover) {
+  .chip:hover {
+    border-color: var(--sea-dim);
+    color: var(--ink);
+  }
 }
 
 .chip[aria-pressed='true'] {
@@ -40,9 +42,11 @@
   white-space: nowrap;
 }
 
-.tool:hover {
-  background: var(--chart-2);
-  color: var(--ink);
+@media (hover: hover) {
+  .tool:hover {
+    background: var(--chart-2);
+    color: var(--ink);
+  }
 }
 
 .tool[aria-pressed='true'] {
@@ -73,9 +77,11 @@
    primary button — in the dark theme --brass-2 equals --brass-fill-hover exactly, so the
    text became the same colour as its own hover background and visually vanished. */
 
-.action:hover:not(:disabled):not(.action--primary) {
-  border-color: var(--brass-dim);
-  color: var(--brass-2);
+@media (hover: hover) {
+  .action:hover:not(:disabled):not(.action--primary) {
+    border-color: var(--brass-dim);
+    color: var(--brass-2);
+  }
 }
 
 .action:disabled {
@@ -90,9 +96,11 @@
   font-weight: 600;
 }
 
-.action--primary:hover {
-  background: var(--brass-fill-hover);
-  color: var(--ink-on-brass);
+@media (hover: hover) {
+  .action--primary:hover {
+    background: var(--brass-fill-hover);
+    color: var(--ink-on-brass);
+  }
 }
 
 @media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {

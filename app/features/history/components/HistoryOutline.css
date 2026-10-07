@@ -55,9 +55,14 @@
   border-radius: var(--radius-sm);
 }
 
-.history-outline__period:hover,
 .history-outline__period:focus-visible {
   background: var(--chart-2);
+}
+
+@media (hover: hover) {
+  .history-outline__period:hover {
+    background: var(--chart-2);
+  }
 }
 
 .history-outline__period--nested {
@@ -112,9 +117,14 @@
   font-size: 12.5px;
 }
 
-.history-outline__row:hover,
 .history-outline__row:focus-visible {
   background: var(--chart-2);
+}
+
+@media (hover: hover) {
+  .history-outline__row:hover {
+    background: var(--chart-2);
+  }
 }
 
 .history-outline__row-date {

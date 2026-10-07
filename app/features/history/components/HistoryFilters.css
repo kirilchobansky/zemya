@@ -23,6 +23,8 @@
   color: var(--ink-3);
 }
 
-.history-filters__reset:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .history-filters__reset:hover {
+    color: var(--ink);
+  }
 }

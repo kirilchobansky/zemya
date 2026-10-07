@@ -116,9 +116,14 @@
   font-size: 12.5px;
 }
 
-.history-detail__row:hover,
 .history-detail__row:focus-visible {
   background: var(--chart-2);
+}
+
+@media (hover: hover) {
+  .history-detail__row:hover {
+    background: var(--chart-2);
+  }
 }
 
 .history-detail__row-date {
@@ -142,6 +147,8 @@
   font-size: 11.5px;
 }
 
-.history-detail__show-all:hover {
-  color: var(--sea);
+@media (hover: hover) {
+  .history-detail__show-all:hover {
+    color: var(--sea);
+  }
 }

@@ -52,9 +52,14 @@
   font-size: 13px;
 }
 
-.history-search__results button:hover,
 .history-search__results button[data-active='true'] {
   background: var(--chart-3);
+}
+
+@media (hover: hover) {
+  .history-search__results button:hover {
+    background: var(--chart-3);
+  }
 }
 
 .history-search__dot {

@@ -6,7 +6,7 @@
  * for setQuiz. No dossier, no hover, no selection, no quiz yet — canvas drawing only, same
  * as before this route joined the main nav (see CLAUDE.md's history exception).
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { HistoryDetail, HistoryFilters, HistoryOutline, HistorySearch, historyCountryFor } from '~/features/history';
 import { timelineFor } from '~/features/history/data/catalog.server';
@@ -52,6 +52,17 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
     if (isPhoneLayout()) setSheetSnap('half');
   };
 
+  // an opened entry scrolls the panel to its detail (it sits below the search and filters), so
+  // "See more" or a search pick lands on the information, not on whatever was scrolled to before
+  const detailRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // lands on the name, not on the Previous / Next buttons above it
+    const name = detailRef.current?.querySelector<HTMLElement>('.history-detail__name');
+    const body = name?.closest<HTMLElement>('.panel__body');
+    if (!name || !body) return;
+    body.scrollTo({ top: body.scrollTop + name.getBoundingClientRect().top - body.getBoundingClientRect().top - 12 });
+  }, [selectedHistoryEntryId]);
+
   const selectedEntry = selectedHistoryEntryId ? entries.find(e => e.id === selectedHistoryEntryId) ?? null : null;
 
   return (
@@ -90,6 +101,7 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
         </div>
 
         {selectedEntry ? (
+          <div ref={detailRef}>
           <HistoryDetail
             key={selectedEntry.id}
             entry={selectedEntry}
@@ -99,8 +111,9 @@ export default function HistoryCountryPanel({ loaderData }: Route.ComponentProps
             onBack={() => setSelectedHistoryEntryId(null)}
             onPin={pinHistoryEntry}
           />
+          </div>
         ) : (
-          <HistoryOutline entries={entries} currentPeriodId={historyCurrentPeriodId} timeline={historyTimeline} />
+          <HistoryOutline entries={entries} currentPeriodId={historyCurrentPeriodId} timeline={historyTimeline} onPick={() => { if (isPhoneLayout()) setSheetSnap('half'); }} />
         )}
       </div>
     </>

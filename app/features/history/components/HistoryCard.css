@@ -110,10 +110,12 @@
   cursor: pointer;
 }
 
-.pinned-card__close:hover,
-.pinned-card__locate:hover {
-  background: var(--chart-2);
-  color: var(--ink);
+@media (hover: hover) {
+  .pinned-card__close:hover,
+  .pinned-card__locate:hover {
+    background: var(--chart-2);
+    color: var(--ink);
+  }
 }
 
 .pinned-card__locate svg {
@@ -134,7 +136,9 @@
   cursor: pointer;
 }
 
-.pinned-card__see-more:hover {
-  color: var(--ink);
-  border-color: var(--sea-dim);
+@media (hover: hover) {
+  .pinned-card__see-more:hover {
+    color: var(--ink);
+    border-color: var(--sea-dim);
+  }
 }

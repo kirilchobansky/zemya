@@ -7,7 +7,7 @@
  * The state lives in hooks (../hooks): the map controller, the history canvas, the desktop
  * sidebars and the phone sheet. This component wires them to the layout.
  */
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useGo } from '~/shared/lib/navigation';
 
 import type { OverlayId, QuizOverride } from '~/features/countries';
@@ -30,7 +30,8 @@ import { Rail } from './Rail';
 
 export function AtlasShell() {
   const go = useGo();
-  const history = useHistoryCanvas();
+  const entryClicked = useRef<() => void>(() => {});
+  const history = useHistoryCanvas(entryClicked);
   const sidebars = useSidebars();
   const sheet = usePhoneSheet({ historyTimelineInstance: history.historyTimelineInstance, showTimeline: history.showTimeline });
 
@@ -67,6 +68,7 @@ export function AtlasShell() {
     setSelectedHistoryEntryId(id);
     if (onPhone) setSheetSnap('half');
   }, [setSelectedHistoryEntryId, onPhone, setSheetSnap]);
+  entryClicked.current = () => { if (onPhone) setSheetSnap('half'); };
   const cardBottomInset = onPhone && !onLandscape && typeof document !== 'undefined'
     ? Math.min(sheetVisible(sheetSnap, window.innerHeight, document.querySelector<HTMLElement>('.tabbar')?.offsetHeight ?? 0), window.innerHeight * 0.5)
     : 0;

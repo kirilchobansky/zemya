@@ -78,7 +78,8 @@ interface SheetOptions {
  * Wires the drag gestures onto the panel element:
  *   - the handle and the header drag the sheet;
  *   - inside the scrolling body, a drag moves the sheet only when the body is scrolled to the
- *     top (down always; up only when the sheet isn't yet full) — otherwise the body scrolls;
+ *     top (down always; up only from peek, or from half when the body has nothing to scroll) —
+ *     otherwise the body scrolls;
  *   - touch uses touch events (a non-passive touchmove is the only way to take a drag away from
  *     native scrolling); a mouse can drag the handle too, for a narrow desktop window.
  */
@@ -138,7 +139,10 @@ export function useSheetDrag(panel: RefObject<HTMLElement | null>, options: Shee
           return false;
         } else if (gesture.body) {
           // inside the content: the sheet only takes the gesture from a body already at the top
-          const canMoveSheet = gesture.body.scrollTop <= 0 && (dy > 0 || snap !== 'full');
+          // (at half, an upward drag scrolls a body that has somewhere to go instead of opening the sheet)
+          const body = gesture.body;
+          const scrollable = body.scrollHeight > body.clientHeight + 1;
+          const canMoveSheet = body.scrollTop <= 0 && (dy > 0 || (snap === 'peek' || (snap === 'half' && !scrollable)));
           gesture.mode = canMoveSheet ? 'sheet' : 'scroll';
         } else {
           gesture.mode = 'sheet';

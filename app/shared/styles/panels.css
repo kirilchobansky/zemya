@@ -196,6 +196,12 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* The panel is 90dvh tall and parked lower at half, so the body's bottom 40dvh sits off screen:
+     pad it, or the end of the content could never be scrolled into view. */
+  .panel[data-snap='half'] .panel__body {
+    padding-bottom: calc(28px + 40dvh);
+  }
+
   .panel__body > .action {
     min-height: 48px;
     width: 100%;
@@ -235,6 +241,10 @@
 
   .panel__up {
     display: none;
+  }
+
+  .panel[data-snap='half'] .panel__body {
+    padding-bottom: 28px;
   }
 
   .panel__head {
