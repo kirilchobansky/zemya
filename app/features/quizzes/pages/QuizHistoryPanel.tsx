@@ -5,6 +5,11 @@ import { NAME_ALL_ID } from '../geography/quizzes';
 import { formatRunDate } from './quiz-list-data';
 import './QuizHistoryPanel.css';
 
+/** "Second time", "Third time", then "4th time", "5th time", ... */
+function timeLabel(n: number): string {
+  return `${n === 2 ? 'Second' : n === 3 ? 'Third' : `${n}th`} time`;
+}
+
 /** The archive of one quiz/scope (and selection mode), every size together: date, size, time and
  *  tally per run, each deletable. */
 export function QuizHistoryPanel({ history, runs, onClose, onDelete }: {
@@ -52,8 +57,8 @@ export function QuizHistoryPanel({ history, runs, onClose, onDelete }: {
                 {formatDuration(run.timeMs)}
               </span>
               {run.reviewTimesMs?.map((ms, i) => (
-                <span key={i} className="quiz-history__retry numeric" title={`Try ${i + 2}`}>
-                  {formatDuration(ms)}
+                <span key={i} className="quiz-history__retry numeric">
+                  <span className="quiz-history__ordinal">{timeLabel(i + 2)}</span> {formatDuration(ms)}
                 </span>
               ))}
               <span className="quiz-history__tally">

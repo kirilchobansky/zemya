@@ -81,9 +81,9 @@
   flex: 0 0 auto;
 }
 
-.quiz-history__retry::before {
-  content: '→ ';
+.quiz-history__ordinal {
   color: var(--ink-3);
+  font-family: inherit;
 }
 
 .quiz-history__tally {
