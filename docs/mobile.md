@@ -74,7 +74,7 @@ new.
 **Quiz runs on a phone** (`setImmersive` in the atlas context): on a valid run the shell hides the
 sheet, tab bar and overlays from START to the results; results open the sheet at `full`
 (`setSheetSnap`). The layout is built around the on-screen keyboard, which covers ~40% of the
-screen: a thin HUD on top (timer · n / N · pause; `‹ Quizzes` before START), the map (or the
+screen: a thin HUD on top (timer · n / N · pause; `‹ Back` before START), the map (or the
 flag) in the middle, the input bar at the bottom pinned directly ABOVE the keyboard
 (`.quiz-controls`, `bottom: var(--kb)`). Pause opens a screen with Resume and Abandon. The rules:
 

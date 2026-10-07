@@ -1,4 +1,4 @@
-/* Back (UpButton), top of the right panel. Desktop: a quiet bordered button on the header's first
+/* Back (UpButton), top of the right panel. Desktop: a quiet text-only button (no box) on the header's first
    line, with the eyebrow indented past it and the header's top padding a touch taller to make
    room. Phone: a small chip on the sheet grip's row, left of the handle pill (the block in the
    phone media query below), so no header or peek content moves. */
@@ -12,10 +12,10 @@
   align-items: center;
   gap: 7px;
   height: 26px;
-  padding: 0 14px;
-  border: 1px solid var(--rule);
+  padding: 0;
+  border: none;
   border-radius: var(--radius-sm);
-  background: var(--chart-2);
+  background: none;
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 9.5px;
@@ -23,14 +23,12 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ink-2);
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  transition: color 0.12s;
 }
 
 .panel__up:hover,
 .panel__up:focus-visible {
   color: var(--ink);
-  border-color: var(--sea-dim);
-  background: var(--chart-3);
 }
 
 @media (min-width: 820px) {
@@ -39,7 +37,7 @@
   }
 
   .panel:has(> .panel__up) .panel__eyebrow {
-    padding-left: 84px;
+    padding-left: 62px;
     margin-bottom: 18px;
   }
 }

@@ -14,6 +14,7 @@
  * no `document`. The input is never `disabled`; when a run ends it is just moved out of
  * sight so "Try again" can focus it inside the tap.
  */
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 
@@ -48,7 +49,7 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const toggleBox = (hidden: boolean) => (
     <FillToggle quiz={quiz} checked={toggleOn} onChange={setToggleOn} hidden={hidden} />
   );
-  const buttons = <FillResultButtons backTo={backTo} onRestart={restart} />;
+  const buttons = <FillResultButtons onRestart={restart} />;
   const resultHook = (
     <FillResultCard
       quiz={quiz} phase={phase} runToggle={runToggle} elapsedMs={elapsedMs}
@@ -59,8 +60,14 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   /* Phone: leave at any time, nothing saved (the run is only ever saved by finishing it). */
   const leave = () => go(backTo, { state: { sheet: 'full' }, replace: true });
 
+  // a finished or given-up run scrolls the screen back to its top, where the score is
+  const screenRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (finished) screenRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [finished]);
+
   const screen = (
-    <div className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
+    <div ref={screenRef} className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
       <div className="fill-quiz__panel">
         <header className="fill-quiz__head">
           <h2 className="fill-quiz__title">{quiz.title}</h2>

@@ -43,6 +43,8 @@
   border: 1px solid var(--rule);
   background: var(--chart-2);
   overflow: hidden;
+  /* an opened quiz scrolls to the top of the panel with the list's own gap above it */
+  scroll-margin-top: 6px;
 }
 
 .quiz-list__row {

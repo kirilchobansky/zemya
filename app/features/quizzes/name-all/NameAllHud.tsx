@@ -27,13 +27,13 @@ export function NameAllHud({ phase, paused, finished, backTo, total, namedCount,
         <div className="quiz-hud" data-phase={phase}>
           {phase === 'idle' ? (
             <>
-              <Link to={backTo} state={{ sheet: 'full' }} replace className="quiz-hud__back">‹ Quizzes</Link>
+              <Link to={backTo} state={{ sheet: 'full' }} replace className="quiz-hud__back">‹ Back</Link>
               <span className="quiz-hud__count numeric">{total} countries</span>
             </>
           ) : (
             <>
               <button type="button" className="quiz-hud__back" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={onLeave}>
-                ‹ Quizzes
+                ‹ Back
               </button>
               <span className="quiz-hud__timer numeric">{formatDuration(elapsedMs)}</span>
               {hudCount}

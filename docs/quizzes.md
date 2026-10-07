@@ -626,14 +626,14 @@ all at the floor. To give the Stage the world and pool, `QuizStageProps` gained 
 
 Same chrome as the geography run (`HistoryFillQuiz.tsx`, phone layout only; desktop markup and behaviour unchanged):
 
-- **HUD** (`.quiz-hud`, portalled to `<body>`, `data-phase="fill-<phase>"` so the landscape bottom-HUD rules don't apply): idle `‹ Quizzes` + entry count; running `‹ Quizzes`, timer, `n / total`, Pause. **Decision:** Restart and Give up don't fit a 360px HUD, so they live on the pause screen (`.quiz-pause`) beside Resume and Abandon run. Finished / given up: only `‹ Quizzes`.
-- **Leaving:** `‹ Quizzes` and Abandon run navigate to the quiz list (`sheet: 'full'`) at once and save nothing; only finishing a run saves.
+- **HUD** (`.quiz-hud`, portalled to `<body>`, `data-phase="fill-<phase>"` so the landscape bottom-HUD rules don't apply): idle `‹ Back` + entry count; running `‹ Back`, timer, `n / total`, Pause. **Decision:** Restart and Give up don't fit a 360px HUD, so they live on the pause screen (`.quiz-pause`) beside Resume and Abandon run. Finished / given up: only `‹ Back`.
+- **Leaving:** `‹ Back` and Abandon run navigate to the quiz list (`sheet: 'full'`) at once and save nothing; only finishing a run saves.
 - **Input:** the one `.fill-quiz__bar` is fixed to the bottom, riding on the keyboard, with the page-lock filler under it; its Pause / Restart / Give up buttons are `display: none` on a phone. The "add the number" hint floats just above the bar. The grid scrolls between the HUD and the bar (`.fill-quiz` starts below `--hud-h`, the panel pads past the bar, `--fill-bar-h`).
 - **Idle:** the toggles stay at the top of the scrolling area. **Finished:** the result card (`.fill-quiz__summary`: time, count, personal-best message, "A given-up run is not saved.", the toggle for the next run) is at the top of the area, missed cells stay red, and "Try again" / "Back to quizzes" sit in a fixed bottom bar (safe-area aware).
 
 ## Map toggles, flags (decisions)
 
 - **Micro** is `Style.micro: 'full' | 'off'` (`microMode()` in `renderer.ts`, falls back to `showPins`). Full = pins and island halos, named beside the pin when Names is on; Off = nothing drawn and nothing hittable (`pick` takes the mode). A quiz run always uses Full, so its target is never hidden. **Names** is `showLabels` (country names only; capital names stay with the Capitals layer, so a ring never loses its name).
-- Geography run: `‹ Quizzes` top-left (phone HUD, desktop `.quiz-back-desk`) = Abandon. Flags: `.flag` has no shadow or radius, only a 0.5px alpha-following hairline; the `--flag-shadow-*` / `--flag-stage-shadow` tokens are now unused.
+- Geography run: `‹ Back` top-left (phone HUD, desktop `.quiz-back-desk`) = Abandon. Flags: `.flag` has no shadow or radius, only a 0.5px alpha-following hairline; the `--flag-shadow-*` / `--flag-stage-shadow` tokens are now unused.
 
 - **Number-optional rulers:** `NUMBER_OPTIONAL_ALIASES` (`fill-quiz-config.ts`, by entry id) adds one exact alias per ruler, like Ferdinand's `aliases` in `bg.yaml`: "Михаил Шишман" (`ruler-mihail-3-shishman`) and "Михаил Асен" (`ruler-mihail-2-asen`). A spelling that belongs to two different people is still rejected.

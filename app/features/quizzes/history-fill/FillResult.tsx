@@ -1,4 +1,3 @@
-import { Link } from 'react-router';
 
 import { formatDuration } from '~/shared/lib/format';
 import type { FillQuiz } from './fill-quiz';
@@ -38,12 +37,11 @@ export function FillResultCard({ quiz, phase, runToggle, elapsedMs, filledCount,
   );
 }
 
-/** "Try again" and (on a phone) "Back to quizzes". */
-export function FillResultButtons({ backTo, onRestart }: { backTo: string; onRestart: () => void }) {
+/** "Try again" only: leaving is the Back button at the top (the phone HUD's, or the panel's). */
+export function FillResultButtons({ onRestart }: { onRestart: () => void }) {
   return (
     <div className="actions">
       <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
-      <Link to={backTo} state={{ sheet: 'full' }} replace className="action desk-hide">Back to quizzes</Link>
     </div>
   );
 }

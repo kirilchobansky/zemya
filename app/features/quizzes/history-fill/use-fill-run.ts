@@ -177,8 +177,9 @@ export function useFillRun(quiz: FillQuiz) {
     inputRef.current?.focus({ preventScroll: true });
   };
 
-  // Up from a run or its results: back to the start screen (restart's reset), nothing saved
-  useUpStep(phase !== 'idle', restart);
+  // Up mid-run: back to the start screen (restart's reset), nothing saved. Once the run is over
+  // (done or given up) no step is registered, so Up goes to the country's quiz list.
+  useUpStep(phase === 'running', restart);
 
 
   const revealing = phase === 'gaveup';

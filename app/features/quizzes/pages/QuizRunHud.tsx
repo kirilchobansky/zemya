@@ -25,7 +25,7 @@ export function QuizRunHud({ engine, total, backTo, onRestart }: {
               state={{ sheet: "full" }}
               className="quiz-hud__back"
             >
-              ‹ Quizzes
+              ‹ Back
             </Link>
             <span className="quiz-hud__count numeric">
               {total} rounds
@@ -40,7 +40,7 @@ export function QuizRunHud({ engine, total, backTo, onRestart }: {
               onMouseDown={keepFocus}
               onClick={engine.abandon}
             >
-              ‹ Quizzes
+              ‹ Back
             </button>
             <span className="quiz-hud__timer numeric">
               {formatDuration(engine.elapsedMs)}

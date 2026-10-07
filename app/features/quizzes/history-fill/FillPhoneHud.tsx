@@ -19,7 +19,7 @@ export function FillPhoneHud({ phase, paused, total, filledCount, elapsedMs, onL
   return (
     <>
     <div className="quiz-hud" data-phase={`fill-${phase}`}>
-      <button type="button" className="quiz-hud__back" onClick={onLeave}>‹ Quizzes</button>
+      <button type="button" className="quiz-hud__back" onClick={onLeave}>‹ Back</button>
       {phase === 'idle' && <span className="quiz-hud__count quiz-hud__count--end numeric">{total} entries</span>}
       {phase === 'running' && (
         <>
