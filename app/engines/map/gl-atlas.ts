@@ -77,6 +77,7 @@ export class GlAtlas implements MapController, GlHost {
     this.compare = new GlCompare(this);
     this.cam = new GlCamera(this, home, {
       userMoveStart: () => this.hover.clearHover(),
+      moveEnded: () => this.hover.repick(),
       afterMove: () => {
         this.syncView();
         if (this.hover.active) this.hover.emitHover();

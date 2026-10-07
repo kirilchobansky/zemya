@@ -26,7 +26,7 @@ export class GlHover {
   private hoverMark: PlaceMark | null = null;
   private hoverKey = '';
   /** Where the pointer last was over the map, in map pixels — the tooltip follows it. */
-  private pointer = { x: 0, y: 0 };
+  private pointer: { x: number; y: number } | null = null;
 
   constructor(private host: GlHost, private hooks: HoverHooks) {}
 
@@ -45,9 +45,21 @@ export class GlHover {
     if (this.hooks.compareDragging()) return;
     // a finger that is not down is not anywhere: hover is for a mouse
     if (GlHover.isTouch(e.originalEvent)) return;
+    this.pointer = { x: e.point.x, y: e.point.y };
     if (this.host.map.isMoving() && !this.hooks.easing()) return; // dragging the map
-    const { x, y } = e.point;
-    this.pointer = { x, y };
+    this.pickAtPointer();
+  };
+
+  /** A camera move ended (zoom, pan, fly): whatever is now under a pointer that has not moved
+   *  becomes the hover again, so the visitor need not wiggle the mouse. */
+  repick(): void {
+    if (!this.pointer || this.hooks.compareDragging() || this.host.map.isMoving()) return;
+    this.pickAtPointer();
+  }
+
+  private pickAtPointer(): void {
+    if (!this.pointer) return;
+    const { x, y } = this.pointer;
     const mark = pickPlaceAt(this.host, x, y);
     const feature = mark?.feature ?? pickAt(this.host, x, y);
     if (!feature) { this.clearHover(); return; } // ocean: nothing is hovered
@@ -60,9 +72,12 @@ export class GlHover {
     this.hoverMark = mark;
     this.hoverKey = '';
     this.emitHover();
-  };
+  }
 
-  readonly onMouseLeave = (): void => this.clearHover();
+  readonly onMouseLeave = (): void => {
+    this.pointer = null;
+    this.clearHover();
+  };
 
   /** Drops the hover (one country at a time, and none when nothing is under the pointer).
    *  Safe to call any time; reports only if something was hovered. */
@@ -76,7 +91,10 @@ export class GlHover {
 
   /** A finger that lifts leaves no hover behind (touch never hovers; a tap may have set one). */
   readonly onPointerUp = (e: PointerEvent): void => {
-    if (e.pointerType === 'touch') this.clearHover();
+    if (e.pointerType === 'touch') {
+      this.pointer = null;
+      this.clearHover();
+    }
   };
 
   /** Reports the hover with the pointer position, so the tooltip follows the mouse. Called on a
@@ -84,7 +102,7 @@ export class GlHover {
   emitHover(): void {
     const feature = this.hoverFeature;
     if (!feature) return;
-    const { x, y } = this.pointer;
+    const { x, y } = this.pointer ?? { x: 0, y: 0 };
     const key = `${x},${y}`;
     if (key === this.hoverKey) return;
     this.hoverKey = key;

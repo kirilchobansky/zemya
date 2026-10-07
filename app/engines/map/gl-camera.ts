@@ -22,6 +22,8 @@ export interface CameraHooks {
   userMoveStart(): void;
   /** The camera moved: re-sync everything that depends on it. */
   afterMove(): void;
+  /** A camera move (any kind) has come to rest. */
+  moveEnded(): void;
 }
 
 export class GlCamera {
@@ -169,5 +171,6 @@ export class GlCamera {
   readonly onMoveEnd = (e: object): void => {
     if ((e as { zemya?: boolean }).zemya) this.ownEase = false;
     if (!this.ownEase) this.target = this.camera;
+    this.hooks.moveEnded();
   };
 }
