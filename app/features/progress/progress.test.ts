@@ -13,17 +13,8 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  bestQuizTime,
-  deleteQuizRun,
-  importAll,
-  listQuizRuns,
-  resetAll,
-  saveQuizRun,
-  SCHEMA_VERSION,
-  type ExportPayload,
-  type QuizRunEntry
-} from './progress';
+import { importAll, resetAll, SCHEMA_VERSION, type ExportPayload } from './progress';
+import { bestQuizTime, deleteQuizRun, listQuizRuns, saveQuizRun, type QuizRunEntry } from './quiz-runs';
 
 const QUIZ_ID = 'countries';
 const SCOPE = 'world';

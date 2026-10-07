@@ -22,7 +22,7 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
         </p>
         {engine.reviewing ? (
           <p style={{ marginBottom: 6 }}>
-            Review run — not saved to the archive or your best.
+            Review pass — its time is added to this run in the archive as the next try. Never a personal best.
           </p>
         ) : (
           <p style={{ marginBottom: 6 }}>

@@ -11,12 +11,12 @@
  */
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 
-import { useProgress, saveQuizRun, makeRng, shuffle } from '~/features/progress';
+import { useProgress, makeRng, shuffle } from '~/features/progress';
 import type { ReviewRating } from '~/features/progress';
 import { cardId } from '~/features/countries';
 import type { CountryRecord } from '~/engines/map/types';
 import { EASY_MS, PREPARE_LOOKAHEAD, resolveMatch, type QuizEngine } from './engine-types';
-import { scoreRun } from './run-result';
+import { archiveRun, scoreRun } from './run-result';
 import { usePriorBest } from './use-prior-best';
 import { inputKeyDownHandler, useQuizKeyboard } from './use-quiz-keyboard';
 import { useQuizTimer } from './use-quiz-timer';
@@ -45,7 +45,8 @@ export function useQuizEngine(
   const [showNeighbours, setShowNeighbours] = useState(false);
   const [lastNote, setLastNote] = useState<string | null>(null);
   /** A "Review mistakes" run: the revealed countries of the run before, replayed. Graded by FSRS
-   *  like any run, but nothing else is saved — no archive row, no personal best. */
+   *  like any run; its time joins the full run's archive row as the next try, and it is never
+   *  a personal best. */
   const [reviewing, setReviewing] = useState(false);
 
   const { elapsedRef, segmentStartRef, elapsedMs, stopSegment } = useQuizTimer(phase);
@@ -56,6 +57,8 @@ export function useQuizEngine(
    *  than state. */
   const shownAtRef = useRef<Map<string, number>>(new Map());
   const skippedRef = useRef<Set<string>>(new Set());
+  /** The full run's archive row; review passes append to it. */
+  const savedRunRef = useRef<Promise<number | undefined>>(Promise.resolve(undefined));
 
   /** Pending Enter-after-reveal fill: the answer is in the input and accepts itself shortly. */
   const fillTimerRef = useRef<number | null>(null);
@@ -74,60 +77,50 @@ export function useQuizEngine(
 
   const [priorBest, setPriorBest] = usePriorBest(definition.id, scope, size, mode);
   const [result, setResult] = useState<QuizRunResult | null>(null);
-
-
   const target = queue.length ? queue[0] : null;
 
   /* a different :scope, :size (or quiz) while this route stays mounted is a fresh run, not a
      continuation of the old one; toStart is the same reset, asked for by the panel's Up button */
-  const toStart = useCallback(() => {
-    setPhase('idle');
-    setQueue([]);
-    setRunList(null);
-    setInput('');
-    setRevealedSet(new Set());
-    setAnswered(new Map());
-    setLastNote(null);
-    setReviewing(false);
-    elapsedRef.current = 0;
-    setResult(null);
-    segmentStartRef.current = null;
-    shownAtRef.current = new Map();
-    skippedRef.current = new Set();
-  }, []);
-  useEffect(toStart, [definition.id, scope, size, toStart]);
-
-  const begin = useCallback((list: CountryRecord[], review = false) => {
-    if (!list.length) return;
+  /** What toStart and begin both clear. */
+  const clearRun = useCallback((review: boolean) => {
     cancelFill();
-    const rng = makeRng(Date.now() ^ (Math.random() * 0xffffffff));
-    const shuffled = shuffle(list, rng);
-    setQueue(shuffled);
     setInput('');
     setRevealedSet(new Set());
     setAnswered(new Map());
     setLastNote(null);
     setReviewing(review);
-    elapsedRef.current = 0;
     setResult(null);
+    elapsedRef.current = 0;
     shownAtRef.current = new Map();
     skippedRef.current = new Set();
+  }, [cancelFill]);
+
+  const toStart = useCallback(() => {
+    clearRun(false);
+    setPhase('idle');
+    setQueue([]);
+    setRunList(null);
+    segmentStartRef.current = null;
+  }, [clearRun]);
+  useEffect(toStart, [definition.id, scope, size, toStart]);
+
+  const begin = useCallback((list: CountryRecord[], review = false) => {
+    if (!list.length) return;
+    clearRun(review);
+    const shuffled = shuffle(list, makeRng(Date.now() ^ (Math.random() * 0xffffffff)));
+    setQueue(shuffled);
     segmentStartRef.current = Date.now();
     setPhase('running');
     definition.prepare?.(shuffled.slice(0, PREPARE_LOOKAHEAD));
-  }, [definition, cancelFill]);
+  }, [definition, clearRun]);
 
   const start = useCallback(() => begin(countries), [begin, countries]);
-  const restart = useCallback(
-    (next?: CountryRecord[]) => {
-      if (next) setRunList(next);
-      begin(next ?? countries);
-    },
-    [begin, countries]
-  );
+  const restart = useCallback((next?: CountryRecord[]) => {
+    if (next) setRunList(next);
+    begin(next ?? countries);
+  }, [begin, countries]);
 
-  /** Replays the countries the finished run revealed, straight away (the player just pressed
-   *  the button — no start screen). */
+  /** Replays the finished run's revealed countries at once, no start screen. */
   const reviewMistakes = useCallback(() => {
     const missed = result?.revealed;
     if (!missed?.length) return;
@@ -223,19 +216,10 @@ export function useQuizEngine(
       );
 
       setResult(scored);
-      if (reviewing) return;
-      if (perfect) setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
-      saveQuizRun({
-        quizId: definition.id,
-        scope,
-        size,
-        mode,
-        timeMs: finalElapsedMs,
-        totalCount: countries.length,
-        firstTryCount,
-        revealedCount,
-        perfect,
-        at: Date.now()
+      if (!reviewing && perfect) setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
+      savedRunRef.current = archiveRun(savedRunRef.current, reviewing, {
+        quizId: definition.id, scope, size, mode, timeMs: finalElapsedMs,
+        totalCount: countries.length, firstTryCount, revealedCount, perfect, at: Date.now()
       });
     },
     [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode, reviewing]

@@ -37,7 +37,7 @@ export interface QuizEngine {
   lastNote: string | null;
   result: QuizRunResult | null;
   /** True during a "Review mistakes" run (and its results): replays the previous run's revealed
-   *  countries, saves nothing but the FSRS grading. */
+   *  countries; its time is archived as the next try of the run it reviews. */
   reviewing: boolean;
   priorBest: number | null;
   start(): void;

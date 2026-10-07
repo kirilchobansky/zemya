@@ -76,6 +76,16 @@
   flex: 0 0 auto;
 }
 
+.quiz-history__retry {
+  color: var(--ink-2);
+  flex: 0 0 auto;
+}
+
+.quiz-history__retry::before {
+  content: '→ ';
+  color: var(--ink-3);
+}
+
 .quiz-history__tally {
   color: var(--ink-2);
   flex: 1 1 auto;

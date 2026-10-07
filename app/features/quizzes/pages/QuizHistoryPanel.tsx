@@ -51,6 +51,11 @@ export function QuizHistoryPanel({ history, runs, onClose, onDelete }: {
               <span className="quiz-history__time numeric">
                 {formatDuration(run.timeMs)}
               </span>
+              {run.reviewTimesMs?.map((ms, i) => (
+                <span key={i} className="quiz-history__retry numeric" title={`Try ${i + 2}`}>
+                  {formatDuration(ms)}
+                </span>
+              ))}
               <span className="quiz-history__tally">
                 {run.firstTryCount}/{run.totalCount}{" "}
                 {history.quizId === NAME_ALL_ID ? "named" : "first-try"}

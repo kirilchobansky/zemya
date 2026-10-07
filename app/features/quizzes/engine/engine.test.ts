@@ -54,12 +54,13 @@ const h = vi.hoisted(() => {
 
 vi.mock('react', () => h.react);
 vi.mock('~/features/progress/ProgressProvider', () => ({ useProgress: () => ({ review: h.review }) }));
-vi.mock('~/features/progress/progress', () => ({
+vi.mock('~/features/progress/quiz-runs', () => ({
   bestQuizTime: () => Promise.resolve(null),
-  saveQuizRun: vi.fn(),
+  saveQuizRun: vi.fn(() => Promise.resolve(7)),
+  addReviewTime: vi.fn(),
 }));
 
-import { saveQuizRun } from '~/features/progress';
+import { addReviewTime, saveQuizRun } from '~/features/progress';
 import { REVEAL_FILL_MS, useQuizEngine, type QuizEngine } from './engine';
 import type { CountryRecord } from '~/engines/map/types';
 
@@ -204,5 +205,30 @@ describe('Restart', () => {
     engine.restart();
     vi.advanceTimersByTime(REVEAL_FILL_MS * 2);
     expect(engine.answeredCount).toBe(0);
+  });
+});
+
+describe('Review mistakes', () => {
+  it('replays only the revealed countries and archives the time as the next try', async () => {
+    const [missed] = COUNTRIES;
+    for (let n = 0; n < COUNTRIES.length; n++) {
+      if (engine.target!.iso3 === missed.iso3) {
+        engine.reveal();
+        enterInInput();
+        vi.advanceTimersByTime(REVEAL_FILL_MS);
+      } else type(engine.target!.capital!);
+    }
+    expect(engine.phase).toBe('done');
+    expect(saveQuizRun).toHaveBeenCalledOnce();
+
+    engine.reviewMistakes();
+    expect(engine.reviewing).toBe(true);
+    expect(engine.totalCount).toBe(1);
+    expect(engine.target).toBe(missed);
+    type(missed.capital!);
+    expect(engine.phase).toBe('done');
+    expect(saveQuizRun).toHaveBeenCalledOnce();
+    await Promise.resolve();
+    expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number));
   });
 });
