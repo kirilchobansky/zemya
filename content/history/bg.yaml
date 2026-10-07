@@ -108,8 +108,8 @@ entries:
     tier: 1
     color: "#6b6257"
     blurb:
-      bg: "Няма българска държава и, след 1767, българска църква. Завършва с Руско-турската освободителна война."
-      en: "No Bulgarian state and, after 1767, no Bulgarian church. Ends with the Russo-Turkish war of liberation."
+      bg: "Няма българска държава и, след 1767, българска църква. От 1762 г. в него тече Възраждането. Завършва с Руско-турската освободителна война."
+      en: "No Bulgarian state and, after 1767, no Bulgarian church. From 1762 the Revival runs inside it. Ends with the Russo-Turkish war of liberation."
 
   - id: period-vazrazhdane
     kind: period
@@ -122,8 +122,8 @@ entries:
     tier: 2
     color: "#b07d3a"
     blurb:
-      bg: "Overlaps the end of Ottoman rule on purpose: три успоредни линии — просветна, църковна, революционна — от Паисий до Освобождението."
-      en: "Deliberately overlaps the end of Ottoman rule: three parallel strands — schools, church, armed revolution — from Paisius to Liberation."
+      bg: "Подпериод на Османското владичество: три успоредни линии — просветна, църковна, революционна — от Паисий до Освобождението."
+      en: "A sub-period of Ottoman rule: three parallel strands — schools, church, armed revolution — from Paisius to Liberation."
 
   - id: period-principality-kingdom
     kind: period
@@ -5453,7 +5453,7 @@ entries:
     precision: year
     style: old
     tier: 2
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: economy
     tags: ["занаяти", "еснафи", "Копривщица"]
     color: "#b8860b"
@@ -5485,7 +5485,7 @@ entries:
     precision: year
     style: old
     tier: 1
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: church
     tags: ["Охридска архиепископия", "църковна борба"]
     color: "#6a4a8a"
@@ -5501,7 +5501,7 @@ entries:
     precision: exact
     style: old
     tier: 2
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: treaty
     tags: ["Кючук Кайнарджа", "Русия", "Източен въпрос"]
     color: "#1f5fa8"
@@ -5533,7 +5533,7 @@ entries:
     precision: year
     style: old
     tier: 1
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: disaster
     tags: ["кърджалии", "Осман Пазвантоглу", "Видин"]
     color: "#8a4a1a"
@@ -5597,7 +5597,7 @@ entries:
     precision: year
     style: old
     tier: 2
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: politics
     tags: ["Махмуд II", "еничари"]
     color: "#5a6b7a"
@@ -5629,7 +5629,7 @@ entries:
     precision: exact
     style: old
     tier: 2
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: treaty
     tags: ["Одрински мир", "преселение", "Бесарабия"]
     color: "#1f5fa8"
@@ -5741,7 +5741,7 @@ entries:
     precision: exact
     style: old
     tier: 2
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: politics
     tags: ["Танзимат", "Гюлхански хатишериф"]
     color: "#5a6b7a"
@@ -5981,7 +5981,7 @@ entries:
     precision: exact
     style: old
     tier: 2
-    parent: period-ottoman-rule
+    parent: period-vazrazhdane
     category: politics
     tags: ["Хатихумаюн", "Танзимат"]
     color: "#5a6b7a"
