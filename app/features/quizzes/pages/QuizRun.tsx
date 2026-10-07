@@ -156,7 +156,7 @@ export function QuizRun() {
     <>
       <QuizRunPanel
         engine={engine} definition={definition} scope={scope} countries={countries} revealed={revealed}
-        backTo={backTo} panelStage={panelStage} onRestart={restartRun} onRunAgain={engine.toStart}
+        backTo={backTo} panelStage={panelStage} onRestart={restartRun} onRunAgain={restartRun}
       />
 
       <Stage {...stageProps} slot="stage" />

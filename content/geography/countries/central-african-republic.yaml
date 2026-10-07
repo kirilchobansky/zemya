@@ -17,3 +17,6 @@ flag: Four horizontal bands crossed by a vertical red stripe, with a yellow star
 outline: A landlocked block at the exact centre of the continent.
 hook: Sits almost precisely at Africa's geographic centre — hence the name.
 population: 5330690
+aliases:
+  note: '"CAR" is the usual short form, and "Name all countries" already accepted it (as the Latin spelling of ЦАР).'
+  add: [CAR]

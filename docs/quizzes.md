@@ -292,7 +292,7 @@ selection mode: the route calls `selectQuizCountries` again (random subsets diff
 Top-N and size "all" come back as the same set, just reshuffled), keeps it as an override of the
 `countries` memo (so "N rounds" follows) and calls `engine.restart(next)`, which holds the set
 as its run list (totals, results and the progress counter follow it); it is focused inside the
-tap. Nothing saved, no FSRS grading for answers given so far. "Run it again" now returns to the quiz's start screen (same set, not an instant run); Back (mid-run or on the results) and Abandon go to the list with the quiz open (`listReturnState`, features/map/up.ts); Name all countries behaves the same, its Restart also returns to its start screen
+tap. Nothing saved, no FSRS grading for answers given so far. "Run it again" returns to the quiz's start screen on a newly drawn set (like Restart; not an instant run); Back (mid-run or on the results) and Abandon go to the list with the quiz open (`listReturnState`, features/map/up.ts); Name all countries behaves the same, its Restart also returns to its start screen
 Before the start and on the results screen
 nothing changed. The History fill quiz has the same button in its input bar (running or
 paused), doing exactly "Try again".
