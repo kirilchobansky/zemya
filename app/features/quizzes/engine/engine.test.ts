@@ -80,7 +80,7 @@ function render(def: Def) {
   const run = () => {
     h.rt.i = 0;
     h.rt.effects = [];
-    engine = useQuizEngine(def, COUNTRIES, 'world', 'all', abandon);
+    engine = useQuizEngine(def, COUNTRIES, 'world', 'all', 'random', abandon);
     for (const e of h.rt.effects) {
       for (const slot of h.rt.slots) {
         const s = slot as { pending?: unknown; cleanup?: void | (() => void) } | undefined;

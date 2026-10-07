@@ -46,8 +46,8 @@ export function formatRunDate(at: number): string {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
-export const bestKey = (quizId: string, scope: QuizScope, size: QuizSize) =>
-  `${quizId}:${scope}:${size}`;
+export const bestKey = (quizId: string, scope: QuizScope, size: QuizSize, mode: string) =>
+  `${quizId}:${scope}:${size}:${mode}`;
 
 /** Must match .quiz-sizes' column count in quiz-list.css — passed in as --cols so the CSS
  *  min-height and this row count are computed from the same number. */

@@ -93,6 +93,8 @@ export interface QuizRunResult {
   firstTryCount: number;
   revealed: CountryRecord[];
   beatBest: boolean;
+  /** No reveal and no skip: only a perfect run can be a personal best. */
+  perfect: boolean;
   /** The best time going INTO this run, snapshotted at finish time — see engine.ts. */
   previousBest: number | null;
 }

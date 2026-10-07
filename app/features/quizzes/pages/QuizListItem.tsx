@@ -10,7 +10,7 @@ import { QuizHistoryPanel } from './QuizHistoryPanel';
 import { SIZE_COLUMNS, bestKey } from './quiz-list-data';
 
 /** One quiz of the list: the row, and — when open — its scope chips, order toggle, size ladder
- *  and run history. */
+ *  and archive. */
 export function QuizListItem({
   quiz, subjectId, open, scope, selectionMode, poolSize, maxRows, bestTimes, history, runs,
   onToggle, onScope, onSelectionMode, onOpenHistory, onCloseHistory, onDeleteRun
@@ -23,12 +23,12 @@ export function QuizListItem({
   poolSize: number;
   maxRows: number;
   bestTimes: Record<string, number | null>;
-  history: { quizId: string; scope: QuizScope; size: QuizSize } | null;
+  history: { quizId: string; scope: QuizScope; mode: QuizSelectionMode } | null;
   runs: QuizRunEntry[];
   onToggle: () => void;
   onScope: (scope: QuizScope) => void;
   onSelectionMode: () => void;
-  onOpenHistory: (size: QuizSize) => void;
+  onOpenHistory: () => void;
   onCloseHistory: () => void;
   onDeleteRun: (run: QuizRunEntry) => void;
 }) {
@@ -96,7 +96,8 @@ export function QuizListItem({
             }
           >
             {(nameAll ? (["all"] as QuizSize[]) : sizesForPool(poolSize)).map((size) => {
-              const best = bestTimes[bestKey(quiz.id, scope, size)];
+              // each category's best: only perfect runs of this same size (and mode) compete
+              const best = bestTimes[bestKey(quiz.id, scope, size, selectionMode)];
               return (
                 <div key={size} className="quiz-size-card">
                   <Link
@@ -115,17 +116,24 @@ export function QuizListItem({
                     </span>
                   </Link>
                   {best != null && (
-                    <button
-                      type="button"
-                      className="quiz-size-card__best"
-                      onClick={() => onOpenHistory(size)}
-                    >
+                    <button type="button" className="quiz-size-card__best" onClick={onOpenHistory}>
                       {formatDuration(best)}
                     </button>
                   )}
                 </div>
               );
             })}
+          </div>
+
+          <div className="chips quiz-archive" role="group" aria-label={`${quiz.title} — archive`}>
+            <button
+              type="button"
+              className="chip"
+              aria-pressed={history?.quizId === quiz.id}
+              onClick={() => (history?.quizId === quiz.id ? onCloseHistory() : onOpenHistory())}
+            >
+              Archive
+            </button>
           </div>
 
           {history?.quizId === quiz.id && history.scope === scope && (

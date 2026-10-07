@@ -171,7 +171,7 @@ describe('personal bests are keyed by (quizId, scope, size) — and pre-scope ru
   });
 
   it('a new run is written with its scope and only counts for that scope', async () => {
-    saveQuizRun(runEntry({ scope: 'oceania', size: 'all', totalCount: 14, timeMs: 40_000, at: 502 }));
+    saveQuizRun(runEntry({ scope: 'oceania', size: 'all', totalCount: 14, firstTryCount: 14, timeMs: 40_000, at: 502 }));
     await flush();
     expect(await bestQuizTime(QUIZ_ID, 'oceania', 'all')).toBe(40_000);
     expect(await bestQuizTime(QUIZ_ID, 'world', 'all')).toBeNull();
@@ -201,5 +201,28 @@ describe('personal bests are keyed by (quizId, scope, size) — and pre-scope ru
     await importAll(payload);
     await importAll(payload);
     expect(await listQuizRuns(QUIZ_ID, 'world', SIZE)).toHaveLength(1);
+  });
+});
+
+describe('listQuizRuns — the archive is kept per selection mode', () => {
+  it('splits random from population; a row with no mode counts as random', async () => {
+    saveQuizRun(runEntry({ timeMs: 40_000, at: 20 }));
+    saveQuizRun(runEntry({ timeMs: 41_000, at: 21, mode: 'random' }));
+    saveQuizRun(runEntry({ timeMs: 42_000, at: 22, mode: 'population' }));
+    await flush();
+    expect((await listQuizRuns(QUIZ_ID, SCOPE, SIZE, 'random')).map(r => r.at)).toEqual([21, 20]);
+    expect((await listQuizRuns(QUIZ_ID, SCOPE, SIZE, 'population')).map(r => r.at)).toEqual([22]);
+    expect(await listQuizRuns(QUIZ_ID, SCOPE, SIZE)).toHaveLength(3);
+  });
+});
+
+describe('bestQuizTime counts only perfect runs', () => {
+  it('ignores a faster run with a reveal or skip; old rows fall back to firstTryCount', async () => {
+    saveQuizRun(runEntry({ timeMs: 30_000, at: 30, perfect: false, firstTryCount: TOTAL }));
+    saveQuizRun(runEntry({ timeMs: 31_000, at: 31, firstTryCount: TOTAL - 1, revealedCount: 1 }));
+    saveQuizRun(runEntry({ timeMs: 50_000, at: 32, perfect: true }));
+    await flush();
+    expect(await bestQuizTime(QUIZ_ID, SCOPE, SIZE)).toBe(50_000);
+    expect(await listQuizRuns(QUIZ_ID, SCOPE, SIZE)).toHaveLength(3);
   });
 });

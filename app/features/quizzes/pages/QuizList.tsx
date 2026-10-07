@@ -99,13 +99,14 @@ export function QuizList({ subjectId, scopeCounts }: { subjectId: string | undef
                   runs={runs}
                   onToggle={() => setOpenId(openId === quiz.id ? null : quiz.id)}
                   onScope={(option) => setScopes((prev) => ({ ...prev, [quiz.id]: option }))}
-                  onSelectionMode={() =>
+                  onSelectionMode={() => {
+                    setHistory(null); // the archive is per mode: close the one that is open
                     setSelectionModes((prev) => ({
                       ...prev,
                       [quiz.id]: selectionModeOf(quiz.id) === "random" ? "population" : "random",
-                    }))
-                  }
-                  onOpenHistory={(size) => openHistory(quiz.id, scope, size)}
+                    }));
+                  }}
+                  onOpenHistory={() => openHistory(quiz.id, scope, selectionModeOf(quiz.id))}
                   onCloseHistory={() => setHistory(null)}
                   onDeleteRun={handleDelete}
                 />

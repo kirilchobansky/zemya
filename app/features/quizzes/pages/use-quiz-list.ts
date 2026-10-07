@@ -7,10 +7,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 
 import { bestQuizTime, deleteQuizRun, listQuizRuns, type QuizRunEntry } from '~/features/progress';
-import { sizesForPool, type QuizScope, type QuizSize } from '~/features/countries';
+import { sizesForPool, type QuizScope } from '~/features/countries';
 import { formatDuration } from '~/shared/lib/format';
-import type { QuizSelectionMode } from '../geography/quizzes';
+import { NAME_ALL_ID, type QuizSelectionMode } from '../geography/quizzes';
 import { bestKey, type PoolCounts } from './quiz-list-data';
+
+/** Name all has no Random / Population choice, so its archive is not split. */
+const archiveModeOf = (quizId: string, mode: QuizSelectionMode) => (quizId === NAME_ALL_ID ? undefined : mode);
 
 export function useQuizList(scopeCounts: PoolCounts, hasSubject: boolean) {
   /** Which quiz's options are expanded — one at a time, collapsed by default. */
@@ -30,24 +33,26 @@ export function useQuizList(scopeCounts: PoolCounts, hasSubject: boolean) {
   const selectionModeOf = (quizId: string): QuizSelectionMode =>
     selectionModes[quizId] ?? "random";
 
-  /** {quizId}:{scope}:{size} -> fastest recorded time, or null. Starts empty and fills in
-   *  after mount — IndexedDB doesn't exist during prerender, so the first render (and its
-   *  hydration match) simply shows no best times yet, same as a genuinely new browser. */
+  /** {quizId}:{scope}:{size}:{mode} -> fastest archived time of that category, or null. Starts
+   *  empty and fills in after mount — IndexedDB doesn't exist during prerender, so the first
+   *  render (and its hydration match) shows none, like a genuinely new browser. */
   const [bestTimes, setBestTimes] = useState<Record<string, number | null>>({});
   const [history, setHistory] = useState<{
     quizId: string;
     scope: QuizScope;
-    size: QuizSize;
+    mode: QuizSelectionMode;
   } | null>(null);
   const [runs, setRuns] = useState<QuizRunEntry[]>([]);
-  const refreshBestTimes = useCallback(
-    async (quizId: string, scope: QuizScope) => {
+  /** Each size card's best is the fastest run of that same size (a top-10 run never competes
+   *  with the All run) in the chosen mode. */
+  const refreshBests = useCallback(
+    async (quizId: string, scope: QuizScope, mode: QuizSelectionMode) => {
       const entries = await Promise.all(
         sizesForPool(scopeCounts[quizId][scope]).map(
           async (size) =>
             [
-              bestKey(quizId, scope, size),
-              await bestQuizTime(quizId, scope, size),
+              bestKey(quizId, scope, size, mode),
+              await bestQuizTime(quizId, scope, size, archiveModeOf(quizId, mode)),
             ] as const,
         ),
       );
@@ -79,29 +84,23 @@ export function useQuizList(scopeCounts: PoolCounts, hasSubject: boolean) {
 
   useEffect(() => {
     if (!openId || !hasSubject) return;
-    refreshBestTimes(openId, scopes[openId] ?? "world");
-  }, [refreshBestTimes, scopes, openId, hasSubject]);
+    refreshBests(openId, scopes[openId] ?? "world", selectionModes[openId] ?? "random");
+  }, [refreshBests, scopes, selectionModes, openId, hasSubject]);
 
-  async function openHistory(quizId: string, scope: QuizScope, size: QuizSize) {
-    setHistory({ quizId, scope, size });
-    setRuns(await listQuizRuns(quizId, scope, size));
+  /** The archive holds every run of the quiz, scope and mode, whatever the size. */
+  async function openHistory(quizId: string, scope: QuizScope, mode: QuizSelectionMode) {
+    setHistory({ quizId, scope, mode });
+    setRuns(await listQuizRuns(quizId, scope, undefined, archiveModeOf(quizId, mode)));
   }
 
   async function handleDelete(run: QuizRunEntry) {
     if (run.id === undefined || !history) return;
     if (!window.confirm(`Delete this run (${formatDuration(run.timeMs)})?`))
       return;
+    const { quizId, scope, mode } = history;
     await deleteQuizRun(run.id);
-    const { quizId, scope, size } = history;
-    const [freshRuns, freshBest] = await Promise.all([
-      listQuizRuns(quizId, scope, size),
-      bestQuizTime(quizId, scope, size),
-    ]);
-    setRuns(freshRuns);
-    setBestTimes((prev) => ({
-      ...prev,
-      [bestKey(quizId, scope, size)]: freshBest,
-    }));
+    setRuns(await listQuizRuns(quizId, scope, undefined, archiveModeOf(quizId, mode)));
+    refreshBests(quizId, scope, mode);
   }
 
   return {

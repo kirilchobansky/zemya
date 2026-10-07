@@ -6,10 +6,9 @@ import type { QuizEngine } from '../engine/engine';
 
 /** The results of a finished run: time, personal-best line, tally, the revealed countries and
  *  the buttons. */
-export function QuizRunResult({ engine, total, backTo, onRunAgain }: {
+export function QuizRunResult({ engine, total, onRunAgain }: {
   engine: QuizEngine;
   total: number;
-  backTo: string;
   onRunAgain: () => void;
 }) {
   const result = engine.result;
@@ -35,6 +34,14 @@ export function QuizRunResult({ engine, total, backTo, onRunAgain }: {
                 personal best.
               </>
             )
+          ) : !result.perfect ? (
+            <>
+              Saved to the archive, not a best — a best needs every country on the first
+              try, with no skip or reveal.
+              {result.previousBest !== null && (
+                <> Best stays <b>{formatDuration(result.previousBest)}</b>.</>
+              )}
+            </>
           ) : (
             <>
               Personal best stays{" "}
@@ -81,9 +88,6 @@ export function QuizRunResult({ engine, total, backTo, onRunAgain }: {
         >
           Run it again
         </button>
-        <Link to={backTo} state={{ sheet: "full" }} replace className="action desk-hide">
-          Back to quizzes
-        </Link>
       </div>
     </>
   );

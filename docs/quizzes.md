@@ -416,6 +416,17 @@ left out of the JSON export/import format: a personal best is local flavour, not
 progress, and folding it in would force `SCHEMA_VERSION` to move over an additive table.
 Revisit if the owner wants best times to survive a device move.
 
+**Best time vs archive (geography).** Two different things. The **archive** is every finished
+run, whatever its size, kept per (quiz, scope, mode): an "Archive" chip in the opened quiz lists
+all of them together (top 10, top 20 ... All, each row with its size), each deletable. Each row
+records its `mode` (`random` | `population`; rows without one read as random; Name all has no
+mode). A **best** is per (quiz, scope, size, mode) — a top-10 run never competes with the All
+run — shown on the size card, and only a **perfect** run can be one: nothing revealed and
+nothing skipped (`QuizRunEntry.perfect`; older rows fall back to `firstTryCount === totalCount`).
+An imperfect run is archived and the results screen says it is not a best. Name all and the
+History fill quizzes only save clean finishes, so every run of theirs is perfect; fill quizzes
+keep their own best per toggle setting.
+
 **Results screen.** On the last correct answer the camera pulls back to the world view
 (`atlas.home()`) while the finished map stays coloured (green/red, from the `quiz`
 override, which is only cleared on unmounting the route) and the panel shows the time,

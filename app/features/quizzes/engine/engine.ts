@@ -32,6 +32,7 @@ export function useQuizEngine(
   baseCountries: CountryRecord[],
   scope: string,
   size: string,
+  mode: string,
   onAbandon: () => void
 ): QuizEngine {
   const { review } = useProgress();
@@ -68,7 +69,7 @@ export function useQuizEngine(
   // a new base draw (another mode, scope, size) replaces whatever a Restart drew
   useEffect(() => setRunList(null), [baseCountries]);
 
-  const [priorBest, setPriorBest] = usePriorBest(definition.id, scope, size);
+  const [priorBest, setPriorBest] = usePriorBest(definition.id, scope, size, mode);
   const [result, setResult] = useState<QuizRunResult | null>(null);
 
 
@@ -203,22 +204,26 @@ export function useQuizEngine(
       stopSegment();
       setPhase('done');
 
-      const { result: scored, firstTryCount, revealedCount } = scoreRun(countries, revealedSet, priorBest, finalElapsedMs);
+      const { result: scored, firstTryCount, revealedCount, perfect } = scoreRun(
+        countries, revealedSet, priorBest, finalElapsedMs, skippedRef.current.size
+      );
 
       setResult(scored);
-      setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
+      if (perfect) setPriorBest(prev => (prev === null ? finalElapsedMs : Math.min(prev, finalElapsedMs)));
       saveQuizRun({
         quizId: definition.id,
         scope,
         size,
+        mode,
         timeMs: finalElapsedMs,
         totalCount: countries.length,
         firstTryCount,
         revealedCount,
+        perfect,
         at: Date.now()
       });
     },
-    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size]
+    [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode]
   );
 
   const onInputChange = useCallback(

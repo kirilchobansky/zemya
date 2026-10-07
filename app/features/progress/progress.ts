@@ -52,10 +52,14 @@ export interface QuizRunEntry {
    *  before scopes existed — those are all world runs, see runScope. */
   scope?: string;
   size: string;
+  /** 'random' | 'population'; absent on older rows and on Name all, read as 'random'. */
+  mode?: string;
   timeMs: number;
   totalCount: number;
   firstTryCount: number;
   revealedCount: number;
+  /** Nothing revealed or skipped — only such a run can be a best. Older rows: see isPerfect. */
+  perfect?: boolean;
   /** Epoch ms. */
   at: number;
 }
@@ -122,27 +126,29 @@ function runScope(run: Pick<QuizRunEntry, 'scope'>): string {
   return run.scope ?? 'world';
 }
 
-/** The fastest recorded time for this quiz, scope and size, or null if none are left.
- *  Always reads the live table, so it self-corrects after deleteQuizRun with no extra
- *  bookkeeping. */
-export async function bestQuizTime(quizId: string, scope: string, size: string): Promise<number | null> {
-  const matching = await quizRunsFor(quizId, scope, size);
+const isPerfect = (run: QuizRunEntry) => run.perfect ?? run.firstTryCount === run.totalCount;
+
+/** The fastest PERFECT time for this quiz, scope, size (and mode), or null — the archive keeps
+ *  every run, a best is only a clean one. Reads the live table, so deleteQuizRun self-corrects it. */
+export async function bestQuizTime(quizId: string, scope: string, size: string, mode?: string): Promise<number | null> {
+  const matching = (await quizRunsFor(quizId, scope, size)).filter(r => isPerfect(r) && inMode(r, mode));
   return matching.length ? Math.min(...matching.map(r => r.timeMs)) : null;
 }
 
-/** Every recorded run for a quiz scope and size, most recent first — the catalogue's
- *  history list. */
-export async function listQuizRuns(quizId: string, scope: string, size: string): Promise<QuizRunEntry[]> {
-  const matching = await quizRunsFor(quizId, scope, size);
+/** Every recorded run of a quiz scope (narrowed by size and mode when given), newest first. */
+export async function listQuizRuns(quizId: string, scope: string, size: string | undefined, mode?: string): Promise<QuizRunEntry[]> {
+  const matching = (await quizRunsFor(quizId, scope, size)).filter(r => inMode(r, mode));
   return matching.sort((a, b) => b.at - a.at);
 }
 
-async function quizRunsFor(quizId: string, scope: string, size: string): Promise<QuizRunEntry[]> {
+const inMode = (run: Pick<QuizRunEntry, 'mode'>, mode?: string) => mode === undefined || (run.mode ?? 'random') === mode;
+
+async function quizRunsFor(quizId: string, scope: string, size?: string): Promise<QuizRunEntry[]> {
   const store = database();
   if (!store) return [];
   try {
     const runs = await store.quizRuns.where('quizId').equals(quizId).toArray();
-    return runs.filter(r => r.size === size && runScope(r) === scope);
+    return runs.filter(r => (size === undefined || r.size === size) && runScope(r) === scope);
   } catch (error) {
     shrug('run history read')(error);
     return [];

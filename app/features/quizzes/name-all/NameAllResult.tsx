@@ -10,9 +10,8 @@ import type { Outcome, Phase } from './name-all-types';
 
 /** What the panel shows once a run is over: the result card, the missed countries (grouped by
  *  continent for the World quiz), the named list and the buttons. */
-export function NameAllResult({ scope, backTo, phase, elapsedMs, named, namedCountries, total, missed, outcome, listEndRef, onRestart }: {
+export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, total, missed, outcome, listEndRef, onRestart }: {
   scope: QuizScope;
-  backTo: string;
   phase: Phase;
   elapsedMs: number;
   named: readonly string[];
@@ -77,7 +76,6 @@ export function NameAllResult({ scope, backTo, phase, elapsedMs, named, namedCou
       )}
       <div className="actions">
         <button type="button" className="action action--primary" onClick={onRestart}>Run it again</button>
-        <Link to={backTo} state={{ sheet: 'full' }} replace className="action desk-hide">Back to quizzes</Link>
       </div>
     </>
   );

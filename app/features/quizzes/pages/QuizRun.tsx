@@ -31,6 +31,7 @@ export function QuizRun() {
     drawnCountries,
     scope ?? "world",
     requestedSize ?? "all",
+    mode,
     abandon,
   );
 

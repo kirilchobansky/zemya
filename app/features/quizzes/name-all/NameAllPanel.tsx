@@ -94,7 +94,7 @@ export function NameAllPanel({
 
         {finished && (
           <NameAllResult
-            scope={scope} backTo={backTo} phase={phase} elapsedMs={elapsedMs} named={named}
+            scope={scope} phase={phase} elapsedMs={elapsedMs} named={named}
             namedCountries={namedCountries} total={total} missed={missed} outcome={outcome}
             listEndRef={listEndRef} onRestart={onRestart}
           />

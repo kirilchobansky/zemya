@@ -9,14 +9,17 @@ export function scoreRun(
   countries: readonly CountryRecord[],
   revealedSet: ReadonlySet<string>,
   priorBest: number | null,
-  finalElapsedMs: number
-): { result: QuizRunResult; firstTryCount: number; revealedCount: number } {
+  finalElapsedMs: number,
+  skippedCount: number
+): { result: QuizRunResult; firstTryCount: number; revealedCount: number; perfect: boolean } {
   const revealedCountries = countries.filter(c => revealedSet.has(c.iso3));
   const firstTryCount = countries.length - revealedCountries.length;
-  const beatBest = priorBest === null || finalElapsedMs < priorBest;
+  const perfect = revealedCountries.length === 0 && skippedCount === 0;
+  const beatBest = perfect && (priorBest === null || finalElapsedMs < priorBest);
   return {
-    result: { timeMs: finalElapsedMs, firstTryCount, revealed: revealedCountries, beatBest, previousBest: priorBest },
+    result: { timeMs: finalElapsedMs, firstTryCount, revealed: revealedCountries, beatBest, perfect, previousBest: priorBest },
     firstTryCount,
+    perfect,
     revealedCount: revealedCountries.length
   };
 }

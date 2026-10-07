@@ -108,7 +108,7 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
           )}
 
           {engine.phase === "done" && engine.result && (
-          <QuizRunResult engine={engine} total={countries.length} backTo={backTo} onRunAgain={onRunAgain} />
+          <QuizRunResult engine={engine} total={countries.length} onRunAgain={onRunAgain} />
         )}
       </div>
     </>
