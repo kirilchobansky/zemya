@@ -12,9 +12,13 @@ import type { MapController } from '~/engines/map/controller';
 import { sheetVisible, useSheetDrag, type SheetSnap } from '~/shared/layout/sheet';
 import { COARSE_QUERY, isPhoneLandscape, isPhoneLayout, LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '~/shared/layout/viewport';
 import type { OverlayName } from '../components/MobileChrome';
+import { isQuizRunPath } from '../up';
 
 /** Routes whose phone sheet has no half snap (the History timeline keeps peek / half / full). */
 export const TWO_STOP_PATH = /^\/(quizzes|questions)(\/|$)/;
+/** A quiz run's own route is the exception: its sheet only shows the results, which rest at half so
+ *  the map (names, clickable countries) stays visible above them. */
+const twoStopPath = (pathname: string) => TWO_STOP_PATH.test(pathname) && !isQuizRunPath(pathname);
 
 export function usePhoneSheet({ historyTimelineInstance, showTimeline }: {
   historyTimelineInstance: HistoryTimeline | null;
@@ -32,7 +36,7 @@ export function usePhoneSheet({ historyTimelineInstance, showTimeline }: {
   const coarse = useMediaQuery(COARSE_QUERY);
   const landscape = useMediaQuery(LANDSCAPE_QUERY);
   /* Quizzes and Questions: the sheet is peek or full, never half. */
-  const twoStop = TWO_STOP_PATH.test(location.pathname);
+  const twoStop = twoStopPath(location.pathname);
   useSheetDrag(panelRef, { snap, onSnap: setSnap, enabled: phone && !immersive, twoStop });
   useEffect(() => {
     if (!twoStop || snap !== 'half') return;
@@ -99,7 +103,7 @@ export function usePhoneSheet({ historyTimelineInstance, showTimeline }: {
       (location.state as { sheet?: SheetSnap } | null)?.sheet ??
       (first && location.pathname !== '/' ? 'half' : undefined);
     if (!asked) return;
-    const target = asked === 'half' && TWO_STOP_PATH.test(location.pathname) ? 'full' : asked;
+    const target = asked === 'half' && twoStopPath(location.pathname) ? 'full' : asked;
     snapRef.current = target; // the fly effect below runs in this same flush
     setSnap(target);
   }, [location.key, location.pathname, location.state]);

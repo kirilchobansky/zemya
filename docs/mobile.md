@@ -144,6 +144,7 @@ borders and the flag/outline notes (CSS `order` on `.dossier`; the `<h1>` stays,
 Neighbour chips wrap. A mostly-sideways swipe is never the sheet's (it is the chip row's).
 
 **Decisions the brief left open** (change them by asking, not by drift):
+- A geography quiz's results rest the sheet at half, not full (a run route is the one Quizzes path with a half stop, `twoStopPath` in `use-phone-sheet.ts`): the map above shows names and its countries are tappable, and a dossier opened from there keeps the half.
 - Cold load of any page but `/` opens the sheet at half; the Quizzes, Questions and History tabs open the sheet at full (their content is a list or a question, not a view of the map), Map at peek; an opened quiz in the list scrolls its options into view; the pause screen is sized to what the keyboard leaves (`--vv-top` / `--kb`);
   a map tap or a search pick opens at peek. From `full`, the handle steps down to half.
 - Progress is an overlay sheet, not a route (no new URL, nothing new in the sitemap).

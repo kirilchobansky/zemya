@@ -9,7 +9,7 @@
  * Layout is the geography run's: the map stays live and framed on the scope; the typed-answer
  * input is docked over it (portalled to <body>, like MapStage) with START in idle; the panel
  * (desktop) holds the timer, count, buttons and the list; on a phone the panel is hidden during
- * the run and the HUD + input bar (shared CSS) stand in, the results opening the sheet at full.
+ * the run and the HUD + input bar (shared CSS) stand in, the results opening the sheet at half.
  * The input is never `disabled`, and START focuses it inside the tap (iOS keyboard).
  *
  * Only a COMPLETED run is saved. A given-up run shows its score and the missed countries and

@@ -67,7 +67,7 @@ export function useNameAllAtlas({ scope, phase, paused, named, pool, ready, keyb
     if (finished) atlas?.home();
   }, [finished, atlas]);
 
-  /* Phone: the run owns the whole screen from START until its results, which open the sheet at full. */
+  /* Phone: the run owns the whole screen from START until its results, which open the sheet at half. */
   const ownsScreen = ready && !finished;
   useEffect(() => {
     setImmersive(ownsScreen);
@@ -75,7 +75,7 @@ export function useNameAllAtlas({ scope, phase, paused, named, pool, ready, keyb
   }, [ownsScreen, setImmersive]);
   useQuizPageLock(ownsScreen);
   useEffect(() => {
-    if (finished) setSheetSnap('full');
+    if (finished) setSheetSnap('half');
   }, [finished, setSheetSnap]);
   useEffect(() => {
     if (finished) inputRef.current?.blur();

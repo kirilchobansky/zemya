@@ -33,7 +33,7 @@ export interface AtlasContextValue {
   quiz: QuizOverride | null;
   setQuiz: Dispatch<SetStateAction<QuizOverride | null>>;
   /** Phone layout only (no effect on desktop): a quiz run takes the whole screen — no sheet,
-   *  no tab bar, no search — until its results, which open the sheet at `full`. */
+   *  no tab bar, no search — until its results, which open the sheet at `half`. */
   setImmersive: Dispatch<SetStateAction<boolean>>;
   setSheetSnap: Dispatch<SetStateAction<SheetSnap>>;
   /** Set by a history route (routes/history/history.$slug.tsx) once its loader data is in hand;

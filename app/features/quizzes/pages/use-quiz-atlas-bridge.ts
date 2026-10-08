@@ -75,7 +75,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
   }, [atlas, scope]);
 
   /* Phone layout: a run owns the whole screen — no sheet, no tab bar — from the START screen
-     until its results, which open the sheet at full height. Only for a valid run: the
+     until its results, which open the sheet at half height. Only for a valid run: the
      "not found" and "preparing" states keep the tab bar, so nobody is stranded. No effect on
      desktop, where the shell has no such state. */
   const validRun = Boolean(
@@ -91,7 +91,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
   useResultsInspect(finished, engine.snapshot, engine.result);
   // Up leaves a run or its results like Abandon, to the list with this quiz open (UpButton)
   useEffect(() => {
-    if (finished) setSheetSnap("full");
+    if (finished) setSheetSnap("half");
   }, [finished, setSheetSnap]);
 
   /* The camera's visible area during a phone run is the strip between the HUD and the input bar,
