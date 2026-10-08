@@ -78,6 +78,13 @@ export const NARROW_VIEWPORT_PX = 520;
 export const QUIZ_MIN_TARGET_PX_NARROW = 18;
 export const NARROW_MAX_ZOOM_FACTOR = 20;
 export const NARROW_NO_SHAPE_ZOOM_FACTOR = 16;
+/** The biggest countries (Russia, Canada, ...) zoom out only until they nearly fill the strip. */
+export const NARROW_FRAME_PADDING = 1.1;
+/** Mid-sized countries are brought up to this width, but by at most this multiple of home zoom. */
+export const NARROW_COMFORT_WIDTH_PX = 80;
+/** Exponent of that pull: 1 = straight to the comfort width, 0 = none. */
+const COMFORT_PULL = 0.7;
+export const NARROW_COMFORT_MAX_FACTOR = 10;
 /** Floors on the comfort margin for a target that isn't a plain box. */
 export const QUIZ_POINT_MARGIN_PX = 60; // a capital dot: room around it
 export const QUIZ_PIN_MARGIN_PX = 48; // a country with no shape: its pin carries a big halo
@@ -188,6 +195,12 @@ export interface FollowOptions {
   noShapeZoom: number;
   /** Ceiling for zooming IN on a target (never below the camera's own zoom). Omitted = none. */
   maxZoom?: number;
+  /** Share of the visible area a zoomed-out-to-fit target may take; default QUIZ_FRAME_PADDING. Above 1 the
+   *  biggest countries may overflow the strip a little instead of shrinking to fit it. */
+  framePadding?: number;
+  /** A target narrower than this (px) is pulled toward it — by no more than `comfortMaxZoom`. */
+  comfortWidthPx?: number;
+  comfortMaxZoom?: number;
 }
 
 /** The follow options for a viewport: neighbourhood zoom for a shapeless country, and on a narrow
@@ -195,7 +208,10 @@ export interface FollowOptions {
 export function quizFollowOptions(viewport: Viewport): FollowOptions {
   const home = homeZoom(viewport);
   return viewport.width < NARROW_VIEWPORT_PX
-    ? { noShapeZoom: home * NARROW_NO_SHAPE_ZOOM_FACTOR, maxZoom: home * NARROW_MAX_ZOOM_FACTOR }
+    ? {
+        noShapeZoom: home * NARROW_NO_SHAPE_ZOOM_FACTOR, maxZoom: home * NARROW_MAX_ZOOM_FACTOR,
+        framePadding: NARROW_FRAME_PADDING, comfortWidthPx: NARROW_COMFORT_WIDTH_PX, comfortMaxZoom: home * NARROW_COMFORT_MAX_FACTOR
+      }
     : { noShapeZoom: home * NO_SHAPE_ZOOM_FACTOR };
 }
 
@@ -220,9 +236,17 @@ export function cameraForTarget(
   if (target.box) {
     const w = Math.max(target.box.x1 - target.box.x0, 1e-9), h = Math.max(target.box.y1 - target.box.y0, 1e-9);
     if (target.fit) {
-      zoom = Math.min(zoom, (visibleW * QUIZ_FRAME_PADDING) / w, (visibleH * QUIZ_FRAME_PADDING) / h);
+      const pad = options.framePadding ?? QUIZ_FRAME_PADDING;
+      zoom = Math.min(zoom, (visibleW * pad) / w, (visibleH * pad) / h);
     }
     zoom = Math.max(zoom, target.minWidthPx / w);
+    if (options.comfortWidthPx && options.comfortMaxZoom) {
+      // a softened pull toward the comfort width: the smaller the country, the more, never all the way
+      const px = w * camera.zoom;
+      if (px < options.comfortWidthPx) {
+        zoom = Math.max(zoom, Math.min(camera.zoom * (options.comfortWidthPx / px) ** COMFORT_PULL, options.comfortMaxZoom));
+      }
+    }
   } else {
     zoom = Math.max(zoom, options.noShapeZoom);
   }
