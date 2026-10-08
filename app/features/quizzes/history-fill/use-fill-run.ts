@@ -101,6 +101,19 @@ export function useFillRun(quiz: FillQuiz) {
   }, [phase, togglePause]);
 
   const active = phase === 'idle' || phase === 'running';
+  /* Typing capture, as in the geography quizzes: a keystroke aimed at anything that isn't a text
+     field (after a click on the page, a button, the timeline) belongs to the quiz. Focus moves
+     during keydown without preventDefault, so the browser delivers the character to the input. */
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.isComposing || e.ctrlKey || e.altKey || e.metaKey) return;
+      if ((e.target as Element | null)?.closest?.('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+      if (e.key.length === 1 || e.key === 'Backspace') inputRef.current?.focus({ preventScroll: true });
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [active]);
   useEffect(() => {
     if (active) inputRef.current?.focus({ preventScroll: true });
     else inputRef.current?.blur();
