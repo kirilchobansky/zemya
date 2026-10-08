@@ -44,6 +44,9 @@ export const NUMBER_OPTIONAL_ALIASES: Readonly<Record<string, readonly string[]>
   'ruler-mihail-2-asen': ['Михаил Асен']
 };
 
+/** Rulers accepted only by their whole name, not cut at the numeral ("Георги I" of "Георги I Тертер"). By entry id. */
+export const FULL_NAME_ONLY: ReadonlySet<string> = new Set(['ruler-georgi-1-terter', 'ruler-georgi-2-terter']);
+
 const ANY_ROLE = /(?:)/; // matches every role, an entry with none included
 
 export const BULGARIA_FILL_QUIZZES: readonly FillQuizConfig[] = [

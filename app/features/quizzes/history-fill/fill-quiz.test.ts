@@ -250,3 +250,14 @@ describe('number-optional exceptions', () => {
     expect(matchFill('Михаил Асен', clash, NONE)).toBeNull();
   });
 });
+
+describe('fullNameOnly', () => {
+  const list = prepareFill([
+    { ...entry('g1', 'Георги I Тертер', '', 1280), fullNameOnly: true },
+    { ...entry('g2', 'Георги II Тертер', '', 1321), fullNameOnly: true }
+  ]);
+  it('accepts the whole name, not the cut at the numeral', () => {
+    expect(matchFill('Георги I Тертер', list, new Set())).toMatchObject({ index: 0 });
+    expect(matchFill('Георги 1', list, new Set())).toBeNull();
+  });
+});

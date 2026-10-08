@@ -652,3 +652,4 @@ Same chrome as the geography run (`HistoryFillQuiz.tsx`, phone layout only; desk
 - Geography run: `‹ Back` top-left (phone HUD, desktop `.quiz-back-desk`) = Abandon. Flags: `.flag` has no shadow or radius, only a 0.5px alpha-following hairline; the `--flag-shadow-*` / `--flag-stage-shadow` tokens are now unused.
 
 - **Number-optional rulers:** `NUMBER_OPTIONAL_ALIASES` (`fill-quiz-config.ts`, by entry id) adds one exact alias per ruler, like Ferdinand's `aliases` in `bg.yaml`: "Михаил Шишман" (`ruler-mihail-3-shishman`) and "Михаил Асен" (`ruler-mihail-2-asen`). A spelling that belongs to two different people is still rejected.
+- **Full-name-only rulers:** `FULL_NAME_ONLY` (`fill-quiz-config.ts`, by entry id) turns off the form cut at the numeral for "Георги I Тертер" and "Георги II Тертер" (`fullNameOnly` on `FillEntry`): "Георги 1" is no longer accepted, only the whole name (owner's request).

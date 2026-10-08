@@ -69,6 +69,8 @@ export interface FillEntry {
   /** The name in the other language, accepted when typing ("" when none). */
   nameAlt: string;
   aliases: readonly string[];
+  /** Skip the form cut at the numeral ("Георги I" of "Георги I Тертер"): only the whole name counts. */
+  fullNameOnly?: boolean;
   /** Decimal years (scale.ts). `end` is null for an entry that is still ongoing. */
   start: number;
   end: number | null;
@@ -99,7 +101,7 @@ export function prepareFill(entries: readonly FillEntry[]): PreparedFillEntry[] 
     for (const p of named[i]) {
       forms.add(p.toks.join(''));
       if (p.at > 0) {
-        forms.add(p.toks.slice(0, p.at + 1).join('')); // Симеон 1 (of Симеон I Велики)
+        if (!e.fullNameOnly) forms.add(p.toks.slice(0, p.at + 1).join('')); // Симеон 1 (of Симеон I Велики)
         bare.add(p.toks.slice(0, p.at).join(''));
       }
       const sn = surnameOf(p);

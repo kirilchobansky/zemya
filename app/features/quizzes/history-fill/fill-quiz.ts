@@ -27,7 +27,7 @@
 // its config loader resolves neither the `~` alias nor a barrel full of components.
 import { historyCountryFor } from '../../history/data/countries';
 import { decimalYearOf } from '../../history/timeline/scale';
-import { FILL_QUIZ_CONFIG, NUMBER_OPTIONAL_ALIASES, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
+import { FILL_QUIZ_CONFIG, FULL_NAME_ONLY, NUMBER_OPTIONAL_ALIASES, type FillQuizConfig, type FillQuizToggle } from './fill-quiz-config';
 import type { FillEntry, FillKind } from './fill-matching';
 
 // the matching half lives in fill-matching.ts; everything stays importable from here
@@ -140,6 +140,7 @@ export function fillQuizzesFromRaw(
           name: r.name[lang] || r.name[other],
           nameAlt: r.name[lang] ? r.name[other] : '',
           aliases: [...r.aliases, ...(NUMBER_OPTIONAL_ALIASES[r.id] ?? [])],
+          fullNameOnly: FULL_NAME_ONLY.has(r.id),
           start: decimalYearOf(r.start, `${r.id}.start`),
           end: r.end == null ? null : decimalYearOf(r.end, `${r.id}.end`),
           startRaw: r.start,
