@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { homeZoom } from './camera';
 import {
   cameraForTarget, mainlandBox, NO_INSETS, NO_SHAPE_ZOOM_FACTOR, QUIZ_COMFORT_MARGIN, QUIZ_FRAME_PADDING,
-  QUIZ_MIN_TARGET_PX, quizMinTargetPx, type FollowTarget
+  QUIZ_MIN_TARGET_PX, quizFollowOptions, quizMinTargetPx, type FollowTarget
 } from './follow';
 import { latToY, lonToX } from './projection';
 import { CAPITAL_MIN_SHAPE_WIDTH, CAPITAL_RING_DIAMETER, PIN_MAX_WIDTH } from './thresholds';
@@ -190,5 +190,23 @@ describe('mainlandBox', () => {
 
   it('gives every country a box', () => {
     for (const f of world.features) expect(mainlandBox(f), f.country.iso3).not.toBeNull();
+  });
+});
+
+describe('narrow (phone) viewport', () => {
+  it('uses a larger legible minimum and never zooms in past the ceiling', () => {
+    const phone = { width: 390, height: 780 };
+    const home = homeZoom(phone);
+    const cam = { x: 0.5, y: 0.46, zoom: home };
+    const opts = quizFollowOptions(phone);
+    expect(quizMinTargetPx(false, true)).toBeGreaterThan(QUIZ_MIN_TARGET_PX);
+    // a tiny box would need far more than the ceiling to reach its minimum width
+    const tiny: FollowTarget = { box: { x0: 0.5, x1: 0.5005, y0: 0.45, y1: 0.4505 }, focus: { x: 0.50025, y: 0.45025 }, fit: true, marginPx: 12, minWidthPx: quizMinTargetPx(false, true) };
+    expect(cameraForTarget(cam, phone, NO_INSETS, tiny, opts)!.zoom).toBeCloseTo(opts.maxZoom!, 6);
+    // a camera already past the ceiling is never pulled back by it
+    const close = { ...cam, zoom: opts.maxZoom! * 2 };
+    expect(cameraForTarget(close, phone, NO_INSETS, tiny, opts)?.zoom ?? close.zoom).toBeGreaterThanOrEqual(close.zoom);
+    // a desktop viewport keeps the original behaviour
+    expect(quizFollowOptions({ width: 1000, height: 800 }).maxZoom).toBeUndefined();
   });
 });

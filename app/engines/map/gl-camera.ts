@@ -7,7 +7,7 @@ import {
   centreInVisible, clamp, clampZoom, frame, homeCamera, homeZoom, scaleBar, shortestX,
   type CameraState, type Insets
 } from './camera';
-import { cameraForTarget, markerPoint, NO_SHAPE_ZOOM_FACTOR, quizFollowTarget, QUIZ_WORLD_VIEW_FACTOR } from './follow';
+import { cameraForTarget, markerPoint, NO_SHAPE_ZOOM_FACTOR, quizFollowOptions, quizFollowTarget, QUIZ_WORLD_VIEW_FACTOR } from './follow';
 import type { GlHost } from './gl-host';
 import { pxToZoom, zoomToPx } from './gl-style';
 import { latToY, lonToX, xToLon, yToLat } from './projection';
@@ -81,7 +81,7 @@ export class GlCamera {
 
     const target = quizFollowTarget(feature, place ?? null, this.host.viewport);
     if (!target) return;
-    const options = { noShapeZoom: homeZoom(this.host.viewport) * NO_SHAPE_ZOOM_FACTOR };
+    const options = quizFollowOptions(this.host.viewport);
     let base = cam;
     let next = cameraForTarget(base, this.host.viewport, insets, target, options);
     if (next && zoomedIn) {

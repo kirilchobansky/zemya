@@ -16,7 +16,7 @@
  * on top of it (`Insets`: today the quiz's docked input) — not the raw canvas.
  */
 import { wrapX, latToY, lonToX } from './projection';
-import { clampZoom, NO_INSETS, type CameraState, type Insets, type Viewport } from './camera';
+import { clampZoom, homeZoom, NO_INSETS, type CameraState, type Insets, type Viewport } from './camera';
 import { CAPITAL_MIN_SHAPE_WIDTH } from './thresholds';
 import type { Feature, PlaceMark, Ring } from './types';
 
@@ -63,8 +63,21 @@ export const QUIZ_FRAME_PADDING = 1 - 2 * QUIZ_COMFORT_MARGIN;
 export const QUIZ_MIN_TARGET_PX = 12;
 /** The capitals quiz draws a ring on the capital, which needs a real outline to sit on
  *  (thresholds.ts's CAPITAL_MIN_SHAPE_WIDTH), so its minimum is the larger of the two. */
-export const quizMinTargetPx = (withCapitalRing: boolean): number =>
-  withCapitalRing ? Math.max(QUIZ_MIN_TARGET_PX, CAPITAL_MIN_SHAPE_WIDTH) : QUIZ_MIN_TARGET_PX;
+export const quizMinTargetPx = (withCapitalRing: boolean, narrow = false): number => {
+  const min = narrow ? QUIZ_MIN_TARGET_PX_NARROW : QUIZ_MIN_TARGET_PX;
+  return withCapitalRing ? Math.max(min, CAPITAL_MIN_SHAPE_WIDTH) : min;
+};
+
+/**
+ * A phone-sized viewport (the quiz's visible strip is a fraction of a ~390 px world): 12 px left
+ * a third of the questions on the overview with a country too small to read and sent the micro
+ * ones 100x+ in. Between the two: a larger minimum, and a ceiling on how close it may go.
+ * Tuned by the share of questions that zoom and by how far the micro ones go (follow-all.test.ts).
+ */
+export const NARROW_VIEWPORT_PX = 520;
+export const QUIZ_MIN_TARGET_PX_NARROW = 18;
+export const NARROW_MAX_ZOOM_FACTOR = 20;
+export const NARROW_NO_SHAPE_ZOOM_FACTOR = 16;
 /** Floors on the comfort margin for a target that isn't a plain box. */
 export const QUIZ_POINT_MARGIN_PX = 60; // a capital dot: room around it
 export const QUIZ_PIN_MARGIN_PX = 48; // a country with no shape: its pin carries a big halo
@@ -155,7 +168,7 @@ export function markerPoint(feature: Feature, place: PlaceMark | null): { x: num
  * neighbourhood zoom (`box` null). Null when there is nowhere to go.
  */
 export function quizFollowTarget(feature: Feature, place: PlaceMark | null, viewport: Viewport): FollowTarget | null {
-  const minWidthPx = quizMinTargetPx(Boolean(place));
+  const minWidthPx = quizMinTargetPx(Boolean(place), viewport.width < NARROW_VIEWPORT_PX);
   const mainland = feature.halo
     ? { x0: feature.halo.x0, x1: feature.halo.x1, y0: feature.halo.y0, y1: feature.halo.y1 }
     : feature.bbox && (feature.path || feature.fullPath) ? mainlandBox(feature) : null;
@@ -173,6 +186,17 @@ export function quizFollowTarget(feature: Feature, place: PlaceMark | null, view
 export interface FollowOptions {
   /** The zoom to use for a target with no shape (`box` null). */
   noShapeZoom: number;
+  /** Ceiling for zooming IN on a target (never below the camera's own zoom). Omitted = none. */
+  maxZoom?: number;
+}
+
+/** The follow options for a viewport: neighbourhood zoom for a shapeless country, and on a narrow
+ *  (phone) viewport a gentler one plus a ceiling. */
+export function quizFollowOptions(viewport: Viewport): FollowOptions {
+  const home = homeZoom(viewport);
+  return viewport.width < NARROW_VIEWPORT_PX
+    ? { noShapeZoom: home * NARROW_NO_SHAPE_ZOOM_FACTOR, maxZoom: home * NARROW_MAX_ZOOM_FACTOR }
+    : { noShapeZoom: home * NO_SHAPE_ZOOM_FACTOR };
 }
 
 /**
@@ -202,6 +226,7 @@ export function cameraForTarget(
   } else {
     zoom = Math.max(zoom, options.noShapeZoom);
   }
+  if (options.maxZoom !== undefined) zoom = Math.min(zoom, Math.max(options.maxZoom, camera.zoom));
   const rezoomed = Math.abs(zoom - camera.zoom) > camera.zoom * 1e-6;
 
   // where the target's box (or point) lands on screen, the short way round the antimeridian
