@@ -88,6 +88,9 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
                 <button type="button" className="action" onClick={onRestart}>
                   Restart
                 </button>
+                <button type="button" className="action" onClick={engine.giveUp}>
+                  Give up
+                </button>
                 <button type="button" className="action" onClick={engine.abandon}>
                   Abandon <kbd>Ctrl+⌫</kbd>
                 </button>

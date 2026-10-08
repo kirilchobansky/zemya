@@ -16,6 +16,7 @@ import { isCoarsePointer, isPhoneLayout } from "~/shared/layout/viewport";
 import type { World } from "~/engines/map/types";
 import type { QuizEngine } from '../engine/engine';
 import { measureInsets } from '../engine/insets';
+import { useResultsInspect } from '../engine/use-results-inspect';
 import type { QuizDefinition } from '../engine/types';
 
 export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world }: {
@@ -87,6 +88,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
   }, [runOwnsScreen, setImmersive]);
   useQuizPageLock(runOwnsScreen);
   const finished = validRun && engine.phase === "done";
+  useResultsInspect(finished, engine.snapshot, engine.result);
   // Up leaves a run or its results like Abandon, to the list with this quiz open (UpButton)
   useEffect(() => {
     if (finished) setSheetSnap("full");
@@ -211,11 +213,11 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
       prev
         ? {
             ...prev,
-            answered: engine.answered,
+            answered: engine.settled,
             showNeighbours: engine.showNeighbours,
             paused: engine.phase === "paused",
           }
         : prev,
     );
-  }, [engine.answered, engine.showNeighbours, engine.phase, setQuiz]);
+  }, [engine.settled, engine.showNeighbours, engine.phase, setQuiz]);
 }

@@ -21,21 +21,25 @@ export function useQuizReview({ countries, revealedSet, setRevealedSet, setRunLi
    *  a personal best. */
   const [reviewing, setReviewing] = useState(false);
   const [result, setResult] = useState<QuizRunResult | null>(null);
+  /** The full run's countries while a review pass replays only part of them: the rest stay
+   *  painted as answered (engine.ts `settled`). Null outside a review. */
+  const [fullList, setFullList] = useState<CountryRecord[] | null>(null);
   /** The full run's archive row; review passes append to it. */
   const savedRunRef = useRef<Promise<number | undefined>>(Promise.resolve(undefined));
 
   const snapshot = useCallback((): FinishedRun | null => (
-    result ? { result, countries, revealedSet, reviewing, savedRun: savedRunRef.current } : null
-  ), [result, countries, revealedSet, reviewing]);
+    result ? { result, countries, revealedSet, reviewing, fullList, savedRun: savedRunRef.current } : null
+  ), [result, countries, revealedSet, reviewing, fullList]);
 
   const restoreResult = useCallback((run: FinishedRun) => {
     savedRunRef.current = run.savedRun;
     setRunList(run.countries);
     setRevealedSet(run.revealedSet);
     setReviewing(run.reviewing);
+    setFullList(run.fullList);
     setResult(run.result);
     setPhase('done');
   }, [setRunList, setRevealedSet, setPhase]);
 
-  return { reviewing, setReviewing, result, setResult, savedRunRef, snapshot, restoreResult };
+  return { reviewing, setReviewing, result, setResult, fullList, setFullList, savedRunRef, snapshot, restoreResult };
 }

@@ -88,6 +88,15 @@ export function QuizRunHud({ engine, total, backTo, onRestart }: {
             className="quiz-pause__btn"
             onPointerDown={keepFocus}
             onMouseDown={keepFocus}
+            onClick={engine.giveUp}
+          >
+            Give up
+          </button>
+          <button
+            type="button"
+            className="quiz-pause__btn"
+            onPointerDown={keepFocus}
+            onMouseDown={keepFocus}
             onClick={engine.abandon}
           >
             Abandon run

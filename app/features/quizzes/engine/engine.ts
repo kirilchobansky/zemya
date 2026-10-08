@@ -9,15 +9,17 @@
  * this to the atlas (camera, quiz-mode map painting); this file must never import from
  * ~/engines/map or any component. See CLAUDE.md's Quizzes section.
  */
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useProgress, makeRng, shuffle } from '~/features/progress';
 import type { ReviewRating } from '~/features/progress';
 import { cardId } from '~/features/countries';
 import type { CountryRecord } from '~/engines/map/types';
-import { EASY_MS, PREPARE_LOOKAHEAD, resolveMatch, type QuizEngine } from './engine-types';
-import { archiveRun, scoreRun } from './run-result';
+import type { FinishedRun } from './finished-runs';
+import { EASY_MS, PREPARE_LOOKAHEAD, type QuizEngine } from './engine-types';
+import { archiveRun, scoreRun, settledMarks } from './run-result';
 import { usePriorBest } from './use-prior-best';
+import { useQuizInput, REVEAL_FILL_MS } from './use-quiz-input';
 import { inputKeyDownHandler, useQuizKeyboard } from './use-quiz-keyboard';
 import { useQuizReview } from './use-quiz-review';
 import { useQuizTimer } from './use-quiz-timer';
@@ -25,8 +27,7 @@ import type { QuizDefinition, QuizOutcome, QuizPhase } from './types';
 
 export type { QuizEngine };
 
-/** How long a revealed answer sits in the input before Enter's auto-fill accepts it. */
-export const REVEAL_FILL_MS = 250;
+export { REVEAL_FILL_MS };
 
 export function useQuizEngine(
   definition: Pick<QuizDefinition, 'id' | 'facet' | 'match' | 'prepare' | 'answerOf'>,
@@ -55,15 +56,6 @@ export function useQuizEngine(
   const shownAtRef = useRef<Map<string, number>>(new Map());
   const skippedRef = useRef<Set<string>>(new Set());
 
-  /** Pending Enter-after-reveal fill: the answer is in the input and accepts itself shortly. */
-  const fillTimerRef = useRef<number | null>(null);
-  const cancelFill = useCallback(() => {
-    if (fillTimerRef.current !== null) {
-      window.clearTimeout(fillTimerRef.current);
-      fillTimerRef.current = null;
-    }
-  }, []);
-
   /** The set a Restart drew; null = the route's own `baseCountries`. */
   const [runList, setRunList] = useState<CountryRecord[] | null>(null);
   const countries = runList ?? baseCountries;
@@ -71,10 +63,21 @@ export function useQuizEngine(
   useEffect(() => setRunList(null), [baseCountries]);
 
   const [priorBest, setPriorBest] = usePriorBest(definition.id, scope, size, mode);
-  const { reviewing, setReviewing, result, setResult, savedRunRef, snapshot, restoreResult } = useQuizReview({
+  const { reviewing, setReviewing, result, setResult, fullList, setFullList, savedRunRef, snapshot, restoreResult: restoreReview } = useQuizReview({
     countries, revealedSet, setRevealedSet, setRunList, setPhase
   });
   const target = queue.length ? queue[0] : null;
+  /** commitAnswer, defined below: the input handlers call it through this ref. */
+  const commitRef = useRef<(note?: string) => void>(() => {});
+  const { cancelFill, onInputChange, fillRevealed } = useQuizInput({
+    phase, target, revealedSet, definition, lastNote, setInput, setLastNote, commitRef
+  });
+
+  /* What the map paints: a review pass keeps the rest of the full run green (settledMarks). */
+  const settled = useMemo(
+    () => settledMarks(reviewing, fullList, countries, answered),
+    [reviewing, fullList, countries, answered]
+  );
 
   /* a different :scope, :size (or quiz) while this route stays mounted is a fresh run, not a
      continuation of the old one; toStart is the same reset, asked for by the panel's Up button */
@@ -104,12 +107,13 @@ export function useQuizEngine(
   const begin = useCallback((list: CountryRecord[], review = false) => {
     if (!list.length) return;
     clearRun(review);
+    if (!review) setFullList(null);
     const shuffled = shuffle(list, makeRng(Date.now() ^ (Math.random() * 0xffffffff)));
     setQueue(shuffled);
     segmentStartRef.current = Date.now();
     setPhase('running');
     definition.prepare?.(shuffled.slice(0, PREPARE_LOOKAHEAD));
-  }, [definition, clearRun]);
+  }, [definition, clearRun, setFullList]);
 
   const start = useCallback(() => begin(countries), [begin, countries]);
   const restart = useCallback((next?: CountryRecord[]) => {
@@ -121,9 +125,18 @@ export function useQuizEngine(
   const reviewMistakes = useCallback(() => {
     const missed = result?.revealed;
     if (!missed?.length) return;
-    setRunList(missed);
+    // the set to keep painted is the whole run, not a previous review's part of it
+    const whole = fullList ?? countries;
     begin(missed, true);
-  }, [result, begin]);
+    setRunList(missed);
+    setFullList(whole);
+  }, [result, begin, fullList, countries, setFullList]);
+
+  /* Back from a dossier: the results, and the map painted the way the run left it. */
+  const restoreResult = useCallback((run: FinishedRun) => {
+    restoreReview(run);
+    setAnswered(new Map(run.countries.map(c => [c.iso3, run.revealedSet.has(c.iso3) ? 'revealed' : 'correct'])));
+  }, [restoreReview]);
 
   /* mark when the current target became visible, for the "answered fast" grading in
      onInputChange below */
@@ -167,6 +180,29 @@ export function useQuizEngine(
   const abandon = useCallback(() => {
     onAbandon();
   }, [onAbandon]);
+
+  /* Give up: ends the run where it stands. Whatever is still unanswered counts as missed (red on
+     the map, in the results, worth a review); like Abandon nothing is saved — no quizRuns row, no
+     FSRS grading, never a personal best. */
+  const giveUp = useCallback(() => {
+    if (phase !== 'running' && phase !== 'paused') return;
+    cancelFill();
+    stopSegment();
+    const missed = new Set(revealedSet);
+    for (const c of queue) missed.add(c.iso3);
+    setRevealedSet(missed);
+    setAnswered(prev => {
+      const next = new Map(prev);
+      for (const c of queue) next.set(c.iso3, 'revealed');
+      return next;
+    });
+    setQueue([]);
+    setInput('');
+    setLastNote(null);
+    setPhase('done');
+    setResult(scoreRun(countries, missed, priorBest, elapsedRef.current, skippedRef.current.size, true).result);
+    savedRunRef.current = Promise.resolve(undefined);
+  }, [phase, queue, revealedSet, countries, priorBest, cancelFill, stopSegment, setResult, savedRunRef]);
 
   /* Accepts the current target as answered — the one path for a typed match and for Enter's
      auto-fill, so scoring, the review rating and the next-question flow cannot drift apart. */
@@ -222,42 +258,7 @@ export function useQuizEngine(
     [phase, target, definition, revealedSet, review, queue, stopSegment, countries, priorBest, scope, size, mode, reviewing, setResult, savedRunRef]
   );
 
-  const onInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      // ignored, not disabled, while paused — an actually-disabled <input> can't hold
-      // keyboard focus at all, which is what made Esc-to-resume unreachable (see the
-      // paused-Escape effect above)
-      if (phase !== 'running' || !target) return;
-      cancelFill(); // typing takes over from a pending auto-fill
-      const value = e.target.value;
-      setInput(value);
-      if (lastNote) setLastNote(null);
-
-      const outcome = resolveMatch(value, target, definition);
-      if (outcome.accepted) commitAnswer(outcome.note);
-    },
-    [phase, target, definition, lastNote, commitAnswer, cancelFill]
-  );
-
-  /* Plain Enter on a revealed answer: put the answer text in the input for REVEAL_FILL_MS,
-     then accept it as a normal answer (outcome "revealed" — the target is in revealedSet). The
-     answer is accepted by construction, not re-matched: the reveal string (e.g. all the
-     languages, or "Euro (EUR)") is not necessarily something the matcher takes. Enter with
-     nothing revealed does nothing. */
-  const fillRevealed = useCallback(() => {
-    if (phase !== 'running' || !target || !revealedSet.has(target.iso3)) return;
-    if (fillTimerRef.current !== null) return; // already filling
-    setInput(definition.answerOf ? definition.answerOf(target) : target.name);
-    fillTimerRef.current = window.setTimeout(() => {
-      fillTimerRef.current = null;
-      commitAnswer();
-    }, REVEAL_FILL_MS);
-  }, [phase, target, revealedSet, definition, commitAnswer]);
-
-  /* A pending fill belongs to one target of one running phase: pause, a new target or
-     unmounting drops it. (commitAnswer clears the timer itself via the target change.) */
-  useEffect(() => cancelFill, [phase, target, cancelFill]);
-
+  commitRef.current = commitAnswer;
   const onInputKeyDown = useCallback(inputKeyDownHandler(skip, reveal, fillRevealed), [skip, reveal, fillRevealed]);
 
   useQuizKeyboard({ phase, start, togglePause, abandon, skip, reveal, fillRevealed, inputRef, queue, revealedSet });
@@ -270,6 +271,7 @@ export function useQuizEngine(
     input,
     revealedSet,
     answered,
+    settled,
     answeredCount: answered.size,
     totalCount: countries.length,
     remainingCount: queue.length,
@@ -289,6 +291,7 @@ export function useQuizEngine(
     reveal,
     togglePause,
     abandon,
+    giveUp,
     toStart,
     onInputChange,
     onInputKeyDown,

@@ -23,6 +23,9 @@ export interface QuizEngine {
   input: string;
   revealedSet: ReadonlySet<string>;
   answered: ReadonlyMap<string, QuizOutcome>;
+  /** What the map paints: `answered`, plus — in a review pass — the countries the run before
+   *  had right, so only the ones under review start unmarked. */
+  settled: ReadonlyMap<string, QuizOutcome>;
   answeredCount: number;
   totalCount: number;
   /** Countries still unanswered, current target included — queue.length, without exposing
@@ -56,6 +59,8 @@ export interface QuizEngine {
   reveal(): void;
   togglePause(): void;
   abandon(): void;
+  /** End the run now: what is still unanswered counts as missed, and nothing is saved or graded. */
+  giveUp(): void;
   /** Leave a run (or its results) for the start screen, nothing saved — the panel's Up button. */
   toStart(): void;
   onInputChange(e: ChangeEvent<HTMLInputElement>): void;

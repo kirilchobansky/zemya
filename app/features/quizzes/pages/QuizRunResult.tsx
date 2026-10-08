@@ -20,11 +20,15 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
   return (
     <>
       <div className="hook">
-        <div className="hook__label">Result</div>
+        <div className="hook__label">{result.gaveUp ? "Gave up" : "Result"}</div>
         <p className="quiz-result__time numeric">
           {formatDuration(result.timeMs)}
         </p>
-        {engine.reviewing ? (
+        {result.gaveUp ? (
+          <p style={{ marginBottom: 6 }}>
+            A given-up run is not saved — no archive row, no personal best.
+          </p>
+        ) : engine.reviewing ? (
           <p style={{ marginBottom: 6 }}>
             Review pass — its time is added to this run in the archive as the next try. Never a personal best.
           </p>
@@ -66,15 +70,17 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
         )}
         <p>
           <b>{result.firstTryCount}</b> first-try,{" "}
-          <b>{result.revealed.length}</b> revealed (of{" "}
-          {total}).
+          <b>{result.revealed.length}</b> {result.gaveUp ? "missed" : "revealed"} (of{" "}
+          {total}.{" "}
+          <span className="only-fine">Hover the map for names, click any country to open it.</span>
+          <span className="only-coarse">Tap any country on the map to open it.</span>
         </p>
       </div>
 
       {result.revealed.length > 0 && (
         <section>
           <h3 className="subhead">
-            Revealed — the ones worth another look
+            {result.gaveUp ? "Missed" : "Revealed"} — the ones worth another look
           </h3>
           <div className="neighbours">
             {result.revealed.map((country: CountryRecord) => (

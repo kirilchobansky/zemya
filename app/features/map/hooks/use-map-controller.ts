@@ -112,10 +112,8 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
 
   const handleSelect = useCallback(
     (feature: Feature | null) => {
-      // A map click during a quiz run must never navigate — it would unmount the run
-      // (leaving /quiz/:quizId tears the quiz override down) and lose all progress and
-      // the timer, with no confirmation. The quiz has its own input for interaction.
-      if (quiz) return;
+      // never navigate mid-run (it would lose the run); only a finished run's onInspect does
+      if (quiz) return void (feature && quiz.onInspect?.(feature));
       if (armingCompare) {
         if (feature && atlasRef.current?.startCompare(feature)) {
           setArmingCompare(false);
@@ -245,7 +243,8 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
             micro: 'full', // a quiz target must never be hidden by the player's Micro choice
             showCapitals: false,
             quizPlace,
-            quizMode: true
+            quizMode: true,
+            quizNames: Boolean(quiz.onInspect)
           }
         : {
             fill: f => fillFor(f, styleRef.current),

@@ -45,6 +45,7 @@ Moved from CLAUDE.md's "Where this is" (which keeps a summary and the Next list)
   to the timeline at `/history/bulgaria`, now indexed and in the sitemap. `CLAUDE.md`'s
   history exception.
 - History: the United States is the second country (`us.yaml`, presidents + periods; four fill quizzes, see `docs/quizzes.md`).
+- Geography quiz comforts: every quiz has Give up (ends the run, the rest counts as missed, nothing saved); on the results the map shows names, hover names a country and a click on any country opens its dossier with Back to the results; a review pass keeps the countries already right green and leaves only the ones under review unmarked (`docs/quizzes.md`).
 - History quizzes: Quizzes -> History lists nine (Bulgaria) "fill the list" quizzes from an explicit table
   (`fill-quiz-config.ts`: rulers of the two Empires, Princes and Tsars, heads of state, BKP
   leaders, Presidents with a "Democratically elected only" toggle, three PM eras), selected from

@@ -14,6 +14,8 @@ export interface FinishedRun {
   countries: CountryRecord[];
   revealedSet: ReadonlySet<string>;
   reviewing: boolean;
+  /** The whole run's countries when this was a review pass over part of them; null otherwise. */
+  fullList: CountryRecord[] | null;
   /** The full run's archive row, which a later review pass appends its time to. */
   savedRun: Promise<number | undefined>;
 }

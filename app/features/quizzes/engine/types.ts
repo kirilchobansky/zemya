@@ -97,4 +97,6 @@ export interface QuizRunResult {
   perfect: boolean;
   /** The best time going INTO this run, snapshotted at finish time — see engine.ts. */
   previousBest: number | null;
+  /** The player gave up: the countries still unanswered count as missed, and nothing is saved. */
+  gaveUp?: boolean;
 }

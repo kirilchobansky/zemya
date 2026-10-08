@@ -27,6 +27,7 @@ import type { CountryRecord } from '~/engines/map/types';
 import { NameAllDock } from './NameAllDock';
 import { NameAllHud } from './NameAllHud';
 import { NameAllPanel } from './NameAllPanel';
+import { useResultsInspect } from '~/features/quizzes/engine/use-results-inspect';
 import { useRestoreFinishedRun } from '~/features/quizzes/engine/use-results-return';
 import { useNameAllAtlas } from './use-name-all-atlas';
 import { useNameAllRun } from './use-name-all-run';
@@ -51,6 +52,8 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
     scope, phase, paused, named, pool, ready,
     keyboardStrip: `${keyboard.kb}:${keyboard.top}:${keyboard.height}`, inputRef
   });
+
+  useResultsInspect(finished, snapshot, phase); // names, hover and a click to the dossier once it is over
 
   const namedCountries = useMemo(
     () => named.map(iso3 => byIso3.get(iso3)).filter((c): c is CountryRecord => Boolean(c)),

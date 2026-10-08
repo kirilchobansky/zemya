@@ -218,6 +218,10 @@ export interface QuizOverride {
    *  via a CSS class in app/routes/map/atlas.tsx instead — but travels with the rest of the
    *  quiz state since it's the same "what is this run doing right now" object. */
   paused: boolean;
+  /** Set only on a finished run's results: names are shown, hovering names a country and a click
+   *  calls this instead of being ignored (the quiz opens that country's dossier, with a way back
+   *  to the results). Absent during a run — a name on the map would be the answer. */
+  onInspect?: (feature: Feature) => void;
 }
 
 /** Fill resolution during a quiz run: answered beats the current target beats the

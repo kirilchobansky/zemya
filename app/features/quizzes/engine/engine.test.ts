@@ -8,53 +8,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => {
-  const rt = {
-    slots: [] as unknown[],
-    setters: {} as Record<number, unknown>,
-    i: 0,
-    effects: [] as { fn: () => void | (() => void); deps?: unknown[] }[],
-    rerender: () => {},
-  };
-  const same = (a?: unknown[], b?: unknown[]) => !!a && !!b && a.length === b.length && a.every((x, i) => Object.is(x, b[i]));
-  return {
-    rt,
-    review: vi.fn(),
-    react: {
-      useState<T>(init: T | (() => T)) {
-        const k = rt.i++;
-        if (!(k in rt.slots)) rt.slots[k] = typeof init === 'function' ? (init as () => T)() : init;
-        // like React's, the setter is the same function on every render
-        const set = (rt.setters[k] ??= (v: T | ((p: T) => T)) => {
-          const next = typeof v === 'function' ? (v as (p: T) => T)(rt.slots[k] as T) : v;
-          if (!Object.is(next, rt.slots[k])) { rt.slots[k] = next; rt.rerender(); }
-        }) as (v: T | ((p: T) => T)) => void;
-        return [rt.slots[k] as T, set] as const;
-      },
-      useRef<T>(init: T) {
-        const k = rt.i++;
-        if (!(k in rt.slots)) rt.slots[k] = { current: init };
-        return rt.slots[k] as { current: T };
-      },
-      useCallback<T>(fn: T, deps: unknown[]) {
-        const k = rt.i++;
-        const prev = rt.slots[k] as { fn: T; deps: unknown[] } | undefined;
-        if (prev && same(prev.deps, deps)) return prev.fn;
-        rt.slots[k] = { fn, deps };
-        return fn;
-      },
-      useEffect(fn: () => void | (() => void), deps?: unknown[]) {
-        const k = rt.i++;
-        const prev = rt.slots[k] as { deps?: unknown[]; cleanup?: void | (() => void) } | undefined;
-        if (prev && same(prev.deps, deps)) return;
-        rt.effects.push({ fn, deps });
-        rt.slots[k] = { deps, cleanup: prev?.cleanup, pending: fn, k };
-      },
-    },
-  };
-});
-
-vi.mock('react', () => h.react);
+vi.mock('react', async () => (await import('./engine-test-runtime')).h.react);
 vi.mock('~/features/progress/ProgressProvider', () => ({ useProgress: () => ({ review: h.review }) }));
 vi.mock('~/features/progress/quiz-runs', () => ({
   bestQuizTime: () => Promise.resolve(null),
@@ -63,130 +17,88 @@ vi.mock('~/features/progress/quiz-runs', () => ({
 }));
 
 import { addReviewTime, saveQuizRun } from '~/features/progress';
-import { REVEAL_FILL_MS, useQuizEngine, type QuizEngine } from './engine';
-import type { CountryRecord } from '~/engines/map/types';
+import { REVEAL_FILL_MS, useQuizEngine } from './engine';
+import { abandon, CAPITALS, COUNTRIES, country, ctx, h, keyEvent, render, resetHarness, under } from './engine-test-runtime';
 import { saveFinishedRun, savedFinishedRun } from './finished-runs';
 
-const country = (iso3: string, name: string, capital: string): CountryRecord =>
-  ({
-    id: iso3, iso3, iso2: iso3.slice(0, 2), slug: name.toLowerCase(), name, aliases: [name], capital,
-    capitalAliases: [capital], languages: ['Alpha', 'Beta'], religion: 'None', currencyName: null, currencyCode: null,
-  }) as unknown as CountryRecord;
+under.hook = useQuizEngine;
 
-const COUNTRIES = [country('AAA', 'Aland', 'Alpha City'), country('BBB', 'Bland', 'Beta City'), country('CCC', 'Cland', 'Gamma City')];
-
-type Def = Parameters<typeof useQuizEngine>[0];
-let engine: QuizEngine;
-let listeners: Record<string, ((e: unknown) => void)[]>;
-
-/** Renders the hook, then runs the effects its render queued (cleanups first, like React). */
-function render(def: Def) {
-  const run = () => {
-    h.rt.i = 0;
-    h.rt.effects = [];
-    engine = useQuizEngine(def, COUNTRIES, 'world', 'all', 'random', abandon);
-    for (const e of h.rt.effects) {
-      for (const slot of h.rt.slots) {
-        const s = slot as { pending?: unknown; cleanup?: void | (() => void) } | undefined;
-        if (s?.pending === e.fn) { s.cleanup?.(); s.cleanup = e.fn(); s.pending = undefined; }
-      }
-    }
-  };
-  h.rt.rerender = run;
-  run();
-}
-const abandon = vi.fn();
-
-const keyEvent = (key: string, extra: Record<string, unknown> = {}) => ({
-  key, ctrlKey: false, altKey: false, metaKey: false, isComposing: false,
-  target: null, preventDefault: vi.fn(), ...extra,
-});
-const enterInInput = () => engine.onInputKeyDown(keyEvent('Enter') as never);
-const type = (value: string) => engine.onInputChange({ target: { value } } as never);
-const press = (e: ReturnType<typeof keyEvent>) => (listeners.keydown ?? []).slice().forEach(l => l(e));
+const enterInInput = () => ctx.engine.onInputKeyDown(keyEvent('Enter') as never);
+const type = (value: string) => ctx.engine.onInputChange({ target: { value } } as never);
+const press = (e: ReturnType<typeof keyEvent>) => (ctx.listeners.keydown ?? []).slice().forEach(l => l(e));
+/** The engine as of the latest render. */
+const eng = () => ctx.engine;
 
 beforeEach(() => {
-  vi.useFakeTimers();
-  h.rt.slots = [];
-  h.rt.setters = {};
-  h.review.mockClear();
+  resetHarness();
   vi.mocked(saveQuizRun).mockClear();
-  listeners = {};
-  const target = {
-    addEventListener: (t: string, fn: (e: unknown) => void) => (listeners[t] ??= []).push(fn),
-    removeEventListener: (t: string, fn: (e: unknown) => void) => (listeners[t] = (listeners[t] ?? []).filter(l => l !== fn)),
-  };
-  Object.assign(globalThis, {
-    window: { ...target, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval },
-    document: target,
-  });
-  render({ id: 'capitals', facet: 'capital', match: (typed, t) => ({ accepted: typed === t.capital }), answerOf: t => t.capital ?? t.name });
-  engine.start();
+  render(CAPITALS);
+  eng().start();
 });
 
 describe('Enter after a reveal', () => {
   it('fills the answer, then advances with outcome "revealed"', () => {
-    const first = engine.target!;
-    engine.reveal();
+    const first = eng().target!;
+    eng().reveal();
     enterInInput();
-    expect(engine.input).toBe(first.capital);
-    expect(engine.answeredCount).toBe(0); // not yet: the answer shows for a beat
+    expect(eng().input).toBe(first.capital);
+    expect(eng().answeredCount).toBe(0); // not yet: the answer shows for a beat
     vi.advanceTimersByTime(REVEAL_FILL_MS);
-    expect(engine.answered.get(first.iso3)).toBe('revealed');
-    expect(engine.target).not.toBe(first);
-    expect(engine.input).toBe('');
+    expect(eng().answered.get(first.iso3)).toBe('revealed');
+    expect(eng().target).not.toBe(first);
+    expect(eng().input).toBe('');
     expect(h.review).toHaveBeenCalledWith(expect.stringContaining(first.iso3), 'again');
   });
 
   it('also works with focus elsewhere (document-level Enter)', () => {
-    const first = engine.target!;
-    engine.reveal();
+    const first = eng().target!;
+    eng().reveal();
     press(keyEvent('Enter', { target: { closest: () => null } }));
     vi.advanceTimersByTime(REVEAL_FILL_MS);
-    expect(engine.answered.get(first.iso3)).toBe('revealed');
+    expect(eng().answered.get(first.iso3)).toBe('revealed');
   });
 
   it('does nothing when the target is not revealed', () => {
-    const first = engine.target!;
+    const first = eng().target!;
     enterInInput();
     press(keyEvent('Enter', { target: { closest: () => null } }));
     vi.advanceTimersByTime(1000);
-    expect(engine.target).toBe(first);
-    expect(engine.input).toBe('');
-    expect(engine.answeredCount).toBe(0);
+    expect(eng().target).toBe(first);
+    expect(eng().input).toBe('');
+    expect(eng().answeredCount).toBe(0);
   });
 
   it('still accepts the revealed answer typed by hand', () => {
-    const first = engine.target!;
-    engine.reveal();
+    const first = eng().target!;
+    eng().reveal();
     type(first.capital!);
-    expect(engine.answered.get(first.iso3)).toBe('revealed');
-    expect(engine.target).not.toBe(first);
+    expect(eng().answered.get(first.iso3)).toBe('revealed');
+    expect(eng().target).not.toBe(first);
   });
 
   it('finishes the run when the last target is filled in', () => {
     for (let n = 0; n < COUNTRIES.length; n++) {
-      engine.reveal();
+      eng().reveal();
       enterInInput();
       vi.advanceTimersByTime(REVEAL_FILL_MS);
     }
-    expect(engine.phase).toBe('done');
-    expect(engine.result?.revealed).toHaveLength(COUNTRIES.length);
+    expect(eng().phase).toBe('done');
+    expect(eng().result?.revealed).toHaveLength(COUNTRIES.length);
     expect(saveQuizRun).toHaveBeenCalledOnce();
   });
 });
 
 describe('Restart', () => {
   it('starts a clean run: nothing saved, nothing graded, progress cleared', () => {
-    type(engine.target!.capital!); // one honest answer first
-    engine.reveal();
+    type(eng().target!.capital!); // one honest answer first
+    eng().reveal();
     h.review.mockClear();
-    engine.restart();
-    expect(engine.phase).toBe('running');
-    expect(engine.answeredCount).toBe(0);
-    expect(engine.remainingCount).toBe(COUNTRIES.length);
-    expect(engine.revealedSet.size).toBe(0);
-    expect(engine.input).toBe('');
+    eng().restart();
+    expect(eng().phase).toBe('running');
+    expect(eng().answeredCount).toBe(0);
+    expect(eng().remainingCount).toBe(COUNTRIES.length);
+    expect(eng().revealedSet.size).toBe(0);
+    expect(eng().input).toBe('');
     expect(h.review).not.toHaveBeenCalled();
     expect(saveQuizRun).not.toHaveBeenCalled();
     expect(abandon).not.toHaveBeenCalled();
@@ -194,21 +106,21 @@ describe('Restart', () => {
 
   it('runs on a newly drawn set when given one, and finishes against it', () => {
     const fresh = [country('DDD', 'Dland', 'Delta City'), country('EEE', 'Eland', 'Eps City')];
-    engine.restart(fresh);
-    expect(engine.totalCount).toBe(2);
-    expect(engine.remainingCount).toBe(2);
-    expect(fresh).toContain(engine.target);
-    for (let n = 0; n < 2; n++) type(engine.target!.capital!);
-    expect(engine.phase).toBe('done');
-    expect(engine.result?.firstTryCount).toBe(2);
+    eng().restart(fresh);
+    expect(eng().totalCount).toBe(2);
+    expect(eng().remainingCount).toBe(2);
+    expect(fresh).toContain(eng().target);
+    for (let n = 0; n < 2; n++) type(eng().target!.capital!);
+    expect(eng().phase).toBe('done');
+    expect(eng().result?.firstTryCount).toBe(2);
   });
 
   it('drops a pending Enter fill', () => {
-    engine.reveal();
+    eng().reveal();
     enterInInput();
-    engine.restart();
+    eng().restart();
     vi.advanceTimersByTime(REVEAL_FILL_MS * 2);
-    expect(engine.answeredCount).toBe(0);
+    expect(eng().answeredCount).toBe(0);
   });
 });
 
@@ -216,21 +128,21 @@ describe('Review mistakes', () => {
   it('replays only the revealed countries and archives the time as the next try', async () => {
     const [missed] = COUNTRIES;
     for (let n = 0; n < COUNTRIES.length; n++) {
-      if (engine.target!.iso3 === missed.iso3) {
-        engine.reveal();
+      if (eng().target!.iso3 === missed.iso3) {
+        eng().reveal();
         enterInInput();
         vi.advanceTimersByTime(REVEAL_FILL_MS);
-      } else type(engine.target!.capital!);
+      } else type(eng().target!.capital!);
     }
-    expect(engine.phase).toBe('done');
+    expect(eng().phase).toBe('done');
     expect(saveQuizRun).toHaveBeenCalledOnce();
 
-    engine.reviewMistakes();
-    expect(engine.reviewing).toBe(true);
-    expect(engine.totalCount).toBe(1);
-    expect(engine.target).toBe(missed);
+    eng().reviewMistakes();
+    expect(eng().reviewing).toBe(true);
+    expect(eng().totalCount).toBe(1);
+    expect(eng().target).toBe(missed);
     type(missed.capital!);
-    expect(engine.phase).toBe('done');
+    expect(eng().phase).toBe('done');
     expect(saveQuizRun).toHaveBeenCalledOnce();
     await Promise.resolve();
     expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number), 0);
@@ -241,14 +153,14 @@ describe('Finished run kept across a dossier visit', () => {
   it('restores the same results without saving anything again, and Review still replays the misses', async () => {
     const [missed] = COUNTRIES;
     for (let n = 0; n < COUNTRIES.length; n++) {
-      if (engine.target!.iso3 === missed.iso3) {
-        engine.reveal();
+      if (eng().target!.iso3 === missed.iso3) {
+        eng().reveal();
         enterInInput();
         vi.advanceTimersByTime(REVEAL_FILL_MS);
-      } else type(engine.target!.capital!);
+      } else type(eng().target!.capital!);
     }
-    const before = engine.result;
-    const run = engine.snapshot()!;
+    const before = eng().result;
+    const run = eng().snapshot()!;
     saveFinishedRun('/run', 't1', run);
     expect(savedFinishedRun('/run', 'other')).toBeNull();
     expect(savedFinishedRun('/run', null)).toBeNull();
@@ -256,25 +168,25 @@ describe('Finished run kept across a dossier visit', () => {
     // leave and come back: a fresh engine (the route remounted)
     h.rt.slots = [];
     h.rt.setters = {};
-    render({ id: 'capitals', facet: 'capital', match: (typed, t) => ({ accepted: typed === t.capital }), answerOf: t => t.capital ?? t.name });
-    expect(engine.phase).toBe('idle');
+    render(CAPITALS);
+    expect(eng().phase).toBe('idle');
     vi.mocked(saveQuizRun).mockClear();
     h.review.mockClear();
     vi.mocked(addReviewTime).mockClear();
-    engine.restoreResult(savedFinishedRun('/run', 't1')!);
+    eng().restoreResult(savedFinishedRun('/run', 't1')!);
 
-    expect(engine.phase).toBe('done');
-    expect(engine.result).toEqual(before);
-    expect(engine.totalCount).toBe(COUNTRIES.length);
+    expect(eng().phase).toBe('done');
+    expect(eng().result).toEqual(before);
+    expect(eng().totalCount).toBe(COUNTRIES.length);
     expect(saveQuizRun).not.toHaveBeenCalled();
     expect(addReviewTime).not.toHaveBeenCalled();
     expect(h.review).not.toHaveBeenCalled();
 
-    engine.reviewMistakes();
-    expect(engine.totalCount).toBe(1);
-    expect(engine.target).toBe(missed);
+    eng().reviewMistakes();
+    expect(eng().totalCount).toBe(1);
+    expect(eng().target).toBe(missed);
     type(missed.capital!);
-    expect(engine.phase).toBe('done');
+    expect(eng().phase).toBe('done');
     expect(saveQuizRun).not.toHaveBeenCalled(); // a review pass appends to the restored row, never a new one
     await Promise.resolve();
     expect(addReviewTime).toHaveBeenCalledWith(7, expect.any(Number), 0);

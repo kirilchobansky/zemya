@@ -55,7 +55,7 @@ export class GlViewSync {
     // country names (largest claim first), then micro-state / island names beside their pin
     const countries: string[] = [];
     const micros: string[] = [];
-    if (style.showLabels && !style.quizMode && camera.zoom >= homeZoom(viewport) * LABEL_ZOOM_FACTOR) {
+    if (style.showLabels && (!style.quizMode ? camera.zoom >= homeZoom(viewport) * LABEL_ZOOM_FACTOR : style.quizNames)) {
       const named = new Set<Feature>();
       for (const feature of world.features) {
         if (!feature.bbox) continue;

@@ -157,7 +157,7 @@ export function AtlasShell() {
 
           <MapNotices
             showTimeline={showTimeline}
-            quiz={Boolean(quiz)}
+            quiz={Boolean(quiz) && !quiz?.onInspect}
             coarse={sheet.coarse}
             hovered={map.hovered}
             hoveredPlace={map.hoveredPlace}
