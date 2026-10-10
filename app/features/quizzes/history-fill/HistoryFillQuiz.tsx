@@ -43,13 +43,13 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     phase, phaseRef, paused, toggleOn, setToggleOn, byColumns, setByColumns, runToggle,
     entries, total, showTitles, filled, input, elapsedMs, shaking, setShaking, hint, outcome,
     mounted, host, inputRef, active, revealing, missed, finished,
-    togglePause, onChange, onKeyDown, giveUp, restart
+    togglePause, onChange, onKeyDown, giveUp, restart, review
   } = run;
 
   const toggleBox = (hidden: boolean) => (
     <FillToggle quiz={quiz} checked={toggleOn} onChange={setToggleOn} hidden={hidden} />
   );
-  const buttons = <FillResultButtons onRestart={restart} />;
+  const buttons = <FillResultButtons phase={phase} onRestart={restart} onReview={review} />;
   const resultHook = (
     <FillResultCard
       quiz={quiz} phase={phase} runToggle={runToggle} elapsedMs={elapsedMs}

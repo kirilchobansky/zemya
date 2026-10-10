@@ -31,17 +31,24 @@ export function FillResultCard({ quiz, phase, runToggle, elapsedMs, filledCount,
               : <>First run of this list — now your personal best.</>
             : <>Personal best stays <b>{formatDuration(outcome.previousBest ?? outcome.timeMs)}</b>.</>
         )}
-        {phase === 'gaveup' && <>A given-up run is not saved.</>}
+        {phase === 'gaveup' && <>Review the missed ones to carry on with this time; a given-up run is not saved.</>}
       </p>
     </div>
   );
 }
 
-/** "Try again" only: leaving is the Back button at the top (the phone HUD's, or the panel's). */
-export function FillResultButtons({ onRestart }: { onRestart: () => void }) {
+/** "Try again", plus "Review mistakes" after a give-up: leaving is the Back button at the top (the phone HUD's, or the panel's). */
+export function FillResultButtons({ phase, onRestart, onReview }: {
+  phase: Phase;
+  onRestart: () => void;
+  onReview: () => void;
+}) {
   return (
     <div className="actions">
-      <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
+      {phase === 'gaveup' && (
+        <button type="button" className="action action--primary" onClick={onReview}>Review mistakes</button>
+      )}
+      <button type="button" className={`action${phase === 'gaveup' ? '' : ' action--primary'}`} onClick={onRestart}>Try again</button>
     </div>
   );
 }

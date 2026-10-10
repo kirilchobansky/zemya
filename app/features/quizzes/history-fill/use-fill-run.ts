@@ -190,6 +190,23 @@ export function useFillRun(quiz: FillQuiz) {
     inputRef.current?.focus({ preventScroll: true });
   };
 
+  /* "Review mistakes" after a give-up: the filled entries stay, the missed ones open up again and
+     the timer carries on from where the player gave up. Finishing saves the overall time like
+     any other run (no first-try notion here). Focus inside the tap, as in `restart`. */
+  const review = () => {
+    if (phaseRef.current !== 'gaveup') return;
+    setToggleOn(runToggle);
+    elapsedRef.current = elapsedMs;
+    startedAtRef.current = Date.now() - elapsedMs;
+    pausedRef.current = false;
+    setPaused(false);
+    phaseRef.current = 'running';
+    setPhase('running');
+    setInput('');
+    setHint(false);
+    inputRef.current?.focus({ preventScroll: true });
+  };
+
   // No Up step: the top Back leaves for the country's quiz list at any time, mid-run included
   // (an abandon, nothing saved).
 
@@ -202,6 +219,6 @@ export function useFillRun(quiz: FillQuiz) {
     phase, phaseRef, paused, toggleOn, setToggleOn, byColumns, setByColumns, runToggle,
     entries, total, showTitles, filled, input, elapsedMs, shaking, setShaking, hint, outcome,
     mounted, host, inputRef, active, revealing, missed, finished,
-    togglePause, onChange, onKeyDown, giveUp, restart
+    togglePause, onChange, onKeyDown, giveUp, restart, review
   };
 }
