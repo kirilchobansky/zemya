@@ -47,6 +47,9 @@ export function useFillRun(quiz: FillQuiz) {
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
   const phaseRef = useRef<Phase>('idle');
+  /* after "Review mistakes" the clock waits for the first typed letter, as at the start */
+  const [waiting, setWaiting] = useState(false);
+  const waitingRef = useRef(false);
   const startedAtRef = useRef(0);
   const elapsedRef = useRef(0);
   phaseRef.current = phase;
@@ -74,15 +77,15 @@ export function useFillRun(quiz: FillQuiz) {
   }, [quiz.id, size]);
 
   useEffect(() => {
-    if (phase !== 'running' || paused) return;
+    if (phase !== 'running' || paused || waiting) return;
     const tick = setInterval(() => setElapsedMs(Date.now() - startedAtRef.current), 100);
     return () => clearInterval(tick);
-  }, [phase, paused]);
+  }, [phase, paused, waiting]);
 
   /* Esc pauses and resumes a started run. Window-level and the input is never disabled, so
      the key always has somewhere to land (same reasoning as the geography engine). */
   const togglePause = useCallback(() => {
-    if (phaseRef.current !== 'running') return;
+    if (phaseRef.current !== 'running' || waitingRef.current) return;
     if (pausedRef.current) startedAtRef.current = Date.now() - elapsedRef.current;
     else elapsedRef.current = Date.now() - startedAtRef.current;
     pausedRef.current = !pausedRef.current;
@@ -120,6 +123,8 @@ export function useFillRun(quiz: FillQuiz) {
   }, [active, mounted]);
 
   const finish = useCallback((next: Phase, timeMs: number) => {
+    waitingRef.current = false;
+    setWaiting(false);
     pausedRef.current = false;
     setPaused(false);
     setElapsedMs(timeMs);
@@ -152,6 +157,10 @@ export function useFillRun(quiz: FillQuiz) {
       startedAtRef.current = Date.now();
       phaseRef.current = 'running';
       setPhase('running');
+    } else if (waitingRef.current && value.trim()) {
+      startedAtRef.current = Date.now() - elapsedRef.current;
+      waitingRef.current = false;
+      setWaiting(false);
     }
     const match = matchFill(value, prepared, filledRef.current);
     if (match && match.instant && !match.typo) accept(match.index);
@@ -171,12 +180,14 @@ export function useFillRun(quiz: FillQuiz) {
 
   const giveUp = () => {
     if (!active) return;
-    finish('gaveup', phase === 'running' ? (pausedRef.current ? elapsedRef.current : Date.now() - startedAtRef.current) : 0);
+    finish('gaveup', phase === 'running' ? (pausedRef.current || waitingRef.current ? elapsedRef.current : Date.now() - startedAtRef.current) : 0);
   };
 
   /* Synchronous focus inside the tap — iOS opens the keyboard only for a focus() made inside
      the gesture itself. */
   const restart = () => {
+    waitingRef.current = false;
+    setWaiting(false);
     pausedRef.current = false;
     setPaused(false);
     filledRef.current = NO_FILLED;
@@ -197,7 +208,8 @@ export function useFillRun(quiz: FillQuiz) {
     if (phaseRef.current !== 'gaveup') return;
     setToggleOn(runToggle);
     elapsedRef.current = elapsedMs;
-    startedAtRef.current = Date.now() - elapsedMs;
+    waitingRef.current = true;
+    setWaiting(true);
     pausedRef.current = false;
     setPaused(false);
     phaseRef.current = 'running';

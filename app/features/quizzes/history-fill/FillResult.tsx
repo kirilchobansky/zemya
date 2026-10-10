@@ -46,9 +46,9 @@ export function FillResultButtons({ phase, onRestart, onReview }: {
   return (
     <div className="actions">
       {phase === 'gaveup' && (
-        <button type="button" className="action action--primary" onClick={onReview}>Review mistakes</button>
+        <button type="button" className="action" onClick={onReview}>Review mistakes</button>
       )}
-      <button type="button" className={`action${phase === 'gaveup' ? '' : ' action--primary'}`} onClick={onRestart}>Try again</button>
+      <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
     </div>
   );
 }

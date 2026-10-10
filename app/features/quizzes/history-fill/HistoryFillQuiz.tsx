@@ -36,6 +36,8 @@ import './HistoryFillQuiz.css';
 import './HistoryFillQuiz.grid.css';
 import './HistoryFillQuiz.phone.css';
 
+const PHONE_QUERY = '(max-width: 819px), (pointer: coarse) and (max-height: 499px)';
+
 export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: string }) {
   const run = useFillRun(quiz);
   const go = useGo();
@@ -49,7 +51,6 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const toggleBox = (hidden: boolean) => (
     <FillToggle quiz={quiz} checked={toggleOn} onChange={setToggleOn} hidden={hidden} />
   );
-  const buttons = <FillResultButtons phase={phase} onRestart={restart} onReview={review} />;
   const resultHook = (
     <FillResultCard
       quiz={quiz} phase={phase} runToggle={runToggle} elapsedMs={elapsedMs}
@@ -66,21 +67,38 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     if (finished) screenRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [finished]);
 
-  // phone: follow the typing — the entry just filled rests as the second one from the top of the
-  // scroll area (the first and last entries can't, the scroll range ends there)
+  // phone: the entry just filled rests as the second one from the top of the scroll area (the
+  // first and last entries can't, the scroll range ends there); "Review mistakes" does the same
+  // for the first missed entry once the result card is gone and the layout has settled
+  const scrollToEntry = (id: string | undefined) => {
+    const screenEl = screenRef.current;
+    if (!screenEl || id === undefined) return;
+    if (!window.matchMedia(PHONE_QUERY).matches) return;
+    const cell = [...screenEl.querySelectorAll<HTMLElement>('[data-entry]')].find(el => el.dataset.entry === id);
+    if (!cell) return;
+    const delta = cell.getBoundingClientRect().top - screenEl.getBoundingClientRect().top - cell.offsetHeight;
+    screenEl.scrollTo({ top: screenEl.scrollTop + delta, behavior: 'smooth' });
+  };
   const seenRef = useRef<ReadonlySet<string>>(filled);
   useEffect(() => {
     const seen = seenRef.current;
     seenRef.current = filled;
-    const screenEl = screenRef.current;
-    if (!screenEl || finished || filled.size <= seen.size) return;
-    if (!window.matchMedia('(max-width: 819px), (pointer: coarse) and (max-height: 499px)').matches) return;
-    const id = [...filled].find(x => !seen.has(x));
-    const cell = id === undefined ? null : [...screenEl.querySelectorAll<HTMLElement>('[data-entry]')].find(el => el.dataset.entry === id);
-    if (!cell) return;
-    const delta = cell.getBoundingClientRect().top - screenEl.getBoundingClientRect().top - cell.offsetHeight;
-    screenEl.scrollTo({ top: screenEl.scrollTop + delta, behavior: 'smooth' });
+    if (finished || filled.size <= seen.size) return;
+    scrollToEntry([...filled].find(x => !seen.has(x)));
   }, [filled, finished]);
+
+  const reviewTargetRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (phase !== 'running' || reviewTargetRef.current === undefined) return;
+    scrollToEntry(reviewTargetRef.current);
+    reviewTargetRef.current = undefined;
+  }, [phase]);
+  const onReview = () => {
+    reviewTargetRef.current = entries.find(e => !filled.has(e.id))?.id;
+    review();
+  };
+
+  const buttons = <FillResultButtons phase={phase} onRestart={restart} onReview={onReview} />;
 
   const screen = (
     <div ref={screenRef} className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
