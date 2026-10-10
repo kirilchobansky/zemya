@@ -6,8 +6,9 @@
     inset: var(--vv-top, 0px) 0 0 0;
     height: auto;
     /* the stage colour runs on under the keyboard (nothing but it is ever visible there, also
-       mid-animation); the padding keeps the content above the keyboard */
-    padding: 0 0 var(--kb, 0px);
+       mid-animation); the panel's bottom padding (below) keeps the content above the keyboard
+       and counts as scrollable height, which this container's own padding did not */
+    padding: 0;
     /* the only thing that scrolls while the page is locked; it never chains to the page */
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -37,7 +38,7 @@
     margin: 0;
     border-radius: 0;
     border: 0;
-    padding: 14px 14px calc(var(--fill-bar-h, 66px) + 14px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 14px calc(var(--kb, 0px) + var(--fill-bar-h, 66px) + 14px + env(safe-area-inset-bottom, 0px));
   }
 
   /* finished or given up: the result card on top of the grid */
