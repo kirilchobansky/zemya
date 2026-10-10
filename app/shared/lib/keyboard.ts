@@ -165,7 +165,10 @@ export function useQuizPageLock(active: boolean): void {
     const onTouchMove = (e: TouchEvent) => {
       if (!isPhoneLayout() || e.touches.length > 1 || !e.cancelable) return;
       const target = e.target instanceof Element ? e.target : null;
-      if (target && target.closest(SCROLLABLE) && !target.closest(INERT)) return;
+      const area = target?.closest(SCROLLABLE);
+      // an area with nothing to scroll (a short list) must not start a gesture either: the browser
+      // would pan/rubber-band the page behind it instead, which is the lag
+      if (area && !target?.closest(INERT) && area.scrollHeight > area.clientHeight + 1) return;
       e.preventDefault();
     };
     // a focus() can still make the browser scroll the page to the input: put it back
