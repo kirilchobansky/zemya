@@ -46,6 +46,7 @@ export function FillGrid({ entries, filled, revealing, showTitles, byColumns }: 
         return (
           <li
             key={entry.id}
+            data-entry={entry.id}
             className={
               `fill-cell fill-cell--${entry.kind}` +
               (isFilled ? ' is-filled' : '') + (isMissed ? ' is-missed' : '')

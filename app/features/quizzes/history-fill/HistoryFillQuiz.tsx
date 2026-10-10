@@ -66,6 +66,22 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
     if (finished) screenRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [finished]);
 
+  // phone: follow the typing — the entry just filled rests as the second one from the top of the
+  // scroll area (the first and last entries can't, the scroll range ends there)
+  const seenRef = useRef<ReadonlySet<string>>(filled);
+  useEffect(() => {
+    const seen = seenRef.current;
+    seenRef.current = filled;
+    const screenEl = screenRef.current;
+    if (!screenEl || finished || filled.size <= seen.size) return;
+    if (!window.matchMedia('(max-width: 819px), (pointer: coarse) and (max-height: 499px)').matches) return;
+    const id = [...filled].find(x => !seen.has(x));
+    const cell = id === undefined ? null : [...screenEl.querySelectorAll<HTMLElement>('[data-entry]')].find(el => el.dataset.entry === id);
+    if (!cell) return;
+    const delta = cell.getBoundingClientRect().top - screenEl.getBoundingClientRect().top - cell.offsetHeight;
+    screenEl.scrollTo({ top: screenEl.scrollTop + delta, behavior: 'smooth' });
+  }, [filled, finished]);
+
   const screen = (
     <div ref={screenRef} className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
       <div className="fill-quiz__panel">
