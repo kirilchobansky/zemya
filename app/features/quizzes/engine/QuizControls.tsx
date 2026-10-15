@@ -17,6 +17,7 @@
 import type { ReactNode } from 'react';
 
 import type { QuizStageProps } from './types';
+import { useReopenKeyboard } from './use-reopen-keyboard';
 import './QuizControls.css';
 
 /** Keeps focus where it is: a tap on a control must not move it off the input. */
@@ -54,9 +55,10 @@ interface QuizControlsProps {
 export function QuizControls({ stage, placeholder, ariaLabel, answer }: QuizControlsProps) {
   const { phase, input, onInputChange, onInputKeyDown, inputRef, skip, reveal, canSkip, canReveal } = stage;
   const active = phase === 'running' || phase === 'paused';
+  const refocus = useReopenKeyboard(inputRef, active);
 
   return (
-    <div className="quiz-controls" data-phase={phase}>
+    <div className="quiz-controls" data-phase={phase} onPointerDown={refocus}>
       {active && (
         <div className="quiz-feedback">
           {answer ? (

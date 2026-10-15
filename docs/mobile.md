@@ -100,6 +100,7 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
   typing capture in `engine.ts` recovers, which `tests/e2e/smoke.mjs` relies on); the Skip / Reveal /
   Pause / Resume / Abandon buttons cancel pointerdown so a tap on them doesn't move focus either.
   The results screen blurs it (the keyboard would cover them).
+  Exception: when the user closes the keyboard (iOS "Done"), `use-reopen-keyboard.ts` blurs the input, because iOS leaves it focused and a tap on a focused input never reopens the keyboard; a tap on the input bar's non-button area then focuses it again. Needs a real iPhone/iPad to verify.
 - **Shortcuts don't exist on a phone**, so real buttons do: Skip and Reveal beside the input
   (48px), Pause in the HUD, Abandon in the pause screen. The Stages take `skip/reveal/canSkip/
   canReveal` for this. On desktop the buttons are `display: none` and `.quiz-controls` /
