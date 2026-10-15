@@ -79,9 +79,10 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
 (`.quiz-controls`, `bottom: var(--kb)`). Pause opens a screen with Resume and Abandon. The rules:
 
 - **Keyboard position** comes from `visualViewport` (`app/shared/lib/keyboard.ts`: resize + scroll) and is
-  published as `--kb` / `--vv-top` / `--layout-h` / `--kb-est` on `<html>`. The viewport meta also
-  says `interactive-widget=resizes-content` (Chrome on Android resizes the layout viewport
-  itself) but nothing may rely on it: iOS Safari ignores it, and `visualViewport` is what works.
+  published as `--kb` / `--vv-top` / `--layout-h` / `--kb-est` on `<html>`. The viewport meta says
+  `interactive-widget=resizes-visual`, so Chrome on Android behaves like iOS (only the visual viewport
+  shrinks). With `resizes-content` the layout viewport shrank, a portrait phone with its keyboard open
+  matched the landscape media queries and the HUD sat beside the input bar. `visualViewport` is what works.
 - **The camera's visible area during a run is the strip between the HUD and the input bar**,
   measured from the DOM (`measureInsets` in `quiz.$quizId.tsx`) and recomputed — with the
   current target followed again, no pulse — whenever the keyboard opens or closes.

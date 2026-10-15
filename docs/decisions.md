@@ -1266,3 +1266,8 @@ traded resolution for speed while moving). Decided beyond the prompt:
 - **San Marino's dot sat outside San Marino.** Its record `latlng` (43.77, 12.42) is a country centre in
   Italy's territory. A shapeless country (Vatican City, San Marino) now anchors its pin, label and camera
   target on its capital's coordinates (`buildWorld`, `topology.ts`).
+
+## Default theme is dark
+A first visit (nothing stored under `zemya:theme`) is dark, not "follow the OS". An explicit "System"
+choice is stored as `system` and still follows the OS. Logic in `app/shared/lib/theme.ts` and the
+inline script in `app/root.tsx` (keep in sync).

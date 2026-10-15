@@ -2,9 +2,10 @@
  * Where the on-screen keyboard is, so the quiz input can sit directly above it.
  *
  * Browsers disagree, so this reads the one API that works everywhere — `visualViewport` — and
- * does not depend on the newer `interactive-widget=resizes-content` viewport hint (Chrome on
- * Android honours it and resizes the layout viewport itself; iOS Safari ignores it and only
- * shrinks the visual viewport, leaving fixed elements anchored to the full-height layout one).
+ * relies on the `interactive-widget=resizes-visual` viewport hint (root.tsx) so Chrome on Android
+ * behaves like iOS Safari: only the visual viewport shrinks, fixed elements stay anchored to the
+ * full-height layout one. (Resizing the layout viewport made a portrait phone with its keyboard
+ * open match the landscape media queries, putting the HUD beside the input bar.)
  * Either way the answer is the same number: the distance from the visual viewport's bottom edge
  * to the layout viewport's bottom edge.
  *
@@ -30,7 +31,7 @@ export interface KeyboardState {
   /** px the visual viewport sits below the layout viewport's top. */
   top: number;
   /** The layout viewport's height. Where the keyboard RESIZES the layout viewport (Android with
-   *  interactive-widget=resizes-content) `kb` stays 0 and this is what changes. */
+   *  interactive-widget=resizes-content, not used now) `kb` stays 0 and this is what changes. */
   height: number;
 }
 

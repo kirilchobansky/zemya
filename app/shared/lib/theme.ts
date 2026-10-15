@@ -18,14 +18,14 @@ function isTheme(value: string | null): value is 'light' | 'dark' {
   return value === 'light' || value === 'dark';
 }
 
-/** The theme actually persisted, ignoring the OS — 'system' if nothing was ever chosen. */
+/** The theme actually persisted, ignoring the OS — 'dark' if nothing was ever chosen (the default). */
 export function getTheme(): Theme {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'dark';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return isTheme(stored) ? stored : 'system';
+    return isTheme(stored) || stored === 'system' ? stored : 'dark'; // dark until the visitor chooses otherwise
   } catch {
-    return 'system'; // a private window or blocked storage — fall back silently, same as ProgressProvider's own guard
+    return 'dark'; // a private window or blocked storage — fall back silently, same as ProgressProvider's own guard
   }
 }
 
@@ -72,5 +72,5 @@ export function onThemeChange(listener: () => void): () => void {
  *  pills) don't need the value itself — subscribing is enough to force their re-render, since
  *  renderer.ts/overlays.ts's colour caches are refreshed by the same event (see atlas.tsx). */
 export function useTheme(): Theme {
-  return useSyncExternalStore(onThemeChange, getTheme, () => 'system');
+  return useSyncExternalStore(onThemeChange, getTheme, () => 'dark');
 }

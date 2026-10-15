@@ -44,7 +44,7 @@ export function links() {
  */
 const THEME_INIT_SCRIPT = `(function(){try{
   var t = localStorage.getItem('zemya:theme');
-  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  if (t !== 'system') document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
 } catch (e) {}})();`;
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -54,7 +54,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* first child, before any stylesheet: must run before first paint */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
+        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-visual" />
         <meta name="color-scheme" content="light dark" />
         <meta name="theme-color" content="#080D13" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#F7F0E3" media="(prefers-color-scheme: light)" />
