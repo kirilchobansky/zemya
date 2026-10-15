@@ -20,6 +20,7 @@ import { useMapController } from '../hooks/use-map-controller';
 import { usePhoneSheet } from '../hooks/use-phone-sheet';
 import { useSidebars } from '../hooks/use-sidebars';
 import { nextMicro } from '../micro';
+import { useClearResultsSession } from '../results-session';
 import { AtlasPanel } from './AtlasPanel';
 import { HistoryLayer } from './HistoryLayer';
 import { LayersSheet, ProgressSheet, TabBar } from './MobileChrome';
@@ -30,6 +31,7 @@ import { Rail } from './Rail';
 
 export function AtlasShell() {
   const go = useGo();
+  useClearResultsSession(); // a parked quiz result ends when the user leaves dossiers and the run
   const history = useHistoryCanvas();
   const sidebars = useSidebars();
   const sheet = usePhoneSheet({ historyTimelineInstance: history.historyTimelineInstance, showTimeline: history.showTimeline });

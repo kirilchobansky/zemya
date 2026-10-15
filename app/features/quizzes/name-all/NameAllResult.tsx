@@ -25,7 +25,7 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
   /** The finished run, parked in memory when a missed country's dossier is opened. */
   snapshot: () => unknown;
 }) {
-  const back = useResultsReturn(snapshot, phase);
+  const back = useResultsReturn(snapshot, phase, missed);
   const resultHook = (
     <div className="hook">
       <div className="hook__label">{phase === 'done' ? 'Result' : 'Gave up'}</div>

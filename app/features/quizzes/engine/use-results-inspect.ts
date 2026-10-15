@@ -7,14 +7,14 @@
 import { useEffect, useRef } from 'react';
 
 import { useAtlasContext } from '~/features/map';
-import type { Feature } from '~/engines/map/types';
+import type { CountryRecord, Feature } from '~/engines/map/types';
 import { useGo } from '~/shared/lib/navigation';
 import { useResultsReturn } from './use-results-return';
 
-export function useResultsInspect(active: boolean, snapshot: () => unknown | null, fresh: unknown): void {
+export function useResultsInspect(active: boolean, snapshot: () => unknown | null, fresh: unknown, missed: readonly CountryRecord[]): void {
   const { setQuiz } = useAtlasContext();
   const go = useGo();
-  const back = useResultsReturn(snapshot, fresh);
+  const back = useResultsReturn(snapshot, fresh, missed);
   const backRef = useRef(back);
   backRef.current = back;
 
@@ -22,7 +22,7 @@ export function useResultsInspect(active: boolean, snapshot: () => unknown | nul
     if (!active) return;
     const onInspect = (feature: Feature) => {
       backRef.current.onClick();
-      go(`/country/${feature.country.slug}`, { state: backRef.current.state });
+      go(`/country/${feature.country.slug}`);
     };
     setQuiz(prev => (prev ? { ...prev, onInspect } : prev));
     return () => setQuiz(prev => {

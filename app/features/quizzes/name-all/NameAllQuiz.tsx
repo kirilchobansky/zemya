@@ -53,17 +53,18 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
     keyboardStrip: `${keyboard.kb}:${keyboard.top}:${keyboard.height}`, inputRef
   });
 
-  useResultsInspect(finished, snapshot, phase); // names, hover and a click to the dossier once it is over
-
-  const namedCountries = useMemo(
-    () => named.map(iso3 => byIso3.get(iso3)).filter((c): c is CountryRecord => Boolean(c)),
-    [named, byIso3]
-  );
   const missed = useMemo(
     () => (phase === 'gaveup' ? pool.filter(c => !namedSetRef.current.has(c.iso3)) : []),
     // `named` changes the set the ref holds; phase flips once, at give-up
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [phase, pool, named]
+  );
+
+  useResultsInspect(finished, snapshot, phase, missed); // names, hover and a click to the dossier once it is over
+
+  const namedCountries = useMemo(
+    () => named.map(iso3 => byIso3.get(iso3)).filter((c): c is CountryRecord => Boolean(c)),
+    [named, byIso3]
   );
 
   return (

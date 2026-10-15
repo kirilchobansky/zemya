@@ -15,7 +15,7 @@ export function QuizRunResult({ engine, total, onRunAgain }: {
 }) {
   const result = engine.result;
   /* A missed country's dossier gets a Back to these results (use-results-return.ts). */
-  const back = useResultsReturn(engine.snapshot, result);
+  const back = useResultsReturn(engine.snapshot, result, result?.revealed ?? []);
   if (!result) return null;
   return (
     <>

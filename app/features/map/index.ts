@@ -6,5 +6,7 @@ export type { OverlayName } from './components/MobileChrome';
 export { EdgeArrow } from './components/EdgeArrow';
 export { Rail } from './components/Rail';
 export { UpButton } from './components/UpButton';
-export { useUpStep, listReturnState, quizReturnState, readQuizReturn, readRestoreToken } from './up';
+export { useUpStep, listReturnState, restoreRunState, readRestoreToken } from './up';
+export { setResultsSession, useResultsSession } from './results-session';
+export type { MissedLink } from './results-session';
 export { QuizReturnBack } from './components/QuizReturnBack';

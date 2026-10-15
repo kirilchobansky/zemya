@@ -19,6 +19,8 @@ import { measureInsets } from '../engine/insets';
 import { useResultsInspect } from '../engine/use-results-inspect';
 import type { QuizDefinition } from '../engine/types';
 
+const NO_MISSED: never[] = [];
+
 export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world }: {
   engine: QuizEngine;
   definition: QuizDefinition | undefined;
@@ -88,7 +90,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
   }, [runOwnsScreen, setImmersive]);
   useQuizPageLock(runOwnsScreen);
   const finished = validRun && engine.phase === "done";
-  useResultsInspect(finished, engine.snapshot, engine.result);
+  useResultsInspect(finished, engine.snapshot, engine.result, engine.result?.revealed ?? NO_MISSED);
   // Up leaves a run or its results like Abandon, to the list with this quiz open (UpButton)
   useEffect(() => {
     if (finished) setSheetSnap("half");

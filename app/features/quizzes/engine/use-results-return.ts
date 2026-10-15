@@ -5,21 +5,23 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router';
 
-import { quizReturnState, readRestoreToken } from '~/features/map';
+import { readRestoreToken, setResultsSession, type MissedLink } from '~/features/map';
+import type { CountryRecord } from '~/engines/map/types';
 import { holdQuizCamera, newFinishedRunToken, saveFinishedRun, savedFinishedRun } from './finished-runs';
 
-/** `state` and `onClick` for a results link to a dossier. Following it parks `snapshot()` in
- *  memory under a token the link's state carries. `fresh` changes with each new result. */
-export function useResultsReturn(snapshot: () => unknown | null, fresh: unknown) {
+/** `onClick` for a results link to a dossier. Following it parks `snapshot()` in memory and
+ *  starts the results session (the dossier's Back and missed list). `fresh` changes with each new result. */
+export function useResultsReturn(snapshot: () => unknown | null, fresh: unknown, missed: readonly CountryRecord[]) {
   const { pathname, search } = useLocation();
   const key = pathname + search;
   const token = useMemo(newFinishedRunToken, [fresh]);
   return {
-    state: quizReturnState(key, token),
     onClick: () => {
       const run = snapshot();
       if (!run) return;
       saveFinishedRun(key, token, run);
+      const links: MissedLink[] = missed.map(c => ({ slug: c.slug, name: c.name, emoji: c.emoji }));
+      setResultsSession({ to: key, token, missed: links });
       holdQuizCamera();
     }
   };

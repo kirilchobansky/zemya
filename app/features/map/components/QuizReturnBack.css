@@ -3,3 +3,7 @@
 .quiz-return {
   margin: 0 0 12px;
 }
+
+.quiz-return__missed {
+  margin: 0 0 14px;
+}
