@@ -206,7 +206,9 @@ describe('narrow (phone) viewport', () => {
     // a camera already past the ceiling is never pulled back by it
     const close = { ...cam, zoom: opts.maxZoom! * 2 };
     expect(cameraForTarget(close, phone, NO_INSETS, tiny, opts)?.zoom ?? close.zoom).toBeGreaterThanOrEqual(close.zoom);
-    // a desktop viewport keeps the original behaviour
-    expect(quizFollowOptions({ width: 1000, height: 800 }).maxZoom).toBeUndefined();
+    // a desktop viewport has its own, higher ceiling and never fits the box
+    const desk = quizFollowOptions({ width: 1000, height: 800 });
+    expect(desk.maxZoom).toBeGreaterThan(opts.maxZoom! / 20);
+    expect(desk.edgeMarginPx).toEqual([40, 60]);
   });
 });
