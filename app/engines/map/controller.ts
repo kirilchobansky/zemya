@@ -41,6 +41,8 @@ export interface MapController {
   home(animate?: boolean): void;
   zoomBy(factor: number): void;
   flyTo(feature: Feature, padding?: number): void;
+  /** A country opened from a finished quiz's results: if too small to see, a gentle move towards it (gl-inspect.ts INSPECT_*). */
+  nudgeTo(feature: Feature, group: readonly Feature[]): void;
   /** A quiz question changed: put the player where they can see its target (one decision). */
   followTarget(request: { feature: Feature; place?: PlaceMark | null }, insets: Insets): void;
   /** A one-shot ring on a new quiz target, in map space (unit square). */

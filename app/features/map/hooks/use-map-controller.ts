@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHoverTip } from './use-hover-tip';
+import { useResultsSession } from '../results-session';
 import { useLocation, useNavigation } from 'react-router';
 
 import {
@@ -67,11 +68,12 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
 
   /**
    * The slug the document was loaded with, if any. A cold load of /country/chile must fly:
-   * the visitor arrived already pointed at a country and has never seen the map. It is the
-   * only selection allowed to fly without an explicit flag, so the ref is spent the first
-   * time a selection resolves.
+   * the visitor arrived already pointed at a country. The only selection allowed to fly
+   * without a flag, so the ref is spent the first time a selection resolves.
    */
   const coldSlugRef = useRef(slug);
+  const resultsRef = useRef<ReturnType<typeof useResultsSession>>(null);
+  resultsRef.current = useResultsSession();
 
   /**
    * Mastery is derived on demand rather than stored, so this closure is what the renderer
@@ -261,10 +263,8 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
 
   /**
    * Move the camera only when the user could not already have seen the target. A map click
-   * navigates without state, so it never flies — the country was on screen and under the
-   * cursor, and moving the map out from under it destroys the sense of place. Search, the
-   * panel links and a cold URL all set `fly`. Deselecting never moves the camera; only the
-   * ⌂ button returns to the world view. See "Interaction principles" in CLAUDE.md.
+   * navigates without state, so it never flies. Search, links and a cold URL set `fly`. Only ⌂
+   * returns to the world view. Exception: quiz results, see nudgeTo.
    */
   useEffect(() => {
     const atlas = atlasRef.current;
@@ -274,6 +274,8 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
     if (cold || (location.state as { fly?: boolean } | null)?.fly === true) {
       applyInsets(atlas); // frame in what the sheet leaves visible, at the snap it is about to have
       atlas.flyTo(selected);
+    } else if (resultsRef.current && world) { // from quiz results: bring a small one into view
+      atlas.nudgeTo(selected, resultsRef.current.missed.flatMap(m => world.bySlug.get(m.slug) ?? []));
     }
   }, [selected, location.state, applyInsets, atlasInstance]);
 

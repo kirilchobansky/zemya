@@ -31,10 +31,10 @@ export type QuizSelectionMode = "random" | "population";
 function matchFlag(typed: string, target: CountryRecord): MatchOutcome | null {
   const twin = target.confusableFlag;
   if (!twin) return null;
-  const normalised = normaliseName(typed);
+  const normalised = normaliseName(typed).replace(/ /g, '');
   if (
     !normalised ||
-    !twin.aliases.some((alias) => normaliseName(alias) === normalised)
+    !twin.aliases.some((alias) => normaliseName(alias).replace(/ /g, '') === normalised)
   )
     return null;
   return {

@@ -4,7 +4,7 @@
  * (The "Name all countries" quiz is the one exception, at the bottom of this file: there is
  * no prompt to anchor an answer, so it forgives one typo — see `matchCountryName`.)
  *
- * NO fuzzy matching, no edit distance. There is no penalty for a wrong attempt and no
+ * NO fuzzy matching, no edit distance (spaces are ignored, though: "saintlucia" is "Saint Lucia"). There is no penalty for a wrong attempt and no
  * limit on tries — a typo just means keep typing, and getting the spelling right is part
  * of knowing the country. Do not "improve" this into a distance metric later: that would
  * let "Frnace" pass as "France", which defeats the point of a spelling-and-recall quiz.
@@ -33,27 +33,31 @@ export function normaliseName(value: string): string {
     .trim();
 }
 
-/** True if `typed` is, after normalisation, exactly one of the country's aliases. */
+/** The comparison form: `normaliseName` with the spaces gone, so "saint lucia" and
+ *  "saintlucia" are one spelling (and a Latin query compiles to one Cyrillic run). */
+const squash = (value: string): string => normaliseName(value).replace(/ /g, '');
+
+/** True if `typed` is, after normalisation (spaces ignored), exactly one of the country's aliases. */
 export function matchesCountry(typed: string, country: CountryRecord): boolean {
-  const normalisedTyped = normaliseName(typed);
+  const normalisedTyped = squash(typed);
   if (!normalisedTyped) return false;
-  return country.aliases.some(alias => normaliseName(alias) === normalisedTyped);
+  return country.aliases.some(alias => squash(alias) === normalisedTyped);
 }
 
 /** True if `typed` is, after normalisation, exactly one of the names accepted for the
  *  country's capital (see CountryRecord.capitalAliases). Same exact-after-normalisation
  *  rule as matchesCountry, and for the same reason: no fuzzy matching. */
 export function matchesCapital(typed: string, country: CountryRecord): boolean {
-  const normalisedTyped = normaliseName(typed);
+  const normalisedTyped = squash(typed);
   if (!normalisedTyped) return false;
-  return country.capitalAliases.some(alias => normaliseName(alias) === normalisedTyped);
+  return country.capitalAliases.some(alias => squash(alias) === normalisedTyped);
 }
 
 /** Shared by the three facet matchers: exact after normalisation, against a list. */
 function matchesAny(typed: string, accepted: string[]): boolean {
-  const normalisedTyped = normaliseName(typed);
+  const normalisedTyped = squash(typed);
   if (!normalisedTyped) return false;
-  return accepted.some(name => normaliseName(name) === normalisedTyped);
+  return accepted.some(name => squash(name) === normalisedTyped);
 }
 
 /** The currency's full name, its ISO code, or a curated alternate (currency-aliases.yaml).
@@ -76,11 +80,11 @@ export function matchesLanguage(typed: string, country: CountryRecord): boolean 
  *  "Christianity / Hinduism") accepts it. */
 export function matchesReligion(typed: string, country: CountryRecord): boolean {
   if (!matchesAny(typed, country.religionAliases)) return false;
-  const key = normaliseName(typed);
+  const key = squash(typed);
   const components = country.religion.split(' / ');
-  if (components.some(c => normaliseName(c) === key)) return true;
+  if (components.some(c => squash(c) === key)) return true;
   const isBroaderThanOwn = components.some(c =>
-    religionChain(c).slice(1).some(ancestor => normaliseName(ancestor) === key)
+    religionChain(c).slice(1).some(ancestor => squash(ancestor) === key)
   );
   return !isBroaderThanOwn;
 }
@@ -89,10 +93,6 @@ export function matchesReligion(typed: string, country: CountryRecord): boolean 
 
 /** Shortest name (letters only) that may be matched with one typo — the fill quiz's number. */
 const MIN_TYPO_LETTERS = 6;
-
-/** The comparison form: `normaliseName` with the spaces gone, so "united states" and
- *  "unitedstates" are one spelling (and a Latin query compiles to one Cyrillic run). */
-const squash = (value: string): string => normaliseName(value).replace(/ /g, '');
 
 export interface PreparedCountryName {
   iso3: string;

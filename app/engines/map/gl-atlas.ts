@@ -215,13 +215,9 @@ export class GlAtlas implements MapController, GlHost {
     this.cam.home(animate);
   }
 
-  zoomBy(factor: number): void {
-    this.cam.zoomBy(factor);
-  }
-
-  flyTo(feature: Feature, padding = 0.55): void {
-    this.cam.flyTo(feature, padding);
-  }
+  zoomBy(factor: number): void { this.cam.zoomBy(factor); }
+  flyTo(feature: Feature, padding = 0.55): void { this.cam.flyTo(feature, padding); }
+  nudgeTo(feature: Feature, group: readonly Feature[]): void { this.cam.nudgeTo(feature, group); }
 
   /** The quiz camera's one decision — see Atlas#followTarget (atlas.ts), which this mirrors
    *  line for line: follow.ts decides, and only a result that differs from where the camera

@@ -25,7 +25,7 @@ export function QuizReturnBack() {
       {session.missed.length > 0 && (
         <div className="neighbours quiz-return__missed">
           {session.missed.map(c => (
-            <Link className="neighbour" key={c.slug} to={`/country/${c.slug}`} state={{ fly: true }}>
+            <Link className="neighbour" key={c.slug} to={`/country/${c.slug}`}>
               {c.emoji} {c.name}
             </Link>
           ))}

@@ -670,3 +670,11 @@ Same chrome as the geography run (`HistoryFillQuiz.tsx`, phone layout only; desk
 Adjustments: "Try again" is the primary button, "Review mistakes" the plain one. On a phone, review scrolls to the first missed entry chronologically (second from the top, after the result card is gone). The clock does not run on clicking Review: it resumes at the give-up time on the first typed letter, like a fresh start (`waiting` in `use-fill-run.ts`; Esc pause is inert until then).
 
 **History fill, phone: the keyboard space is the panel's padding, not the scroller's.** `.fill-quiz` no longer pads its bottom by `--kb`; `.fill-quiz__panel` does (with the input-bar height). Padding on the scroll container itself isn't reliably counted as scrollable height, so with a short list the last entries sat under the keyboard with nothing to scroll to. A first attempt that cancelled touches on non-overflowing areas was reverted: it relied on that same unreliable height.
+
+**Results nudge:** a country opened from a finished quiz's results (map click, results list or the dossier's missed list, i.e. while a results session lives) moves the camera only if the player cannot already see it: a big country is brought into view; a small one (under `INSPECT_SMALL_UNITS` of the world width) is framed together with the other small missed countries within `INSPECT_CLUSTER_RADIUS` of it (the whole Caribbean when any of it is missed), and once that area is framed, stepping to the next one in it does not move the camera. Never a close-up (`INSPECT_MAX_ZOOM_FACTOR`, `INSPECT_PADDING`). Nothing changes during a run. The decision is the pure `inspectCamera` in `app/engines/map/gl-inspect.ts` (constants at its top), called by `MapController#nudgeTo` from the selection effect in `use-map-controller.ts`; the dossier's missed links carry no `fly` state.
+
+## Spaces are ignored in geography answers
+
+Every geography quiz (country, capital, currency, language, religion, flag twin) compares answers
+with spaces dropped after `normaliseName` (`squash` in `names.ts`), so "stlucia" and "saintlucia"
+match "St Lucia" and "Saint Lucia". It is not fuzzy matching: letters must still be exact.

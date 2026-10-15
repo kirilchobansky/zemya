@@ -164,8 +164,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
     const prev = prevPhaseRef.current;
     // START only — idle/done -> running. Resuming from pause is ALSO "not running -> running",
     // and used to reset the player's zoom to the world view.
-    if ((prev === "idle" || prev === "done") && engine.phase === "running")
-      atlas?.home();
+    if ((prev === "idle" || prev === "done") && engine.phase === "running") atlas?.home();
     if (prev !== "done" && engine.phase === "done") {
       atlas?.home();
       atlas?.setFocus([]);
