@@ -180,3 +180,9 @@ phone; the smoke test covers everything that doesn't need one.
 **Sheet scrolling at half.** The panel is 90dvh tall, so at half the body's bottom 40dvh is off screen: `.panel[data-snap='half'] .panel__body` pads it by 40dvh (portrait only) and an upward drag in a scrollable body scrolls it instead of opening the sheet (`sheet.ts`). **Hover on touch:** every `:hover` rule in the history panel and `buttons.css` sits in `@media (hover: hover)` (a tap leaves `:hover` stuck on touch). A click on a timeline entry (its info card) leaves the sheet alone; only the card's "See more" opens it, at half. An outline event row brings it to half, an outline period row opens it fully (`HistoryOutline` `onPick`). An opened entry scrolls the panel to its detail (`history.$slug.tsx`).
 
 **Timeline pins (`draw-pins.ts`).** An event pin is a 1px line, a fixed-size dot and a name, all static: hover, the centre marker, a pinned card and the arrival pulse change nothing about them (the timeline canvas also ignores `pointermove` from a finger). The name always travels with its line (to the line's right, never pinned to the screen edge); once the line is off the left edge the name keeps drawing, moving with it, until the text itself is off screen, with no fade (the renderer feeds events from `LABEL_POOL_OVERSCAN` times the view, so the pin is still in the list).
+
+**Tablets (iPad, Android tablet; touch, >= 820px wide):** they keep the desktop grid but open the same
+on-screen keyboard. The flag quiz stage (`quiz-flag-stage.css`, last media block) ends at the
+keyboard (`top: --vv-top`, `bottom: --kb`) and its flag box is sized once from the strip left with the
+keyboard open (`--layout-h` - `--kb-est`). Needs a real iPad to verify; other tablet quizzes (map
+dock) are not changed.

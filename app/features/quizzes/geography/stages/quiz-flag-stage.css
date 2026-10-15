@@ -85,3 +85,20 @@
     --hud-h: 0px;
   }
 }
+
+/* A tablet (touch, wide enough for the desktop grid) opens the same on-screen keyboard: the stage
+   ends where the keyboard starts (--kb / --vv-top, app/shared/lib/keyboard.ts) so the flag and the
+   input stay above it. The flag box is sized ONCE from the strip left with the keyboard open
+   (--kb-est only grows), like the phone's, so it never jumps when the keyboard comes and goes. */
+
+@media (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
+  .quiz-flag-stage {
+    --flag-h: clamp(120px, calc(var(--layout-h, 100dvh) - var(--kb-est, 50dvh) - 170px), 300px);
+    top: var(--vv-top, 0px);
+    bottom: var(--kb, 0px);
+  }
+
+  .quiz-flag-stage__flag {
+    height: var(--flag-h);
+  }
+}
