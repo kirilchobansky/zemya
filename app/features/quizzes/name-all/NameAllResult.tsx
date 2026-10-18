@@ -26,10 +26,18 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
   snapshot: () => unknown;
 }) {
   const back = useResultsReturn(snapshot, phase, missed);
+  /* sticky: the time and Try again stay in view however far the lists are scrolled */
+  const resultBar = (
+    <div className="quiz-run__clock quiz-run__clock--result">
+      <div>
+        <div className="hook__label">{phase === 'done' ? 'Result' : 'Gave up'}</div>
+        <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
+      </div>
+      <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
+    </div>
+  );
   const resultHook = (
     <div className="hook">
-      <div className="hook__label">{phase === 'done' ? 'Result' : 'Gave up'}</div>
-      <p className="quiz-result__time numeric">{formatDuration(elapsedMs)}</p>
       <p style={{ marginBottom: 0 }}>
         <b>{named.length} / {total}</b> named
         {phase === 'gaveup' && <> — {missed.length} missed, shown in red</>}.{' '}
@@ -54,6 +62,7 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
 
   return (
     <>
+      {resultBar}
       {resultHook}
       {missed.length > 0 && (
         <section>
@@ -78,9 +87,6 @@ export function NameAllResult({ scope, phase, elapsedMs, named, namedCountries, 
           <NameAllNamedList countries={namedCountries} listEndRef={listEndRef} />
         </section>
       )}
-      <div className="actions">
-        <button type="button" className="action action--primary" onClick={onRestart}>Try again</button>
-      </div>
     </>
   );
 }

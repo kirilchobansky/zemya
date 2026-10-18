@@ -28,6 +28,18 @@
   background: var(--chart);
 }
 
+.quiz-run__clock--result {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.quiz-run__clock--result .quiz-result__time {
+  margin: 0;
+}
+
 .quiz-result__time {
   font-family: var(--font-mono);
   font-size: 30px;
