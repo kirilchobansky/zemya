@@ -12,8 +12,7 @@ import { MapStage, type MapStageConfig } from './MapStage';
 const CONFIG: MapStageConfig = {
   placeholder: "Type the country's name…",
   ariaLabel: "Type the country's name",
-  answerOf: target => target.name,
-  neighbourToggle: true
+  answerOf: target => target.name
 };
 
 export function CountriesStage(props: QuizStageProps) {

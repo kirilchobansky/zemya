@@ -17,22 +17,19 @@ export const religionAnswer = (target: CountryRecord) => target.religion;
 const CURRENCY: MapStageConfig = {
   placeholder: "Type the currency's name…",
   ariaLabel: "Type the currency's name",
-  answerOf: currencyAnswer,
-  neighbourToggle: false
+  answerOf: currencyAnswer
 };
 
 const LANGUAGE: MapStageConfig = {
   placeholder: 'Type an official language…',
   ariaLabel: 'Type an official language',
-  answerOf: languageAnswer,
-  neighbourToggle: false
+  answerOf: languageAnswer
 };
 
 const RELIGION: MapStageConfig = {
   placeholder: "Type the predominant religion…",
   ariaLabel: 'Type the predominant religion',
-  answerOf: religionAnswer,
-  neighbourToggle: false
+  answerOf: religionAnswer
 };
 
 export const CurrencyStage = (props: QuizStageProps) => <MapStage {...props} config={CURRENCY} />;

@@ -14,8 +14,7 @@ export const capitalAnswer = (target: CountryRecord) => target.capital ?? target
 const CONFIG: MapStageConfig = {
   placeholder: "Type the capital's name…",
   ariaLabel: "Type the capital's name",
-  answerOf: capitalAnswer,
-  neighbourToggle: false
+  answerOf: capitalAnswer
 };
 
 export function CapitalsStage(props: QuizStageProps) {
