@@ -485,7 +485,6 @@ sovereignty line, `docs/decisions.md`).
   text button in the bar, results open the sheet at `full` — no half sheet. Esc pauses, Ctrl+Backspace
   abandons, "Restart" (active run only) is a fresh run with nothing saved. `measureInsets` moved to
   `app/features/quizzes/engine/insets.ts` for it.
-- **Show missing** (owner request): a toggle text button beside Give up in the dock, while running. On, every country not yet named gets a bright yellow dot with a dark edge and a pale outer ring at its `anchor` (QuizOverride `missing` -> `Style.quizMissing` -> the `missing` source/layers in `gl-style.ts`, written by `GlViewSync.syncMissing`), so a forgotten tiny country can be found. It is the player's own request, so it is not a leaked answer; names stay hidden. Off again whenever the run is not running (restart, give up, finish).
 - **Results.** On finish: time, "N / N named" and the personal best. On Give up: the score, the missed
   countries in red on the map and as a list (grouped by continent for World, `continentOf`) and the
   named list. Only a **completed** run is saved (`quizId: 'name-all'`, scope, size `all`,

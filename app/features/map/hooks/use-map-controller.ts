@@ -246,7 +246,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
             showCapitals: Boolean(quiz.onInspect) && showCapitals, // results only: nothing is being asked
             quizPlace,
             quizMode: true,
-            quizNames: Boolean(quiz.onInspect), quizMissing: quiz.missing
+            quizNames: Boolean(quiz.onInspect)
           }
         : {
             fill: f => fillFor(f, styleRef.current),

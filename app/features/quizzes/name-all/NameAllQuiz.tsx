@@ -16,7 +16,7 @@
  * saves nothing: bestQuizTime is "fastest time", and a quick give-up must not become a best.
  */
 import { listReturnState } from '~/features/map';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useGo } from '~/shared/lib/navigation';
 
@@ -48,13 +48,8 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
   } = run;
   useRestoreFinishedRun(ready, phase === 'idle', restoreResult); // Back from a dossier opened off the results
 
-  const [showMissing, setShowMissing] = useState(false);
-  useEffect(() => {
-    if (!running) setShowMissing(false); // a new run starts with the marks off
-  }, [running]);
-
   useNameAllAtlas({
-    scope, phase, showMissing, paused, named, pool, ready,
+    scope, phase, paused, named, pool, ready,
     keyboardStrip: `${keyboard.kb}:${keyboard.top}:${keyboard.height}`, inputRef
   });
 
@@ -101,7 +96,6 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
           <NameAllDock
             phase={phase} ready={ready} paused={paused} hint={hint} input={input} shaking={shaking}
             inputRef={inputRef} onChange={onChange} onKeyDown={onKeyDown}
-            showMissing={showMissing} onToggleMissing={() => setShowMissing(v => !v)}
             onShakeEnd={() => setShaking(false)} onStart={startRun} onGiveUp={giveUp}
           />
           <NameAllHud
