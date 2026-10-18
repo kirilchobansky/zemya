@@ -103,29 +103,31 @@ export function HistoryFillQuiz({ quiz, backTo }: { quiz: FillQuiz; backTo: stri
   const screen = (
     <div ref={screenRef} className={`fill-quiz${paused ? ' is-paused' : ''}`} role="dialog" aria-label={quiz.title}>
       <div className="fill-quiz__panel">
-        <header className="fill-quiz__head">
-          <h2 className="fill-quiz__title">{quiz.title}</h2>
-          <div className="fill-quiz__stats">
-            <span className="quiz-run__timer numeric">{formatDuration(elapsedMs)}</span>
-            <span className="quiz-run__count numeric">{filled.size} / {total}</span>
-          </div>
-        </header>
+        <div className="fill-quiz__top">
+          <header className="fill-quiz__head">
+            <h2 className="fill-quiz__title">{quiz.title}</h2>
+            <div className="fill-quiz__stats">
+              <span className="quiz-run__timer numeric">{formatDuration(elapsedMs)}</span>
+              <span className="quiz-run__count numeric">{filled.size} / {total}</span>
+            </div>
+          </header>
 
-        {/* phone: the result card the desktop sidebar would show, at the top of the scrolling area */}
-        {finished && (
-          <div className="fill-quiz__summary">
-            {resultHook}
-            {toggleBox(false)}
-          </div>
-        )}
+          {/* phone: the result card the desktop sidebar would show, at the top of the scrolling area */}
+          {finished && (
+            <div className="fill-quiz__summary">
+              {resultHook}
+              {toggleBox(false)}
+            </div>
+          )}
 
-        <FillInputBar
-          active={active} phase={phase} phaseRef={phaseRef} inputRef={inputRef} input={input}
-          shaking={shaking} onShakeEnd={() => setShaking(false)} onChange={onChange} onKeyDown={onKeyDown}
-          onGiveUp={giveUp} onRestart={restart}
-        />
+          <FillInputBar
+            active={active} phase={phase} phaseRef={phaseRef} inputRef={inputRef} input={input}
+            shaking={shaking} onShakeEnd={() => setShaking(false)} onChange={onChange} onKeyDown={onKeyDown}
+            onGiveUp={giveUp} onRestart={restart}
+          />
 
-        <p className="fill-quiz__hint" role="status">{hint ? 'Add the number, for example II' : ''}</p>
+          <p className="fill-quiz__hint" role="status">{hint ? 'Add the number, for example II' : ''}</p>
+        </div>
 
         {/* hidden, not removed, once a run starts: the grid below never jumps */}
         {toggleBox(phase !== 'idle')}

@@ -1,14 +1,19 @@
 @media (min-width: 820px) and ((min-height: 500px) or (not (pointer: coarse))) {
-  /* History fill quiz: its head (title, timer, count) holds the top of the scrolling stage */
+  /* History fill quiz: its head and input hold the top of the scrolling stage. The stage pads 24px
+     around the panel and sticky respects that, so reach up over it: no gap above the stuck bar */
 
-  .fill-quiz__head {
+  .fill-quiz__top {
     position: sticky;
-    top: 0;
+    top: -24px;
     z-index: 4;
-    margin: -20px -22px -10px;
+    margin: 0 -22px -10px;
     padding: 20px 22px 10px;
     border-radius: 14px 14px 0 0;
     background: var(--chart);
+  }
+
+  .fill-quiz .fill-quiz__panel {
+    padding-top: 0; /* the sticky group carries the top padding */
   }
 }
 
@@ -46,6 +51,12 @@
   border: 1px solid var(--rule);
   background: var(--chart);
   box-shadow: var(--shadow);
+}
+
+.fill-quiz__top {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .fill-quiz__head {

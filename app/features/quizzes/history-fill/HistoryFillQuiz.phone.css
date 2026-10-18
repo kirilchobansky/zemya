@@ -27,6 +27,10 @@
     overflow: hidden;
   }
 
+  .fill-quiz__top {
+    display: contents; /* the phone has its own HUD and fixed bar: the group is only a desktop sticky */
+  }
+
   .fill-quiz__pause,
   .fill-quiz__head .fill-quiz__stats {
     display: none;
