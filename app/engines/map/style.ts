@@ -51,7 +51,7 @@ export interface Style {
   /**
    * A finished quiz's results: country names are drawn again (as soon as they fit, not only once
    * zoomed in) although `quizMode` is still on. Nothing is being asked, so nothing is given away;
-   * a new run turns it off again. Place (capital) names stay off.
+   * a new run turns it off again. Capitals (rings, names) return too, at their normal zoom.
    */
   quizNames?: boolean;
 }

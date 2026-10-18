@@ -80,16 +80,16 @@ export function haloAlpha(feature: Feature, camera: CameraState): number {
 }
 
 /** Whether the capitals layer draws (and can be hovered or clicked) this frame. quizMode
- *  is a hard veto: a capital's ring is not an answer, but the hover tooltip and label that
+ *  is a hard veto, lifted on a finished quiz's results (quizNames): a capital's ring is not an answer, but the hover tooltip and label that
  *  come with it are, and one predicate for all three means they cannot disagree. */
 export function capitalsVisible(
-  style: Pick<Style, 'showCapitals' | 'quizMode'>,
+  style: Pick<Style, 'showCapitals' | 'quizMode' | 'quizNames'>,
   camera: CameraState,
   viewport: Viewport
 ): boolean {
   return (
     Boolean(style.showCapitals) &&
-    !style.quizMode &&
+    (!style.quizMode || Boolean(style.quizNames)) &&
     camera.zoom >= homeZoom(viewport) * CAPITAL_ZOOM_FACTOR
   );
 }

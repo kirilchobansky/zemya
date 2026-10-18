@@ -134,7 +134,7 @@ QuizOverride | null` there for the whole lifetime of the route (set on mount, to
 unmount), for every quiz alike — the subject/quiz list pages never touch it. Setting it
 non-null does these things, all gated on that one value: the renderer's `Style.quizMode`
 suppresses `drawLabels()` entirely — country AND capital names — and the capital rings and
-their hit-testing (`renderer.ts`); `atlas.tsx` stops rendering the search box and the hover
+their hit-testing (`renderer.ts`) — except on a finished run's results (`quizNames`), where capitals return at their normal zoom and appearance, following the toolbar's capitals toggle; `atlas.tsx` stops rendering the search box and the hover
 `.tip` (which is also where a capital's tooltip would show); and the neighbour glow defaults off, driven by
 `quiz.showNeighbours` rather than the normal toolbar's `showNeighbours` state (only the
 countries quiz's Stage renders a toggle for it — see the engine/presenter split above).

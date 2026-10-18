@@ -243,7 +243,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
             showLabels: true,
             showPins: true,
             micro: 'full', // a quiz target must never be hidden by the player's Micro choice
-            showCapitals: false,
+            showCapitals: Boolean(quiz.onInspect) && showCapitals, // results only: nothing is being asked
             quizPlace,
             quizMode: true,
             quizNames: Boolean(quiz.onInspect)
