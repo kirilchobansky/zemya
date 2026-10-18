@@ -222,6 +222,9 @@ export interface QuizOverride {
    *  calls this instead of being ignored (the quiz opens that country's dossier, with a way back
    *  to the results). Absent during a run — a name on the map would be the answer. */
   onInspect?: (feature: Feature) => void;
+  /** iso3 of countries to mark with a contrasting dot at their anchor (Name all's "show missing"
+   *  toggle — the player asked for it, so it is not a leaked answer). */
+  missing?: ReadonlySet<string>;
 }
 
 /** Fill resolution during a quiz run: answered beats the current target beats the

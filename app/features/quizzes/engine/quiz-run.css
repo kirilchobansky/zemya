@@ -42,6 +42,10 @@
   min-height: calc(var(--note-lines) * 1.5em + 24px);
 }
 
+.quiz-run__missing {
+  margin-top: 10px;
+}
+
 .quiz-pause-desk {
   /* desktop quiz pause: opaque cover over the stage area, above the dock and flag stage */
   position: absolute;
@@ -136,6 +140,14 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--ink-2);
+  }
+
+  .quiz-hud__missing {
+    margin-left: auto;
+  }
+
+  .quiz-hud__missing + .quiz-hud__pause {
+    margin-left: 0;
   }
 
   .quiz-hud__pause {

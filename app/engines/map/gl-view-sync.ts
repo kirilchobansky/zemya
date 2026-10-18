@@ -10,8 +10,8 @@ import type { GlHost } from './gl-host';
 import type { GlStyling } from './gl-styling';
 import { FILTERED_LAYERS, LAYER, NONE, SOURCE } from './gl-style';
 import { lonToX } from './projection';
-import { microMode } from './style';
-import type { Feature } from './types';
+import { microMode, type Style } from './style';
+import type { Feature, World } from './types';
 import { capitalShapeShowing, capitalsVisible, haloAlpha, landHidden, showsAsDot } from './visibility';
 
 /** Minimum on-screen width before a country is worth naming (as the canvas renderer had it). */
@@ -22,6 +22,7 @@ export class GlViewSync {
   /** Last filter key per filtered layer, so setFilter runs only when a set changes. */
   private filterKeys = new Map<string, string>();
   private quizPlaceKey = '';
+  private missingKey = '';
   private widths = new Map<string, number>();
   private measureCtx: CanvasRenderingContext2D | null = null;
   private uiFont = 'system-ui, sans-serif';
@@ -81,6 +82,8 @@ export class GlViewSync {
       : [];
     this.setSet(LAYER.capitals, capitals);
 
+    this.syncMissing(style, world);
+
     // the capitals quiz's target ring, unless its country is still drawn as a pin
     const quizPlace = style.quizMode && style.quizPlace && !landHidden(style.quizPlace.feature, camera, micro) ? style.quizPlace : null;
     const placeKey = quizPlace ? `${quizPlace.place.lon},${quizPlace.place.lat}` : '';
@@ -92,6 +95,18 @@ export class GlViewSync {
           : EMPTY
       );
     }
+  }
+
+  /** Name all's "show missing": a point at the anchor of each marked country. */
+  private syncMissing(style: Style, world: World): void {
+    const marked = style.quizMode && style.quizMissing?.size ? world.features.filter(f => style.quizMissing!.has(f.country.iso3)) : [];
+    const key = marked.map(f => f.country.iso3).join();
+    if (key === this.missingKey) return;
+    this.missingKey = key;
+    (this.host.map.getSource(SOURCE.missing) as GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: marked.map(f => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [f.anchor[0], f.anchor[1]] } }))
+    });
   }
 
   private setSet(layer: (typeof FILTERED_LAYERS)[number], iso3: string[]): void {

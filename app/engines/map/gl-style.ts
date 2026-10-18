@@ -28,7 +28,11 @@ export const TILE_SIZE = 512;
 export const zoomToPx = (z: number): number => TILE_SIZE * 2 ** z;
 export const pxToZoom = (px: number): number => Math.log2(px / TILE_SIZE);
 
-export const SOURCE = { world: 'world', points: 'points', capitals: 'capitals', quizPlace: 'quiz-place', graticule: 'graticule', compare: 'compare', pulse: 'pulse' } as const;
+export const SOURCE = { world: 'world', points: 'points', capitals: 'capitals', quizPlace: 'quiz-place', missing: 'missing', graticule: 'graticule', compare: 'compare', pulse: 'pulse' } as const;
+
+/** Hand-picked for contrast against every fill (green, red, land, ocean) in both themes. */
+const MISSING_DOT = '#FFE600';
+const MISSING_EDGE = '#000000';
 
 export const LAYER = {
   countries: 'countries',
@@ -173,6 +177,16 @@ export function buildLayers({ border }: GlPalette): LayerSpecification[] {
       }
     ]),
 
+    // Name all's "show missing": a bright dot with a dark edge and a pale outer ring, over any fill
+    {
+      id: 'missing-ring', type: 'circle', source: SOURCE.missing,
+      paint: { 'circle-radius': 11, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-width': 2, 'circle-stroke-color': MISSING_EDGE }
+    },
+    {
+      id: 'missing-dot', type: 'circle', source: SOURCE.missing,
+      paint: { 'circle-radius': 6, 'circle-color': MISSING_DOT, 'circle-stroke-width': 2, 'circle-stroke-color': MISSING_EDGE }
+    },
+
     // capitals: ring icon + name in one layer. Neither icon-optional nor text-optional, so
     // MapLibre places both or neither — "a ring without its name is the one thing this layer
     // must not show". Beneath the country names, which therefore claim their room first.
@@ -231,6 +245,7 @@ export function buildStyle(inputs: GlStyleInputs): StyleSpecification {
       [SOURCE.points]: { type: 'geojson', data: inputs.geo.points, promoteId: 'iso3' },
       [SOURCE.capitals]: { type: 'geojson', data: inputs.geo.capitals, promoteId: 'iso3' },
       [SOURCE.quizPlace]: empty,
+      [SOURCE.missing]: empty,
       [SOURCE.graticule]: { type: 'geojson', data: inputs.geo.graticule },
       [SOURCE.compare]: empty,
       [SOURCE.pulse]: empty

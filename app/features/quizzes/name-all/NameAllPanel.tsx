@@ -5,6 +5,7 @@ import { SCOPE_LABELS, type QuizScope } from '~/features/countries';
 import { formatDuration } from '~/shared/lib/format';
 import type { CountryRecord } from '~/engines/map/types';
 import { NAME_ALL_QUIZ } from '~/features/quizzes/geography/quizzes';
+import { MissingSwitch } from '~/features/quizzes/engine/MissingSwitch';
 import { NameAllNamedList } from './NameAllNamedList';
 import { NameAllResult } from './NameAllResult';
 import type { Outcome, Phase } from './name-all-types';
@@ -12,7 +13,7 @@ import type { Outcome, Phase } from './name-all-types';
 /** The right-hand panel of a run: header, then the idle / running / result body. */
 export function NameAllPanel({
   scope, backTo, ready, phase, paused, total, hint, elapsedMs, named, namedCountries, missed, outcome,
-  listEndRef, onTogglePause, onRestart, onGiveUp, onLeave, snapshot
+  listEndRef, showMissing, onToggleMissing, onTogglePause, onRestart, onGiveUp, onLeave, snapshot
 }: {
   scope: QuizScope;
   backTo: string;
@@ -27,6 +28,8 @@ export function NameAllPanel({
   missed: readonly CountryRecord[];
   outcome: Outcome | null;
   listEndRef: Ref<HTMLLIElement>;
+  showMissing: boolean;
+  onToggleMissing: () => void;
   onTogglePause: () => void;
   onRestart: () => void;
   onGiveUp: () => void;
@@ -81,6 +84,9 @@ export function NameAllPanel({
               <button type="button" className="action" onClick={onLeave}>
                 Abandon <kbd>Ctrl+⌫</kbd>
               </button>
+            </div>
+            <div className="quiz-run__missing">
+              <MissingSwitch on={showMissing} onToggle={onToggleMissing} />
             </div>
             {paused && (
               <div className="note">

@@ -5,6 +5,7 @@
  * outline), the desktop pause screen and the phone HUD.
  */
 import { listReturnState } from '~/features/map';
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, Navigate } from "react-router";
 
@@ -36,7 +37,20 @@ export function QuizRun() {
     abandon,
   );
 
-  useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world });
+  /* "Show missing": a dot on every country of the run not yet settled. The player asked for it, so
+     it is not a leaked answer; it is off whenever the run is not active (new run, results). */
+  const [showMissing, setShowMissing] = useState(false);
+  const active = engine.phase === "running" || engine.phase === "paused";
+  useEffect(() => {
+    if (!active) setShowMissing(false);
+  }, [active]);
+  const missing = useMemo(
+    () => (active && showMissing ? new Set(countries.filter(c => !engine.settled.has(c.iso3)).map(c => c.iso3)) : undefined),
+    [active, showMissing, countries, engine.settled],
+  );
+  const toggleMissing = definition?.hidesMap ? undefined : () => setShowMissing(v => !v);
+
+  useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world, missing });
   useQuizTestSeams({ engine, definition, world });
 
   /* Back from a country dossier opened off the results: put the saved finished run back, once the
@@ -163,6 +177,7 @@ export function QuizRun() {
       <QuizRunPanel
         engine={engine} definition={definition} scope={scope} countries={countries} revealed={revealed}
         backTo={backTo} panelStage={panelStage} onRestart={restartRun} onRunAgain={restartRun}
+        showMissing={showMissing} onToggleMissing={toggleMissing}
       />
 
       <Stage {...stageProps} slot="stage" />
@@ -190,7 +205,10 @@ export function QuizRun() {
           flag) between; pause covers it with Resume and Abandon. */}
       {engine.phase !== "done" &&
         createPortal(
-          <QuizRunHud engine={engine} total={countries.length} backTo={backTo} onRestart={restartRun} />,
+          <QuizRunHud
+            engine={engine} total={countries.length} backTo={backTo} onRestart={restartRun}
+            showMissing={showMissing} onToggleMissing={toggleMissing}
+          />,
           document.body,
         )}
     </>

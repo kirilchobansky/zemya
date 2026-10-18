@@ -16,7 +16,7 @@
  * saves nothing: bestQuizTime is "fastest time", and a quick give-up must not become a best.
  */
 import { listReturnState } from '~/features/map';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGo } from '~/shared/lib/navigation';
 
@@ -48,8 +48,15 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
   } = run;
   useRestoreFinishedRun(ready, phase === 'idle', restoreResult); // Back from a dossier opened off the results
 
+  /* "Show missing": a dot on every country not named yet. The player's own request, so not a leaked
+     answer; off again whenever the run is not running. */
+  const [showMissing, setShowMissing] = useState(false);
+  useEffect(() => {
+    if (!running) setShowMissing(false);
+  }, [running]);
+
   useNameAllAtlas({
-    scope, phase, paused, named, pool, ready,
+    scope, phase, showMissing, paused, named, pool, ready,
     keyboardStrip: `${keyboard.kb}:${keyboard.top}:${keyboard.height}`, inputRef
   });
 
@@ -73,6 +80,7 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
         scope={scope} backTo={backTo} ready={ready} phase={phase} paused={paused} total={total}
         hint={hint} elapsedMs={elapsedMs} named={named} namedCountries={namedCountries} missed={missed}
         outcome={outcome} listEndRef={listEndRef}
+        showMissing={showMissing} onToggleMissing={() => setShowMissing(v => !v)}
         onTogglePause={togglePause} onRestart={restart} onGiveUp={giveUp} onLeave={leave} snapshot={snapshot}
       />
 
@@ -101,6 +109,7 @@ export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: strin
           <NameAllHud
             phase={phase} paused={paused} finished={finished} backTo={backTo} total={total}
             namedCount={named.length} elapsedMs={elapsedMs}
+            showMissing={showMissing} onToggleMissing={() => setShowMissing(v => !v)}
             onLeave={leave} onTogglePause={togglePause} onRestart={restart} onGiveUp={giveUp}
           />
         </>,

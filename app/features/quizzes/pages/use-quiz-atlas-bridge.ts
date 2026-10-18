@@ -21,7 +21,9 @@ import type { QuizDefinition } from '../engine/types';
 
 const NO_MISSED: never[] = [];
 
-export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world }: {
+export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, size, world, missing }: {
+  /** iso3 of countries to mark with a contrasting dot (the "Show missing" toggle). */
+  missing?: ReadonlySet<string>;
   engine: QuizEngine;
   definition: QuizDefinition | undefined;
   scope: QuizScope | null;
@@ -217,8 +219,9 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
             answered: engine.settled,
             showNeighbours: engine.showNeighbours,
             paused: engine.phase === "paused",
+            missing,
           }
         : prev,
     );
-  }, [engine.settled, engine.showNeighbours, engine.phase, setQuiz]);
+  }, [engine.settled, engine.showNeighbours, engine.phase, missing, setQuiz]);
 }

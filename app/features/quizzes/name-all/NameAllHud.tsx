@@ -1,13 +1,14 @@
 import { Link } from 'react-router';
 
 import { keepFocus } from '~/features/quizzes/engine/QuizControls';
+import { MissingSwitch } from '~/features/quizzes/engine/MissingSwitch';
 import { PauseIcon } from '~/features/quizzes/engine/PauseIcon';
 import { formatDuration } from '~/shared/lib/format';
 import type { Phase } from './name-all-types';
 
 /** The phone layout's HUD and pause screen (`display: none` above the breakpoint). The caller
  *  portals it to <body>: the panel is a transformed sheet, which would trap `position: fixed`. */
-export function NameAllHud({ phase, paused, finished, backTo, total, namedCount, elapsedMs, onLeave, onTogglePause, onRestart, onGiveUp }: {
+export function NameAllHud({ phase, paused, finished, backTo, total, namedCount, elapsedMs, showMissing, onToggleMissing, onLeave, onTogglePause, onRestart, onGiveUp }: {
   phase: Phase;
   paused: boolean;
   finished: boolean;
@@ -15,6 +16,8 @@ export function NameAllHud({ phase, paused, finished, backTo, total, namedCount,
   total: number;
   namedCount: number;
   elapsedMs: number;
+  showMissing: boolean;
+  onToggleMissing: () => void;
   onLeave: () => void;
   onTogglePause: () => void;
   onRestart: () => void;
@@ -37,6 +40,9 @@ export function NameAllHud({ phase, paused, finished, backTo, total, namedCount,
               </button>
               <span className="quiz-hud__timer numeric">{formatDuration(elapsedMs)}</span>
               {hudCount}
+              <span className="quiz-hud__missing">
+                <MissingSwitch compact on={showMissing} onToggle={onToggleMissing} />
+              </span>
               <button
                 type="button"
                 className="quiz-hud__pause"

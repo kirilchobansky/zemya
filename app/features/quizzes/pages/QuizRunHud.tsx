@@ -3,12 +3,15 @@ import { Link } from "react-router";
 import { formatDuration } from "~/shared/lib/format";
 import type { QuizEngine } from '../engine/engine';
 import { keepFocus } from '../engine/QuizControls';
+import { MissingSwitch } from '../engine/MissingSwitch';
 import { PauseIcon } from '../engine/PauseIcon';
 
 /** The phone layout's run chrome (`display: none` above the breakpoint): a thin HUD on top and
  *  the pause screen with Resume, Restart and Abandon. The caller portals it to <body> — the
  *  panel is a transformed sheet, which would trap `position: fixed`. */
-export function QuizRunHud({ engine, total, backTo, onRestart }: {
+export function QuizRunHud({ engine, total, backTo, onRestart, showMissing, onToggleMissing }: {
+  showMissing: boolean;
+  onToggleMissing?: () => void;
   engine: QuizEngine;
   total: number;
   backTo: string;
@@ -48,6 +51,11 @@ export function QuizRunHud({ engine, total, backTo, onRestart }: {
             <span className="quiz-hud__count numeric">
               {engine.answeredCount} / {engine.totalCount}
             </span>
+            {onToggleMissing && (
+              <span className="quiz-hud__missing">
+                <MissingSwitch compact on={showMissing} onToggle={onToggleMissing} />
+              </span>
+            )}
             <button
               type="button"
               className="quiz-hud__pause"

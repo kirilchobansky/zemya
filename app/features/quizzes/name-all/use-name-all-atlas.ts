@@ -15,9 +15,11 @@ import { useQuizPageLock } from '~/shared/lib/keyboard';
 import { isCoarsePointer, isPhoneLayout } from '~/shared/layout/viewport';
 import type { Phase } from './name-all-types';
 
-export function useNameAllAtlas({ scope, phase, paused, named, pool, ready, keyboardStrip, inputRef }: {
+export function useNameAllAtlas({ scope, phase, showMissing, paused, named, pool, ready, keyboardStrip, inputRef }: {
   scope: QuizScope;
   phase: Phase;
+  /** Mark every not-yet-named country with a contrasting dot. */
+  showMissing: boolean;
   paused: boolean;
   named: readonly string[];
   pool: readonly CountryRecord[];
@@ -48,9 +50,13 @@ export function useNameAllAtlas({ scope, phase, paused, named, pool, ready, keyb
     if (phase === 'gaveup') for (const c of pool) if (!map.has(c.iso3)) map.set(c.iso3, 'revealed');
     return map;
   }, [named, phase, pool]);
+  const missing = useMemo(
+    () => (running && showMissing ? new Set(pool.filter(c => !named.includes(c.iso3)).map(c => c.iso3)) : undefined),
+    [running, showMissing, pool, named]
+  );
   useEffect(() => {
-    setQuiz(prev => (prev ? { ...prev, answered, paused } : prev));
-  }, [answered, paused, setQuiz]);
+    setQuiz(prev => (prev ? { ...prev, answered, paused, missing } : prev));
+  }, [answered, paused, missing, setQuiz]);
 
   /* The scope is the camera's home: START, a name and the results all frame it. */
   useEffect(() => {

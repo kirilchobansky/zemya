@@ -5,11 +5,15 @@ import { formatDuration } from "~/shared/lib/format";
 import type { CountryRecord } from "~/engines/map/types";
 import type { QuizEngine } from '../engine/engine';
 import type { QuizDefinition } from '../engine/types';
+import { MissingSwitch } from '../engine/MissingSwitch';
 import { QuizRunResult } from './QuizRunResult';
 
 /** The right-hand panel of a run: header, then the idle / running / results body. The Stage's
  *  own panel slot comes in as `panelStage`. */
-export function QuizRunPanel({ engine, definition, scope, countries, revealed, backTo, panelStage, onRestart, onRunAgain }: {
+export function QuizRunPanel({ engine, definition, scope, countries, revealed, backTo, panelStage, onRestart, onRunAgain, showMissing, onToggleMissing }: {
+  /** Absent for a quiz that covers the map (flags): there is nothing to mark. */
+  onToggleMissing?: () => void;
+  showMissing: boolean;
   engine: QuizEngine;
   definition: Pick<QuizDefinition, 'title'>;
   scope: QuizScope;
@@ -95,6 +99,12 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
                   Abandon <kbd>Ctrl+⌫</kbd>
                 </button>
               </div>
+
+              {onToggleMissing && (
+                <div className="quiz-run__missing">
+                  <MissingSwitch on={showMissing} onToggle={onToggleMissing} />
+                </div>
+              )}
 
               {panelStage}
 
