@@ -6,17 +6,19 @@ import type { Phase } from './name-all-types';
 
 /** The docked input (desktop) / input bar on the keyboard (phone), with START while idle.
  *  Rendered in every phase so START has an input to focus. The caller portals it to <body>. */
-export function NameAllDock({ phase, ready, paused, hint, input, shaking, inputRef, onChange, onKeyDown, onShakeEnd, onStart, onGiveUp }: {
+export function NameAllDock({ phase, ready, paused, hint, input, shaking, showMissing, inputRef, onChange, onKeyDown, onShakeEnd, onToggleMissing, onStart, onGiveUp }: {
   phase: Phase;
   ready: boolean;
   paused: boolean;
   hint: string;
   input: string;
   shaking: boolean;
+  showMissing: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
   onShakeEnd: () => void;
+  onToggleMissing: () => void;
   onStart: () => void;
   onGiveUp: () => void;
 }) {
@@ -57,6 +59,19 @@ export function NameAllDock({ phase, ready, paused, hint, input, shaking, inputR
             placeholder={paused ? 'Paused' : 'Type a country — Enter to confirm'}
             aria-label="Type a country"
           />
+          {running && (
+            <button
+              type="button"
+              className="quiz-dock__btn quiz-dock__btn--text"
+              aria-pressed={showMissing}
+              title="Mark the countries you have not named yet"
+              onPointerDown={keepFocus}
+              onMouseDown={keepFocus}
+              onClick={onToggleMissing}
+            >
+              {showMissing ? 'Hide missing' : 'Show missing'}
+            </button>
+          )}
           {running && (
             <button
               type="button"
