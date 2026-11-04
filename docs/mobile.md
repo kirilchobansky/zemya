@@ -101,7 +101,7 @@ flag) in the middle, the input bar at the bottom pinned directly ABOVE the keybo
   typing capture in `engine.ts` recovers, which `tests/e2e/smoke.mjs` relies on); the Skip / Reveal /
   Pause / Resume / Abandon buttons cancel pointerdown so a tap on them doesn't move focus either.
   The results screen blurs it (the keyboard would cover them).
-  Exception: when the user closes the keyboard (iOS "Done"), `use-reopen-keyboard.ts` blurs the input, because iOS leaves it focused and a tap on a focused input never reopens the keyboard; a tap on the input bar's non-button area then focuses it again. Needs a real iPhone/iPad to verify.
+  Exception: when the user closes the keyboard (iOS "Done"), `use-reopen-keyboard.ts` blurs the input, because iOS leaves it focused and a tap on a focused input never reopens the keyboard; a tap on the input bar's non-button area then focuses it again. The same hook serves all three typed-answer bars (geography quizzes, Name all countries, the history fill list); the fill list's refocus-on-blur is skipped on a coarse pointer, since it re-focused the input right after the keyboard closed and a tap on a focused input never reopens it. "Keyboard is open" (`KeyboardState.open`) is `innerHeight - visualViewport.height`, independent of how far iOS has panned the page (a pan shrinks `kb`, which used to read as a closed keyboard and blur the input mid-typing). Needs a real iPhone/iPad to verify.
 - **Shortcuts don't exist on a phone**, so real buttons do: Skip and Reveal beside the input
   (48px), Pause in the HUD, Abandon in the pause screen. The Stages take `skip/reveal/canSkip/
   canReveal` for this. On desktop the buttons are `display: none` and `.quiz-controls` /

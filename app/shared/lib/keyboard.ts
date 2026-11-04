@@ -28,6 +28,9 @@ import { isPhoneLayout } from '~/shared/layout/viewport';
 export interface KeyboardState {
   /** px covered by the keyboard, 0 when closed. */
   kb: number;
+  /** Whether a keyboard is up. Unlike `kb` this ignores how far iOS has panned the page: a pan
+   *  shrinks `kb` (it is measured from the layout viewport's bottom) but not the visual viewport. */
+  open: boolean;
   /** px the visual viewport sits below the layout viewport's top. */
   top: number;
   /** The layout viewport's height. Where the keyboard RESIZES the layout viewport (Android with
@@ -35,7 +38,7 @@ export interface KeyboardState {
   height: number;
 }
 
-const CLOSED: KeyboardState = { kb: 0, top: 0, height: 0 };
+const CLOSED: KeyboardState = { kb: 0, open: false, top: 0, height: 0 };
 /** Portrait phone keyboards cover ~38-42% of the screen; a suggestion bar adds a little. Planned
  *  generously so a flag sized to the estimate never ends up behind the real keyboard. */
 const KEYBOARD_FRACTION_ESTIMATE = 0.5;
@@ -76,6 +79,7 @@ function read(): void {
   const zoomed = Math.abs(vv.scale - 1) > 0.01;
   const covered = window.innerHeight - (vv.offsetTop + vv.height);
   const kb = !zoomed && covered >= MIN_KEYBOARD_PX ? Math.round(covered) : 0;
+  const open = !zoomed && window.innerHeight - vv.height >= MIN_KEYBOARD_PX;
   const top = zoomed ? 0 : Math.max(0, Math.round(vv.offsetTop));
   kbEstimate = Math.max(kbEstimate, kb, Math.round(layoutHeight * KEYBOARD_FRACTION_ESTIMATE));
 
@@ -86,12 +90,12 @@ function read(): void {
   setVar('--kb-est', `${kbEstimate}px`);
 
   const height = Math.round(window.innerHeight);
-  current = { kb, top, height };
+  current = { kb, open, top, height };
 }
 
 function publish(): void {
   settleTimer = 0;
-  if (current.kb === state.kb && current.top === state.top && current.height === state.height) return;
+  if (current.kb === state.kb && current.open === state.open && current.top === state.top && current.height === state.height) return;
   state = current;
   listeners.forEach(l => l());
 }

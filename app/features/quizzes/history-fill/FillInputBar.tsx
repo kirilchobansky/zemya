@@ -1,6 +1,8 @@
 import type { ChangeEvent, KeyboardEvent, MutableRefObject, RefObject } from 'react';
 
 import { keepFocus } from '~/features/quizzes/engine/QuizControls';
+import { useReopenKeyboard } from '~/features/quizzes/engine/use-reopen-keyboard';
+import { isCoarsePointer } from '~/shared/layout/viewport';
 import type { Phase } from './fill-run-types';
 
 /** The always-focused input at the top of the run screen, with Give up and (while running)
@@ -18,8 +20,9 @@ export function FillInputBar({ active, phase, phaseRef, inputRef, input, shaking
   onGiveUp: () => void;
   onRestart: () => void;
 }) {
+  const refocus = useReopenKeyboard(inputRef, active);
   return (
-  <div className={`fill-quiz__bar${active ? '' : ' fill-quiz__bar--off'}`}>
+  <div onPointerDown={refocus} className={`fill-quiz__bar${active ? '' : ' fill-quiz__bar--off'}`}>
     <input
       ref={inputRef}
       className={`fill-quiz__input${shaking ? ' is-shaking' : ''}`}
@@ -32,6 +35,9 @@ export function FillInputBar({ active, phase, phaseRef, inputRef, input, shaking
         // Stay focused unless focus went to another control (Tab to Give up still works).
         if (phaseRef.current !== 'idle' && phaseRef.current !== 'running') return;
         if (e.relatedTarget) return;
+        // on a touch device a blur is the keyboard being dismissed (useReopenKeyboard): focusing
+        // again would leave a focused input that a tap can't reopen the keyboard on
+        if (isCoarsePointer()) return;
         requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
       }}
       placeholder="Type a name to start"

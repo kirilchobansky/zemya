@@ -2,6 +2,7 @@ import type { ChangeEvent, KeyboardEvent, RefObject } from 'react';
 
 import { keepFocus } from '~/features/quizzes/engine/QuizControls';
 import { StartCaption } from '~/features/quizzes/engine/StartCaption';
+import { useReopenKeyboard } from '~/features/quizzes/engine/use-reopen-keyboard';
 import type { Phase } from './name-all-types';
 
 /** The docked input (desktop) / input bar on the keyboard (phone), with START while idle.
@@ -21,6 +22,7 @@ export function NameAllDock({ phase, ready, paused, hint, input, shaking, inputR
   onGiveUp: () => void;
 }) {
   const running = phase === 'running';
+  const refocus = useReopenKeyboard(inputRef, running);
   const ctlPhase = phase === 'running' ? (paused ? 'paused' : 'running') : phase === 'idle' ? 'idle' : 'done';
   return (
     <div className="quiz-dock" data-phase={ctlPhase}>
@@ -30,7 +32,7 @@ export function NameAllDock({ phase, ready, paused, hint, input, shaking, inputR
           <StartCaption />
         </>
       )}
-      <div className="quiz-controls" data-phase={ctlPhase}>
+      <div className="quiz-controls" data-phase={ctlPhase} onPointerDown={refocus}>
         <div className="quiz-feedback">
           {running && hint && <div className="quiz-dock__answer" role="status">{hint}</div>}
         </div>
