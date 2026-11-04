@@ -10,8 +10,10 @@ import {
   ScrollRestoration
 } from 'react-router';
 
+import { registerServiceWorker } from '~/shared/lib/register-sw';
 import { installStaleDeployGuard } from '~/shared/lib/stale-deploy';
 
+import '~/shared/styles/fonts.css';
 import '~/shared/styles/tokens.css';
 import '~/shared/styles/base.css';
 import '~/shared/styles/empty.css';
@@ -23,16 +25,7 @@ export function links() {
     { rel: 'icon', href: '/favicon-48.png', type: 'image/png', sizes: '48x48' },
     { rel: 'icon', href: '/favicon-96.png', type: 'image/png', sizes: '96x96' },
     { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
-    { rel: 'manifest', href: '/manifest.webmanifest' },
-    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossOrigin: 'anonymous' },
-    {
-      rel: 'stylesheet',
-      href:
-        'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700' +
-        '&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700' +
-        '&family=IBM+Plex+Mono:wght@400;500;600&display=swap'
-    }
+    { rel: 'manifest', href: '/manifest.webmanifest' }
   ];
 }
 
@@ -74,6 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   useEffect(installStaleDeployGuard, []);
+  useEffect(registerServiceWorker, []);
   return <Outlet />;
 }
 

@@ -18,7 +18,7 @@ one engine (Countries, Flags, Outlines, Capitals, Currency, Language, Religion �
 canvas-only — see "Do not") plus one History quiz type, "fill the list" (Quizzes -> History: nine quizzes listed in an explicit table (`app/features/quizzes/history-fill/fill-quiz-config.ts`, e.g. "Presidents",
 "Prime ministers, Republic"), each selected from the timeline by role and start date,
 `/quizzes/history` -> country -> `/quizzes/history/:slug/:quizId`; `docs/quizzes.md`). Island nations (no land border, under 25,000 km2, minus Jamaica, the Caribbean/Malta/Cyprus/Bahrain, and Singapore, whose halo would cover Malaysia — 17, derived) draw a territory halo instead of a pin; every other small country is a dot (`docs/decisions.md` "Small countries"): `docs/decisions.md`. Deployed on Vercel at https://zemya.study, indexed, MIT code /
-ODbL data. Full current-state list: `docs/status.md`; narrative and "Next" items: `docs/decisions.md`.
+ODbL data. Works offline once installed (hand-written service worker, ~21.6 MB precache). Full current-state list: `docs/status.md`; narrative and "Next" items: `docs/decisions.md`.
 
 ## Locked decisions and editorial lines — do not reopen without asking
 
@@ -83,6 +83,7 @@ absorbed territories merge into a real country at build time via `ABSORB` in
   `quiz`/`quizMode`; no Stage moves when its content changes size; never `disabled` the run
   input. Run keys: Esc pause, Tab skip, Ctrl+Enter reveal, Enter (after a reveal) fills in the
   answer, Ctrl+Backspace abandon; "Restart" (active run only) = a fresh run, nothing saved.
+- **Offline** (`docs/decisions.md` "Offline"): `build-sw.mjs` writes `build/client/sw.js` (precache list + content hash, cache `zemya-<version>`, no `skipWaiting`) as the last build step; fonts are self-hosted. A new static asset needs no registration — it is picked up by the build walk.
 - **Map** (`docs/architecture.md` "Map renderer"): the rest of the app talks to `MapController`
   (`app/engines/map/controller.ts`), never to MapLibre. `maplibre-gl` is imported ONLY by
   the `app/engines/map/gl-*.ts` adapter (`gl-setup.ts` is the one value import; the rest take types), reached

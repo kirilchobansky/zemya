@@ -4,7 +4,7 @@
   "description": "An interactive atlas built for learning geography",
   "scripts": {
     "dev": "react-router dev",
-    "build": "npm run build:content && react-router build",
+    "build": "npm run build:content && react-router build && node scripts/build/build-sw.mjs",
     "build:content": "node scripts/build/build-content.mjs && node scripts/build/build-history.mjs && node scripts/build/build-tiles.mjs",
     "build:tiles": "node scripts/build/build-tiles.mjs",
     "start": "react-router-serve ./build/server/index.js",
@@ -42,6 +42,8 @@
   },
   "devDependencies": {
     "@fontsource/archivo": "^5.3.0",
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "@react-router/dev": "^8.3.0",
     "@react-router/node": "^8.3.0",
     "@types/geojson-vt": "^3.2.5",

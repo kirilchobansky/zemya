@@ -1271,3 +1271,28 @@ traded resolution for speed while moving). Decided beyond the prompt:
 A first visit (nothing stored under `zemya:theme`) is dark, not "follow the OS". An explicit "System"
 choice is stored as `system` and still follows the OS. Logic in `app/shared/lib/theme.ts` and the
 inline script in `app/root.tsx` (keep in sync).
+
+## Offline: a hand-written service worker
+
+The installed iPhone app works fully offline. No workbox, no runtime dependency:
+`scripts/build/build-sw.mjs` (last step of `npm run build`) walks `build/client`, hashes the file
+contents and splices the file list and version into `scripts/build/sw.template.js`, writing
+`build/client/sw.js`. Excluded: `sw.js`, `og-image.png`, `sitemap.xml`, `robots.txt`, and
+`data/geography/world.json` (3.4 MB tile build input the client never fetches — a deviation from
+"all of data/**"). Total precache ~21.6 MB (7.7 MB core + 13.9 MB background).
+
+- **Install:** core (`/`, `assets/**` incl. fonts, `data/**`, manifest, icons, `404.html`) goes into
+  cache `zemya-<version>`; if it fails, install fails. The rest (country/, quiz/, quizzes/, study/,
+  history/, questions/, flags/, every `*.data`) is filled in the background, idempotently, and
+  re-attempted when a worker starts (iOS may stop the first run); its failure never fails install.
+  Activate deletes older `zemya-*` caches. No `skipWaiting`: a new version takes over on the next launch.
+- **Fetch:** GET, same origin only, `ignoreSearch`. A navigation to `/x` is served from
+  `/x/index.html`; offline and uncached -> `/404.html`. Everything is cache-first with network
+  fallback; `request.cache` of `reload`/`no-store` (retry.ts, pmtiles-archive.ts retries) is
+  network-first with cache fallback. Only 200s are stored. `/_vercel/*` (analytics, speed-insights)
+  is network-only and answers an empty script offline, so it fails silently.
+- Registered on window load in `root.tsx` (`app/shared/lib/register-sw.ts`), production only, scope `/`.
+  `sw.js` is covered by the existing non-assets `Cache-Control: max-age=0, must-revalidate` rule in `vercel.json`.
+- Fonts (Archivo, Fraunces, IBM Plex Mono) are self-hosted via `@fontsource/*` devDependencies
+  (`app/shared/styles/fonts.css`, latin + latin-ext, Plex Mono also Cyrillic); no Google Fonts links.
+  Fraunces is the static cut (no optical-size axis).
