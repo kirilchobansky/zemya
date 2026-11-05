@@ -54,6 +54,10 @@ export interface Style {
    * a new run turns it off again. Capitals (rings, names) return too, at their normal zoom.
    */
   quizNames?: boolean;
+  /** Touch devices only: during a quiz the dots of small countries nobody has answered yet are
+   *  not drawn (the target and every answered or missed country still are). A finger map is
+   *  crowded enough; the Micro toggle is not shown in a quiz. */
+  quizHideIdleDots?: boolean;
   /** iso3 of countries to mark with a high-contrast dot at their anchor (Name all's "show missing"). */
   quizMissing?: ReadonlySet<string>;
 }

@@ -10,7 +10,7 @@ import type { GlHost } from './gl-host';
 import type { GlStyling } from './gl-styling';
 import { FILTERED_LAYERS, LAYER, NONE, SOURCE } from './gl-style';
 import { lonToX } from './projection';
-import { microMode, type Style } from './style';
+import { COLORS, microMode, type Style } from './style';
 import type { Feature, World } from './types';
 import { capitalShapeShowing, capitalsVisible, haloAlpha, landHidden, showsAsDot } from './visibility';
 
@@ -47,7 +47,7 @@ export class GlViewSync {
     for (const feature of world.features) {
       this.styling.patch(feature, {
         hide: landHidden(feature, camera, micro),
-        dot: showsAsDot(feature, camera, micro),
+        dot: showsAsDot(feature, camera, micro) && !(style.quizHideIdleDots && style.fill(feature) === COLORS.land),
         // a halo (area) and a dot never stand for the same country
         halo: micro !== 'off' ? Math.round(haloAlpha(feature, camera) * 20) / 20 : 0
       });

@@ -23,7 +23,7 @@
  */
 import { useEffect, useSyncExternalStore } from 'react';
 
-import { isPhoneLayout } from '~/shared/layout/viewport';
+import { isKeyboardLayout } from '~/shared/layout/viewport';
 
 export interface KeyboardState {
   /** px covered by the keyboard, 0 when closed. */
@@ -53,6 +53,12 @@ let kbEstimate = 0;
 let orientation: MediaQueryList | null = null;
 let frame = 0;
 let settleTimer = 0;
+/** An invisible `position: fixed; inset: 0` box: its height is the height `position: fixed` content
+ *  is laid out against, whatever `innerHeight` says. In Safari the two disagree while the toolbar
+ *  moves and after the keyboard has been dismissed and raised again — measuring `--kb` against
+ *  `innerHeight` then left the input bar floating off the keyboard (or under it). */
+let probe: HTMLElement | null = null;
+const followUps = new Set<number>();
 const listeners = new Set<() => void>();
 /** React hears about the keyboard only once it has stopped moving: the camera re-frames and the
  *  canvas redraws per notification, which must not happen on every frame of the animation. */
@@ -74,12 +80,13 @@ function read(): void {
   frame = 0;
   const vv = window.visualViewport;
   if (!vv) return;
-  layoutHeight = Math.max(layoutHeight, window.innerHeight);
+  const fixedH = probe && probe.offsetHeight > 0 ? probe.offsetHeight : window.innerHeight;
+  layoutHeight = Math.max(layoutHeight, fixedH);
   // a pinch-zoomed page has a smaller visual viewport too — that is not a keyboard
   const zoomed = Math.abs(vv.scale - 1) > 0.01;
-  const covered = window.innerHeight - (vv.offsetTop + vv.height);
+  const covered = fixedH - (vv.offsetTop + vv.height);
   const kb = !zoomed && covered >= MIN_KEYBOARD_PX ? Math.round(covered) : 0;
-  const open = !zoomed && window.innerHeight - vv.height >= MIN_KEYBOARD_PX;
+  const open = !zoomed && Math.max(fixedH, window.innerHeight) - vv.height >= MIN_KEYBOARD_PX;
   const top = zoomed ? 0 : Math.max(0, Math.round(vv.offsetTop));
   kbEstimate = Math.max(kbEstimate, kb, Math.round(layoutHeight * KEYBOARD_FRACTION_ESTIMATE));
 
@@ -116,10 +123,35 @@ function measure(now = false): void {
 
 const onViewportChange = () => measure();
 
+/** iOS moves the visual viewport for a focus change AFTER (and sometimes without) a resize event
+ *  we get, and leaves the page panned when the keyboard goes away: measure again as the animation
+ *  runs, and put a stuck pan back once nothing is focused. */
+const FOLLOW_UP_MS = [60, 160, 320, 560, 900];
+function onFocusChange(): void {
+  measure();
+  followUps.forEach(clearTimeout);
+  followUps.clear();
+  for (const ms of FOLLOW_UP_MS) {
+    followUps.add(
+      window.setTimeout(() => {
+        measure();
+        const editing = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+        if (!editing && (window.visualViewport?.offsetTop ?? 0) > 0 && !current.open) window.scrollTo(0, 0);
+      }, ms)
+    );
+  }
+}
+
 function subscribe(listener: () => void): () => void {
   const vv = window.visualViewport;
   if (listeners.size === 0) {
+    probe = document.createElement('div');
+    probe.setAttribute('aria-hidden', 'true');
+    probe.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;z-index:-1';
+    document.body.appendChild(probe);
     measure(true);
+    document.addEventListener('focusin', onFocusChange);
+    document.addEventListener('focusout', onFocusChange);
     vv?.addEventListener('resize', onViewportChange);
     vv?.addEventListener('scroll', onViewportChange);
     window.addEventListener('resize', onViewportChange);
@@ -130,6 +162,12 @@ function subscribe(listener: () => void): () => void {
   return () => {
     listeners.delete(listener);
     if (listeners.size === 0) {
+      document.removeEventListener('focusin', onFocusChange);
+      document.removeEventListener('focusout', onFocusChange);
+      followUps.forEach(clearTimeout);
+      followUps.clear();
+      probe?.remove();
+      probe = null;
       vv?.removeEventListener('resize', onViewportChange);
       vv?.removeEventListener('scroll', onViewportChange);
       window.removeEventListener('resize', onViewportChange);
@@ -168,7 +206,7 @@ export function useQuizPageLock(active: boolean): void {
     const html = document.documentElement;
     html.classList.add('is-quiz-locked');
     const onTouchMove = (e: TouchEvent) => {
-      if (!isPhoneLayout() || e.touches.length > 1 || !e.cancelable) return;
+      if (!isKeyboardLayout() || e.touches.length > 1 || !e.cancelable) return;
       const target = e.target instanceof Element ? e.target : null;
       if (target && target.closest(SCROLLABLE) && !target.closest(INERT)) return;
       e.preventDefault();

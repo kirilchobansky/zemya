@@ -12,7 +12,7 @@ import { SCOPE_VIEWS, type QuizScope, type QuizSize } from '~/features/countries
 import { useKeyboard, useQuizPageLock } from "~/shared/lib/keyboard";
 import { quizCameraHeld } from '../engine/finished-runs';
 import { NO_INSETS } from "~/engines/map/follow";
-import { isCoarsePointer, isPhoneLayout } from "~/shared/layout/viewport";
+import { isCoarsePointer, isKeyboardLayout, isPhoneLayout } from "~/shared/layout/viewport";
 import type { World } from "~/engines/map/types";
 import type { QuizEngine } from '../engine/engine';
 import { measureInsets } from '../engine/insets';
@@ -110,7 +110,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
   const strip = `${keyboard.kb}:${keyboard.top}:${keyboard.height}`;
   const lastFollowedStripRef = useRef(strip);
   useEffect(() => {
-    if (!atlas || !isPhoneLayout()) return;
+    if (!atlas || !isKeyboardLayout()) return;
     atlas.setInsets(running ? measureInsets() : NO_INSETS);
     return () => atlas.setInsets(NO_INSETS);
   }, [atlas, running, strip]);
@@ -124,7 +124,7 @@ export function useQuizAtlasBridge({ engine, definition, scope, requestedSize, s
       !running ||
       !target ||
       definition?.hidesMap ||
-      !isPhoneLayout()
+      !isKeyboardLayout()
     )
       return;
     const feature = world.byIso3.get(target.iso3);

@@ -12,7 +12,7 @@ import { quizCameraHeld } from '~/features/quizzes/engine/finished-runs';
 import { measureInsets } from '~/features/quizzes/engine/insets';
 import type { CountryRecord } from '~/engines/map/types';
 import { useQuizPageLock } from '~/shared/lib/keyboard';
-import { isCoarsePointer, isPhoneLayout } from '~/shared/layout/viewport';
+import { isCoarsePointer, isKeyboardLayout, isPhoneLayout } from '~/shared/layout/viewport';
 import type { Phase } from './name-all-types';
 
 export function useNameAllAtlas({ scope, phase, showMissing, paused, named, pool, ready, keyboardStrip, inputRef }: {
@@ -90,7 +90,7 @@ export function useNameAllAtlas({ scope, phase, showMissing, paused, named, pool
   /* The map's visible strip is what the HUD and the input bar leave, measured again whenever the
      keyboard opens or closes. The canvas never takes focus from the input during a run. */
   useEffect(() => {
-    if (!atlas || !isPhoneLayout()) return;
+    if (!atlas || !isKeyboardLayout()) return;
     atlas.setInsets(running ? measureInsets() : NO_INSETS);
     return () => atlas.setInsets(NO_INSETS);
   }, [atlas, running, keyboardStrip]);

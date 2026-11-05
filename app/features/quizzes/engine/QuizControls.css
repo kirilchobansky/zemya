@@ -86,7 +86,8 @@
   height: 34px;
 }
 
-@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px),
+  (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
   /* the input bar rides on the keyboard: bottom = the keyboard's height (0 when closed, and then
      it clears the home indicator instead) */
 
@@ -242,7 +243,8 @@
   border-color: var(--new);
 }
 
-@media (max-width: 819px), (pointer: coarse) and (max-height: 499px) {
+@media (max-width: 819px), (pointer: coarse) and (max-height: 499px),
+  (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
   /* Give up is a text button where the other quizzes have Skip / Reveal icons */
 
   .quiz-dock__btn--text {
@@ -251,5 +253,29 @@
     padding: 0 16px;
     border-radius: 999px;
     font-size: 14px;
+  }
+}
+
+/* A touch tablet keeps the desktop grid (rail, stage, panel) but opens the phone's keyboard, so the
+   input bar above rides on it too — across the STAGE only, not under the rail or the panel. Its
+   filler (::after) hides the map below the bar, the keyboard covers the rest. START centres on
+   the stage like the desktop dock. */
+
+@media (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
+  .quiz-controls {
+    left: var(--rail-width);
+    right: var(--panel-width);
+    max-width: none;
+    padding-left: max(12px, calc((100% - 560px) / 2));
+    padding-right: max(12px, calc((100% - 560px) / 2));
+  }
+
+  .quiz-dock__start {
+    left: calc(var(--rail-width) + (100% - var(--rail-width) - var(--panel-width)) / 2);
+  }
+
+  .quiz-dock__caption {
+    left: calc(var(--rail-width) + 24px);
+    right: calc(var(--panel-width) + 24px);
   }
 }

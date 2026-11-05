@@ -20,7 +20,7 @@ import { toFailure, type LoadFailure } from '~/engines/map/load-error';
 import type { RetryInfo } from '~/engines/map/retry';
 import { refreshMapColours, type MicroMode } from '~/engines/map/style';
 import type { CountryRecord, Feature, PlaceMark, World } from '~/engines/map/types';
-import { isPhoneLandscape, isPhoneLayout } from '~/shared/layout/viewport';
+import { isCoarsePointer, isPhoneLandscape, isPhoneLayout } from '~/shared/layout/viewport';
 import { useGo } from '~/shared/lib/navigation';
 import { reloadOnce } from '~/shared/lib/stale-deploy';
 import { onThemeChange } from '~/shared/lib/theme';
@@ -245,8 +245,7 @@ export function useMapController({ overlay, showNeighbours, micro, showNames, sh
             micro: 'full', // a quiz target must never be hidden by the player's Micro choice
             showCapitals: Boolean(quiz.onInspect) && showCapitals, // results only: nothing is being asked
             quizPlace,
-            quizMode: true,
-            quizNames: Boolean(quiz.onInspect), quizMissing: quiz.missing
+            quizMode: true, quizHideIdleDots: isCoarsePointer(), quizNames: Boolean(quiz.onInspect), quizMissing: quiz.missing
           }
         : {
             fill: f => fillFor(f, styleRef.current),

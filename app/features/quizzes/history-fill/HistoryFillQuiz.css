@@ -205,3 +205,16 @@
 .fill-quiz__side-toggle {
   margin: 12px 0;
 }
+
+/* A touch tablet keeps this layout but opens the on-screen keyboard: the screen ends where the
+   keyboard starts (--vv-top / --kb: app/shared/lib/keyboard.ts), so the sticky input stays in view
+   and the grid scrolls inside what is left — its last rows can be scrolled clear of the keyboard. */
+
+@media (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
+  .fill-quiz {
+    top: var(--vv-top, 0px);
+    bottom: var(--kb, 0px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}

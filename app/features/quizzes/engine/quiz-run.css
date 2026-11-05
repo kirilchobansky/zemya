@@ -267,3 +267,20 @@
     font-size: 17px;
   }
 }
+
+/* A touch tablet's run locks the page like a phone's does: the keyboard is up, and a drag that
+   nothing scrolls would pan the whole page up under it (useQuizPageLock, app/shared/lib/keyboard.ts). */
+
+@media (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
+  html.is-quiz-locked,
+  html.is-quiz-locked body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  html.is-quiz-locked body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+  }
+}

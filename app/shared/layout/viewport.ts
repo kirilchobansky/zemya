@@ -22,11 +22,16 @@ export const PHONE_QUERY = `(max-width: ${PHONE_MAX_WIDTH}px), (pointer: coarse)
  *  bar a slim vertical bar on the left. */
 export const LANDSCAPE_QUERY = '(orientation: landscape)';
 export const COARSE_QUERY = '(pointer: coarse)';
+/** A touch tablet (iPad, Android tablet): wide enough for the desktop grid, but it opens the same
+ *  on-screen keyboard as a phone, so a quiz run lays its input out on the keyboard too. The exact
+ *  complement of PHONE_QUERY among coarse pointers; mirrored in QuizControls.css and friends. */
+export const TABLET_QUERY = `(min-width: ${PHONE_MAX_WIDTH + 1}px) and (min-height: ${LANDSCAPE_PHONE_MAX_HEIGHT + 1}px) and (pointer: coarse)`;
 
 const matches = (query: string): boolean =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(query).matches;
 
 export const isPhoneLayout = (): boolean => matches(PHONE_QUERY);
+export const isTouchTablet = (): boolean => matches(TABLET_QUERY);
 export const isCoarsePointer = (): boolean => matches(COARSE_QUERY);
 
 /** Live media query for JS-side decisions. Server and first client render say `false`, so
@@ -44,4 +49,7 @@ export function useMediaQuery(query: string): boolean {
 }
 
 /** Phone layout AND landscape: the drawer arrangement. */
+/** A run lays its chrome out around the on-screen keyboard: a phone, or a touch tablet. */
+export const isKeyboardLayout = (): boolean => isPhoneLayout() || isTouchTablet();
+
 export const isPhoneLandscape = (): boolean => isPhoneLayout() && matches(LANDSCAPE_QUERY);

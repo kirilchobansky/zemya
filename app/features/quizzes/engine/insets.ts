@@ -16,12 +16,12 @@ export function measureInsets(): Insets {
   if (!canvas) return NO_INSETS;
   const c = canvas.getBoundingClientRect();
   if (!isPhoneLayout()) {
-    const dock = document.querySelector('.quiz-dock');
+    // a touch tablet's input is a bar on the keyboard (`.quiz-controls`, a real box there and
+    // `display: contents` on desktop, where it measures 0x0); a desktop's is the docked pill
+    const bar = document.querySelector('.quiz-controls')?.getBoundingClientRect();
+    const dock = bar && bar.height > 0 ? bar : document.querySelector('.quiz-dock')?.getBoundingClientRect();
     if (!dock) return NO_INSETS;
-    return {
-      ...NO_INSETS,
-      bottom: Math.max(0, c.bottom - dock.getBoundingClientRect().top),
-    };
+    return { ...NO_INSETS, bottom: Math.max(0, c.bottom - dock.top) };
   }
   const hud = document.querySelector('.quiz-hud');
   const bar = document.querySelector('.quiz-controls');
