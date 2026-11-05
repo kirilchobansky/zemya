@@ -266,6 +266,9 @@
 
   .quiz-controls {
     align-items: center;
+    /* above everything in the shell: the sidebar edge tabs and the stage clock sit at 9, and the
+       input must never be covered by them */
+    z-index: 30;
   }
 
   .quiz-dock__row {
