@@ -30,6 +30,7 @@ import { useFillRun } from './use-fill-run';
 import { useGo } from '~/shared/lib/navigation';
 import { keepFocus } from '~/features/quizzes/engine/QuizControls';
 import '~/features/quizzes/engine/quiz-run.css';
+import '~/features/quizzes/engine/quiz-run.tablet.css';
 import '~/features/quizzes/engine/quiz-list.css';
 import '~/features/quizzes/engine/quiz-list.phone.css';
 import './HistoryFillQuiz.css';

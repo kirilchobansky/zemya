@@ -20,6 +20,7 @@ import { useQuizAtlasBridge } from './use-quiz-atlas-bridge';
 import { useQuizRunData } from './use-quiz-run-data';
 import { useQuizTestSeams } from './use-quiz-test-seams';
 import '~/features/quizzes/engine/quiz-run.css';
+import '~/features/quizzes/engine/quiz-run.tablet.css';
 
 export function QuizRun() {
   const {

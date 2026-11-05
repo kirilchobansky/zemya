@@ -189,36 +189,49 @@ export function useKeyboard(): KeyboardState {
   return useSyncExternalStore(subscribe, () => state, () => CLOSED);
 }
 
-/** Where a touch may scroll while the page is locked: the run's own scrolling content. */
-const SCROLLABLE = '.fill-quiz, .panel__body';
 /** Inert even inside a scrollable area: the pause screens. */
 const INERT = '.quiz-pause, .fill-quiz__pause';
+
+/** The nearest ancestor that really scrolls vertically (sidebars, the panel body, the fill list),
+ *  so no list of class names has to know every scroller. Asked once per touch, not per move. */
+function scrollerAt(target: EventTarget | null): boolean {
+  if (!(target instanceof Element) || target.closest(INERT)) return false;
+  for (let el: Element | null = target; el && el !== document.body; el = el.parentElement) {
+    const overflowY = getComputedStyle(el).overflowY;
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return true;
+  }
+  return false;
+}
 
 /**
  * While `active` on a phone layout, a quiz run owns the screen: the page behind it cannot scroll,
  * rubber-band or be panned (html/body locked in CSS by `.is-quiz-locked`; iOS pans the visual
  * viewport on a drag that nothing scrolls, so such a touchmove is cancelled here). Only the run's
- * own content area (`SCROLLABLE`) scrolls. Removed on unmount.
+ * own scrolling areas (found by `scrollerAt`) scroll. Removed on unmount.
  */
 export function useQuizPageLock(active: boolean): void {
   useEffect(() => {
     if (!active) return;
     const html = document.documentElement;
     html.classList.add('is-quiz-locked');
+    let inScroller = false;
+    const onTouchStart = (e: TouchEvent) => {
+      inScroller = scrollerAt(e.target);
+    };
     const onTouchMove = (e: TouchEvent) => {
-      if (!isKeyboardLayout() || e.touches.length > 1 || !e.cancelable) return;
-      const target = e.target instanceof Element ? e.target : null;
-      if (target && target.closest(SCROLLABLE) && !target.closest(INERT)) return;
+      if (!isKeyboardLayout() || e.touches.length > 1 || !e.cancelable || inScroller) return;
       e.preventDefault();
     };
     // a focus() can still make the browser scroll the page to the input: put it back
     const onScroll = () => {
       if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
     };
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       html.classList.remove('is-quiz-locked');
+      document.removeEventListener('touchstart', onTouchStart);
       document.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('scroll', onScroll);
     };

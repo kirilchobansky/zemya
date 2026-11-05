@@ -33,6 +33,7 @@ import { useNameAllAtlas } from './use-name-all-atlas';
 import { useNameAllRun } from './use-name-all-run';
 import { useNameAllWorld } from './use-name-all-world';
 import '~/features/quizzes/engine/quiz-run.css';
+import '~/features/quizzes/engine/quiz-run.tablet.css';
 import './NameAllQuiz.css';
 
 export function NameAllQuiz({ scope, backTo }: { scope: QuizScope; backTo: string }) {
