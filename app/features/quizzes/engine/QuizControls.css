@@ -257,19 +257,11 @@
 }
 
 /* A touch tablet keeps the desktop grid (rail, stage, panel) but opens the phone's keyboard, so the
-   input bar above rides on it too — across the STAGE only, not under the rail or the panel. Its
-   filler (::after) hides the map below the bar, the keyboard covers the rest. START centres on
-   the stage like the desktop dock. */
+   input bar above rides on it too, edge to edge like the phone's (a stage-wide bar left the input too
+   narrow to read). Its filler (::after) hides the map below the bar. START centres on the stage
+   like the desktop dock. */
 
 @media (min-width: 820px) and (min-height: 500px) and (pointer: coarse) {
-  .quiz-controls {
-    left: var(--rail-width);
-    right: var(--panel-width);
-    max-width: none;
-    padding-left: max(12px, calc((100% - 560px) / 2));
-    padding-right: max(12px, calc((100% - 560px) / 2));
-  }
-
   .quiz-dock__start {
     left: calc(var(--rail-width) + (100% - var(--rail-width) - var(--panel-width)) / 2);
   }

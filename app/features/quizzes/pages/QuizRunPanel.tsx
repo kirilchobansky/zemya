@@ -59,12 +59,6 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
                 </div>
               </div>
 
-              {/* always present, empty when there is nothing to say — the buttons below it
-                  must not jump when a note appears or clears */}
-              <div className="quiz-run__note-slot">
-                {engine.lastNote && <div className="note">{engine.lastNote}</div>}
-              </div>
-
               <div className="actions">
                 <button
                   type="button"
@@ -105,6 +99,12 @@ export function QuizRunPanel({ engine, definition, scope, countries, revealed, b
                   <MissingSwitch on={showMissing} onToggle={onToggleMissing} />
                 </div>
               )}
+
+              {/* always present, empty when there is nothing to say — below the buttons, so they sit
+                  right under the timer and nothing jumps when a note appears or clears */}
+              <div className="quiz-run__note-slot">
+                {engine.lastNote && <div className="note">{engine.lastNote}</div>}
+              </div>
 
               {panelStage}
 
