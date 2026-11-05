@@ -71,8 +71,8 @@ export interface Style {
 export const COLORS = {
   ocean: '#080D13',
   context: '#16222D',
-  graticule: 'rgba(78,169,201,.075)',
-  graticuleMajor: 'rgba(78,169,201,.16)',
+  graticule: 'rgba(78,169,201,.045)',
+  graticuleMajor: 'rgba(78,169,201,.1)',
   land: '#31485A',
   microPin: '#68889D',
   labelHalo: 'rgba(8,13,19,.85)',

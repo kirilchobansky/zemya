@@ -26,6 +26,7 @@ import type { AtlasCallbacks, MapController } from './controller';
 import { GlCamera } from './gl-camera';
 import { GlCompare } from './gl-compare';
 import { anchorPoints } from './gl-geo';
+import { GlGridFill } from './gl-grid-fill';
 import { GlHover } from './gl-hover';
 import type { GlHost } from './gl-host';
 import { createGlMap, prepareTiles } from './gl-setup';
@@ -51,12 +52,12 @@ export class GlAtlas implements MapController, GlHost {
 
   private pulser: GlPulse;
   private resizeObserver: ResizeObserver;
-
   private styling: GlStyling;
   private viewSync: GlViewSync;
   private cam: GlCamera;
   private hover: GlHover;
   private compare: GlCompare;
+  private gridFill: GlGridFill;
 
   private constructor(
     readonly container: HTMLElement,
@@ -89,6 +90,7 @@ export class GlAtlas implements MapController, GlHost {
       takeSuppressedClick: () => this.compare.takeSuppressedClick()
     });
 
+    this.gridFill = new GlGridFill(this.map, container);
     this.map.on('move', this.cam.onMove);
     this.map.on('movestart', this.cam.onMoveStart);
     this.map.on('moveend', this.cam.onMoveEnd);
@@ -168,6 +170,7 @@ export class GlAtlas implements MapController, GlHost {
     this.container.removeEventListener('mousedown', this.compare.onCaptureStart, true);
     this.container.removeEventListener('touchstart', this.compare.onCaptureStart, true);
     this.compare.destroy();
+    this.gridFill.destroy();
     this.map.remove();
   }
 
@@ -196,6 +199,7 @@ export class GlAtlas implements MapController, GlHost {
    *  the colours, and place everything again. */
   redraw(): void {
     this.styling.applyPalette();
+    this.gridFill.applyColours();
     this.styling.installRingImage();
     (this.map.getSource(SOURCE.points) as GeoJSONSource | undefined)?.setData(anchorPoints(this.world));
     this.restyle();

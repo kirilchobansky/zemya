@@ -72,8 +72,8 @@
   --hover-fill: #456580;
   --hover-stroke: #7e9cb0;
   --border-default: rgba(10, 16, 23, 0.92);
-  --graticule-alpha: 0.075;
-  --graticule-major-alpha: 0.16;
+  --graticule-alpha: 0.045;
+  --graticule-major-alpha: 0.1;
 
   --density-1: #123846;
   --density-2: #1b5566;
