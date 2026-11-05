@@ -119,10 +119,21 @@
     height: var(--hud-h);
     padding: env(safe-area-inset-top, 0px) 4px 0 16px;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
     /* no backdrop-filter: a blur over a canvas that redraws is a per-frame paint cost */
     background: rgb(var(--chart-rgb) / 96%);
     border-bottom: 1px solid var(--rule);
+  }
+
+  .quiz-hud > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .quiz-hud > .quiz-hud__missing {
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
   }
 
   .quiz-hud__timer {
@@ -149,7 +160,7 @@
     /* the sheet's Back (panels.css .panel__up) look: small spaced mono capitals, muted */
     font-family: var(--font-mono);
     font-size: 10px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--ink-2);
   }

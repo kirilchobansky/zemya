@@ -74,3 +74,17 @@
     transition: none;
   }
 }
+
+/* On the phone HUD the label may take two lines ("Show / missing") so the back button, timer and
+   counter beside it stay on one line each */
+
+.missing-switch--compact .missing-switch__label {
+  max-width: 6.5em;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.missing-switch--compact {
+  flex: 0 1 auto;
+  min-width: 0;
+}
