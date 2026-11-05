@@ -30,7 +30,8 @@ async function walk(dir) {
 }
 
 const paths = (await walk(out)).map(f => relative(out, f).split(sep).join('/')).filter(p => !EXCLUDE.has(p)).sort();
-const hash = createHash('sha256');
+const template = await readFile(join(root, 'scripts/build/sw.template.js'), 'utf8');
+const hash = createHash('sha256').update(template);
 const sizes = new Map();
 for (const path of paths) {
   const bytes = await readFile(join(out, path));
@@ -42,7 +43,6 @@ const url = path => '/' + path.split('/').map(encodeURIComponent).join('/');
 const core = paths.filter(isCore).map(url);
 const rest = paths.filter(p => !isCore(p)).map(url);
 
-const template = await readFile(join(root, 'scripts/build/sw.template.js'), 'utf8');
 const source = template
   .replace('__VERSION__', version)
   .replace('__CORE__', JSON.stringify(core))

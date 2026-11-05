@@ -1285,12 +1285,20 @@ contents and splices the file list and version into `scripts/build/sw.template.j
   cache `zemya-<version>`; if it fails, install fails. The rest (country/, quiz/, quizzes/, study/,
   history/, questions/, flags/, every `*.data`) is filled in the background, idempotently, and
   re-attempted when a worker starts (iOS may stop the first run); its failure never fails install.
-  Activate deletes older `zemya-*` caches. No `skipWaiting`: a new version takes over on the next launch.
-- **Fetch:** GET, same origin only, `ignoreSearch`. A navigation to `/x` is served from
-  `/x/index.html`; offline and uncached -> `/404.html`. Everything is cache-first with network
-  fallback; `request.cache` of `reload`/`no-store` (retry.ts, pmtiles-archive.ts retries) is
-  network-first with cache fallback. Only 200s are stored. `/_vercel/*` (analytics, speed-insights)
-  is network-only and answers an empty script offline, so it fails silently.
+  Activate deletes older `zemya-*` caches. `skipWaiting` runs after the core precache succeeds and
+  `clients.claim()` on activate, so a fixed worker replaces a broken one at once.
+- **Redirected responses:** Vercel's `cleanUrls` 308s `/x/index.html` -> `/x`, so a precached page has
+  `response.redirected = true`, which Safari refuses to serve to a navigation ("response served by
+  service worker has redirections"). Such responses are rebuilt from the same bytes
+  (`redirected === false`) before storing and again before serving.
+- **Fetch:** GET, same origin only. One cache key per pathname (never the query string); a navigation
+  to `/x` uses `/x/index.html`. Pages, `*.data` and `/data/*` (and flags, manifest) are
+  **network-first**: the network if it answers within 4 s, otherwise the cache (a slow answer still
+  refreshes it); offline and uncached navigation -> `/404.html`. `/assets/*` (hashed, immutable) is
+  **cache-first**. Only 200s are stored. Network-first keeps page and data from the same deploy,
+  which is what makes `skipWaiting` safe and stops phones holding an old version.
+  `/_vercel/*` (analytics, speed-insights) is network-only and answers an empty script offline.
+  The worker template is hashed into VERSION, so changing worker logic changes the cache name.
 - Registered on window load in `root.tsx` (`app/shared/lib/register-sw.ts`), production only, scope `/`.
   `sw.js` is covered by the existing non-assets `Cache-Control: max-age=0, must-revalidate` rule in `vercel.json`.
 - Fonts (Archivo, Fraunces, IBM Plex Mono) are self-hosted via `@fontsource/*` devDependencies

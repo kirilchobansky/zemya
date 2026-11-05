@@ -5,13 +5,37 @@ const CACHE = 'zemya-' + VERSION;
 const CORE = __CORE__;
 const REST = __REST__;
 const PARALLEL = 6;
+const NETWORK_TIMEOUT = 4000; // ms to wait for the network before falling back to the cache
+
+/** Safari and Chrome refuse to show a response whose `redirected` flag is set when it answers a
+ *  navigation ("response served by service worker has redirections"). Vercel's cleanUrls 308s
+ *  /x/index.html -> /x, so a precached page always arrives redirected. A Response rebuilt from the
+ *  same bytes has redirected === false. Applied when storing AND when serving. */
+async function clean(response) {
+  if (!response || !response.redirected) return response;
+  return new Response(await response.blob(), {
+    status: response.status, statusText: response.statusText, headers: response.headers
+  });
+}
+
+/** One cache entry per page/file, keyed by pathname (never by query string). A navigation to /x
+ *  is stored and found as the prerendered /x/index.html, the same key the precache list uses. */
+function cacheKey(request, url) {
+  if (request.mode !== 'navigate') return url.pathname;
+  return url.pathname.replace(/\/+$/, '') + '/index.html';
+}
+
+async function store(key, response) {
+  if (response.status !== 200) return;
+  try { await (await caches.open(CACHE)).put(key, await clean(response)); } catch (error) { /* quota: serve anyway */ }
+}
 
 /** Fetch one file past the HTTP cache and store it, unless it is already there. Only 200s are kept. */
 async function precacheOne(cache, url) {
   if (await cache.match(url)) return;
   const response = await fetch(url, { cache: 'reload' });
   if (response.status !== 200) throw new Error(url + ' -> ' + response.status);
-  await cache.put(url, response);
+  await cache.put(url, await clean(response));
 }
 
 async function precacheAll(urls, strict) {
@@ -37,61 +61,52 @@ function fillRest() {
 }
 
 self.addEventListener('install', event => {
-  // No skipWaiting: a new version takes over on the next launch.
-  event.waitUntil(precacheAll(CORE, true).then(fillRest));
+  // skipWaiting: a worker that has its core cached replaces the previous one at once, so a
+  // broken version never outlives the fix. Safe because everything except /assets/* is
+  // network-first, so a page and its data come from the same deploy.
+  event.waitUntil(precacheAll(CORE, true).then(fillRest).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k.startsWith('zemya-') && k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
       .then(fillRest)
   );
 });
 
-async function store(request, response) {
-  if (response.status !== 200) return;
-  try { await (await caches.open(CACHE)).put(request, response); } catch (error) { /* quota: serve anyway */ }
+async function fromCache(key) {
+  return clean(await (await caches.open(CACHE)).match(key));
 }
 
-/** A navigation to /x is the prerendered /x/index.html. */
-function navigationKey(url) {
-  const path = url.pathname.replace(/\/+$/, '');
-  return path + '/index.html';
-}
-
-async function fromCache(request, url) {
-  const options = { ignoreSearch: true };
-  if (request.mode === 'navigate') return (await caches.match(navigationKey(url), options)) || (await caches.match(request, options));
-  return caches.match(request, options);
-}
-
-async function networkFirst(request, url) {
-  try {
-    const response = await fetch(request);
-    store(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await fromCache(request, url);
-    if (cached) return cached;
-    throw error;
-  }
-}
-
-async function cacheFirst(request, url) {
-  const cached = await fromCache(request, url);
+/** Hashed build files (/assets/*) never change under the same name: cache first. */
+async function cacheFirst(request, key) {
+  const cached = await fromCache(key);
   if (cached) return cached;
+  const response = await fetch(request);
+  store(key, response.clone());
+  return response;
+}
+
+/** Everything else (pages, .data, /data/*, flags, manifest): the network when it answers within
+ *  NETWORK_TIMEOUT, otherwise the cached copy. A slow answer still refreshes the cache. Online
+ *  you always get the latest deploy; offline, or on a bad connection, you get the saved one. */
+async function networkFirst(request, key) {
+  const network = fetch(request).then(response => { store(key, response.clone()); return response; });
+  network.catch(() => {}); // a late failure after the timeout must not surface as unhandled
+  const timeout = new Promise(resolve => setTimeout(resolve, NETWORK_TIMEOUT, null));
   try {
-    const response = await fetch(request);
-    store(request, response.clone());
-    return response;
-  } catch (error) {
-    if (request.mode === 'navigate') {
-      const page = await caches.match('/404.html');
-      if (page) return page;
-    }
-    throw error;
+    const response = await Promise.race([network, timeout]);
+    if (response) return response;
+  } catch (error) { /* offline: fall through to the cache */ }
+  const cached = await fromCache(key);
+  if (cached) return cached;
+  if (request.mode === 'navigate') {
+    const page = await fromCache('/404.html');
+    if (page) return page;
   }
+  return network; // nothing saved: keep waiting for the network
 }
 
 /** Vercel analytics / speed-insights: network only, and an empty script when offline. */
@@ -108,6 +123,6 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin) return;
   fillRest();
   if (url.pathname.startsWith('/_vercel/')) { event.respondWith(telemetry(request)); return; }
-  const fresh = request.cache === 'reload' || request.cache === 'no-store';
-  event.respondWith(fresh ? networkFirst(request, url) : cacheFirst(request, url));
+  const key = cacheKey(request, url);
+  event.respondWith(url.pathname.startsWith('/assets/') ? cacheFirst(request, key) : networkFirst(request, key));
 });
