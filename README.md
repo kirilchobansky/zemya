@@ -85,7 +85,7 @@ npm install
 npm run dev
 ```
 
-Opens at `http://localhost:5173` (Node 20+). Project rules and decisions are in [CLAUDE.md](CLAUDE.md); architecture, quizzes, performance and deployment notes are in [docs/](docs/).
+Opens at `http://localhost:5173` (Node 26, pinned in `.nvmrc` and `engines`). Project rules and decisions are in [CLAUDE.md](CLAUDE.md); architecture, quizzes, performance and deployment notes are in [docs/](docs/).
 
 ## 📚 Data sources
 
