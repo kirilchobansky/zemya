@@ -129,8 +129,13 @@ Solo project, one machine, one person. No branches, no pull requests, no CI.
   build`. `npm test` (needs `npm run build` first; `CHROMIUM_PATH=/opt/pw-browsers/chromium`
   here), screenshots and `npm run perf` run ONLY when a prompt explicitly asks. Run `npm run
   build:content` too when content changed, committing the regenerated `public/data` with it.
-- This sandbox can read the repo but not push. Leave commits unpushed; the owner clicks
-  Sync in VS Code — a push failing here is expected, not an error to chase.
+- **Push only when a prompt asks**; otherwise leave commits unpushed (the owner clicks Sync
+  in VS Code). Before a push: `git fetch`, rebase onto `origin/main`, re-run the default
+  verification.
+- **Production:** Vercel's production branch is `release` (stale), so a push to `main` only
+  builds a **preview**. Promote **only when the owner says so**: wait for the preview of the
+  pushed commit to be Ready, check its build log, then `vercel promote <preview-url> --scope
+  kiril-s-projects4`. Never change the production branch or other project settings unasked.
 - Record any decision the prompt did not specify — a name, a data shape, a trade-off, a
   deviation — in CLAUDE.md (or the matching `docs/` file) in the same commit; one that lives
   only in a commit message or chat reply gets relitigated. Update "## Where this is" (and
