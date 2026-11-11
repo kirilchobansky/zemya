@@ -132,7 +132,8 @@ Solo project, one machine, one person. No branches, no pull requests, no CI.
 - **Push only when a prompt asks**; otherwise leave commits unpushed (the owner clicks Sync
   in VS Code). Before a push: `git fetch`, rebase onto `origin/main`, re-run the default
   verification.
-- **Production:** Vercel's production branch is `release` (stale), so a push to `main` only
+- **Production:** Vercel's production branch is set to `release`, a branch deleted on
+  2026-11-11 (deliberately left set: it keeps production manual), so a push to `main` only
   builds a **preview**. Promote **only when the owner says so**: wait for the preview of the
   pushed commit to be Ready, check its build log, then `vercel promote <preview-url> --scope
   kiril-s-projects4`. Never change the production branch or other project settings unasked.
